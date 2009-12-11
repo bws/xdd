@@ -1,0 +1,323 @@
+  -align [target <target#>] <#bytes>                       
+    Align memory on an #-byte boundary - should be an even number
+
+  -blocksize [target <target#>] <#bytes/block>
+    Specifies the size of a single 'block'.   
+
+  -combinedout <filename>
+    Will direct a copy of just the Combined output lines to be 'appended' to the specified file
+
+  -createnewfiles [target <target#>]
+    Will continually create new target files by appending a number to the target file name for each new file
+
+  -csvout <filename>
+    Will direct Comma Separated Values output to the specified file
+
+  -datapattern [target <target#>] <c> | random | sequenced | prefix <hexdigits> | inverse | ascii <asciistring> | hex <hexdigits> | replicate | lfpat | ltpat | cjtpat | crpat | cspat                                                                                    
+    -datapattern 'c' will use the character c as the data pattern to write                                                           
+       If the word 'random' is specified for the pattern then a random pattern will be generated                                     
+       If the word 'sequenced' is specified for the pattern then a sequenced number pattern will be generated                        
+       If the word 'prefix' is specified for the pattern then the specified hex digits will be placed in the upper N bits of the 64-bit pattern                                                                                                                           
+       If the word 'inverse' is specified for the pattern then the actual pattern will be the 1's compliment of the specified pattern
+       If the word 'ascii' is specified then the following string is used as a single pattern                                        
+       If the word 'hex' is specified then the following hex characters <0-9,a-f or A-F> are used as the pattern                     
+       If the word 'replicate' is specified then whatever pattern was specified is replicated throughout the buffer                  
+If any of the words 'lfpat, ltpat, cjtpat, crpat, or cspat' is specified then the 8B/10B stress patterns are used.                   
+                Default data pattern is all binary 0's                                                                               
+
+  -debug
+    Will print out debug information, more for each instance
+
+  -delay #seconds
+    Specifies the number of seconds to delay between passes
+
+  -deletefile [target <target#>]
+    Will delete the target file upon completion IFF the target is a regular file
+
+  -deskew
+    Will cause the calculated bandwidth and IOPs to be deskewed before being reported
+
+  -devicefile
+    Indicates that the file being accessed is a device - Windows only
+  -dio [target <target#>]                                            
+    Will use DIRECTIO on targets that are files                      
+
+  -endtoend [target #]  destination <hostname> | port <#> | useUDP 
+    Specifies a source and destination for doing end-to-end between to machines
+  -errout <filename>                                                           
+    Will direct all error output to the specified file                         
+
+  -flushwrite [target <target#>] <#>
+    Perform a flush operation every so many write operations
+
+  -fullhelp
+    Extended Help - displays all kinds of unsful information
+  -heartbeat #                                              
+    Will print out running counters every # seconds         
+
+  -help <option_name>
+    Will print out extended help for a specific option 
+
+  -id "string" | commandline 
+    Specifies an arbitrary ID string to place in the time stamp file and printed on stdout
+
+  -kbytes [target <target#>] <#>
+    Specifies the number of 1024-byte blocks to transfer during a single pass
+
+  -lockstep <mastertarget#> <slavetarget#> <time|op|percent|mbytes|kbytes> # <time|op|percent|mbytes|kbytes># <wait|run> <complete|stop>                                                                                                                                  
+  Where 'master_target' is the target that tells the slave when to do something.                                                     
+        'slave_target' is the target that responds to requests from the master.                                                      
+        'when' specifies when the master should tell the slave to do something.                                                      
+  The word 'when' should be replaced with the word:                                                                                  
+        'time', 'op', 'percent', 'mbytes', 'kbytes'.                                                                                 
+        'howlong' is either the number of seconds, number of operations, ...etc.                                                     
+        - The interval time in seconds <a floating point number> between task requests from the                                      
+          master to the slave. i.e. if this number were 2.3 then the master would request                                            
+          the slave to perform its task every 2.3 seconds until.                                                                     
+        - The operation number that defines the interval on which the master will request                                            
+          the slave to perform its task. i.e. if the operation number is set to 8 then upon                                          
+          completion of every 8 <master> operations, the master will request the slave to perform its task.                          
+        - The percentage of operations that must be completed by the master before requesting                                        
+          the slave to perform a task.                                                                                               
+        - The number of megabytes <1024*1024 bytes> or the number of kilobytes <1024 bytes>                                          
+        'what' is the type of task the slave should perform each time it is requested to perform                                     
+          a task by the master. The word 'what' should be replaced by:                                                               
+        'time', 'op', 'percent', 'mbytes', 'kbytes'.                                                                                 
+    'howmuch' is either the number of seconds, number of operations, ...etc.                                                         
+            - The amount of time in seconds <a floating point number> the slave should run before                                    
+          pausing and waiting for further requests from the master.                                                                  
+        - The number of operations the slave should perform before pausing and waiting for                                           
+          further requests from the master.                                                                                          
+        - The number of megabytes <1024*1024 bytes> or the number of kilobytes <1024 bytes>                                          
+          the slave should transfer before pausing and waiting for further requests from the master.                                 
+        'startup' is either 'wait' or 'run' depending on whether the slave should start running upon                                 
+          invocation and perform a single task or if it should simply wait for the master to                                         
+          request it to perform its first task.                                                                                      
+        'Completion' - in the event that the master finishes before the slave, then the slave will have                              
+          the option to complete all of its remaining operations or to just stop at this point.                                      
+          This should be specified as either 'complete' or 'stop'.                                                                   
+
+  -lockstepoverlapped
+    See -lockstep    
+  -maxall            
+    Will set maximumpriority and processlock
+
+  -maxerrors #
+    Specifies the total number of errors to tollerate before giving up
+    The default is to NEVER give up                                   
+
+  -maxerrorstoprint #
+    Specifies the total number of errors to print information about - this mainly applies to 'compare' errors for -verify contents
+    The default is about 10                                                                                                       
+
+  -maxpri
+    Will set the process to maximum priority
+
+  -mbytes [target <target#>] <#>
+    Specifies the number of 1024*1024-byte blocks to transfer in a single pass
+
+  -memoryusage
+    Displays information about memory usage and then exits
+  -minall                                                 
+    Will set not lock memory, process, or reset process priority
+
+  -multipath paths <#paths> <target#> <target#> <target#> ... | roundrobin | rr | load <percent_load> | useonly <#paths> <target#> <target#> ...                                                                                                                          
+    Will set up an alternate path access for the specified targets. Path switching is based on one of the stated policies            
+      which are 'roundrobin' <aka 'rr'> or 'load' or 'useonly'                                                                       
+
+  -nobarrier
+    Turns off barriers before operation. All threads are free running
+
+  -nomemlock
+    Will set not lock memory
+
+  -noproclock
+    Will set not lock process into memory
+
+  -numreqs [target <target#>] <#>
+    Specifies the number of requests of request_size to issue
+
+  -operation [target <target#>] read|write
+   The operation is either 'read', 'write', -or- 'target # read' -or- 'target # write'
+   The 'target # <op>' will cause the specified target to perform the specified operations
+   The default is 'read' for all targets unless otherwise specified                       
+
+  -output <filename>
+    Will direct all output to the specified file
+
+  -passes #
+    Specifies the number of times to read mbytes -or- the number of times to issue 'numreqs' requests
+
+  -passoffset [target <target#>] <#blocks>
+    Specifies the number of blocks to offset between passes
+
+  -percentcpu <absolute | releative>
+    Specifies the meaning of the CPU utilization values
+      where 'absolute' is the amount of CPU time divided by the wall-clock time
+            'relative' is the amount of user or system time divided by user+system time
+    Default is 'abosolute'                                                             
+
+  -preallocate [target <target#>] <#blocks>
+    Will preallocate # blocksize blocks before writing a file.
+
+  -processlock
+    Will lock the process in memory
+
+  -processor target# processor#
+    Specifies which processor xdd should run on for a particular target
+    Requires the processor number and the associated target number     
+
+  -queuedepth #cmds
+    Specifies the number of commands to queue on the target
+
+  -qthreadinfo
+    Will print out information about each of the queue threads 
+
+  -randomize [target <target#>]
+    Will re-randomize the seek list between passes
+
+  -readafterwrite [target #] trigger <stat | mp> | lag <#> | reader <hostname> | port <#>
+    Specifies a reader and writer for doing read-after-writes to a single target         
+  -reallyverbose                                                                         
+    Displays way more information than you need to know                                  
+  -recreatefiles [target <target#>]                                                      
+    Will recreate a new target file on each pass                                         
+
+  -reopen [target <target#>]
+    Will cause the target file to be closed at the end of each pass and re-opened at the beginning of each pass
+
+  -reportthreshold [target #] <#.#>
+    The report threshhold will report the byte location of the operation that exceeded the specified threshold time.
+
+  -reqsize [target <target#>] <#blocks>
+    Specifies the number of 'blocks' per operation where the block size is defined by the '-blocksize' option
+    If the request size is specified in the format '-reqsize target <targetnumber> <size>'                   
+    then the speficied target is assigned the specified request size                                         
+
+  -retry [target <target#>] <#retries
+    Will retry an operation '#retries' times before continuing to next operation
+
+  -roundrobin # or 'all'
+    Specifies that the threads for multiple targets should be distributed across # processors
+    If the word 'all' is specified then all available processors will be used.               
+
+  -runtime #seconds
+    Specifies the number of seconds the entire run should take.
+    This will set the pass count to infinite and will cause the run to end after the specified number of seconds.
+
+  -rwratio [target <target#>] <ratio>
+     Specifies the percentage of read operations to write operations.
+     A value of 0 will result in no read operations and 100% write operations.
+     A value of 100 will result in 100% read operations and no write operations.
+     Values between 0 and 100 will adjust the read and write operations accordingly.
+     Values less than 0 or greater than 100 will result in an error.                
+
+  -seek [target <target#>] save <filename> | load <filename> | disthist #buckets | seekhist #buckets | sequential | random | range #blocks | stagger | interleave #blocks | seed # | none                                                                                 
+    -seek 'save <filename>' will save the seek list in the file specified                                                            
+    -seek 'load <filename>' will load the seek list from the file specified                                                          
+    -seek 'disthist #buckets' will display a 'seek distance' histogram using the specified number of 'buckets'                       
+    -seek 'seekhist #buckets' will display a 'seek location' histogram using the specified number of 'buckets'                       
+    -seek 'sequential' will generate sequential seeks - this is the default                                                          
+    -seek 'random' will generate random seeks over the range specified in -range                                                     
+    -seek 'range #' is the range of blocksized-blocks over which to operate                                                          
+    -seek 'stagger' specifies a staggered sequential access over 'range'                                                             
+    -seek 'interleave #' specifies the number of blocksized blocks to interleave into the access pattern                             
+    -seek 'seed #' specifies a seed to use when generating random numbers                                                            
+    -seek 'none' do not seek - retransfer the same block each time                                                                   
+
+  -setup filename
+    Specifies a file contains more command-line options
+
+  -sgio
+    Will use SCSI Generic I/O <linux only>
+
+  -sharedmemory [target <target#>]
+    Will use a shared memory segment instead of the normal malloc/valloc for the I/O buffer.
+
+  -singleproc #
+    Specifies that all xdd processes for multiple targets should run on processor #
+    Requires the processor number to run on                                        
+
+  -startdelay [target <target#>]#.#seconds
+    Specifies the number of seconds to delay before starting.
+    If the startdelay is specified in the format '-startdelay target <targetnumber> <seconds>'    then the speficied target is assigned the specified start delay                                                                                                         
+
+  -startoffset [target <target#>] #
+    Specifies the disk offset in 'blocksize'-byte blocks to begin the operation.
+
+  -starttime #seconds
+    Specifies the global start time in seconds - to be used for distributed, synchronize runs 
+
+  -starttrigger <target#> <target#> <<time|op|percent|mbytes|kbytes> #>
+                                                                       
+  -stoponerror                                                         
+    Will cause all targets and threads to stop on the first error encountered by *any* target
+  -stoptrigger <target#> <target#> <<time|op|percent|mbytes|kbytes> #>                       
+                                                                                             
+  -syncio #                                                                                  
+    Will synchonize every #th I/O operation.                                                 
+
+  -syncwrite [target <target#>]
+    Will cause all write buffers to flush to disk.
+
+  -target filename
+    Specifies the device or file to perform operation on
+    Required parameter - no default unless -targets option used
+    See also: -targets                                         
+
+  -targetdir [target <target#>] <directory_name>
+    Specifies the target directory that specific target or all targets live in
+
+  -targetoffset #    Specify an offset in 'blocksize'-byte blocks that is multiplied by the target number and added to each target's starting location                                                                                                                    
+
+  -targets # filename filename filename... -or- -targets -# filename
+    Specifies the devices or files to perform operation on          
+    Requires number of files plus list of devices and/or file names to use as targets 
+    If the number of devices is negative, then duplicate the single device and/or file name # times
+
+  -targetstartdelay #.#seconds
+    Specify a delay in seconds that is multiplied by the target number and added to each target's start time
+
+  -throttle [target <target#>] <ops|bw|var> <#.#ops | #.#MB/sec | #.#var>
+    -throttle <ops|bw|var> #.# will cause each target to run at the IOPS or bandwidth specified as #.#
+    -throttle target N ops #.# will cause the target number N to run at the number of ops per second specified as #.#
+    -throttle target N bw #.#  will cause the target number N to run at the bandwidth specified as #.#               
+    -throttle target N var #.#  specifies that the BW or IOPS rate should vary by the amount specified.              
+
+  -timelimit [target <target#>] <#seconds>
+    Specifies the maximum number of seconds for each pass
+
+  -timerinfo
+    Will print out overhead information for various timer functions used
+
+  -timeserver <host hostname | port # | bounce #>
+    -timeserver 'host' will use [hostname] as the time server in a distributed, synchronized run
+    -timeserver 'port' will use # as the port number to use to talk to the time server host
+    -timeserver 'bouce' will use # as the bounce count to use to talk to ping the time server host
+
+  -ts [target <target#>] summary|detailed|wrap|oneshot|size #|append|output <filename>|dump <filename>|triggertime <seconds>|triggerop <op#>
+    -ts  'summary' will turn on time stamping with summary reporting option
+    -ts  'detailed'  will turn on time stamping with detailed reporting option
+    -ts  'wrap'  will cause the timestamp buffer to wrap after N timestamp entries are used. Should be used in conjunction with -ts size.
+    -ts  'oneshot' will stop time stamping after all timestamp entries are used.
+    -ts  'size #'  will restrict the size of the timestamp buffer to # entries.
+    -ts  'triggertime #seconds'  will restrict the size of the timestamp buffer to # entries.
+    -ts  'triggerop op#'  will restrict the size of the timestamp buffer to # entries.
+    -ts  'append'  will append output to existing output file.
+    -ts  'output filename' will print the output to file 'filename'. Default output is stdout
+    -ts  'dump filename'  will turn on time stamping and dump a binary time stamp file to 'filename'
+    Default is no time stamping.
+
+  -verbose
+    Will print out statistics on each pass
+
+  -verify [target <target#>] location|contents
+    -verify  'location'  will verify the block location is correct
+    -verify  'contents' will verify the contents of the data buffer read is the same as the specified data pattern
+
+  -version
+    Will print out the version number of this program
+
+  -writeafterread or war
+  see 'endtoend or e2e'
+

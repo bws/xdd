@@ -1,0 +1,44 @@
+The following document describes a series of test cases that should be run to determine basic functionality of the important options within XDD
+Each test case has the following:
+
+Test Case Name
+Description
+Command line
+Option Descriptions
+    Option Name
+    Option Value
+    Effect on the run
+Possible errors/outcomes
+Variations (name of other tests)
+
+----------------
+Name:  Version
+Description: Run xdd with the -version option to get the current version of this instance of xdd
+Command Line:    xdd -version
+Options
+	-version
+	No value for this option
+	If the "-version" option is specified along with other options then "-version" takes precedence and will simply display the version and exit - all other commandline options are ignored
+Outcome: Will cause XDD to print the version and exit
+Variations: None.
+----------------
+Name: The -targets option - writing/reading a single target specification 
+Command line: 
+xdd -op write -targets 1 foo -reqsize 1024 -mbytes 16 
+Options:
+	"-op write" indicates that XDD should write to the specified target(s)
+	"-targets 1 foo" indicates that XDD should create or open a single file called "foo" in the current directory
+	"-reqsize 1024" indicates that XDD should transfer data in 1024 KByte chunks
+	"-mbytes 16" indicates that XDD should transfer a total of 16 megabytes (16*1024*1024 bytes)
+Outcome:
+Upon successful completion of this command, XDD will create a file called "foo" and write 16 megabytes into this file (exactly 16,777,216 bytes), close the file and exit after displaying performance information on stdout.
+If the file "foo" does not exist before the invocation of this XDD command, XDD will create "foo" and display an informational message that it did create the file "foo". If the file "foo" already existed then XDD will simply write to the existing file "foo".
+Variations:
+	None. 
+----------------
+
+
+Name: The -targets option - writing/reading a multiple targets specification for different targets
+Name: The -targets option - writing/reading a multiple instances of a single target specification for different targets
+Name: The -targets option - writing/reading a multiple instances of a single target specification using the same target
+
