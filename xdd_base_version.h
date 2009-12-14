@@ -1,1 +1,1 @@
-#define XDD_BASE_VERSION "Linux.7.0RC5.102709.Build.1708"
+#define XDD_BASE_VERSION "Linux.7.0.0.rc6.121409.Build.1614"
