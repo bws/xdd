@@ -1,0 +1,15 @@
+-----------------------
+XDD Release ChangeLog
+-----------------------
+
+xdd-7.0.0 RC7
+=============
+* CHANGES file added for changelog information.
+* HOWTO file added describing how a release is cut.
+* xddcp script included that works with this version of XDD (?).
+
+
+xdd-7.0.0 RC6
+=============
+* Randomized reads now work with random offsets.
+* xdd_forkthread.sh script included to demonstrate forkthread behavior.

@@ -1,0 +1,38 @@
+This document describes how to cut a release of the XDD software.
+--
+
+
+Before anything else, Tom, Steve, all get the tree to a place where it 
+has the features we think it needs.  This includes modifying the CHANGES 
+file so that it contains a summary of what new features the tree should 
+contain.
+
+Then perform the following steps:
+
+1.  Retrieve the repository:
+	> git clone ssh://home.ccs/ccs/proj/csc040/var/git/xdd.git
+
+2.  Increment the version release number for the build.  Versions 
+numbers are in the format MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE].  This 
+is the standard convention for most Linux software packaged and publicly 
+available:
+	> vi Makefile # and edit the VERSION variable
+	> make baseversion
+
+3.  Test the new features:
+	> cd xdd
+	> make
+	> ./run_some_tests.sh . . .
+
+4.  If the tests don't pass, we go back to before step 1.  Otherwise, we 
+continue cutting the release.
+
+5.  Tag the code.
+	> git commit -a	
+	> git tag XDD_MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE]
+
+6.  Push everything back up to the durmstrang repository:
+	> git push --tags
+
+At this point, the release is ready.  It can be retrieved by anyone with 
+access to the repository.
