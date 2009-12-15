@@ -4,7 +4,7 @@ XDD Release ChangeLog
 
 xdd-7.0.0 RC7
 =============
-* CHANGES file added for changelog information.
+* ChangeLog file added for changelog information.
 * HOWTO file added describing how a release is cut.
 * xddcp script included that works with this version of XDD (?).
 
