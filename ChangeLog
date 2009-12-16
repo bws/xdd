@@ -6,7 +6,8 @@ xdd-7.0.0 RC7
 =============
 * ChangeLog file added for changelog information.
 * HOWTO file added describing how a release is cut.
-* xddcp script included that works with this version of XDD (?).
+* xddcp script updated to work with -e2e style options and fix mis-quote
+* Add -bytes option to specify any file size for transfer.
 
 
 xdd-7.0.0 RC6
