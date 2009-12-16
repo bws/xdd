@@ -1,4 +1,4 @@
-#! /bin/bash 
+#!/bin/sh 
 
 if [ "$1" == "-h" ]
 then
@@ -25,14 +25,14 @@ if [ $? -eq 1 ]; then
 	exit -1
 fi
 
-which xdd.linux >/dev/null 2> /dev/null
+which xdd >/dev/null 2> /dev/null
 
 if [ $? -eq 1 ]; then
-        echo "xdd.linux executable was not found.  Please make sure it in your PATH."
+        echo "xdd executable was not found.  Please make sure it in your PATH."
         exit 1
 fi
 
-uselocalDIO=" "			# To use Direct IO on the local side
+uselocalDIO=" "		# To use Direct IO on the local side
 queuedepth=4       # queuedepth = number of I/O threads
 
 while getopts dt: option
@@ -120,7 +120,7 @@ let "reqsize      = $xfer / $blocksize"
 #date
 qipcrm ${USER}
 pgrep -u ${USER} -f xdd.linux | xargs kill -9 2> /dev/null
-ssh ${HDestin} 'pgrep -u ${USER} -f xdd | xargs kill -9; qipcrm ${USER}' 
+ssh ${HDestin} 'pgrep -u ${USER} -f xdd.linux | xargs kill -9; qipcrm ${USER}' 
 #ssh ${HDestin} "mkdir -m 1777 /dev/shm/condata" 2> /dev/null
 
 #################################################
@@ -130,14 +130,14 @@ test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".file-to-file.xfs.xdd"
 
 #ssh ${HDestin} xdd.linux -targets 1 ${TDDestin} -minall -numreqs $numreqs  -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op write -war writer ${HDestinIP} ${WARPORT1}  ${useDIO} &> ${test}.${HDestin}.out &
 
-ssh ${HDestin} "xdd -targets 1 ${TDDestin} -noconfidump -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op write -e2e isdestination -e2e destination ${HDestinIP} ${E2EPORT1}  ${useDIO} &> ${test}.${HDestin}.out &"
+ssh ${HDestin} "xdd -targets 1 ${TDDestin} -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op write -e2e isdestination -e2e dest ${HDestinIP} ${E2EPORT1}  ${useDIO} &> ${test}.${HDestin}.out &"
 
 sleep 6
 
 #ssh ${HSource} xdd.linux -targets 1  ${TDSource} -minall -numreqs $numreqs -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${useDIO}  &> ${test}.${HSource}.out &
 
 #xdd.linux -targets 1  ${TDSource} -noconfidump -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${uselocalDIO}  -timerinfo #&> ${test}.${HSource}.out &
-xdd -targets 1  ${TDSource} -noconfidump -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $queuedepth -op read  -e2e 1 issource -e2e destination ${HDestinIP} ${E2EPORT1}  ${uselocalDIO}  -timerinfo &> ${test}.${HSource}.out &
+xdd -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $queuedepth -op read -e2e issource -e2e dest ${HDestinIP} ${E2EPORT1}  ${uselocalDIO}  -timerinfo &> ${test}.${HSource}.out &
 
 wait
 
