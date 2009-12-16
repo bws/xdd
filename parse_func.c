@@ -109,6 +109,50 @@ xddfunc_blocksize(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
+// Specify the number of Bytes to transfer per pass
+// Arguments: -bytes [target #] #
+// 
+int
+xddfunc_bytes(int32_t argc, char *argv[], uint32_t flags)
+{
+	int args, i; 
+	int target_number;
+	ptds_t *p;
+	int64_t bytes;
+
+	args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+	if (args < 0)
+		return(-1);
+
+	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
+		return(0);
+
+	bytes = atoll(argv[args+1]);
+	if (target_number >= 0) { /* Set this option value for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL)
+			return(-1);
+
+		p->bytes = bytes;
+		p->kbytes = 0;
+		p->mbytes = 0;
+		return(args+2);
+	} else { // Put this option into all PTDSs 
+		if (flags & XDD_PARSE_PHASE2) {
+			p = xgp->ptdsp[0];
+			i = 0;
+			while (p) {
+				p->bytes = bytes;
+				p->kbytes = 0;
+				p->mbytes = 0;
+				i++;
+				p = xgp->ptdsp[i];
+			}
+		}
+		return(2);
+	}
+}
+/*----------------------------------------------------------------------------*/
 int
 xddfunc_combinedout(int32_t argc, char *argv[], uint32_t flags)
 {
@@ -987,6 +1031,7 @@ xddfunc_kbytes(int32_t argc, char *argv[], uint32_t flags)
 		if (p == NULL) return(-1);
 
 		p->kbytes = kbytes;
+		p->bytes = 0;
 		p->mbytes = 0;
         return(args+2);
 	} else { // Put this option into all PTDSs 
@@ -995,6 +1040,7 @@ xddfunc_kbytes(int32_t argc, char *argv[], uint32_t flags)
 				i = 0;
 				while (p) {
 					p->kbytes = kbytes;
+					p->bytes = 0;
 					p->mbytes = 0;
 					i++;
 					p = xgp->ptdsp[i];
@@ -1310,6 +1356,7 @@ xddfunc_mbytes(int32_t argc, char *argv[], uint32_t flags)
 		if (p == NULL) return(-1);
 
 		p->mbytes = mbytes;
+		p->bytes = 0;
 		p->kbytes = 0;
         return(args+2);
 	} else { // Put this option into all PTDSs 
@@ -1318,6 +1365,7 @@ xddfunc_mbytes(int32_t argc, char *argv[], uint32_t flags)
 				i = 0;
 				while (p) {
 					p->mbytes = mbytes;
+					p->bytes = 0;
 					p->kbytes = 0;
 					i++;
 					p = xgp->ptdsp[i];
@@ -3656,3 +3704,12 @@ xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags)
     return(0);
 } // end of xddfunc_invalid_option() 
  
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 8
+ *  c-basic-offset: 8
+ * End:
+ *
+ * vim: ts=8 sts=8 sw=8 noexpandtab
+ */

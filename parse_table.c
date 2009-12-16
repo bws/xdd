@@ -171,6 +171,13 @@ xdd_func_t  xdd_func[] = {
             {"    Specifies an arbitrary ID string to place in the time stamp file and printed on stdout\n", 
             0,0,0,0},
 			0},
+    {"bytes",  "b",
+            xddfunc_bytes,     
+            1,  
+            "  -bytes [target <target#>] <#>\n",  
+            {"    Specifies the number of bytes to transfer during a single pass\n", 
+            0,0,0,0},
+			0},
     {"kbytes",  "kb",
             xddfunc_kbytes,     
             1,  
@@ -708,3 +715,12 @@ xdd_func_t  xdd_func[] = {
 }; // This is the end of the command line options definitions
 
  
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 8
+ *  c-basic-offset: 8
+ * End:
+ *
+ * vim: ts=8 sts=8 sw=8 noexpandtab
+ */

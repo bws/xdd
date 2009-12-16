@@ -118,6 +118,7 @@ struct ptds {
 	int64_t				pass_offset; 			// number of blocks to add to seek locations between passes 
 	int64_t				flushwrite;  			// number of write operations to perform between flushes 
 	int64_t				flushwrite_current_count;  // Running number of write operations - used to trigger a flush (sync) operation 
+	int64_t				bytes;   				// number of bytes to process overall 
 	int64_t				kbytes;   				// number of 1024-byte blocks to process overall 
 	int64_t				mbytes;   				// number of 1024x1024-byte blocks to process overall 
 	int64_t				numreqs;  				// Number of requests to perform per pass per qthread
@@ -414,8 +415,13 @@ struct ptds {
 	struct ptds			*pm1;					// ptds minus  1 - used for report print queueing - don't ask 
 };
 typedef struct ptds ptds_t;
- 
- 
- 
- 
- 
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 8
+ *  c-basic-offset: 8
+ * End:
+ *
+ * vim: ts=8 sts=8 sw=8 noexpandtab
+ */

@@ -90,6 +90,8 @@ xdd_io_thread_init(ptds_t *p) {
 		p->bytes_to_xfer_per_pass = (uint64_t)p->mbytes * ONEMEG;
 	else if (p->kbytes > 0)
 		p->bytes_to_xfer_per_pass = (uint64_t)p->kbytes * 1024;
+	else if (p->bytes > 0)
+		p->bytes_to_xfer_per_pass = (uint64_t)p->bytes;
 	/* This calculates the number of iosize (or smaller) operations that need to be performed. 
 	 * In the event the number of bytes to transfer is not an integer number of iosize requests then 
 	 * the total number of ops is incremented by 1 and the last I/O op will be the residual.

@@ -46,6 +46,7 @@ typedef struct xdd_func xdd_func_t;
 
 // Prototypes required by the parse_table() compilation
 int xddfunc_blocksize(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_bytes(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_combinedout(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_createnewfiles(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_csvout(int32_t argc, char *argv[], uint32_t flags);
