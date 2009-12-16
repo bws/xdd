@@ -175,6 +175,10 @@ xdd_parse(int32_t argc, char *argv[])
 			p->numreqs *= 1024; // This is the number of actual bytes to transfer 
 			p->numreqs /= (p->reqsize * p->block_size); // This is the number of requests to perform not including the last request that might be small
 		}
+		} else if (p->bytes > 0) { /* this could be a problem */
+			p->numreqs = p->bytes;
+			p->numreqs /= (p->reqsize * p->block_size); // This is the number of requests to perform not including the last request that might be small
+		}
 		// Keep track of the number of "target" ops
 		p->target_ops = p->numreqs;
 		
