@@ -1,4 +1,5 @@
-/* Copyright (C) 1992-2009 I/O Performance, Inc.
+/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
+ * United States Departments of Energy (DoE) and Defense (DoD)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,9 +15,18 @@
  * along with this program in a file named 'Copying'; if not, write to
  * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
  */
-/* Author:
+/* Principal Author:
  *      Tom Ruwart (tmruwart@ioperformance.com)
- *      I/O Perofrmance, Inc.
+ * Contributing Authors:
+ *       Steve Hodson, DoE/ORNL
+ *       Steve Poole, DoE/ORNL
+ *       Bradly Settlemyer, DoE/ORNL
+ *       Russell Cattelan, Digital Elves
+ *       Alex Elder
+ * Funding and resources provided by:
+ * Oak Ridge National Labs, Department of Energy and Department of Defense
+ *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
+ *  and the wonderful people at I/O Performance, Inc.
  */
 /*
  * This file contains the subroutines necessary to parse the command line
@@ -107,7 +117,7 @@ xddfunc_blocksize(int32_t argc, char *argv[], uint32_t flags)
 		}
         return(2);
 	}
-}
+} // End of xddfunc_blocksize()
 /*----------------------------------------------------------------------------*/
 // Specify the number of Bytes to transfer per pass
 // Arguments: -bytes [target #] #
@@ -151,7 +161,7 @@ xddfunc_bytes(int32_t argc, char *argv[], uint32_t flags)
 		}
 		return(2);
 	}
-}
+} // End of xddfunc_bytes()
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_combinedout(int32_t argc, char *argv[], uint32_t flags)
@@ -171,7 +181,7 @@ xddfunc_combinedout(int32_t argc, char *argv[], uint32_t flags)
 		} else xgp->global_options |= GO_COMBINED;
 	}
 	return(2);
-}
+} // End of xddfunc_combinedout()
 /*----------------------------------------------------------------------------*/
 // Create new target files for each pass.
 int
@@ -202,7 +212,7 @@ xddfunc_createnewfiles(int32_t argc, char *argv[], uint32_t flags)
 		}
 		return(1);
 	}
-}
+} // End of xddfunc_createnewfiles()
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_csvout(int32_t argc, char *argv[], uint32_t flags)
@@ -221,7 +231,7 @@ xddfunc_csvout(int32_t argc, char *argv[], uint32_t flags)
 		} else xgp->global_options |= GO_CSV;
 	}
     return(2);
-}
+} // End of xddfunc_csvout()
 /*----------------------------------------------------------------------------*/
 // Specify the starting offset into the device in blocks between passes
 // Arguments: -datapattern [target #] # <option> 
@@ -567,7 +577,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	}
     return(retval);
-}
+} // End of xddfunc_datapattern()
 
 /*----------------------------------------------------------------------------*/
 // Set the DEBUG global option
@@ -576,7 +586,7 @@ xddfunc_debug(int32_t argc, char *argv[], uint32_t flags)
 {
 	xgp->global_options |= GO_DEBUG;
 	return(1);
-}
+} // End of xddfunc_debug()
 
 /*----------------------------------------------------------------------------*/
 // Delete the target file when complete
@@ -608,7 +618,7 @@ xddfunc_deletefile(int32_t argc, char *argv[], uint32_t flags)
 		}
 		return(1);
 	}
-}
+} // End of xddfunc_deletefile()
 /*----------------------------------------------------------------------------*/
 // Deskew the data rates after a run
 int
@@ -621,7 +631,7 @@ xddfunc_deskew(int32_t argc, char *argv[], uint32_t flags)
 		xgp->deskew_total_rates = 0;
 	}
     return(1);
-}
+} // End of xddfunc_deskew()
 /*----------------------------------------------------------------------------*/
 // Arguments: -devicefile [target #] - OBSOLETE
 int
@@ -2900,7 +2910,8 @@ xddfunc_starttrigger(int32_t argc, char *argv[], uint32_t flags)
 				xgp->progname, when);
             return(0);
 	}
-}/*----------------------------------------------------------------------------*/
+}
+/*----------------------------------------------------------------------------*/
 int
 xddfunc_stoponerror(int32_t argc, char *argv[], uint32_t flags)
 {

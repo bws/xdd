@@ -1,4 +1,5 @@
-/* Copyright (C) 1992-2009 I/O Performance, Inc.
+/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
+ * United States Departments of Energy (DoE) and Defense (DoD)
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,10 +15,20 @@
  * along with this program in a file named 'Copying'; if not, write to
  * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
  */
-/* Author:
+/* Principal Author:
  *      Tom Ruwart (tmruwart@ioperformance.com)
- *      I/O Perofrmance, Inc.
- * large parts of this file was a huge cut&paste hack from linux/drivers/scsi/constant.c
+ * Contributing Authors:
+ *       Steve Hodson, DoE/ORNL
+ *       Steve Poole, DoE/ORNL
+ *       Bradly Settlemyer, DoE/ORNL
+ *       Russell Cattelan, Digital Elves
+ *       Alex Elder
+ * Funding and resources provided by:
+ * Oak Ridge National Labs, Department of Energy and Department of Defense
+ *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
+ *  and the wonderful people at I/O Performance, Inc.
+ *
+ * Large parts of this file was a huge cut&paste hack from linux/drivers/scsi/constant.c
  *  which was presumably written by:
  *       Copyright (C) 1993, 1994, 1995 Eric Youngdale
  *       Copyright (C) 1999 - 2001 D. Gilbert
