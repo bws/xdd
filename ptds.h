@@ -18,10 +18,10 @@
 /* Principal Author:
  *      Tom Ruwart (tmruwart@ioperformance.com)
  * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
+ *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
+ *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
+ *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
  * Oak Ridge National Labs, Department of Energy and Department of Defense
@@ -128,8 +128,6 @@ struct ptds {
 	int64_t				flushwrite;  			// number of write operations to perform between flushes 
 	int64_t				flushwrite_current_count;  // Running number of write operations - used to trigger a flush (sync) operation 
 	int64_t				bytes;   				// number of bytes to process overall 
-//	int64_t				kbytes;   				// number of 1024-byte blocks to process overall 
-//	int64_t				mbytes;   				// number of 1024x1024-byte blocks to process overall 
 	int64_t				numreqs;  				// Number of requests to perform per pass per qthread
 	double				rwratio;  				// read/write ratios 
 	pclk_t				report_threshold;		// reporting threshold for long operations 

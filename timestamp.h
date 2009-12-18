@@ -18,24 +18,15 @@
 /* Principal Author:
  *      Tom Ruwart (tmruwart@ioperformance.com)
  * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
+ *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
+ *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
+ *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
  * Oak Ridge National Labs, Department of Energy and Department of Defense
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
- */
-
-/**
- * @author Tom Ruwart (tmruwart@ioperformance.com)
- * @author I/O Performance, Inc.
- *
- * @file This is the time stamping Trace Table Entry structure.
- * There is one of these entries for each I/O operation performed
- * during a test.
  */
 
 #define MAX_IDLEN 8192 // This is the maximum length of the Run ID Length field

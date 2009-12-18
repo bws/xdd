@@ -84,31 +84,6 @@ xdd_io_thread_init(ptds_t *p) {
 	}
 #endif // Section that deals with MUTEX inheritence 
 
-#ifdef ndef
-	/* Now lets get down to business... */
-	p->iosize = p->reqsize*p->block_size;
-	if (p->iosize == 0) {
-		fprintf(xgp->errout,"%s: io_thread_init: ALERT! iothread for target %d queue %d has an iosize of 0, reqsize of %d, blocksize of %d\n",
-			xgp->progname, p->my_target_number, p->my_qthread_number, p->reqsize, p->block_size);
-		fflush(xgp->errout);
-	}
-	if (p->numreqs) 
-		p->bytes_to_xfer_per_pass = (uint64_t)(p->numreqs * p->iosize);
-	else if (p->bytes)
-		p->bytes_to_xfer_per_pass = (uint64_t)p->bytes;
-fprintf(stderr,"numreqs = %lld, bytes_to_xfer_per_pass = %lld, bytes=%lld, \n",p->numreqs, p->bytes_to_xfer_per_pass, p->bytes);
-	/* This calculates the number of iosize (or smaller) operations that need to be performed. 
-	 * In the event the number of bytes to transfer is not an integer number of iosize requests then 
-	 * the total number of ops is incremented by 1 and the last I/O op will be the residual.
-	 */
-	p->total_ops = p->bytes_to_xfer_per_pass / p->iosize;
-	if (p->bytes_to_xfer_per_pass % p->iosize) {
-		p->total_ops++;
-		p->last_iosize = p->bytes_to_xfer_per_pass % p->iosize;
-	}
-fprintf(stderr,"mbytes = %lld, kbytes = %lld, bytes=%lld, \n",p->mbytes, p->kbytes, p->bytes);
-fprintf(stderr,"total_ops = %lld, last_iosize = %d, iosize=%d, bytes_to_xfer_per_pass = %lld\n",p->total_ops, p->last_iosize, p->iosize, p->bytes_to_xfer_per_pass);
-#endif
 	/* Assign me to the proper processor if I have a processor number 0 or greater. */
 	if (p->processor != -1)
 		xdd_processor(p);

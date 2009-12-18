@@ -18,23 +18,15 @@
 /* Principal Author:
  *      Tom Ruwart (tmruwart@ioperformance.com)
  * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
+ *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
+ *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
+ *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
  * Oak Ridge National Labs, Department of Energy and Department of Defense
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
- */
-
-/**
- * @author Tom Ruwart (tmruwart@ioperformance.com)
- * @author I/O Performance, Inc.
- *
- * @file read_after_write.h
- * Defines the read-after-write data structure.
  */
 
 /** Messaging structure for read-after-write processes */
@@ -48,13 +40,3 @@ struct xdd_raw_msg {
 	int64_t  length;  /**< Length in bytes this operation */
 }; 
 typedef struct xdd_raw_msg xdd_raw_msg_t;
-
-/*
- * Local variables:
- *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
- * End:
- *
- * vim: ts=8 sts=8 sw=8 noexpandtab
- */
