@@ -74,6 +74,111 @@ xdd_io_loop_perform_io_operation(ptds_t *p) {
 	return(p->my_io_status);
 
 } // End of xdd_io_loop_perform_io_operation()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_io_for_linux() - This subroutine is only used on Linux systems
+ * This will initiate the system calls necessary to perform an I/O operation
+ * and any error recovery or post processing necessary.
+ */
+void
+xdd_io_for_linux(ptds_t *p) {
+#ifdef LINUX
+	pclk_t			start_time;			// Used for calculating elapsed times of ops
+	pclk_t			end_time;			// Used for calculating elapsed times of ops
+
+
+	/* In Linux the -D_FILE_OFFSET_BITS=64 makes the off_t type be a 64-bit integer */
+	if (!(p->target_options & TO_SGIO))  // If this is NOT and SGIO operation... SGIO will do its own seek
+		lseek(p->fd, (off_t)p->my_current_byte_location, SEEK_SET);
+	/* Do the deed .... */
+	if (p->seekhdr.seeks[p->my_current_op].operation == SO_OP_WRITE) {  // Write Operation
+		// Call xdd_data_pattern_fill() to fill the buffer with any required patterns
+		xdd_data_pattern_fill(p);
+
+		// Record the starting time for this write op
+		pclk_now(&p->my_current_op_start_time);
+		if (p->my_current_op == 0) // Record the start time for the first op
+			p->my_first_op_start_time = p->my_current_op_start_time;
+
+		// Issue the actual operation
+		if ((p->target_options & TO_SGIO)) 
+			 p->my_io_status = xdd_sg_io(p,'w'); // Issue the SGIO operation 
+		else p->my_io_status = write(p->fd, p->rwbuf, p->actual_iosize);// Issue a normal write operation
+
+		// Record the ending time for this write op and update counters
+       	pclk_now(&p->my_current_op_end_time);
+		p->my_current_op_elapsed_time = (p->my_current_op_end_time - p->my_current_op_start_time);
+		p->my_accumulated_op_time += p->my_current_op_elapsed_time;
+		p->my_accumulated_write_op_time += p->my_current_op_elapsed_time;
+		p->my_current_write_op_count++;
+		p->my_io_errno = errno;
+		if (p->my_io_status == p->actual_iosize) {
+			p->my_current_bytes_written += p->actual_iosize;
+			p->my_current_bytes_xfered += p->actual_iosize;
+			p->my_current_op_count++;
+		}
+		p->flushwrite_current_count++;
+	} else { // Read operation 
+		// Record the starting time for this read op
+		pclk_now(&p->my_current_op_start_time);
+		if (p->my_current_op == 0) // Record the start time for the first op
+			p->my_first_op_start_time = p->my_current_op_start_time;
+
+		// Issue the actual operation
+		if ((p->target_options & TO_SGIO)) 
+			 p->my_io_status = xdd_sg_io(p,'r'); // Issue the SGIO operation 
+		else p->my_io_status = read(p->fd, p->rwbuf, p->actual_iosize);// Issue a normal read() operation
+	
+		// Record the ending time for this read operation and update counters
+		pclk_now(&p->my_current_op_end_time);
+		p->my_current_op_elapsed_time = (p->my_current_op_end_time - p->my_current_op_start_time);
+		p->my_accumulated_op_time += p->my_current_op_elapsed_time;
+		p->my_accumulated_read_op_time += p->my_current_op_elapsed_time;
+		p->my_current_read_op_count++;
+		p->my_io_errno = errno;
+		if (p->my_io_status == p->actual_iosize) {
+			p->my_current_bytes_read += p->actual_iosize;
+			p->my_current_bytes_xfered += p->actual_iosize;
+			p->my_current_op_count++;
+		}
+	} // end of WRITE/READ operation
+
+	// issue a sync() to flush these buffers every so many operations
+	if ((p->flushwrite > 0) && (p->flushwrite_current_count >= p->flushwrite)) {
+		pclk_now(&start_time);
+		fsync(p->fd);
+		pclk_now(&end_time);
+		p->my_accumulated_flush_time += (end_time - start_time);
+		p->flushwrite_current_count = 0;
+	}
+
+	/* Time stamp! */
+	if ((p->ts_options & TS_ON) && (p->ts_options & TS_TRIGGERED)) {
+		p->ttp->tte[p->ttp->tte_indx++].end = p->my_current_op_end_time;
+		if (p->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer 
+			if (p->ttp->tte_indx == p->ttp->tt_size)
+				p->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer 
+		} else if (p->ts_options & TS_WRAP) 
+				p->ttp->tte_indx = 0; // Wrap to the beginning of the time stamp buffer 
+	}
+
+	// Check status of the last operation 
+	if ((p->my_io_status < 0) || (p->my_io_status != p->actual_iosize)) {
+		fprintf(xgp->errout, "(%d.%d) %s: I/O error on target %s - status %d, iosize %d, operation number %d\n",
+			p->my_target_number,p->my_qthread_number,xgp->progname,p->target,p->my_io_status,p->actual_iosize,p->my_current_op);
+		if (!(p->target_options & TO_SGIO)) {
+			if ((p->my_io_status == 0) && (errno == 0)) { // Indicate this is an end-of-file condition
+				fprintf(xgp->errout, "(%d.%d) %s: End-of-file reached on target %s at operation number %d\n",
+					p->my_target_number,p->my_qthread_number,xgp->progname,p->target,p->my_current_op);
+			} else {
+				perror("reason"); // Only print the reason (aka errno text) if this is not an SGIO request
+			}
+		}
+		p->my_current_error_count++;
+	}
+#endif 
+} // End of xdd_io_for_linux()
+
 /*----------------------------------------------------------------------------*/
 /* xdd_io_for_windows() - This subroutine is only used on Windows
  * This will initiate the system calls necessary to perform an I/O operation
@@ -107,18 +212,18 @@ xdd_io_for_windows(ptds_t *p) {
 	pclk_now(&p->my_current_start_time);
 	if (p->my_current_op == 0) /* record our starting time */
 		p->my_start_time = p->my_current_start_time;
-		if (p->seekhdr.seeks[p->my_current_op].operation == SO_OP_WRITE) {
-			if (p->target_options & TO_SEQUENCED_PATTERN) {
-				posp = (uint64_t *)p->rwbuf;
-				for (uj=0; uj<(p->actual_iosize/sizeof(p->my_current_byte_location)); uj++) {
-					*posp = p->my_current_byte_location + (uj * sizeof(p->my_current_byte_location));
-					*posp |= p->data_pattern_prefix_binary;
-					if (p->target_options & TO_INVERSE_PATTERN)
-						*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
-					posp++;
-				}
+	if (p->seekhdr.seeks[p->my_current_op].operation == SO_OP_WRITE) {
+		if (p->target_options & TO_SEQUENCED_PATTERN) {
+			posp = (uint64_t *)p->rwbuf;
+			for (uj=0; uj<(p->actual_iosize/sizeof(p->my_current_byte_location)); uj++) {
+				*posp = p->my_current_byte_location + (uj * sizeof(p->my_current_byte_location));
+				*posp |= p->data_pattern_prefix_binary;
+				if (p->target_options & TO_INVERSE_PATTERN)
+					*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
+				posp++;
 			}
-			/* Actually write the data to the storage device/file */
+		}
+		/* Actually write the data to the storage device/file */
 			p->my_io_status = WriteFile(p->fd, p->rwbuf, p->actual_iosize, &bytesxferred, NULL);
 		} else { /* Simply do the normal read operation */
 			p->my_io_status = ReadFile(p->fd, p->rwbuf, p->actual_iosize, &bytesxferred, NULL);
@@ -161,107 +266,6 @@ xdd_io_for_windows(ptds_t *p) {
 		p->my_io_status = bytesxferred;
 #endif
 } // End of xdd_io_for_windows()
-
-/*----------------------------------------------------------------------------*/
-/* xdd_io_for_linux() - This subroutine is only used on Linux systems
- * This will initiate the system calls necessary to perform an I/O operation
- * and any error recovery or post processing necessary.
- */
-void
-xdd_io_for_linux(ptds_t *p) {
-#ifdef LINUX
-	pclk_t			start_time;			// Used for calculating elapsed times of ops
-	pclk_t			end_time;			// Used for calculating elapsed times of ops
-
-
-	/* In Linux the -D_FILE_OFFSET_BITS=64 makes the off_t type be a 64-bit integer */
-	if (!(p->target_options & TO_SGIO))  // If this is NOT and SGIO operation... SGIO will do its own seek
-		lseek(p->fd, (off_t)p->my_current_byte_location, SEEK_SET);
-	/* Do the deed .... */
-	if (p->seekhdr.seeks[p->my_current_op].operation == SO_OP_WRITE) {  // Write Operation
-		// Time stamp the start of this write op
-		pclk_now(&p->my_current_op_start_time);
-		if (p->my_current_op == 0) // Record the start time for the first op
-			p->my_first_op_start_time = p->my_current_op_start_time;
-
-		// Issue the actual operation
-		if ((p->target_options & TO_SGIO)) 
-			 p->my_io_status = xdd_sg_io(p,'w'); // Issue the SGIO operation 
-		else p->my_io_status = write(p->fd, p->rwbuf, p->actual_iosize);// Issue a normal write operation
-
-		// Record the ending of this write op
-       	pclk_now(&p->my_current_op_end_time);
-		p->my_current_op_elapsed_time = (p->my_current_op_end_time - p->my_current_op_start_time);
-		p->my_accumulated_op_time += p->my_current_op_elapsed_time;
-		p->my_accumulated_write_op_time += p->my_current_op_elapsed_time;
-		p->my_current_write_op_count++;
-		p->my_io_errno = errno;
-		if (p->my_io_status == p->actual_iosize) {
-			p->my_current_bytes_written += p->actual_iosize;
-			p->my_current_bytes_xfered += p->actual_iosize;
-			p->my_current_op_count++;
-		}
-		p->flushwrite_current_count++;
-	} else { // Read operation 
-		// Time stamp the start of this read op
-		pclk_now(&p->my_current_op_start_time);
-		if (p->my_current_op == 0) // Record the start time for the first op
-			p->my_first_op_start_time = p->my_current_op_start_time;
-
-		// Issue the actual operation
-		if ((p->target_options & TO_SGIO)) 
-			 p->my_io_status = xdd_sg_io(p,'r'); // Issue the SGIO operation 
-		else p->my_io_status = read(p->fd, p->rwbuf, p->actual_iosize);// Issue a normal read() operation
-	
-		// Record the ending time for this read operation 
-		pclk_now(&p->my_current_op_end_time);
-		p->my_current_op_elapsed_time = (p->my_current_op_end_time - p->my_current_op_start_time);
-		p->my_accumulated_op_time += p->my_current_op_elapsed_time;
-		p->my_accumulated_read_op_time += p->my_current_op_elapsed_time;
-		p->my_current_read_op_count++;
-		p->my_io_errno = errno;
-		if (p->my_io_status == p->actual_iosize) {
-			p->my_current_bytes_read += p->actual_iosize;
-			p->my_current_bytes_xfered += p->actual_iosize;
-			p->my_current_op_count++;
-		}
-	} // end of READ operation
-
-	// issue a sync() to flush these buffers every so many operations
-	if ((p->flushwrite > 0) && (p->flushwrite_current_count >= p->flushwrite)) {
-		pclk_now(&start_time);
-		fsync(p->fd);
-		pclk_now(&end_time);
-		p->my_accumulated_flush_time += (end_time - start_time);
-		p->flushwrite_current_count = 0;
-	}
-
-	/* Time stamp! */
-	if ((p->ts_options & TS_ON) && (p->ts_options & TS_TRIGGERED)) {
-		p->ttp->tte[p->ttp->tte_indx++].end = p->my_current_op_end_time;
-		if (p->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer 
-			if (p->ttp->tte_indx == p->ttp->tt_size)
-				p->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer 
-		} else if (p->ts_options & TS_WRAP) 
-				p->ttp->tte_indx = 0; // Wrap to the beginning of the time stamp buffer 
-	}
-
-	// Check status of the last operation 
-	if ((p->my_io_status < 0) || (p->my_io_status != p->actual_iosize)) {
-		fprintf(xgp->errout, "(%d.%d) %s: I/O error on target %s - status %d, iosize %d, operation number %d\n",
-			p->my_target_number,p->my_qthread_number,xgp->progname,p->target,p->my_io_status,p->actual_iosize,p->my_current_op);
-		if (!(p->target_options & TO_SGIO)) {
-			if ((p->my_io_status == 0) && (errno == 0)) { // Indicate this is an end-of-file condition
-				fprintf(xgp->errout, "(%d.%d) %s: End-of-file reached on target %s at operation number %d\n",
-					p->my_target_number,p->my_qthread_number,xgp->progname,p->target,p->my_current_op);
-			} else {
-				perror("reason"); // Only print the reason (aka errno text) if this is not an SGIO request
-			}
-		}
-		p->my_current_error_count++;
-	}
-#endif 
-} // End of xdd_io_for_linux()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_data_pattern_fill() - This subroutine will fill the buffer with a 
