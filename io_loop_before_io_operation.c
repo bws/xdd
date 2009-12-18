@@ -422,6 +422,7 @@ fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_opt
 			p->e2e_prev_len, 
 			p->iosize);
 	}
+
 	// Lets read all the dta from the source 
 	while (p->e2e_data_ready < p->iosize) {
 		/* xdd_e2e_dest_wait() will block until there is data to read */
@@ -436,22 +437,7 @@ fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_opt
 			return(FAILED);
 		}
 			
-		// Check to see that the length of the msg is what we think it should be
-		if (p->e2e_msg.length != p->iosize) {
-			fprintf(stderr,"%s: [my_qthread_number %d]:e2e_before_io_operation: error on msg recvd %d loc %lld, length %lld\n",
-				xgp->progname,p->my_qthread_number,p->e2e_msg_recv-1, p->e2e_msg.location,  p->e2e_msg.length);
-			if (p->e2e_useUDP) {
-				fprintf(stderr,"%s: [mythreadnum %d]:e2e_before_io_operation: UDP:error on msg recvd %d ...lost header...dont write!!!\n",
-					xgp->progname,p->mythreadnum,p->e2e_msg_recv-1);
-				continue;
-			}
-		}
-		// Check to see of this is the last message in the transmission
-		// If so, then set the "my_pass_ring" so that we exit gracefully
-		if (p->e2e_msg.magic == PTDS_E2E_MAGIQ) 
-			p->my_pass_ring = 1;
-
-		// Check the sequence number of the reseived msg to what we expect it to be
+		// Check the sequence number of the received msg to what we expect it to be
 		// Also note that the msg magic number should not be MAGIQ (end of transmission)
 		if ((p->e2e_msg.sequence != p->e2e_msg_last_sequence) && (p->e2e_msg.magic != PTDS_E2E_MAGIQ )) {
 			fprintf(stderr,"%s: [my_qthread_number %d]:sequence error on msg recvd %d loc %lld, length %lld seq num is %lld should be %lld\n",
@@ -464,6 +450,12 @@ fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_opt
 				p->e2e_msg_last_sequence);
 			return(FAILED);
 		}
+
+		// Check to see of this is the last message in the transmission
+		// If so, then set the "my_pass_ring" so that we exit gracefully
+		if (p->e2e_msg.magic == PTDS_E2E_MAGIQ) 
+			p->my_pass_ring = 1;
+
 		// Check for a timeout condition - this only happens if we are using UDP
 		if (p->e2e_timedout) {
 			fprintf(stderr,"%s: [mythreadnum %d]:timedout...go on to next pass or quit if last pass\n", 
@@ -492,7 +484,7 @@ fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_opt
 			continue;
 		}
 
-		// The e2e_msg_last_sequence variable is the local value of what we think e2e_msg.sequence
+		// The e2e_msg_last_sequence variable is the value of what we think e2e_msg.sequence
 		//   should be in the incoming msg
 		p->e2e_msg_last_sequence++;
 
@@ -502,6 +494,14 @@ fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_opt
 		p->e2e_data_ready += p->e2e_data_length;
 		p->e2e_prev_loc = p->e2e_msg.location;
 		p->e2e_prev_len = p->e2e_data_length;
+
+		// If this is the last message and the length of the data in the message is 
+		// less than iosize then we can just exit the loop now because this will be a short write
+		if ((p->my_current_op == (p->target_ops - 1)) &&
+		    (p->e2e_msg.length < p->iosize)) {
+			p->iosize = p->e2e_msg.length;
+			break;
+		}
 	}  // End of WHILE loop that processes an End-to-End test
 
 	// For End-to-End, set the relative location of this data to where the SOURCE 
