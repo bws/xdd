@@ -35,6 +35,7 @@
 
 #include "xdd.h"
 extern xdd_func_t xdd_func[];
+void xdd_build_ptds_substructure(void);
 
 /*----------------------------------------------------------------------------*/
 /* xdd_parse_args() - Parameter parsing - called by xdd_parse().
@@ -117,16 +118,13 @@ xdd_parse_args(int32_t argc, char *argv[], uint32_t flags)
 void
 xdd_parse(int32_t argc, char *argv[])
 {
-	int32_t q,target_number;   /* working variable */
-	ptds_t *p;
-	ptds_t *psave;
 
 	
-    if (argc < 1) { // Ooopppsss - nothing specified...
-        fprintf(stderr,"Error: No command line options specified\n");
-        xdd_usage(0);
-        exit(0);
-    }
+	if (argc < 1) { // Ooopppsss - nothing specified...
+		fprintf(stderr,"Error: No command line options specified\n");
+		xdd_usage(0);
+		exit(0);
+	}
 	/* parse the command line arguments */
 	xdd_parse_args(argc,argv, XDD_PARSE_PHASE1);
 
@@ -136,80 +134,126 @@ xdd_parse(int32_t argc, char *argv[])
 		xdd_usage(0);
 		exit(1);
 	}
-	/* Queue depth processing */
-	/* For any given target, if the queue depth is greater than 1 then we create a QThread PTDS for each Qthread.
-	 * Each new QThread ptds is a copy of the base QThread - QThread 0 - for the associated target. The only
-	 * thing that distinguishes one QThread ptds from another is the "my_qthread_number" member which identifies the QThread for that ptds.
-	 *
-	 * The number of QThreads is equal to the qdepth for that target.
-	 * The main ptds for the target is QThread 0. The "nextp" member of the ptds points to the QThread 1. 
-	 * The "nextp" member in the QThread 1 ptds points to QThread 2, and so on. The last QThread "nextp" member is 0.
-	 * 
-	 *  Target0   Target1    Target2 ..... TargetN
-	 *  (QThread0)   (Qthread0)   (Qthread0)  (Qthread0)
-	 *   |     |      |    |
-	 *   V     V      V    V
-	 *   QThread1    QThread1   NULL    QThread1
-	 *   |     |        |
-	 *   V     V        V
-	 *   QThread2    QThread2       QThread2
-	 *   |     |        |
-	 *   V     V        V
-	 *   QThread3   NULL       QThread3
-	 *   |           |
-	 *   V           V
-	 *  NULL          QThread4
-	 *             |
-	 *             V
-	 *  
-	 * The above example shows that Target0 has a -queuedepth of 4 and thus
-	 * has 4 QThread (0-3). Similarly, Target 1 has a -queuedepth of 3 (QThreads 0-2), Target3 has a queuedepth
-	 * of 1 (the default) and hence has no QThreads other than 0. Target N has a queuedepth of 5, possibly more.  
-	 *  
-	 */
+
+	// Build the PTDS substructure for all targets
+	xdd_build_ptds_substructure();
+
+} /* end of xdd_parse() */
+/*----------------------------------------------------------------------------*/
+/* xdd_build_ptds_substructure() - given that all the targets have been
+ * defined by the command-line input, create any new PTDS's for targets that
+ * have queue depths greater than 1.
+ * This subroutine is only called by xdd_parse(). 
+ *
+ * For any given target, if the queue depth is greater than 1 then we create a QThread PTDS for each Qthread.
+ * Each new QThread ptds is a copy of the base QThread - QThread 0 - for the associated target. The only
+ * thing that distinguishes one QThread ptds from another is the "my_qthread_number" member which identifies the QThread for that ptds.
+ *
+ * The number of QThreads is equal to the qdepth for that target.
+ * The main ptds for the target is QThread 0. The "nextp" member of the ptds points to the QThread 1. 
+ * The "nextp" member in the QThread 1 ptds points to QThread 2, and so on. The last QThread "nextp" member is 0.
+ * 
+ *  Target0   Target1    Target2 ..... TargetN
+ *  (QThread0)   (Qthread0)   (Qthread0)  (Qthread0)
+ *   |            |            |           |
+ *   V            V            V           V
+ *   QThread1     QThread1     NULL        QThread1
+ *   |            |                        |
+ *   V            V                        V
+ *   QThread2     QThread2                 QThread2
+ *   |            |                        |
+ *   V            V                        V
+ *   QThread3     NULL                     QThread3
+ *   |                                     |
+ *   V                                     V
+ *  NULL                                   QThread4
+ *                                         |
+ *                                         V
+ *                                         NULL  
+ * The above example shows that Target0 has a -queuedepth of 4 and thus
+ * has 4 QThread (0-3). Similarly, Target 1 has a -queuedepth of 3 (QThreads 0-2), Target3 has a queuedepth
+ * of 1 (the default) and hence has no QThreads other than 0. Target N has a queuedepth of 5, possibly more.  
+ *  
+ */
+void
+xdd_build_ptds_substructure(void)
+{
+	int32_t 	q;		/* working variable */
+	int32_t 	target_number;	/* working variable */
+	ptds_t 		*p;
+	ptds_t 		*psave;
+
+	
 	/* For each target check to see if we need to add ptds structures for queue-depths greater than 1 */
 	xgp->number_of_iothreads = 0;
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-
 		p = xgp->ptdsp[target_number];
-		
-
 		// The following calculates the number of I/O requests (numreqs) to issue to a "target"
 		// This value represents the combined number of ops from each qthread if queue_depth > 1.
-		if (p->mbytes > 0) {
-			p->numreqs = p->mbytes;
-			p->numreqs *= (1024*1024); // This is the number of actual bytes to transfer 
-			p->numreqs /= (p->reqsize * p->block_size); // This is the number of requests to perform not including the last request that might be small
-		} else if (p->kbytes > 0) { /* this could be a problem */
-			p->numreqs = p->kbytes;
-			p->numreqs *= 1024; // This is the number of actual bytes to transfer 
-			p->numreqs /= (p->reqsize * p->block_size); // This is the number of requests to perform not including the last request that might be small
-		} else if (p->bytes > 0) { /* this could be a problem */
-			p->numreqs = p->bytes;
-			p->numreqs /= (p->reqsize * p->block_size); // This is the number of requests to perform not including the last request that might be small
+		/* Now lets get down to business... */
+		p->iosize = p->reqsize*p->block_size;
+		if (p->iosize == 0) {
+			fprintf(xgp->errout,"%s: io_thread_init: ALERT! iothread for target %d queue %d has an iosize of 0, reqsize of %d, blocksize of %d\n",
+				xgp->progname, p->my_target_number, p->my_qthread_number, p->reqsize, p->block_size);
+			fflush(xgp->errout);
 		}
-		// Keep track of the number of "target" ops
-		p->target_ops = p->numreqs;
-		
+		if (p->numreqs) 
+			p->bytes_to_xfer_per_pass = (uint64_t)(p->numreqs * p->iosize);
+		else if (p->bytes)
+			p->bytes_to_xfer_per_pass = (uint64_t)p->bytes;
+		else { // Yikes - something was not specified
+			fprintf(xgp->errout,"%s: io_thread_init: ERROR! iothread for target %d queue %d has numreqs of %lld, bytes of %lld - one of these must be specified\n",
+				xgp->progname, p->my_target_number, p->my_qthread_number, p->numreqs, p->bytes);
+			fflush(xgp->errout);
+			exit(0);
+		}
+
+		// At this point it is possible that the number of bytes to transfer is an odd number.
+		// This means that one of the qthreads will need to do a "short" I/O operation - something less than the iosize 
+		// and possibly not an even number.
+		// The p->total_ops includes the last short op if there is one.
+		// The "p->last_iosize" will contain the number of bytes for the last I/O *ONLY* if the last
+		// I/O operation is not equal to p->iosize.
+		//
+
+	 	//
+		// This calculates the number of iosize (or smaller) operations that need to be performed. 
+		p->total_ops = p->bytes_to_xfer_per_pass / p->iosize;
+
+	 	// In the event the number of bytes to transfer is not an integer number of iosize requests then 
+	 	// the total number of ops is incremented by 1 and the last I/O op will be the residual.
+		if (p->bytes_to_xfer_per_pass % p->iosize) {
+			p->total_ops++;
+			p->last_iosize = p->bytes_to_xfer_per_pass % p->iosize;
+		}
+
 		// Adjust the number of ops based on the queue_depth (aka number of qthreads)
-		if ((p->numreqs > 0) && (p->numreqs < p->queue_depth)) {
+		// This is the situation where the number of ops is 3 but the qdepth is 4.
+		// In this case the qdepth is reset to the number of ops (3 in this example) and the number
+		// of ops for each qthread is set to 1.
+		if ((p->total_ops > 0) && (p->total_ops < p->queue_depth)) { 
 			fprintf(xgp->errout,"%s: Target %d Number of requests is too small to use with a queuedepth of %d\n",
 				xgp->progname, 
 				target_number, 
 				p->queue_depth);
 			fprintf(xgp->errout,"%s: queuedepth will be reset to be equal to the number of requests: %lld\n",
 				xgp->progname, 
-				(long long)p->numreqs);
+				(long long)p->total_ops);
 
-			p->queue_depth = p->numreqs;
-			p->numreqs = 1;
+			p->queue_depth = p->total_ops;
+			p->target_ops = 1;
 			p->residual_ops = 0;
+		} else {
+			// Otherwise, the number of ops for each target is simply total_ops / queue_depth
+			// with the exception for some qthread targets getting one extra op if,for example,
+			// the total number of ops is not an interger multiple of the qdepth like total ops being
+			// 10 with a qdepth of 4 - targets 0 and 1 will do 3 ops each and targets 2 & 3 will only
+			// do 2 ops each.
+			// The "residual_ops" are the number of left over ops (i.e. 2 in the previous example)
+			p->residual_ops = p->total_ops % p->queue_depth;
+			p->target_ops = p->total_ops / p->queue_depth;
 		}
-		else {
-			p->residual_ops = p->numreqs % p->queue_depth;
-			p->numreqs /= p->queue_depth;
-		}
-        // This is where the qthread PTDSs are added to a target PTDS if the queue_depth is greater than 1
+		// This is where the qthread PTDSs are added to a target PTDS if the queue_depth is greater than 1
 		p->mythreadnum = xgp->number_of_iothreads;
 		xgp->number_of_iothreads++;
 		psave = p;
@@ -229,27 +273,47 @@ xdd_parse(int32_t argc, char *argv[])
 				p->nextp->nextp = 0; 
 				p->nextp->my_qthread_number = q;
 				p->nextp->mythreadnum = xgp->number_of_iothreads;
-			    if ((p->residual_ops) && (q < p->residual_ops)) { 
-                	// This means that the number of requests 
-			    	// is not an even multiple of the queue depth. 
+				if ((p->residual_ops) && (q < p->residual_ops)) { 
+					// This means that the number of requests 
+					// is not an even multiple of the queue depth. 
 					// Therefore some qthreads will have more requests 
 					// than others to account for the difference.
-					p->nextp->numreqs++; 
+					p->nextp->target_ops++; 
 				}
+				p->nextp->bytes_to_xfer_per_pass = p->nextp->target_ops * p->nextp->iosize;
 				xgp->number_of_iothreads++;
 				p = p->nextp;
 			} // End of FOR loop that adds all PTDSs to a target PTDS linked list
 
-		    p = xgp->ptdsp[target_number]; // reset p-> to the primary target PTDS
+			// This is for qthread0 which was not done in the for loop above
+			p = xgp->ptdsp[target_number]; // reset p-> to the primary target PTDS
 			if (p->residual_ops) { 
 				// This means that the number of requests is not an even multiple 
 				// of the queue depth. Therefore some qthreads will have more 
 				// requests than others to account for the difference.
-				p->numreqs++; 
+				p->target_ops++; 
 			}
+			p->bytes_to_xfer_per_pass = p->target_ops * p->iosize;
 		} // End of IF clause that adds PTDSs to a target PTDS
-	}
-} /* end of xdd_parse() */
+		if ((p->last_iosize) && (p->queue_depth > 1)) { // This means that the qthread that issues the last I/O must use this request size which is 0 < last_iosize < iosize
+			if (p->residual_ops == 0) // This means that the q number to issue the last I/O is the last qthread ->> qdepth-1  - otherwise it is residual_ops-1
+				q = p->queue_depth - 1;
+			else 	q = p->residual_ops - 1; 
+			psave = p;
+			if (q) { // walk down the chain to get the correct ptds pointer
+				while(q) {
+					p = p->nextp;
+					q--;
+				}
+			}
+			// At this point p points to the qthread that will have to issue the weird iosize
+			// As such, we need to adjust its bytes_to_xfer_per_pass to be slightly less than it is
+			p->bytes_to_xfer_per_pass = (p->bytes_to_xfer_per_pass - p->iosize + p->last_iosize);
+		} // End of figuring out which qthread issues the last weird-sized I/O
+			
+	} // End of FOR loop that builds PTDS for each target
+} /* End of xdd_build_ptds_substructure() */
+
 /*----------------------------------------------------------------------------*/
 /* xdd_usage() - Display usage information
  */

@@ -44,7 +44,7 @@ xdd_io_loop(ptds_t *p) {
 	status = xdd_io_loop_before_loop(p);
 
 	/* This is the main loop for a single pass */
-	for (p->my_current_op = 0; p->my_current_op < p->total_ops; p->my_current_op++) {
+	for (p->my_current_op = 0; p->my_current_op < p->target_ops; p->my_current_op++) {
 
 		// Set up for I/O operation
 		status = xdd_io_loop_before_io_operation(p);

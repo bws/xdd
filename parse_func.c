@@ -121,6 +121,9 @@ xddfunc_blocksize(int32_t argc, char *argv[], uint32_t flags)
 /*----------------------------------------------------------------------------*/
 // Specify the number of Bytes to transfer per pass
 // Arguments: -bytes [target #] #
+// The -bytes/-kbytes/-mbytes option is mutually exclusive with the -numreqs option 
+// and will reset the p->numreqs to 0 for all affected targets. The number of 
+// requests will be calculated at a later time.
 // 
 int
 xddfunc_bytes(int32_t argc, char *argv[], uint32_t flags)
@@ -144,8 +147,7 @@ xddfunc_bytes(int32_t argc, char *argv[], uint32_t flags)
 			return(-1);
 
 		p->bytes = bytes;
-		p->kbytes = 0;
-		p->mbytes = 0;
+		p->numreqs = 0;
 		return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
@@ -153,8 +155,7 @@ xddfunc_bytes(int32_t argc, char *argv[], uint32_t flags)
 			i = 0;
 			while (p) {
 				p->bytes = bytes;
-				p->kbytes = 0;
-				p->mbytes = 0;
+				p->numreqs = 0;
 				i++;
 				p = xgp->ptdsp[i];
 			}
@@ -1020,6 +1021,10 @@ xddfunc_id(int32_t argc, char *argv[], uint32_t flags)
 /*----------------------------------------------------------------------------*/
 // Specify the number of KBytes to transfer per pass (1K=1024 bytes)
 // Arguments: -kbytes [target #] #
+// This will set p->bytes to the calculated value (kbytes * 1024)
+// The -bytes/-kbytes/-mbytes option is mutually exclusive with the -numreqs option 
+// and will reset the p->numreqs to 0 for all affected targets. The number of 
+// requests will be calculated at a later time.
 // 
 int
 xddfunc_kbytes(int32_t argc, char *argv[], uint32_t flags)
@@ -1039,19 +1044,16 @@ xddfunc_kbytes(int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
-
-		p->kbytes = kbytes;
-		p->bytes = 0;
-		p->mbytes = 0;
+		p->bytes = kbytes * 1024;
+		p->numreqs = 0;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->kbytes = kbytes;
-					p->bytes = 0;
-					p->mbytes = 0;
+					p->bytes = kbytes * 1024;
+					p->numreqs = 0;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -1345,6 +1347,10 @@ xddfunc_maxpri(int32_t argc, char *argv[], uint32_t flags)
 /*----------------------------------------------------------------------------*/
 // Specify the number of MBytes to transfer per pass (1M=1024*1024 bytes)
 // Arguments: -mbytes [target #] #
+// This will set p->bytes to the calculated value (mbytes * 1024*1024)
+// The -bytes/-kbytes/-mbytes option is mutually exclusive with the -numreqs option 
+// and will reset the p->numreqs to 0 for all affected targets. The number of 
+// requests will be calculated at a later time.
 // 
 int
 xddfunc_mbytes(int32_t argc, char *argv[], uint32_t flags)
@@ -1365,18 +1371,16 @@ xddfunc_mbytes(int32_t argc, char *argv[], uint32_t flags)
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
-		p->mbytes = mbytes;
-		p->bytes = 0;
-		p->kbytes = 0;
+		p->bytes = mbytes * 1024 * 1024;
+		p->numreqs = 0;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->mbytes = mbytes;
-					p->bytes = 0;
-					p->kbytes = 0;
+					p->bytes = mbytes * 1024 * 1024;
+					p->numreqs = 0;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -1475,33 +1479,38 @@ xddfunc_noproclock(int32_t argc, char *argv[], uint32_t flags)
 /*----------------------------------------------------------------------------*/
 // Specify the number of requests to run 
 // Arguments: -numreqs [target #] #
+// This will set p->numreqs to the specified value 
+// The -numreqs option is mutually exclusive with the -bytes/-kbytes/-mbytes options
+// and will reset the p->bytes to 0 for all affected targets. The number of 
+// bytes to transfer will be calculated at a later time.
 // 
 int
 xddfunc_numreqs(int32_t argc, char *argv[], uint32_t flags)
 {
-    int args, i; 
-    int target_number;
-    ptds_t *p;
-	int64_t numreqs;
-
-    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
-    if (args < 0) return(-1);
+	int 		args, i; 
+	int 		target_number;
+	ptds_t 		*p;
+	int64_t 	numreqs;
+	
+	args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+	if (args < 0) return(-1);
 
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
 
 	numreqs = atoll(argv[args+1]);
 	if (numreqs <= 0) {
-			fprintf(xgp->errout,"%s: numreqs of %lld is not valid. numreqs must be a number greater than 0\n",
-				xgp->progname,
-				(long long)numreqs);
-            return(0);
+		fprintf(xgp->errout,"%s: numreqs of %lld is not valid. numreqs must be a number greater than 0\n",
+			xgp->progname,
+			(long long)numreqs);
+		return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 		p->numreqs = numreqs;
-        return(args+2);
+		p->bytes = 0; // reset p->bytes
+		return(args+2);
 
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
@@ -1509,6 +1518,7 @@ xddfunc_numreqs(int32_t argc, char *argv[], uint32_t flags)
 			i = 0;
 			while (p) {
 				p->numreqs = numreqs;
+				p->bytes = 0; // reset p->bytes
 				i++;
 				p = xgp->ptdsp[i];
 			}

@@ -111,8 +111,8 @@ struct ptds {
 	int32_t				op_delay; 			// Number of seconds to delay between operations 
 	int32_t				filetype;  			// Type of file: regular, device, socket, ... 
 	int64_t				filesize;  			// Size of target file in bytes 
-	int64_t				target_ops;  		// Total number of ops to perform on behalf of a "target"
-	int64_t				total_ops;  		// Total number of ops to perform per qthread 
+	int64_t				target_ops;  		// Total number of ops to perform per qthread 
+	int64_t				total_ops;  		// Total number of ops to perform on behalf of a "target"
 	int64_t				residual_ops;  		// Number of requests mod the queue depth 
 	int64_t				writer_total; 		// Total number of bytes written so far - used by read after write
 	seekhdr_t			seekhdr;  			// For all the seek information 
@@ -128,8 +128,8 @@ struct ptds {
 	int64_t				flushwrite;  			// number of write operations to perform between flushes 
 	int64_t				flushwrite_current_count;  // Running number of write operations - used to trigger a flush (sync) operation 
 	int64_t				bytes;   				// number of bytes to process overall 
-	int64_t				kbytes;   				// number of 1024-byte blocks to process overall 
-	int64_t				mbytes;   				// number of 1024x1024-byte blocks to process overall 
+//	int64_t				kbytes;   				// number of 1024-byte blocks to process overall 
+//	int64_t				mbytes;   				// number of 1024x1024-byte blocks to process overall 
 	int64_t				numreqs;  				// Number of requests to perform per pass per qthread
 	double				rwratio;  				// read/write ratios 
 	pclk_t				report_threshold;		// reporting threshold for long operations 

@@ -98,7 +98,7 @@ xdd_start_trigger_before_io_operation(ptds_t *p) {
 			}
 			if (p->trigger_types & TRIGGER_STARTPERCENT) {
 				/* If we have completed percentage of operations then signal the specified target to start */
-				if (p->my_current_op > (p->start_trigger_percent * p->total_ops)) {
+				if (p->my_current_op > (p->start_trigger_percent * p->target_ops)) {
 					xdd_barrier(&p2->Start_Trigger_Barrier[p2->Start_Trigger_Barrier_index]);
 				}
 			}
@@ -153,7 +153,7 @@ xdd_lockstep_before_io_operation(ptds_t *p) {
 		if (p->ls_interval_type & LS_INTERVAL_PERCENT) {
 			/* If we have completed percentage of operations then signal the specified target to start.
 			 */
-			if (p->my_current_op >= ((p->ls_interval_value*p->ls_interval_base_value) * p->total_ops)) {
+			if (p->my_current_op >= ((p->ls_interval_value*p->ls_interval_base_value) * p->target_ops)) {
 				ping_slave = TRUE;
 				p->ls_interval_base_value++;
 			}
@@ -228,7 +228,7 @@ xdd_lockstep_before_io_operation(ptds_t *p) {
 			if (p->ls_task_type & LS_TASK_PERCENT) {
 				/* If we have completed percentage of operations then indicate slave to wait.
 				*/
-				if (p->my_current_op >= ((p->ls_task_value * p->ls_task_base_value) * p->total_ops)) {
+				if (p->my_current_op >= ((p->ls_task_value * p->ls_task_base_value) * p->target_ops)) {
 					slave_wait = TRUE;
 					p->ls_task_base_value++;
 					p->ls_task_counter--;

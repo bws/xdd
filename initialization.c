@@ -141,13 +141,13 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 		p->ts_options = DEFAULT_TS_OPTIONS;
 		p->target_options = DEFAULT_TARGET_OPTIONS; // Zero the target options field
 		p->time_limit = DEFAULT_TIME_LIMIT;
-		p->numreqs = DEFAULT_NUMREQS;
+		p->numreqs = 0; // This must init to 0
 		p->report_threshold = DEFAULT_REPORT_THRESHOLD;
 		p->flushwrite_current_count = 0;
 		p->flushwrite = DEFAULT_FLUSHWRITE;
-		p->bytes = DEFAULT_BYTES;
-		p->kbytes = DEFAULT_KBYTES;
-		p->mbytes = DEFAULT_MBYTES;
+		p->bytes = 0; // This must init to 0
+//		p->kbytes = 0; // This must init to 0
+//		p->mbytes = 0; // This must init to 0
 		p->start_offset = DEFAULT_STARTOFFSET;
 		p->pass_offset = DEFAULT_PASSOFFSET;
 		p->preallocate = DEFAULT_PREALLOCATE;
@@ -189,8 +189,8 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 		p->seekhdr.seek_seed = DEFAULT_SEED;
 		p->seekhdr.seek_interleave = DEFAULT_INTERLEAVE;
 		p->seekhdr.seek_iosize = DEFAULT_REQSIZE*DEFAULT_BLOCKSIZE;
-		p->seekhdr.seek_num_rw_ops = DEFAULT_NUMREQS;
-		p->seekhdr.seek_total_ops = DEFAULT_NUMREQS;
+		p->seekhdr.seek_num_rw_ops = 0;
+		p->seekhdr.seek_total_ops = 0;
 		p->seekhdr.seek_NumSeekHistBuckets = DEFAULT_NUM_SEEK_HIST_BUCKETS;/* Number of buckets for seek histogram */
 		p->seekhdr.seek_NumDistHistBuckets = DEFAULT_NUM_DIST_HIST_BUCKETS;/* Number of buckets for distance histogram */
 		p->seekhdr.seek_savefile = NULL; /* file to save seek locations into */
@@ -416,12 +416,12 @@ xdd_target_info(FILE *out, ptds_t *p) {
 
 	fprintf(out, "\t\tStart offset, %lld\n",(long long)p->start_offset);
 	fprintf(out, "\t\tFlushwrite interval, %lld\n", (long long)p->flushwrite);
-	if (p->bytes > 0)
-		fprintf(out, "\t\tNumber of Bytes, %lld, of %lld, total Bytes to transfer\n", (long long)(p->numreqs*(p->reqsize*p->block_size)),(long long)p->bytes);
-	else if (p->kbytes > 0)
-		fprintf(out, "\t\tNumber of KiloBytes, %lld, of %lld, total KiloBytes to transfer\n", (long long)((p->numreqs*(p->reqsize*p->block_size))/1024),(long long)p->kbytes);
-	else if (p->mbytes > 0)
-		fprintf(out, "\t\tNumber of MegaBytes, %lld, of %lld, total MegaBytes to transfer\n", (long long)((p->numreqs*(p->reqsize*p->block_size))/(1024*1024)),(long long)p->mbytes);
+//	if (p->bytes > 0)
+	fprintf(out, "\t\tNumber of Bytes, %lld, of %lld, total Bytes to transfer\n", (long long)(p->numreqs*(p->reqsize*p->block_size)),(long long)p->bytes);
+//	else if (p->kbytes > 0)
+//		fprintf(out, "\t\tNumber of KiloBytes, %lld, of %lld, total KiloBytes to transfer\n", (long long)((p->numreqs*(p->reqsize*p->block_size))/1024),(long long)p->kbytes);
+//	else if (p->mbytes > 0)
+//		fprintf(out, "\t\tNumber of MegaBytes, %lld, of %lld, total MegaBytes to transfer\n", (long long)((p->numreqs*(p->reqsize*p->block_size))/(1024*1024)),(long long)p->mbytes);
 	fprintf(out, "\t\tPass Offset in blocks, %lld\n", (long long)p->pass_offset);
 	fprintf(out,"\t\tI/O memory buffer is %s\n", 
 		(p->target_options & TO_SHARED_MEMORY)?"a shared memory segment":"a normal memory buffer");
@@ -1573,8 +1573,8 @@ xdd_show_ptds(ptds_t *p) {
 		fprintf(stderr,"numreqs=%lld\n",(long long)p->numreqs);
 		fprintf(stderr,"flushwrite=%lld\n",(long long)p->flushwrite);
 		fprintf(stderr,"bytes=%lld\n",(long long)p->bytes); 
-		fprintf(stderr,"kbytes=%lld\n",(long long)p->kbytes); 
-		fprintf(stderr,"mbytes=%lld\n",(long long)p->mbytes); 
+//		fprintf(stderr,"kbytes=%lld\n",(long long)p->kbytes); 
+//		fprintf(stderr,"mbytes=%lld\n",(long long)p->mbytes); 
 		//p->report_threshold = DEFAULT_REPORT_THRESHOLD;
 		//p->start_offset = DEFAULT_STARTOFFSET;
 		//p->pass_offset = DEFAULT_PASSOFFSET;
