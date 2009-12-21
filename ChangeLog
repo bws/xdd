@@ -9,12 +9,17 @@ xdd-7.0.0 RC7
 * xddcp script updated to work with -e2e style options and fix mis-quote
   in supplied script that launched remote command without focus.
 * Add -bytes option to specify any file size for transfer.
-* Transfer files of arbitrary sizes (without DIO)
-* Fix option handling in xddcp to work correctly and add -s option to DIO
-  source side.
+* Transfer files of arbitrary sizes without DIO.  NOTE:  When DIO is
+  enabled, the amount of data to be transferred must be divisible by 4096.
+* Fix option handling in xddcp to work correctly and add -s option for DIO
+  on the source side.
 * Fix bug in xddcp script so that remote side works a bit (still not fully
   guaranteed to work -- the script kills itself, so xdd processes may still
   exist on remote side).
+* Include contrib/TEST_xdd_copy.sh, a copy test driver that generates the
+  the source, removes existing destination files, and computes the md5sum
+  of the resulting files for comparison after transfer.
+* Including testing results in tests subdirectory.
 
 xdd-7.0.0 RC6
 =============

@@ -1,4 +1,13 @@
 #!/bin/sh
+#
+# IMPORTANT NOTE: I found it necessary to delete the destination file
+# before every test *IF* the same namespace is used AND the test used
+# a smaller file size than the previous test. It seems as though the
+# destination file is not truncated to the newer, SMALLER size, thus
+# md5sum goes after the old size and gives different sums. I know WHAT
+# happens, but not WHY. Is this an XDD or XFS issue??? Just be forewarned.
+#
+
 
 if [ "$1" == "-h" ]
 then
@@ -166,8 +175,8 @@ scp ${HDestin}:${HOME}/${test}.${HDestin}.out .
 #########################
 #check the files
 #########################
-(echo -n MD5SUM=;md5sum ${TDSource} )  >> ${test}.${HSource}.out 2>&1 &
-ssh ${HDestin}  "(echo -n MD5SUM=;md5sum ${TDDestin} )" >> ${test}.${HDestin}.out 2>&1
+                 (echo -n MD5SUM=;md5sum                             ${TDSource} )  >> ${test}.${HSource}.out 2>&1 &
+ssh ${HDestin}  "(echo -n MD5SUM=;md5sum                             ${TDDestin} )" >> ${test}.${HDestin}.out 2>&1
 
 wait
 grep "MD5SUM=" ${test}*out
