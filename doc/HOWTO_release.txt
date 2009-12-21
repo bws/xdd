@@ -10,7 +10,7 @@ contain.
 Then perform the following steps:
 
 1.  Retrieve the repository:
-	> git clone ssh://home.ccs/ccs/proj/csc040/var/git/xdd.git
+	> git clone ssh://home.ccs.ornl.gov/ccs/proj/csc040/var/git/xdd.git
 
 2.  Increment the version release number for the build.  Versions 
 numbers are in the format MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE].  This 
