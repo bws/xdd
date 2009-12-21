@@ -2,7 +2,7 @@
 
 if [ "$1" == "-h" ]
 then
-echo "xddcp [ -d -t threads ] source_file destination_host destination_file [bytes_to_transfer]"
+echo "xddcp [ -d -s -t threads ] source_file destination_host destination_file [bytes_to_transfer]"
 #echo "source_host       - source host IP or Name over which data is transferred"
 echo "-d		- Use direct I/O on the destination end"
 echo "-s		- Use direct I/O on the source end"
