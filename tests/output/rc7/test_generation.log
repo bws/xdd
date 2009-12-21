@@ -1,0 +1,24 @@
+#
+# Selected test runs
+#
+
+$ contrib/TEST_xdd_copy.sh -t 13 /tmp/work/bws/datafiles/oddsize_file 128.219.141.51 /data/xfs/bws/oddsize-from-dtn01-1 2860486313
+nt1.qd13.16777216x170.2860486313.xdd_091221.145820.128.219.141.51.out:MD5SUM=13376f37d55a46922809127846a10250  /data/xfs/bws/oddsize-from-dtn01-1
+nt1.qd13.16777216x170.2860486313.xdd_091221.145820.dtn01.out:MD5SUM=13376f37d55a46922809127846a10250  /tmp/work/bws/datafiles/oddsize_file
+
+$ contrib/TEST_xdd_copy.sh -t 1 /tmp/work/bws/datafiles/oddsize_file 128.219.141.51 /data/xfs/bws/oddsize-from-dtn01-1 268435456
+nt1.qd1.16777216x16.268435456.xdd_091221.151358.128.219.141.51.out:MD5SUM=a7eaa8626ba90e2ae755bd3f528d14ac  /data/xfs/bws/oddsize-from-dtn01-1
+nt1.qd1.16777216x16.268435456.xdd_091221.151358.dtn01.out:MD5SUM=a7eaa8626ba90e2ae755bd3f528d14ac  /tmp/work/bws/datafiles/oddsize_file
+
+$ contrib/TEST_xdd_copy.sh -t 4 /tmp/work/bws/datafiles/oddsize_file 128.219.141.51 /data/xfs/bws/oddsize-from-dtn01-1 2684354560
+nt1.qd4.16777216x160.2684354560.xdd_091221.151826.128.219.141.51.out:MD5SUM=bde312a1c945a7142d7756fcfae31030  /data/xfs/bws/oddsize-from-dtn01-1
+nt1.qd4.16777216x160.2684354560.xdd_091221.151826.dtn01.out:MD5SUM=bde312a1c945a7142d7756fcfae31030  /tmp/work/bws/datafiles/oddsize_file
+
+$ contrib/TEST_xdd_copy.sh -t 10 /tmp/work/bws/datafiles/oddsize_file 128.219.141.51 /data/xfs/bws/oddsize-from-dtn01-2 1977777777
+nt1.qd10.16777216x117.1977777777.xdd_091221.153151.128.219.141.51.out:MD5SUM=124880c558ad0d43af5aa14d2f2625c2  /data/xfs/bws/oddsize-from-dtn01-2
+nt1.qd10.16777216x117.1977777777.xdd_091221.153151.dtn01.out:MD5SUM=124880c558ad0d43af5aa14d2f2625c2  /tmp/work/bws/datafiles/oddsize_file
+
+$ contrib/TEST_xdd_copy.sh -t 10 -d /tmp/work/bws/datafiles/4k_type_file 128.219.141.51 /data/xfs/bws/oddsize-from-dtn01-2 2147483648
+nt1.qd10.16777216x128.2147483648.xdd_091221.153836.128.219.141.51.out:MD5SUM=89cc9714e665c6bfa2b5282051369893  /data/xfs/bws/oddsize-from-dtn01-2
+nt1.qd10.16777216x128.2147483648.xdd_091221.153836.dtn01.out:MD5SUM=89cc9714e665c6bfa2b5282051369893  /tmp/work/bws/datafiles/4k_type_file
+
