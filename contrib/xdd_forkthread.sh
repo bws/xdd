@@ -7,7 +7,7 @@
 # Note:  The seed argument ensures that different random offsets are
 #  chosen for each invocation.
 #
-xdd_exe=bin/xdd
+xdd_exe=xdd.Linux
 data_file=/data/xfs/${USER}/ft.file
 
 $xdd_exe -op read \

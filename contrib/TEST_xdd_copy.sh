@@ -1,8 +1,8 @@
-#!/bin/sh 
+#!/bin/sh
 
 if [ "$1" == "-h" ]
 then
-echo "xddcp [ -d -s -t threads ] source_file destination_host destination_file [bytes_to_transfer]"
+echo "xddcp [ -d -t threads ] source_file destination_host destination_file [bytes_to_transfer]"
 #echo "source_host       - source host IP or Name over which data is transferred"
 echo "-d		- Use direct I/O on the destination end"
 echo "-s		- Use direct I/O on the source end"
@@ -37,7 +37,7 @@ fi
 
 uselocalDIO=" "		# To use Direct IO on the local side
 useDIO=" "		# To use Direct IO on the remote side
-queuedepth=4       	# queuedepth = number of I/O threads
+queuedepth=4       # queuedepth = number of I/O threads
 
 while getopts dst: option
 do case $option in
@@ -65,7 +65,7 @@ fi
 ##########################################################################################
 HSourceIP=`hostname`           # HSourceIP - Source Host IP over which data is transferred
 HDestinIP="$2"            # HDestinIP - Destin Host IP over which data is transferred
-HSource=$HSourceIP              # assume Hostname==HostIP
+HSource=`hostname -s`     # assume Hostname==HostIP
 TDSource="$1"             # complete filepath for source file
 HDestin="$2"              # assume Hostname==HostIP
 TDDestin="$3"             # complete filepath for destination file
@@ -80,8 +80,8 @@ if [ $colon_count -eq 1 ]; then
 fi
 
 if [ ! -e ${TDSource} ]; then
-	echo "${TDSource} doesn't exist"
-	exit -1
+	echo "${TDSource} doesn't exist...will create it"
+#	exit -1
 fi
 
 if [ $# -eq 4 ]; then
@@ -99,6 +99,8 @@ if [ $bytesperpass -lt 16777216 ]; then
 	exit -1
 fi
 
+#notify mailing list that test is starting
+#      mail -s "running xdd ${test} " -c durmstrang-io@ccs.ornl.gov ${USER}
 #ssh ${HDestin} "mkdir -m 1777 /dev/shm/condata" 2> /dev/null
 
 #################################################
@@ -122,16 +124,21 @@ let "reqsize      = $xfer / $blocksize"
 
 #################################################
 # Always clean-up xdd garbage from previous tests
+# Because we are testing, delete source/destination files
 #################################################
 #date
 qipcrm ${USER}
+#delete source file
+rm -f ${TDSource}
 pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
-ssh ${HDestin} 'qipcrm ${USER}; pgrep -u ${USER} -f xdd.Linux | xargs kill -9' 
+#delete destination file
+ssh ${HDestin} "rm -f ${TDDestin}; qipcrm ${USER}; pgrep -u ${USER} -f xdd.Linux | xargs kill -9" 
 #ssh ${HDestin} "mkdir -m 1777 /dev/shm/condata" 2> /dev/null
 
 #################################################
 # end-to-end: /dev/file-to-file
-test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".file-to-file.xfs.xdd"
+TSTAMP="`date +%y%m%d.%H%M%S`"
+test="nt1.qd"$queuedepth"."$xfer"x"$numreqs"."$bytesperpass".xdd_${TSTAMP}"
 #################################################
 
 #ssh ${HDestin} xdd.Linux -targets 1 ${TDDestin} -minall -numreqs $numreqs  -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op write -war writer ${HDestinIP} ${WARPORT1}  ${useDIO} &> ${test}.${HDestin}.out &
@@ -143,8 +150,27 @@ sleep 6
 #ssh ${HSource} xdd.Linux -targets 1  ${TDSource} -minall -numreqs $numreqs -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${useDIO}  &> ${test}.${HSource}.out &
 
 #xdd.Linux -targets 1  ${TDSource} -noconfidump -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${uselocalDIO}  -timerinfo #&> ${test}.${HSource}.out &
-xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $queuedepth -op read -e2e issource -e2e dest ${HDestinIP} ${E2EPORT1}  ${uselocalDIO}  -timerinfo &> ${test}.${HSource}.out &
+#########################
+#make and move file
+#########################
+xdd.Linux -op write -datapattern random -bytes $bytesperpass -targets 1  ${TDSource}  > ${test}.${HSource}.out 2>&1
+xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $queuedepth -op read -e2e issource -e2e dest ${HDestinIP} ${E2EPORT1}  ${uselocalDIO}  -timerinfo >> ${test}.${HSource}.out 2>&1 &
 
 wait
 
-echo "Transfer finished"
+#########################
+#bring destination outputfile home
+#########################
+scp ${HDestin}:${HOME}/${test}.${HDestin}.out .
+
+#########################
+#check the files
+#########################
+(echo -n MD5SUM=;md5sum ${TDSource} )  >> ${test}.${HSource}.out 2>&1 &
+ssh ${HDestin}  "(echo -n MD5SUM=;md5sum ${TDDestin} )" >> ${test}.${HDestin}.out 2>&1
+
+wait
+grep "MD5SUM=" ${test}*out
+
+
+echo "TEST Transfer finished"
