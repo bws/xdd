@@ -16,11 +16,11 @@ Then perform the following steps:
 numbers are in the format MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE].  This 
 is the standard convention for most Linux software packaged and publicly 
 available:
+	> cd xdd
 	> vi Makefile # and edit the VERSION variable
 	> make baseversion
 
 3.  Test the new features:
-	> cd xdd
 	> make
 	> ./run_some_tests.sh . . .
 
@@ -29,10 +29,17 @@ continue cutting the release.
 
 5.  Tag the code.
 	> git commit -a	
-	> git tag XDD_MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE]
+	> git tag xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE]
 
 6.  Push everything back up to the durmstrang repository:
 	> git push --tags
 
-At this point, the release is ready.  It can be retrieved by anyone with 
-access to the repository.
+7.  At this point, the release is ready.  It can be retrieved by anyone with 
+    access to the repository.  To retrieve the release, run the following command:
+	> git archive --format=tar --prefix=TAG_NAME --remote=ssh://home.ccs.ornl.gov/ccs/proj/csc040/var/git/xdd.git TAG_NAME |gzip > TAG_NAME.tar.gz
+
+    Where TAG_NAME is in the format xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE] (e.g. xdd-7.0.0.rc1)
+
+The resulting tar file now contains the released code only.
+
+
