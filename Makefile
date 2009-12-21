@@ -38,7 +38,7 @@ OBJECTS =	access_pattern.o \
 HEADERS = 	access_pattern.h \
 		barrier.h \
 		end_to_end.h \
-		data_pattern.h \
+		datapatterns.h \
 		misc.h \
 		parse.h \
 		pclk.h \
@@ -50,7 +50,7 @@ HEADERS = 	access_pattern.h \
 		sg_include.h \
 		ticker.h \
 		timestamp.h \
-		trigger.h \
+		end_to_end.h \
 		xdd.h \
 		xdd_common.h \
 		xdd_version.h
