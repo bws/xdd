@@ -10,7 +10,6 @@ xdd-7.0.0 RC7
   in supplied script that launched remote command without focus.
 * Add -bytes option to specify any file size for transfer.
 * Transfer files of arbitrary sizes (without DIO)
-* Transfer files of arbitrary sizes with DIO
 * Fix option handling in xddcp to work correctly and add -s option to DIO
   source side.
 * Fix bug in xddcp script so that remote side works a bit (still not fully

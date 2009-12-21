@@ -17,7 +17,7 @@ fi
 
 if [ $# -lt 2 ]
 then
-	echo "usage: $0 [ -d -t threads ] /full_path/source_file destination_host /full_path/destination_file [bytes_to_transfer]"
+	echo "usage: $0 [ -d -s -t threads ] /full_path/source_file destination_host /full_path/destination_file [bytes_to_transfer]"
 	exit -1
 fi
 
@@ -41,8 +41,8 @@ queuedepth=4       	# queuedepth = number of I/O threads
 
 while getopts dst: option
 do case $option in
-	d) uselocalDIO="-dio";;
-	s) useDIO="-dio";;
+	d) useDIO="-dio";;
+	s) uselocalDIO="-dio";;
 	t) queuedepth=$OPTARG;;
 	esac
 done
