@@ -19,7 +19,7 @@ xdd-7.0.0 RC7
 * Include contrib/TEST_xdd_copy.sh, a copy test driver that generates the
   the source, removes existing destination files, and computes the md5sum
   of the resulting files for comparison after transfer.
-* Including testing results in tests subdirectory.
+* Including testing results in tests/output/rc7 subdirectory.
 
 xdd-7.0.0 RC6
 =============

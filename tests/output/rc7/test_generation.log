@@ -22,3 +22,38 @@ $ contrib/TEST_xdd_copy.sh -t 10 -d /tmp/work/bws/datafiles/4k_type_file 128.219
 nt1.qd10.16777216x128.2147483648.xdd_091221.153836.128.219.141.51.out:MD5SUM=89cc9714e665c6bfa2b5282051369893  /data/xfs/bws/oddsize-from-dtn01-2
 nt1.qd10.16777216x128.2147483648.xdd_091221.153836.dtn01.out:MD5SUM=89cc9714e665c6bfa2b5282051369893  /tmp/work/bws/datafiles/4k_type_file
 
+$ contrib/TEST_xdd_copy.sh -d -t 1 /tmp/work/swh13/mod_4096_file pod9 /data/xfs/swh13/mod_4096_file 5915586560
+nt1.qd1.268435456x22.5915586560.xdd_091221.145504.dtn02.out:MD5SUM=d14bacffcbcfdada6fd44e73821e8540 /tmp/work/swh13/mod_4096_file
+nt1.qd1.268435456x22.5915586560.xdd_091221.145504.pod9.out :MD5SUM=d14bacffcbcfdada6fd44e73821e8540 /data/xfs/swh13/mod_4096_file
+
+$ contrib/TEST_xdd_copy.sh -t 3 /tmp/work/swh13/primesize_file pod9 /data/xfs/swh13/primesize_file 5915587277
+nt1.qd3.268435456x22.5915587277.xdd_091221.150300.dtn02.out:MD5SUM=d47050245b6f2d77c2af97b7d80ee4c7 /tmp/work/swh13/primesize_file
+nt1.qd3.268435456x22.5915587277.xdd_091221.150300.pod9.out :MD5SUM=d47050245b6f2d77c2af97b7d80ee4c7 /data/xfs/swh13/primesize_file
+
+$ contrib/TEST_xdd_copy.sh -t 5 /tmp/work/swh13/primesize_file pod9 /data/xfs/swh13/primesize_file 3628273133
+nt1.qd5.268435456x13.3628273133.xdd_091221.150948.dtn02.out:MD5SUM=ce30f0c57a94bf8c8ed4df9b11c631e0 /tmp/work/swh13/primesize_file
+nt1.qd5.268435456x13.3628273133.xdd_091221.150948.pod9.out:MD5SUM=ce30f0c57a94bf8c8ed4df9b11c631e0 /data/xfs/swh13/primesize_file
+
+$ contrib/TEST_xdd_copy.sh -d -t 5 /tmp/work/swh13/primesize_file pod9 /data/xfs/swh13/primesize_file 3628273133
+nt1.qd5.268435456x13.3628273133.xdd_091221.151409.dtn02.out:MD5SUM=ce30f0c57a94bf8c8ed4df9b11c631e0 /tmp/work/swh13/primesize_file **
+nt1.qd5.268435456x13.3628273133.xdd_091221.151409.pod9.out :MD5SUM=cc47c4f65df11bb00869efe733d5b7a2 /data/xfs/swh13/primesize_file **
+
+$ contrib/TEST_xdd_copy.sh -d -t 5 /data/xfs/swh13/primesize_file pod9 /data/xfs/swh13/primesize_file 3628273133
+nt1.qd5.268435456x13.3628273133.xdd_091221.152058.pod7.out:MD5SUM=ce30f0c57a94bf8c8ed4df9b11c631e0 /data/xfs/swh13/primesize_file **
+nt1.qd5.268435456x13.3628273133.xdd_091221.152058.pod9.out:MD5SUM=cc47c4f65df11bb00869efe733d5b7a2 /data/xfs/swh13/primesize_file **
+
+$ contrib/TEST_xdd_copy.sh   -t 5 /data/xfs/swh13/primesize_file pod9 /data/xfs/swh13/primesize_file 3628273133
+nt1.qd5.268435456x13.3628273133.xdd_091221.152451.pod7.out:MD5SUM=ce30f0c57a94bf8c8ed4df9b11c631e0 /data/xfs/swh13/primesize_file
+nt1.qd5.268435456x13.3628273133.xdd_091221.152451.pod9.out:MD5SUM=ce30f0c57a94bf8c8ed4df9b11c631e0 /data/xfs/swh13/primesize_file
+
+$ contrib/TEST_xdd_copy.sh   -t 7 /data/xfs/swh13/primesize_file pod9 /data/xfs/swh13/primesize_file 3267000013
+nt1.qd7.268435456x12.3267000013.xdd_091221.152834.pod7.out:MD5SUM=1a553053bed3fd150be9cf0b31a7239d /data/xfs/swh13/primesize_file
+nt1.qd7.268435456x12.3267000013.xdd_091221.152834.pod9.out:MD5SUM=1a553053bed3fd150be9cf0b31a7239d /data/xfs/swh13/primesize_file
+
+$ contrib/TEST_xdd_copy.sh  -t 13 /data/xfs/swh13/primesize_file pod9 /data/xfs/swh13/primesize_file 2860486313
+nt1.qd13.268435456x10.2860486313.xdd_091221.153116.pod7.out:MD5SUM=13376f37d55a46922809127846a10250 /data/xfs/swh13/primesize_file
+nt1.qd13.268435456x10.2860486313.xdd_091221.153116.pod9.out:MD5SUM=13376f37d55a46922809127846a10250 /data/xfs/swh13/primesize_file
+
+$ contrib/TEST_xdd_copy.sh  -t 11 /data/xfs/swh13/primesize_file pod9 /data/xfs/swh13/primesize_file 2860486313
+nt1.qd11.268435456x10.2860486313.xdd_091221.153336.pod7.out:MD5SUM=13376f37d55a46922809127846a10250 /data/xfs/swh13/primesize_file
+nt1.qd11.268435456x10.2860486313.xdd_091221.153336.pod9.out:MD5SUM=13376f37d55a46922809127846a10250 /data/xfs/swh13/primesize_file

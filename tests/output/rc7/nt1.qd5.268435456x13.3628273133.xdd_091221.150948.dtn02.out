@@ -1,0 +1,197 @@
+xdd.Linux: xdd_schedule_options: You must be super user to lock processes
+IOIOIOIOIOIOIOIOIOIOI XDD version Linux.7.0.0.rc6.122109.Build.1325 based on Linux.7.0.0.rc6.121409.Build.1614 IOIOIOIOIOIOIOIOIOIOIOI
+xdd - I/O Performance Inc., US DoE/DoD Extreme Scale Systems Center <ESSC> at Oak Ridge National Labs <ORNL> - Copyright 1992-2010
+
+XDD DISCLAIMER:
+ *** >>>> WARNING <<<<
+ *** THIS PROGRAM CAN DESTROY DATA
+ *** USE AT YOUR OWN RISK
+ *** IOPERFORMANCE and/or THE AUTHORS ARE NOT LIABLE FOR
+ *** >>>> ANYTHING BAD <<<<
+ **** THAT HAPPENS WHEN YOU RUN THIS PROGRAM
+     ...although we will take credit for anything good that happens
+     but we are not *liable* for that either.
+
+
+Starting time for this run, Mon Dec 21 15:10:18 2009
+
+ID for this run, 'No ID Specified'
+Maximum Process Priority, disabled
+Passes, 1
+Pass Delay in seconds, 0
+Maximum Error Threshold, 0
+Target Offset, 0
+I/O Synchronization, 0
+Total run-time limit in seconds, 0
+Output file name, stdout
+CSV output file name, 
+Error output file name, stderr
+Pass synchronization barriers, enabled
+Number of Targets, 1
+Number of I/O Threads, 1
+
+Computer Name, dtn02.ccs.ornl.gov, User Name, swh13
+OS release and version, Linux 2.6.18-92.1.17.el5_lustre.1.6.7smp #1 SMP Mon Feb 9 19:56:55 MST 2009
+Machine hardware type, x86_64
+Number of processors on this system, 8
+Page size in bytes, 4096
+Number of physical pages, 6172047
+Megabytes of physical memory, 24109
+Clock Ticks per second, 100
+Seconds before starting, 0
+xdd.Linux: (0): xdd_open_target: NOTICE: target /tmp/work/swh13/primesize_file does not exist so it will be created.
+(PID 32672) xdd.Linux: You must run as superuser to lock memory for RW BUFFER
+	Target[0] Q[0], /tmp/work/swh13/primesize_file
+		Target directory, "./"
+		Process ID, 32672
+		Thread ID, 32673
+		Processor, all/any
+		Read/write ratio,  0.00, 100.00
+		Throttle in MB/sec,   0.00
+		Per-pass time limit in seconds, 0
+		Pass seek randomization, disabled
+		File write synchronization, disabled
+		Blocksize in bytes, 1024
+		Request size, 128, blocks, 131072, bytes
+		Start offset, 0
+		Flushwrite interval, 0
+		Number of Bytes, 0, of 3628273133, total Bytes to transfer
+		Pass Offset in blocks, 0
+		I/O memory buffer is a normal memory buffer
+		I/O memory buffer alignment in bytes, 4096
+		Data pattern in buffer,random 		Data buffer verification is disabled.
+		Direct I/O, disabled
+		Seek pattern, sequential
+		Seek range, 1048576
+		Preallocation, 0
+		Queue Depth, 1
+		Timestamping, disabled
+		Delete file, disabled
+
+   What               Pass  Target   Queue     Bytes_Xfered         Ops     Elapsed  Bandwidth       IOPS   Latency   Pct_CPU  Op_Type    Xfer_Size 
+    UNITS>>      Number  Number  Number            Bytes        #ops     seconds   MBytes/s      Ops/s  millisec   percent     text        bytes 
+ COMBINED             1       1       1       3628273133       27682      14.825    244.740   1867.253     0.536    36.560    write       131072 
+Ending time for this run, Mon Dec 21 15:10:33 2009
+
+adding +E2ESRTIME+E2EIOTIME+E2EPERCENTSRTIME  to format string
+IOIOIOIOIOIOIOIOIOIOI XDD version Linux.7.0.0.rc6.122109.Build.1325 based on Linux.7.0.0.rc6.121409.Build.1614 IOIOIOIOIOIOIOIOIOIOIOI
+xdd - I/O Performance Inc., US DoE/DoD Extreme Scale Systems Center <ESSC> at Oak Ridge National Labs <ORNL> - Copyright 1992-2010
+
+XDD DISCLAIMER:
+ *** >>>> WARNING <<<<
+ *** THIS PROGRAM CAN DESTROY DATA
+ *** USE AT YOUR OWN RISK
+ *** IOPERFORMANCE and/or THE AUTHORS ARE NOT LIABLE FOR
+ *** >>>> ANYTHING BAD <<<<
+ **** THAT HAPPENS WHEN YOU RUN THIS PROGRAM
+     ...although we will take credit for anything good that happens
+     but we are not *liable* for that either.
+
+
+Starting time for this run, Mon Dec 21 15:10:33 2009
+
+ID for this run, 'No ID Specified'
+Maximum Process Priority, disabled
+Passes, 1
+Pass Delay in seconds, 0
+Maximum Error Threshold, 0
+Target Offset, 0
+I/O Synchronization, 0
+Total run-time limit in seconds, 0
+Output file name, stdout
+CSV output file name, 
+Error output file name, stderr
+Pass synchronization barriers, enabled
+Number of Targets, 1
+Number of I/O Threads, 5
+
+Computer Name, dtn02.ccs.ornl.gov, User Name, ***unknown user login***
+OS release and version, Linux 2.6.18-92.1.17.el5_lustre.1.6.7smp #1 SMP Mon Feb 9 19:56:55 MST 2009
+Machine hardware type, x86_64
+Number of processors on this system, 8
+Page size in bytes, 4096
+Number of physical pages, 6172047
+Megabytes of physical memory, 24109
+Clock Ticks per second, 100
+Seconds before starting, 0
+Starting now...
+	Target[0] Q[0], /tmp/work/swh13/primesize_file
+		Target directory, "./"
+		Process ID, 32695
+		Thread ID, 32696
+		Processor, all/any
+		Read/write ratio, 100.00,  0.00
+		Throttle in MB/sec,   0.00
+		Per-pass time limit in seconds, 0
+		Pass seek randomization, disabled
+		File write synchronization, disabled
+		Blocksize in bytes, 1024
+		Request size, 262144, blocks, 268435456, bytes
+		Start offset, 0
+		Flushwrite interval, 0
+		Number of Bytes, 0, of 3628273133, total Bytes to transfer
+		Pass Offset in blocks, 0
+		I/O memory buffer is a normal memory buffer
+		I/O memory buffer alignment in bytes, 4096
+		Data pattern in buffer,0x00
+		Data buffer verification is disabled.
+		Direct I/O, disabled
+		Seek pattern, queued_interleaved
+		Seek range, 1048576
+		Preallocation, 0
+		Queue Depth, 5
+		Timestamping, disabled
+		Delete file, disabled
+		End-to-End ACTIVE: this target is the SOURCE side
+		End-to-End Destination Address is pod9 using port 40010 of ports 40010 thru 40014
+
+Starting now...
+Starting now...
+Starting now...
+Starting now...
+XDD Timer Calibration Info: Average time to get time stamp=150000 nanoseconds
+XDD Timer Calibration Info: Average time to get time stamp=140000 nanoseconds
+XDD Timer Calibration Info: Average time to get time stamp=140000 nanoseconds
+XDD Timer Calibration Info: Average time to get time stamp=140000 nanoseconds
+XDD Timer Calibration Info: Average time to get time stamp=140000 nanoseconds
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000, Actual sleep time in nanoseconds=1500
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000, Actual sleep time in nanoseconds=1462
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000, Actual sleep time in nanoseconds=1437
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000, Actual sleep time in nanoseconds=1412
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000, Actual sleep time in nanoseconds=1390
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000, Actual sleep time in nanoseconds=997
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000, Actual sleep time in nanoseconds=998
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000, Actual sleep time in nanoseconds=998
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000, Actual sleep time in nanoseconds=1001
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000, Actual sleep time in nanoseconds=1002
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000, Actual sleep time in nanoseconds=1001
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000, Actual sleep time in nanoseconds=1999
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000, Actual sleep time in nanoseconds=1999
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000000, Actual sleep time in nanoseconds=984
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000000, Actual sleep time in nanoseconds=986
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000000, Actual sleep time in nanoseconds=986
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000000, Actual sleep time in nanoseconds=998
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000000, Actual sleep time in nanoseconds=999
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000000, Actual sleep time in nanoseconds=1000
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000, Actual sleep time in nanoseconds=1987
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000, Actual sleep time in nanoseconds=1983
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000000, Actual sleep time in nanoseconds=1075
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000000, Actual sleep time in nanoseconds=1075
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000000, Actual sleep time in nanoseconds=2012
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000000, Actual sleep time in nanoseconds=2012
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000000, Actual sleep time in nanoseconds=2011
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000000, Actual sleep time in nanoseconds=1928
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=10000000, Actual sleep time in nanoseconds=1930
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000000000, Actual sleep time in nanoseconds=1999
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000000000, Actual sleep time in nanoseconds=3009
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000000000, Actual sleep time in nanoseconds=4005
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000000, Actual sleep time in nanoseconds=3010
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=100000000, Actual sleep time in nanoseconds=3035
+XDD Timer Calibration Info: Requested sleep time in nanos         econds=1000000000, Actual sleep time in nanoseconds=2973
+XDD Timer Calibration Info: Requested sleep time in nanoseconds=1000000000, Actual sleep time in nanoseconds=7976
+What               Pass  Target   Queue     Bytes_Xfered         Ops     Elapsed  Bandwidth       IOPS   Latency   Pct_CPU  Op_Type    Xfer_Size      E2E_S/R      E2E_I/O  E2E_Pct_S/R 
+    UNITS>>      Number  Number  Number            Bytes        #ops     seconds   MBytes/s      Ops/s  millisec   percent     text        bytes      seconds      seconds      percent 
+ COMBINED             1       1       5       3628273133          14      33.044    109.802      0.424  2146.732   145.141     read    268435456       142.48       147.94        96.31 
+Ending time for this run, Mon Dec 21 15:11:07 2009
+
+MD5SUM=ce30f0c57a94bf8c8ed4df9b11c631e0  /tmp/work/swh13/primesize_file
