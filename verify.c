@@ -51,11 +51,11 @@ xdd_verify_checksum(ptds_t *p, int32_t current_op) {
  * factor has been previously written to the media that was just read and 
  * is being verified. 
  * It is further assumed that the data pattern and data pattern lenggth
- * are in p->data_pattern and p->data_pattern_length respectively. This is
+ * are in p->dpp->data_pattern and p->dpp->data_pattern_length respectively. This is
  * done by the datapattern function in the parse.c file. If the target_option
  * of "TO_REPLICATE_PATTERN" was specified as well, then the data comparison is
  * made throughout the data buffer. Otherwise only the first N bytes are compared
- * against the data pattern where N is equal to p->data_pattern_length. Cool, huh?
+ * against the data pattern where N is equal to p->dpp->data_pattern_length. Cool, huh?
  */
 int32_t
 xdd_verify_hex(ptds_t *p, int32_t current_op) {
@@ -64,24 +64,29 @@ xdd_verify_hex(ptds_t *p, int32_t current_op) {
 	int32_t remaining;
 	int32_t offset;
 	unsigned char *patternp, *bufferp;
+	data_pattern_t	*dpp;
 
 
+	if (p->dpp == NULL) {	
+		fprintf(xgp->errout,"%s [%d]: Cannot verify target %s hex - no data pattern information in PTDS\n",
+			xgp->progname, 
+			p->my_target_number, 
+			p->target);
+		return(1);
+	}
+	dpp = p->dpp;
 	if (p->target_options & TO_REPLICATE_PATTERN) 
 		remaining = p->actual_iosize;
-	else remaining = p->data_pattern_length;
+	else remaining = dpp->data_pattern_length;
 
 	offset = 0;
 	bufferp = p->rwbuf;
 	errors = 0;
 	while (remaining) {
-		patternp = p->data_pattern;
-		for (i=0; i<p->data_pattern_length; i++, patternp++, bufferp++) {
+		patternp = dpp->data_pattern;
+		for (i=0; i<dpp->data_pattern_length; i++, patternp++, bufferp++) {
 			if (*patternp != *bufferp) {
-#ifdef WIN32
-				fprintf(xgp->errout,"%s [%d]: Content mismatch on target %s at %d bytes into block %I64u, expected 0x%02x, got 0x%02x\n",
-#else
 				fprintf(xgp->errout,"%s [%d]: Content mismatch on target %s at %d bytes into block %llu, expected 0x%02x, got 0x%02x\n",
-#endif
 					xgp->progname, 
 					p->my_target_number, 
 					p->target, 
@@ -118,6 +123,17 @@ xdd_verify_sequence(ptds_t *p, int32_t current_op) {
 	uint64_t expected_data;
 	uint64_t *uint64p;
 	unsigned char *ucp;        /* A temporary unsigned char pointer */
+	data_pattern_t	*dpp;
+
+
+	if (p->dpp == NULL) {	
+		fprintf(xgp->errout,"%s [%d]: Cannot verify target %s sequence - no data pattern sequence information in PTDS\n",
+			xgp->progname, 
+			p->my_target_number, 
+			p->target);
+		return(1);
+	}
+	dpp = p->dpp;
  
 
 	uint64p = (uint64_t *)p->rwbuf;
@@ -125,7 +141,7 @@ xdd_verify_sequence(ptds_t *p, int32_t current_op) {
 	for (i = 0; i < p->actual_iosize; i+=(sizeof(p->my_current_byte_location))) {
 		expected_data = p->my_current_byte_location + i;
 		if (p->target_options & TO_PATTERN_PREFIX) { // OR-in the pattern prefix
-			expected_data |= p->data_pattern_prefix_binary;
+			expected_data |= dpp->data_pattern_prefix_binary;
 		} 
 		if (p->target_options & TO_INVERSE_PATTERN)
 			expected_data ^= 0xffffffffffffffffLL; // 1's compliment of the expected data 
@@ -174,22 +190,29 @@ xdd_verify_singlechar(ptds_t *p, int32_t current_op) {
 	int32_t  i;
 	int32_t  errors;
 	unsigned char *ucp;
+	data_pattern_t	*dpp;
+
+
+	if (p->dpp == NULL) {	
+		fprintf(xgp->errout,"%s [%d]: Cannot verify target %s single character - no data pattern information in PTDS\n",
+			xgp->progname, 
+			p->my_target_number, 
+			p->target);
+		return(1);
+	}
+	dpp = p->dpp;
  
 	ucp = p->rwbuf;
 	errors = 0;
 	for (i = 0; i < p->actual_iosize; i++) {
-		if (*ucp != *(p->data_pattern)) {
-#ifdef WIN32
-		fprintf(xgp->errout,"%s [%d]: Content mismatch on target %s at %d bytes into block %I64u, expected 0x%02x, got 0x%02x\n",
-#else
+		if (*ucp != *(dpp->data_pattern)) {
 		fprintf(xgp->errout,"%s [%d]: Content mismatch on target %s at %d bytes into block %llu, expected 0x%02x, got 0x%02x\n",
-#endif
 			xgp->progname, 
 			p->my_target_number, 
 			p->target, 
 			i, 
 			(unsigned long long)(p->my_current_byte_location/p->block_size), 
-			*(p->data_pattern), 
+			*(dpp->data_pattern), 
 			*ucp);
 
 		errors++;
@@ -257,11 +280,7 @@ xdd_verify_location(ptds_t *p, int32_t current_op) {
 	current_position = *(uint64_t *)p->rwbuf;
 	if (current_position != p->my_current_byte_location) {
 		errors++;
-#ifdef WIN32
-		fprintf(xgp->errout,"%s [%d]: Data Buffer Sequence mismatch on target %s - expected %I64u, got %I64u\n",
-#else
 		fprintf(xgp->errout,"%s [%d]: Data Buffer Sequence mismatch on target %s - expected %llu, got %llu\n",
-#endif
 			xgp->progname, 
 			p->my_target_number, 
 			p->target, 

@@ -140,36 +140,42 @@ xdd_start_delay_before_io_loop(ptds_t *p) {
  */
 void // Lock Step Processing
 xdd_lockstep_before_io_loop(ptds_t *p) {
+	lockstep_t	*lsp;
 
 
-	p->ls_slave_loop_counter = 0;
-	if (p->ls_slave >= 0) { /* I am a master */
-		p->ls_interval_base_value = 0;
-		if (p->ls_interval_type & LS_INTERVAL_TIME) {
-			p->ls_interval_base_value = p->my_pass_start_time;
+	if (p->lsp == NULL) 
+		return;
+
+	lsp = p->lsp;
+
+	lsp->ls_slave_loop_counter = 0;
+	if (lsp->ls_slave >= 0) { /* I am a master */
+		lsp->ls_interval_base_value = 0;
+		if (lsp->ls_interval_type & LS_INTERVAL_TIME) {
+			lsp->ls_interval_base_value = p->my_pass_start_time;
 		}
-		if (p->ls_interval_type & LS_INTERVAL_OP) {
-			p->ls_interval_base_value = 0;
+		if (lsp->ls_interval_type & LS_INTERVAL_OP) {
+			lsp->ls_interval_base_value = 0;
 		}
-		if (p->ls_interval_type & LS_INTERVAL_PERCENT) {
-			p->ls_interval_base_value = 1; 
+		if (lsp->ls_interval_type & LS_INTERVAL_PERCENT) {
+			lsp->ls_interval_base_value = 1; 
 		}
-		if (p->ls_interval_type & LS_INTERVAL_BYTES) {
-			p->ls_interval_base_value = 0;
+		if (lsp->ls_interval_type & LS_INTERVAL_BYTES) {
+			lsp->ls_interval_base_value = 0;
 		}
 	} else { /* I am a slave */
-		p->ls_task_base_value = 0;
-		if (p->ls_task_type & LS_TASK_TIME) {
-			p->ls_task_base_value = p->my_pass_start_time;
+		lsp->ls_task_base_value = 0;
+		if (lsp->ls_task_type & LS_TASK_TIME) {
+			lsp->ls_task_base_value = p->my_pass_start_time;
 		}
-		if (p->ls_task_type & LS_TASK_OP) {
-			p->ls_task_base_value = 0;
+		if (lsp->ls_task_type & LS_TASK_OP) {
+			lsp->ls_task_base_value = 0;
 		}
-		if (p->ls_task_type & LS_TASK_PERCENT) {
-			p->ls_task_base_value = 1; 
+		if (lsp->ls_task_type & LS_TASK_PERCENT) {
+			lsp->ls_task_base_value = 1; 
 		}
-		if (p->ls_task_type & LS_TASK_BYTES) {
-			p->ls_task_base_value = 0;
+		if (lsp->ls_task_type & LS_TASK_BYTES) {
+			lsp->ls_task_base_value = 0;
 		}
 	}
 
@@ -181,19 +187,24 @@ xdd_lockstep_before_io_loop(ptds_t *p) {
  */
 void
 xdd_raw_before_io_loop(ptds_t *p) {
+	raw_t	*rawp;
 
 	if ((p->target_options & TO_READAFTERWRITE) == 0)
 		return;
+	if (p->rawp == NULL) 
+		return;
+
+	rawp = p->rawp;
 
 	// Initialize the read-after-write variables
-	p->raw_msg_sent = 0;
-	p->raw_msg_recv = 0;
-	p->raw_msg_last_sequence = 0;
-	p->raw_msg.sequence = 0;
-	p->raw_prev_loc = 0;
-	p->raw_prev_len = 0;
-	p->raw_data_ready = 0;
-	p->raw_data_length = 0;
+	rawp->raw_msg_sent = 0;
+	rawp->raw_msg_recv = 0;
+	rawp->raw_msg_last_sequence = 0;
+	rawp->raw_msg.sequence = 0;
+	rawp->raw_prev_loc = 0;
+	rawp->raw_prev_len = 0;
+	rawp->raw_data_ready = 0;
+	rawp->raw_data_length = 0;
 
 } // End of xdd_raw_before_io_loop()
 
@@ -203,19 +214,25 @@ xdd_raw_before_io_loop(ptds_t *p) {
  */
 void
 xdd_e2e_before_io_loop(ptds_t *p) {
+	e2e_t	*ep;
 
 	if ((p->target_options & TO_ENDTOEND) == 0)
 		return;
+	if (p->e2ep == NULL) 
+		return;
+
+	ep = p->e2ep;
+
 
 	// Initialize the read-after-write variables
-	p->e2e_msg_sent = 0;
-	p->e2e_msg_recv = 0;
-	p->e2e_msg_last_sequence = 0;
-	p->e2e_prev_loc = 0;
-	p->e2e_prev_len = 0;
-	p->e2e_data_ready = 0;
-	p->e2e_data_length = 0;
-	p->e2e_sr_time = 0;
+	ep->e2e_msg_sent = 0;
+	ep->e2e_msg_recv = 0;
+	ep->e2e_msg_last_sequence = 0;
+	ep->e2e_prev_loc = 0;
+	ep->e2e_prev_len = 0;
+	ep->e2e_data_ready = 0;
+	ep->e2e_data_length = 0;
+	ep->e2e_sr_time = 0;
 
 } // End of xdd_e2e_before_io_loop()
 
@@ -229,6 +246,8 @@ xdd_e2e_before_io_loop(ptds_t *p) {
 int32_t
 xdd_io_loop_before_loop(ptds_t *p) {
 	int32_t  i;
+
+if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_loop_before_loop: enter, p=0x%x\n",p);
 
 	// Timer Calibration and Information
 	xdd_timer_calibration_before_io_loop();
@@ -301,6 +320,9 @@ xdd_io_loop_before_loop(ptds_t *p) {
 	p->my_shortest_read_op_number = 0; 	// Number of the read operation where the shortest op time occured during this pass
 	p->my_shortest_write_op_time = PCLK_MAX;// Shortest write op time that occured during this pass
 	p->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
+
+if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_loop_before_loop: exit, p=0x%x\n",p);
+
 	return(0);
 
 } // End of xdd_io_loop_before_loop()

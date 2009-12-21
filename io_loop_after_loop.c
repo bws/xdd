@@ -40,26 +40,35 @@
 int32_t
 xdd_lockstep_after_io_loop(ptds_t *p) {
 	ptds_t	*p2;		// Secondary PTDS pointer
+	lockstep_t *lsp;	// Pointer to lockstep information
+	lockstep_t *lsp2;	// Pointer to lockstep information
 
+
+	if (p->lsp == NULL) 
+		return(0); // In this case a return value of zero is goodness
+
+	lsp = p->lsp;		// It is assume at this point that this pointer exists
+	
 	/* This ought to return something other than 0 but this is it for now... */
 	/* If there is a slave to this target then we need to tell the slave that we (the master) are finished
 	 * and that it ought to abort or finish (depending on the command-line option) but in either case it
 	 * should no longer wait for the master to tell it to do something.
 	 */
-	if (p->ls_master >= 0) {
+	if (lsp->ls_master >= 0) {
 		/* If this is the slave and we are finishing first, turn off the SLAVE_WAITING flag so the 
 		 * master does not inadvertently wait for the slave to complete.
 		 */
-		pthread_mutex_lock(&p->ls_mutex);
-		p->ls_ms_state &= ~LS_SLAVE_WAITING;
-		p->ls_ms_state |= LS_SLAVE_FINISHED;
-		pthread_mutex_unlock(&p->ls_mutex);
+		pthread_mutex_lock(&lsp->ls_mutex);
+		lsp->ls_ms_state &= ~LS_SLAVE_WAITING;
+		lsp->ls_ms_state |= LS_SLAVE_FINISHED;
+		pthread_mutex_unlock(&lsp->ls_mutex);
 	}
-	if (p->ls_slave >= 0) {  
+	if (lsp->ls_slave >= 0) {  
 		/* Get the mutex lock for the ls_task_counter and increment the counter */
-		p2 = xgp->ptdsp[p->ls_slave];
-		pthread_mutex_lock(&p2->ls_mutex);
-		p2->ls_ms_state |= LS_MASTER_FINISHED;
+		p2 = xgp->ptdsp[lsp->ls_slave];
+		lsp2 = p2->lsp;
+		pthread_mutex_lock(&lsp2->ls_mutex);
+		lsp2->ls_ms_state |= LS_MASTER_FINISHED;
 		/* At this point the slave could be in one of three places. Thus this next section of code
 			* must be carefully structured to prevent a race condition between the master and the slave.
 			* If the slave is simply waiting for the master to release it, then the ls_task_counter lock
@@ -68,14 +77,14 @@ xdd_lockstep_after_io_loop(ptds_t *p) {
 			* when it gets the lock, it will discover that the ls_task_counter is non-zero and will simply
 			* decrement the counter by 1 and continue on executing a lock. 
 			*/
-		p2->ls_task_counter++;
-		if (p2->ls_ms_state & LS_SLAVE_WAITING) { /* looks like the slave is waiting for something to do */
-			p2->ls_ms_state &= ~LS_SLAVE_WAITING;
-			pthread_mutex_unlock(&p2->ls_mutex);
-			xdd_barrier(&p2->Lock_Step_Barrier[p2->Lock_Step_Barrier_Master_Index]);
-			p2->Lock_Step_Barrier_Master_Index ^= 1;
+		lsp2->ls_task_counter++;
+		if (lsp2->ls_ms_state & LS_SLAVE_WAITING) { /* looks like the slave is waiting for something to do */
+			lsp2->ls_ms_state &= ~LS_SLAVE_WAITING;
+			pthread_mutex_unlock(&lsp2->ls_mutex);
+			xdd_barrier(&lsp2->Lock_Step_Barrier[lsp2->Lock_Step_Barrier_Master_Index]);
+			lsp2->Lock_Step_Barrier_Master_Index ^= 1;
 		} else {
-			pthread_mutex_unlock(&p2->ls_mutex);
+			pthread_mutex_unlock(&lsp2->ls_mutex);
 		}
 	}
 
@@ -93,6 +102,8 @@ xdd_io_loop_after_loop(ptds_t *p) {
 	int32_t  status;
 
 
+if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_loop_after_loop: enter, p=0x%x\n",p);
+
 	/* Get the ending time stamp */
 	pclk_now(&p->my_pass_end_time);
 	p->my_elapsed_pass_time = p->my_pass_end_time - p->my_pass_start_time;
@@ -101,6 +112,8 @@ xdd_io_loop_after_loop(ptds_t *p) {
 	times(&p->my_current_cpu_times);
 
 	status = xdd_lockstep_after_io_loop(p);
+
+if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_loop_after_loop: exit, p=0x%x\n",p);
 
 	if (status) return(1);
 

@@ -442,12 +442,18 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p)
 		rp->percent_system = (double)(rp->system_time/rp->elapsed_pass_time) * 100.0; // Percent System Time
 		rp->percent_cpu = (rp->us_time / rp->elapsed_pass_time) * 100.0;
 	}
-	rp->e2e_sr_time_this_pass = (double)p->e2e_sr_time/FLOAT_TRILLION; // E2E SendReceive Time in MicroSeconds
+	if (p->e2ep) {
+			rp->e2e_sr_time_this_pass = (double)p->e2ep->e2e_sr_time/FLOAT_TRILLION; // E2E SendReceive Time in MicroSeconds
+			rp->e2e_wait_1st_msg = (double)p->e2ep->e2e_wait_1st_msg/FLOAT_TRILLION; // MicroSeconds
+	} else {
+			rp->e2e_sr_time_this_pass = 0.0; // No E2E SendReceive Time 
+			rp->e2e_wait_1st_msg = 0.0; // No wait_1st_msg time
+	}
+
 	rp->e2e_io_time_this_pass = (double)rp->elapsed_pass_time; // E2E IO  Time in MicroSeconds
 	if (rp->e2e_io_time_this_pass == 0.0)
 		rp->e2e_sr_time_percent_this_pass = 0.0; // Percentage of IO Time spent in SendReceive
 	else rp->e2e_sr_time_percent_this_pass = (rp->e2e_sr_time_this_pass/rp->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
-	rp->e2e_wait_1st_msg = (double)p->e2e_wait_1st_msg/FLOAT_TRILLION; // MicroSeconds
 	// The Hig/Low values are only updated when the -extendedstats option is specified
 	if (xgp->global_options & GO_EXTENDED_STATS) {
 		if (rp->shortest_op_time > 0.0) {
@@ -675,19 +681,21 @@ xdd_process_run_results(void)
 		qp = p;
 		while (qp) {
 			/* Display and write the time stamping information if requested */
-			if (qp->ts_options & (TS_ON | TS_TRIGGERED)) {
-				if (qp->timestamps > qp->ttp->tt_size) 
-					qp->ttp->numents = qp->ttp->tt_size;
-				else qp->ttp->numents = qp->timestamps;
-				if (qp->run_complete == 0) {
-					fprintf(xgp->errout,"%s: Houston, we have a problem... thread for Target %d Q %d is not complete and we are trying to dump the time stamp file!\n", 
-						xgp->progname, 
-						qp->my_target_number, 
-						qp->my_qthread_number);
+			if (qp->tsp) {
+				if (qp->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+					if (qp->tsp->timestamps > qp->tsp->ttp->tt_size) 
+						qp->tsp->ttp->numents = qp->tsp->ttp->tt_size;
+					else qp->tsp->ttp->numents = qp->tsp->timestamps;
+					if (qp->run_complete == 0) {
+						fprintf(xgp->errout,"%s: Houston, we have a problem... thread for Target %d Q %d is not complete and we are trying to dump the time stamp file!\n", 
+							xgp->progname, 
+							qp->my_target_number, 
+							qp->my_qthread_number);
+					}
+					xdd_ts_reports(qp);  /* generate reports if requested */
+					xdd_ts_write(qp); 
+					xdd_ts_cleanup(qp->tsp->ttp); /* call this to free the TS table in memory */
 				}
-				xdd_ts_reports(qp);  /* generate reports if requested */
-				xdd_ts_write(qp); 
-				xdd_ts_cleanup(qp->ttp); /* call this to free the TS table in memory */
 			}
 			qp = qp->nextp;
 		}

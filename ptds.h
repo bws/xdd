@@ -31,10 +31,13 @@
 #ifdef WIN32
 #include "nt_unix_compat.h"
 #endif
+#include "barrier.h"
 #include "results.h"
 #include "access_pattern.h"
 #include "timestamp.h"
-#include "barrier.h"
+#include "data_pattern.h"
+#include "lockstep.h"
+#include "trigger.h"
 #include "read_after_write.h"
 #include "end_to_end.h"
 #include "parse.h"
@@ -103,7 +106,6 @@ struct ptds {
 	unsigned char 		*rwbuf;   		// The re-aligned I/O buffers 
 	int32_t				rwbuf_shmid; 		// Shared Memeory ID for rwbuf 
 	unsigned char 		*rwbuf_save; 		// The original I/O buffers 
-	tthdr_t				*ttp;   			// Pointers to the timestamp table 
 	int32_t				iobuffersize; 		// Size of the I/O buffer in bytes 
 	int32_t				iosize;   			// Number of bytes per request 
 	int32_t				actual_iosize;   	// Number of bytes actually transferred for this request 
@@ -117,7 +119,6 @@ struct ptds {
 	int64_t				writer_total; 		// Total number of bytes written so far - used by read after write
 	seekhdr_t			seekhdr;  			// For all the seek information 
 	results_t			qthread_average_results;	// Averaged results for this qthread - accumulated over all passes
-	FILE				*tsfp;   			// Pointer to the time stamp output file 
 #ifdef WIN32
 	HANDLE				*ts_serializer_mutex; // needed to circumvent a Windows bug 
 	char				ts_serializer_mutex_name[256]; // needed to circumvent a Windows bug 
@@ -146,41 +147,6 @@ struct ptds {
 #define PTDS_THROTTLE_ABW   0x00000004  	// Throttle type of Average Bandwidth 
 #define PTDS_THROTTLE_DELAY 0x00000008  	// Throttle type of a constant delay or time for each op 
 	uint32_t      		throttle_type; 			// Target Throttle type 
-    // ------------------ End of the Read-after-Write (RAW) stuff -------------------------------------
-	//
-	// The following "ts_" members are for the time stamping (-ts) option
-	int32_t				timestamps;  			// The number of times a time stamp was taken 
-	uint64_t			ts_options;  			// Time Stamping Options 
-	uint32_t			ts_size;  				// Time Stamping Size in number of entries 
-	pclk_t				ts_trigtime; 			// Time Stamping trigger time 
-	int32_t				ts_trigop;  			// Time Stamping trigger operation number 
-    // ------------------ End of the TimeStamp stuff --------------------------------------------------
-	//
-	// The following variables are used by the SCSI Generic I/O Routines
-	//
-#define SENSE_BUFF_LEN 64					// Number of bytes for the Sense buffer 
-	uint64_t			sg_from_block;			// Starting block location for this operation 
-	uint32_t			sg_blocks;				// The number of blocks to transfer 
-	uint32_t			sg_blocksize;			// The size of a single block for an SG operation - generally == p->blocksize 
-    unsigned char 		sg_sense[SENSE_BUFF_LEN]; // The Sense Buffer  
-	uint32_t   			sg_num_sectors;			// Number of Sectors from Read Capacity command 
-	uint32_t   			sg_sector_size;			// Sector Size in bytes from Read Capacity command 
-    // ------------------ End of the SGIO stuff --------------------------------------------------
-	//
-	// Stuff related to the -datapattern option
-	//
-	unsigned char		*data_pattern; 				// Data pattern for write operations for each target - 
-													//      This is the ASCII string representation of the pattern 
-	unsigned char		*data_pattern_value; 		// This is the 64-bit hex value  
-	size_t				data_pattern_length; 		// Length of ASCII data pattern for write operations for each target 
-	unsigned char		*data_pattern_prefix; 		// Data pattern prefix which is a string of hex digits less than 8 bytes (16 nibbles) 
-	size_t				data_pattern_prefix_length; // Data pattern prefix 
-	unsigned char		*data_pattern_prefix_value; // This is the N-bit prefix value fully shifted to the right 
-	uint64_t			data_pattern_prefix_binary; // This is the 64-bit prefix value fully shifted to the left 
-	unsigned char		*data_pattern_name; 		// Data pattern name which is an ASCII string  
-	int32_t				data_pattern_name_length;	// Length of the data pattern name string 
-	char				*data_pattern_filename; 	// Name of a file that contains a data pattern to use 
-    // ------------------ End of the DataPattern stuff --------------------------------------------------
 	//
     // Stuff REFERENCED during runtime
 	//
@@ -233,6 +199,7 @@ struct ptds {
 	volatile int32_t	my_error_break; 			// This is set after an I/O Operation if the op failed in some way
 	volatile int64_t	my_current_error_count;		// The number of I/O errors for this qthread
 	volatile int32_t	my_current_state;			// State of this thread at any given time (see Current State definitions below)
+	volatile int32_t	run_status;					// Used by the trigger option and is the status of this thread 0=not started, 1=running 
 	// State Definitions for "my_current_state"
 #define	CURRENT_STATE_IO		0x0000000000000001	// Currently waiting for an I/O operation to complete
 #define	CURRENT_STATE_BTW		0x0000000000000002	// Currently between I/O operations
@@ -279,156 +246,26 @@ struct ptds {
 	uint64_t      		deskew_window_bytes; 		// The number of bytes transferred during the deskew window 
 	uint64_t      		back_end_skew_bytes; 		// The number of bytes transfered during the back end skew period 
     // -------------------------------------------------------------------
-	// The following variables are used to implement the various trigger options 
-	pclk_t        		start_trigger_time; 		// Time to trigger another target to start 
-	pclk_t        		stop_trigger_time; 			// Time to trigger another target to stop 
-	int64_t       		start_trigger_op; 			// Operation number to trigger another target to start 
-	int64_t       		stop_trigger_op; 			// Operation number  to trigger another target to stop
-	double        		start_trigger_percent; 		// Percentage of ops before triggering another target to start 
-	double        		stop_trigger_percent; 		// Percentage of ops before triggering another target to stop 
-	int64_t       		start_trigger_bytes; 		// Number of bytes to transfer before triggering another target to start 
-	int64_t       		stop_trigger_bytes; 		// Number of bytes to transfer before triggering another target to stop 
-#define TRIGGER_STARTTIME    0x00000001				// Trigger type of "time" 
-#define TRIGGER_STARTOP      0x00000002				// Trigger type of "op" 
-#define TRIGGER_STARTPERCENT 0x00000004				// Trigger type of "percent" 
-#define TRIGGER_STARTBYTES   0x00000008				// Trigger type of "bytes" 
-	uint32_t			trigger_types;				// This is the type of trigger to administer to another target 
-	int32_t				start_trigger_target;		// The number of the target to send the start trigger to 
-	int32_t				stop_trigger_target;		// The number of the target to send the stop trigger to 
-	uint32_t			run_status; 				// This is the status of this thread 0=not started, 1=running 
-	xdd_barrier_t		Start_Trigger_Barrier[2];	// Start Trigger Barrier 
-	int32_t				Start_Trigger_Barrier_index;// The index for the Start Trigger Barrier 
+	// The following pointers are only valid when specific options are used in which case 
+	// the associated data structure is allocated and used.
+	timestamp_t			*tsp;						// Defines the information for the -timestamp (aka -ts) option
+	sgio_t				*sgp;						// Defines the information for the -sgio option or access to a SCSI-GENERIC (sg) device
+	data_pattern_t		*dpp;						// Defines the information for the -datapattern option
+	lockstep_t			*lsp;						// Defines the  information for the -lockstep option
+	e2e_t				*e2ep;						// Defines the information for the -e2e option
+	raw_t				*rawp;						// Defines the information for the -raw or read-after-write option
+	trigger_t			*tgp;						// Defines the information for the -starttrigger/-stoptrigger options
 
-    // -------------------------------------------------------------------
-	// The following variables are used to implement the lockstep options 
-	pthread_mutex_t ls_mutex;  				// This is the lock-step mutex used by this target 
-	int32_t       ls_task_counter; 			// This is the number of times that the master has requested this 
-					  						// slave to perform a task. 
-					  						// Each time the master needs this slave to perform a task this counter is
-					  						// incremented by 1.
-					  						// Each time this slave completes a task, this counter is decremented by 1.
-					  						// Access to this counter is protected by the ls_mutex. 
-#define LS_INTERVAL_TIME  	0x00000001 		// Task type of "time" 
-#define LS_INTERVAL_OP		0x00000002 		// Task type of "op" 
-#define LS_INTERVAL_PERCENT	0x00000004 		// Task type of "percent" 
-#define LS_INTERVAL_BYTES	0x00000008 		// Task type of "bytes" 
-	uint32_t		ls_interval_type; 		// Flags used by the lock-step master 
-	char			*ls_interval_units; 	// ASCII readable units for the interval value 
-	int64_t			ls_interval_value; 		// This is the value of the interval on which the lock step occurs 
-	uint64_t		ls_interval_base_value;	// This is the base value to which the interval value is compared to 
-#define LS_TASK_TIME		0x00000001 		// Task type of "time" 
-#define LS_TASK_OP			0x00000002 		// Task type of "op" 
-#define LS_TASK_PERCENT		0x00000004 		// Task type of "percent" 
-#define LS_TASK_BYTES		0x00000008 		// Task type of "bytes" 
-	uint32_t		ls_task_type; 			// Flags used by the lock-step master 
-	char			*ls_task_units; 		// ASCII readable units for the task value 
-	int64_t			ls_task_value; 			// Depending on the task type (time, ops, or bytes) this variable will be
-									 		// set to the appropriate number of seconds, ops, or bytes to run/execute/transfer
-									 		// per "task".
-	uint64_t		ls_task_base_value;		// This is the base value to which the task value is compared to 
-#define LS_SLAVE_WAITING	0x00000001 		// The slave is waiting for the master to enter the ls_barrier 
-#define LS_SLAVE_RUN_IMMEDIATELY 0x00000002	// The slave should start running immediately 
-#define LS_SLAVE_COMPLETE	0x00000004 		// The slave should complete all operations after this I/O 
-#define LS_SLAVE_STOP		0x00000008 		// The slave should abort after this I/O 
-#define LS_SLAVE_FINISHED	0x00000010 		// The slave is finished 
-#define LS_MASTER_FINISHED	0x00000020 		// The master has completed its pass 
-#define LS_MASTER_WAITING	0x00000040 		// The master is waiting at the barrier 
-	uint32_t		ls_ms_state;			// This is the state of the master and slave at any given time. 
-											// If this is set to SLAVE_WAITING
-									 		// then the slave has entered the ls_barrier and is waiting for the master to enter
-									 		// so that it can continue. This is checked by the master so that it will enter only
-									 		// if the slave is there waiting. This prevents the master from being blocked when
-									 		// doing overlapped-lock-step operations.
-	int32_t			ls_master;  			// The target number that is the master if this target is a slave 
-	int32_t			ls_slave;  				// The target number that is the slave if this target is the master 
-	int32_t			ls_slave_loop_counter;	// Keeps track of the number of times through the I/O loop *
-	xdd_barrier_t 	Lock_Step_Barrier[2]; 	// Lock Step Barrier for non-overlapped lock stepping 
-	int32_t			Lock_Step_Barrier_Master_Index; // The index for the Lock Step Barrier 
-	int32_t			Lock_Step_Barrier_Slave_Index; // The index for the Lock Step Barrier 
-    // ------------------ End of the LockStep stuff --------------------------------------------------
-    // -------------------------------------------------------------------
-	// The following "e2e_" members are for the End to End ( aka -e2e ) option
-	// The Target Option Flag will have either TO_E2E_DESTINATION or TO_E2E_SOURCE set to indicate
-	// which side of the E2E operation this target will act as.
-	//
-	char				*e2e_dest_hostname; 	// Name of the Destination machine 
-	char				*e2e_src_hostname; 		// Name of the Source machine 
-	struct hostent 		*e2e_dest_hostent; 		// For the destination host information 
-	struct hostent 		*e2e_src_hostent; 		// For the source host information 
-	in_addr_t			e2e_dest_addr;  		// Destination Address number of the E2E socket 
-	in_port_t 			e2e_dest_base_port;  	// The first of one or more ports to be used by multiple queuethreads 
-	in_port_t			e2e_dest_port;  		// Port number to use for the E2E socket 
-	int32_t				e2e_sd;   				// Socket descriptor for the E2E message port 
-	int32_t				e2e_nd;   				// Number of Socket descriptors in the read set 
-	sd_t				e2e_csd[FD_SETSIZE];	// Client socket descriptors 
-	fd_set				e2e_active;  			// This set contains the sockets currently active 
-	fd_set				e2e_readset; 			// This set is passed to select() 
-	struct sockaddr_in  e2e_sname; 				// used by setup_server_socket 
-	uint32_t			e2e_snamelen; 			// the length of the socket name 
-	struct sockaddr_in  e2e_rname; 				// used by destination machine to remember the name of the source machine 
-	uint32_t			e2e_rnamelen; 			// the length of the source socket name 
-	int32_t				e2e_current_csd; 		// the current csd used by the select call on the destination side
-	int32_t				e2e_next_csd; 			// The next available csd to use 
-	int32_t				e2e_iosize;   			// number of bytes per End to End request 
-#define PTDS_E2E_MAGIC 		0x07201959 			// The magic number that should appear at the beginning of each message 
-#define PTDS_E2E_MAGIQ 		0x07201960 			// The magic number that should appear in a message signaling destination to quit 
-	xdd_e2e_msg_t 		e2e_msg;  				// The message sent in from the destination 
-	int64_t				e2e_msg_last_sequence;	// The last msg sequence number received 
-	int32_t				e2e_msg_sent; 			// The number of messages sent 
-	int32_t				e2e_msg_recv; 			// The number of messages received 
-	int32_t				e2e_useUDP; 			// if <>0, use UDP instead of TCP from source to destination 
-	int32_t				e2e_timedout; 			// if <>0, indicates recvfrom timedout...move on to next pass 
-	int64_t				e2e_prev_loc; 			// The previous location from a e2e message from the source 
-	int64_t				e2e_prev_len; 			// The previous length from a e2e message from the source 
-	int64_t				e2e_data_ready; 		// The amount of data that is ready to be read in an e2e op 
-	int64_t				e2e_data_length; 		// The amount of data that is ready to be read for this operation 
-	pclk_t				e2e_wait_1st_msg;		// Time in picosecs destination waited for 1st source data to arrive 
-	pclk_t				e2e_first_packet_received_this_pass;// Time that the first packet was received by the destination from the source
-	pclk_t				e2e_last_packet_received_this_pass;// Time that the last packet was received by the destination from the source
-	pclk_t				e2e_first_packet_received_this_run;// Time that the first packet was received by the destination from the source
-	pclk_t				e2e_last_packet_received_this_run;// Time that the last packet was received by the destination from the source
-	pclk_t				e2e_sr_time; 			// Time spent sending or receiving data for End-to-End operation
-	// ------------------ End of the End to End (E2E) stuff --------------------------------------
-	//
-	// The following "raw_" members are for the ReadAfterWrite (-raw) option
-	char				*raw_myhostname; 		// Hostname of the reader machine as seen by the reader 
-	char				*raw_hostname; 			// Name of the host doing the reading in a read-after-write 
-	struct hostent 		*raw_hostent; 			// for the reader/writer host information 
-	in_port_t			raw_port;  				// Port number to use for the read-after-write socket 
-	in_addr_t			raw_addr;  				// Address number of the read-after-write socket
-	int32_t				raw_lag;  				// Number of blocks the reader should lag behind the writer 
-#define PTDS_RAW_STAT 0x00000001  				// Read-after-write should use stat() to trigger read operations 
-#define PTDS_RAW_MP   0x00000002  				// Read-after-write should use message passing from the writer to trigger read operations 
-	uint32_t			raw_trigger; 			// Read-After-Write trigger mechanism 
-	int32_t				raw_sd;   				// Socket descriptor for the read-after-write message port 
-	int32_t				raw_nd;   				// Number of Socket descriptors in the read set 
-	sd_t				raw_csd[FD_SETSIZE];	// Client socket descriptors 
-	fd_set				raw_active;  			// This set contains the sockets currently active 
-	fd_set				raw_readset; 			// This set is passed to select() 
-	struct sockaddr_in  raw_sname; 				// used by setup_server_socket 
-	uint32_t			raw_snamelen; 			// the length of the socket name 
-	int32_t				raw_current_csd; 		// the current csd used by the raw reader select call 
-	int32_t				raw_next_csd; 			// The next available csd to use 
-#define PTDS_RAW_MAGIC 0x07201958 				// The magic number that should appear at the beginning of each message 
-	xdd_raw_msg_t		raw_msg;  				// The message sent in from the writer 
-	int64_t				raw_msg_last_sequence;	// The last raw msg sequence number received 
-	int32_t				raw_msg_sent; 			// The number of messages sent 
-	int32_t				raw_msg_recv; 			// The number of messages received 
-	int64_t				raw_prev_loc; 			// The previous location from a RAW message from the source 
-	int64_t				raw_prev_len; 			// The previous length from a RAW message from the source 
-	int64_t				raw_data_ready; 		// The amount of data that is ready to be read in an RAW op 
-	int64_t				raw_data_length; 		// The amount of data that is ready to be read for this operation 
-	// ------------------ End of the ReadAfterWrite stuff --------------------------------------
-	struct ptds			*pm1;					// ptds minus  1 - used for report print queueing - don't ask 
+	struct ptds			*pm1;						// ptds minus  1 - used for report print queueing - don't ask 
 };
 typedef struct ptds ptds_t;
 
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

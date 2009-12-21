@@ -85,7 +85,10 @@ xdd_io_for_linux(ptds_t *p) {
 #ifdef LINUX
 	pclk_t			start_time;			// Used for calculating elapsed times of ops
 	pclk_t			end_time;			// Used for calculating elapsed times of ops
+	timestamp_t		*tsp;
 
+	
+	tsp = p->tsp;
 
 	/* In Linux the -D_FILE_OFFSET_BITS=64 makes the off_t type be a 64-bit integer */
 	if (!(p->target_options & TO_SGIO))  // If this is NOT and SGIO operation... SGIO will do its own seek
@@ -153,13 +156,13 @@ xdd_io_for_linux(ptds_t *p) {
 	}
 
 	/* Time stamp! */
-	if ((p->ts_options & TS_ON) && (p->ts_options & TS_TRIGGERED)) {
-		p->ttp->tte[p->ttp->tte_indx++].end = p->my_current_op_end_time;
-		if (p->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer 
-			if (p->ttp->tte_indx == p->ttp->tt_size)
-				p->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer 
-		} else if (p->ts_options & TS_WRAP) 
-				p->ttp->tte_indx = 0; // Wrap to the beginning of the time stamp buffer 
+	if ((tsp) && (tsp->ts_options & TS_ON) && (tsp->ts_options & TS_TRIGGERED)) {
+		tsp->ttp->tte[tsp->ttp->tte_indx++].end = p->my_current_op_end_time;
+		if (tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer 
+			if (tsp->ttp->tte_indx == tsp->ttp->tt_size)
+				tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer 
+		} else if (tsp->ts_options & TS_WRAP) 
+				tsp->ttp->tte_indx = 0; // Wrap to the beginning of the time stamp buffer 
 	}
 
 	// Check status of the last operation 
@@ -195,6 +198,10 @@ xdd_io_for_windows(ptds_t *p) {
 	uint32_t 		bytesxferred; 		/* Bytes transferred */
 	unsigned long 	plow;
 	unsigned long 	phi;
+	timestamp_t	*tsp;
+
+
+	tsp = p->tsp;
 
 
 	plow = (unsigned long)p->my_current_byte_location;
@@ -234,13 +241,13 @@ xdd_io_for_windows(ptds_t *p) {
 		}
         pclk_now(&p->my_current_end_time);
 		/* Take a time stamp if necessary */
-		if ((p->ts_options & TS_ON) && (p->ts_options & TS_TRIGGERED)) {  
-			p->ttp->tte[p->ttp->tte_indx++].end = p->my_current_end_time;
-			if (p->ttp->tte_indx == p->ttp->tt_size) { /* Check to see if we are at the end of the buffer */
-				if (p->ts_options & TS_ONESHOT) 
-					p->ts_options &= ~TS_ON; /* Turn off Time Stamping now that we are at the end of the time stamp buffer */
-				else if (p->ts_options & TS_WRAP) 
-					p->ttp->tte_indx = 0; /* Wrap to the beginning of the time stamp buffer */
+		if ((tsp) && (p->ts_options & TS_ON) && (p->ts_options & TS_TRIGGERED)) {  
+			tsp->ttp->tte[tsp->ttp->tte_indx++].end = p->my_current_end_time;
+			if (tsp->ttp->tte_indx == tsp->ttp->tt_size) { /* Check to see if we are at the end of the buffer */
+				if (tsp->ts_options & TS_ONESHOT) 
+					tsp->ts_options &= ~TS_ON; /* Turn off Time Stamping now that we are at the end of the time stamp buffer */
+				else if (tsp->ts_options & TS_WRAP) 
+					tsp->ttp->tte_indx = 0; /* Wrap to the beginning of the time stamp buffer */
 			}
 		}
 		/* Let's check the status of the last operation to see if things went well.
@@ -286,7 +293,8 @@ xdd_data_pattern_fill(ptds_t *p) {
 		posp = (uint64_t *)p->rwbuf;
 		for (j=0; j<(p->actual_iosize/sizeof(p->my_current_byte_location)); j++) {
 			*posp = p->my_current_byte_location + (j * sizeof(p->my_current_byte_location));
-			*posp |= p->data_pattern_prefix_binary;
+			if (p->dpp) 
+				*posp |= p->dpp->data_pattern_prefix_binary;
 			if (p->target_options & TO_INVERSE_PATTERN)
 				*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
 			posp++;

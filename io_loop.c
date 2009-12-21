@@ -40,6 +40,8 @@ int32_t
 xdd_io_loop(ptds_t *p) {
 	int32_t  status;		// Status of the last function call
 
+if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_loop: enter, p=0x%x\n",p);
+
 	// Set up for I/O loop
 	status = xdd_io_loop_before_loop(p);
 
@@ -62,6 +64,7 @@ xdd_io_loop(ptds_t *p) {
 	// Perform Completion functions for this pass
 	status = xdd_io_loop_after_loop(p);
 
+if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_loop: exit, p=0x%x\n",p);
 	// Exit this routine
 	return(status);
 } // End of xdd_io_loop()

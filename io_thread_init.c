@@ -46,6 +46,7 @@ xdd_io_thread_init(ptds_t *p) {
 	uint32_t sleepseconds; /* Number of seconds to sleep while waiting for the global time to start */
 	int32_t  status;
 	char errmsg[256];
+	lockstep_t	*lsp;
 #ifdef WIN32
 	LPVOID lpMsgBuf; /* Used for the error messages */
 	HANDLE tmphandle;
@@ -166,44 +167,50 @@ xdd_io_thread_init(ptds_t *p) {
 	}
 
 	/* This section will initialize the slave side of the lock step mutex and barriers */
-	if (p->ls_master >= 0) { /* This means that this target has a master and therefore must be a slave */
-		/* init the task counter mutex and the lock step barrier */
-		status = pthread_mutex_init(&p->ls_mutex, 0);
-		if (status) {
-			sprintf(errmsg,"%s: io_thread_init:Error initializing lock step slave target %d task counter mutex",
-				xgp->progname,p->my_target_number);
-			perror(errmsg);
-			fprintf(xgp->errout,"%s: io_thread_init: Aborting I/O for target %d due to lockstep mutex allocation failure\n",
-				xgp->progname,p->my_target_number);
-			fflush(xgp->errout);
-			xgp->abort_io = 1;
-			/* Enter the serializer barrier so that the next thread can start */
-			xdd_barrier(&xgp->serializer_barrier[p->mythreadnum%2]);
-			return(FAILED);
+	if (p->lsp) { // Lockstep operation requested
+		lsp = p->lsp;
+		if (lsp->ls_master >= 0) { /* This means that this target has a master and therefore must be a slave */
+			/* init the task counter mutex and the lock step barrier */
+			status = pthread_mutex_init(&lsp->ls_mutex, 0);
+			if (status) {
+				sprintf(errmsg,"%s: io_thread_init:Error initializing lock step slave target %d task counter mutex",
+					xgp->progname,p->my_target_number);
+				perror(errmsg);
+				fprintf(xgp->errout,"%s: io_thread_init: Aborting I/O for target %d due to lockstep mutex allocation failure\n",
+					xgp->progname,p->my_target_number);
+				fflush(xgp->errout);
+				xgp->abort_io = 1;
+				/* Enter the serializer barrier so that the next thread can start */
+				xdd_barrier(&xgp->serializer_barrier[p->mythreadnum%2]);
+				return(FAILED);
+			}
+			for (i=0; i<=1; i++) {
+					sprintf(lsp->Lock_Step_Barrier[i].name,"LockStep_T%d_%d",lsp->ls_master,p->my_target_number);
+					xdd_init_barrier(&lsp->Lock_Step_Barrier[i], 2, lsp->Lock_Step_Barrier[i].name);
+			}
+			lsp->Lock_Step_Barrier_Slave_Index = 0;
+			lsp->Lock_Step_Barrier_Master_Index = 0;
+		} else { /* Make sure these are uninitialized */
+			for (i=0; i<=1; i++) {
+					lsp->Lock_Step_Barrier[i].initialized  = FALSE;
+			}
+			lsp->Lock_Step_Barrier_Slave_Index = 0;
+			lsp->Lock_Step_Barrier_Master_Index = 0;
 		}
-		for (i=0; i<=1; i++) {
-				sprintf(p->Lock_Step_Barrier[i].name,"LockStep_T%d_%d",p->ls_master,p->my_target_number);
-				xdd_init_barrier(&p->Lock_Step_Barrier[i], 2, p->Lock_Step_Barrier[i].name);
-		}
-		p->Lock_Step_Barrier_Slave_Index = 0;
-		p->Lock_Step_Barrier_Master_Index = 0;
-	} else { /* Make sure these are uninitialized */
-		for (i=0; i<=1; i++) {
-				p->Lock_Step_Barrier[i].initialized  = FALSE;
-		}
-		p->Lock_Step_Barrier_Slave_Index = 0;
-		p->Lock_Step_Barrier_Master_Index = 0;
-	}
+	} // End of Lockstep initialization
+
 	/* Check to see if we will be waiting for a start trigger. 
 	 * If so, then init the start trigger barrier.
 	 */
-	if (p->target_options & TO_WAITFORSTART) {
-		for (i=0; i<=1; i++) {
-				sprintf(p->Start_Trigger_Barrier[i].name,"StartTrigger_T%d_%d",p->my_target_number,p->my_qthread_number);
-				xdd_init_barrier(&p->Start_Trigger_Barrier[i], 2, p->Start_Trigger_Barrier[i].name);
+	if (p->tgp) { // Start or stop trigger requested
+		if (p->target_options & TO_WAITFORSTART) {
+			for (i=0; i<=1; i++) {
+				sprintf(p->tgp->Start_Trigger_Barrier[i].name,"StartTrigger_T%d_%d",p->my_target_number,p->my_qthread_number);
+				xdd_init_barrier(&p->tgp->Start_Trigger_Barrier[i], 2, p->tgp->Start_Trigger_Barrier[i].name);
+			}
+			p->tgp->Start_Trigger_Barrier_index = 0;
+			p->run_status = 0;
 		}
-		p->Start_Trigger_Barrier_index = 0;
-		p->run_status = 0;
 	}
 	/* This section will check to see if we are doing a read-after-write and initialize as needed.
 	 * If we are a reader then we need to init the socket and listen for the writer.
@@ -221,26 +228,28 @@ xdd_io_thread_init(ptds_t *p) {
  	* If we are the reader, then we assume that the writer has already been started on another
  	* machine and all we need to do is connect to that writer and say Hello.
  	* -------------------------------------------------------------------------------------------- */
-	if (p->target_options & TO_ENDTOEND) {
-		p->e2e_sr_time = 0;
-		if (p->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
-			status = xdd_e2e_dest_init(p); 
-		} else if (p->target_options & TO_E2E_SOURCE) { // This is the Source side of an End-to-End
-			status = xdd_e2e_src_init(p); 
-		} else { // Not sure which side of the E2E this target is supposed to be....
-			fprintf(xgp->errout,"%s: io_thread_init: Cannot determine which side of the E2E operation this target <%d> is supposed to be.\n",
-				xgp->progname,p->my_target_number);
-			fprintf(xgp->errout,"%s: io_thread_init: Check to be sure that the '-e2e issource' or '-e2e isdestination' was specified for this target.\n",
-				xgp->progname);
-			fflush(xgp->errout);
-			return(FAILED);
-		}
-		if (status == FAILED) {
-			fprintf(xgp->errout,"%s: io_thread_init: E2E %s initialization failed for target %d - terminating.\n",
-				xgp->progname,
-				(p->target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE", 
-				p->my_target_number);
-			return(FAILED);
+	if (p->e2ep) { // End-to-End operation requested
+		if (p->target_options & TO_ENDTOEND) {
+			p->e2ep->e2e_sr_time = 0;
+			if (p->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
+				status = xdd_e2e_dest_init(p); 
+			} else if (p->target_options & TO_E2E_SOURCE) { // This is the Source side of an End-to-End
+				status = xdd_e2e_src_init(p); 
+			} else { // Not sure which side of the E2E this target is supposed to be....
+				fprintf(xgp->errout,"%s: io_thread_init: Cannot determine which side of the E2E operation this target <%d> is supposed to be.\n",
+					xgp->progname,p->my_target_number);
+				fprintf(xgp->errout,"%s: io_thread_init: Check to be sure that the '-e2e issource' or '-e2e isdestination' was specified for this target.\n",
+					xgp->progname);
+				fflush(xgp->errout);
+				return(FAILED);
+			}
+			if (status == FAILED) {
+				fprintf(xgp->errout,"%s: io_thread_init: E2E %s initialization failed for target %d - terminating.\n",
+					xgp->progname,
+					(p->target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE", 
+					p->my_target_number);
+				return(FAILED);
+			}
 		}
 	}
 	/* If I am the last thread to start (my_target_number == number_of_targets-1)
@@ -259,6 +268,8 @@ xdd_io_thread_init(ptds_t *p) {
     xdd_target_info(xgp->output, p);
 	if (xgp->csvoutput) 
 		xdd_target_info(xgp->csvoutput, p);
+
+if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_thread_init: exit, p=0x%x\n",p);
 
     return(SUCCESS);
 } // end of xdd_io_thread_init()

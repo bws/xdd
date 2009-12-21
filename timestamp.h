@@ -30,46 +30,6 @@
  */
 
 #define MAX_IDLEN 8192 // This is the maximum length of the Run ID Length field
-
-/** typedef unsigned long long iotimer_t; */
-struct tte {
-	short pass;  /**< pass number */
-	char rwvop;  /**< operation: write=2, read=1 */
-	char filler1; /**< */
-	int32_t opnumber; /**< operation number */
-	uint64_t byte_location; /**< seek location in bytes */
-	pclk_t start;  /**< The starting time stamp */
-	pclk_t end;  /**< The ending time stamp */
-};
-typedef struct tte tte_t;
-
-/**
- * Time stamp Trace Table Header - this gets written out before
- * the time stamp trace table data 
- */
-struct tthdr {
-	int32_t reqsize; /**< size of these requests in 'blocksize'-byte blocks */
-	int32_t blocksize; /**< size of each block in bytes */
-	int32_t numents; /**< number of timestamp table entries */
-	pclk_t trigtime; /**< Time the time stamp started */
-	int32_t trigop;  /**< Operation number that timestamping started */
-	int64_t res;  /**< clock resolution - pico seconds per clock tick */
-	int64_t range;  /**< range over which the IO took place */
-	int64_t start_offset; /**< offset of the starting block */
-	int64_t target_offset; /**< offset of the starting block for each proc*/
-	uint64_t global_options;  /**< options used */
-	uint64_t target_options;  /**< options used */
-	char id[MAX_IDLEN]; /**< ID string */
-	char td[32];  /**< time and date */
-	pclk_t timer_oh; /**< Timer overhead in nanoseconds */
-	pclk_t delta;  /**< Delta used for normalization */
-	int32_t tt_bytes; /**< Size of the entire time stamp table in bytes */
-	int32_t tt_size; /**< Size of the entire time stamp table in entries */
-	int64_t tte_indx; /**< Index into the time stamp table */
-	struct tte tte[1]; /**< timestamp table entries */
-};
-typedef struct tthdr tthdr_t;
-
 /** ts_options bit settings */
 #define TS_NORMALIZE          0x00000001 /**< Time stamping normalization of output*/
 #define TS_ON                 0x00000002 /**< Time stamping is ON */
@@ -86,6 +46,58 @@ typedef struct tthdr tthdr_t;
 #define TS_TRIGGERED          0x00001000 /**< Time stamping has been triggered */
 #define TS_SUPPRESS_OUTPUT    0x00002000 /**< Suppress timestamp output */
 #define DEFAULT_TS_OPTIONS 0x00000000
+
+/** typedef unsigned long long iotimer_t; */
+struct tte {
+	short 		pass;  			/**< pass number */
+	char 		rwvop;  		/**< operation: write=2, read=1 */
+	char 		filler1; 		/**< */
+	int32_t 	opnumber; 		/**< operation number */
+	uint64_t 	byte_location; 	/**< seek location in bytes */
+	pclk_t 		start;  		/**< The starting time stamp */
+	pclk_t 		end;  			/**< The ending time stamp */
+};
+typedef struct tte tte_t;
+
+/**
+ * Time stamp Trace Table Header - this gets written out before
+ * the time stamp trace table data 
+ */
+struct tthdr {
+	int32_t 	reqsize; 		/**< size of these requests in 'blocksize'-byte blocks */
+	int32_t 	blocksize; 		/**< size of each block in bytes */
+	int32_t 	numents; 		/**< number of timestamp table entries */
+	pclk_t 		trigtime; 		/**< Time the time stamp started */
+	int64_t 	trigop;  		/**< Operation number that timestamping started */
+	int64_t 	res;  			/**< clock resolution - pico seconds per clock tick */
+	int64_t 	range;  		/**< range over which the IO took place */
+	int64_t 	start_offset; 	/**< offset of the starting block */
+	int64_t 	target_offset; 	/**< offset of the starting block for each proc*/
+	uint64_t 	global_options; /**< options used */
+	uint64_t 	target_options; /**< options used */
+	char 		id[MAX_IDLEN]; 	/**< ID string */
+	char 		td[32];  		/**< time and date */
+	pclk_t 		timer_oh; 		/**< Timer overhead in nanoseconds */
+	pclk_t 		delta;  		/**< Delta used for normalization */
+	int64_t 	tt_bytes; 		/**< Size of the entire time stamp table in bytes */
+	int32_t 	tt_size; 		/**< Size of the entire time stamp table in entries */
+	int64_t 	tte_indx; 		/**< Index into the time stamp table */
+	struct 		tte tte[1]; 	/**< timestamp table entries */
+};
+typedef struct tthdr tthdr_t;
+
+// The following "ts_" members are for the time stamping (-ts) option
+struct timestamp {
+	int32_t		timestamps;  	// The number of times a time stamp was taken 
+	uint64_t	ts_options; 	// Time Stamping Options 
+	uint32_t	ts_size;  		// Time Stamping Size in number of entries 
+	pclk_t		ts_trigtime; 	// Time Stamping trigger time 
+	int32_t		ts_trigop;  	// Time Stamping trigger operation number 
+	FILE		*tsfp;   		// Pointer to the time stamp output file 
+	tthdr_t		*ttp;  			// Pointers to the timestamp table 
+};
+typedef struct timestamp timestamp_t;
+
 
 /*
  * Local variables:
