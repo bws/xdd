@@ -32,9 +32,8 @@
  * This file contains the subroutines that perform various initialization 
  * functions when xdd is started.
  */
-#define XDD_INITIALIZATION
 #include "xdd.h"
-data_pattern_t *xdd_get_data_pattern_pointer(ptds_t *p);
+#include "datapatterns.h"
 /*----------------------------------------------------------------------------*/
 /* xdd_init_globals() - Initialize a xdd global variables  
  */
@@ -112,7 +111,7 @@ xdd_init_globals(char *progname) {
 } /* end of xdd_init_globals() */
 
 /*----------------------------------------------------------------------------*/
-/* xdd_init_new_ptds() - Initialize a PTDS for a TargetThread
+/* xdd_init_new_ptds() - Initialize the default Per-Target-Data-Structure 
  * Note: CLO == Command Line Option
  */
 void
@@ -139,6 +138,7 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 		p->throttle = DEFAULT_THROTTLE;
 		p->throttle_variance = DEFAULT_VARIANCE;
 		p->throttle_type = PTDS_THROTTLE_BW;
+		p->ts_options = DEFAULT_TS_OPTIONS;
 		p->target_options = DEFAULT_TARGET_OPTIONS; // Zero the target options field
 		p->time_limit = DEFAULT_TIME_LIMIT;
 		p->numreqs = 0; // This must init to 0
@@ -150,12 +150,37 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 		p->pass_offset = DEFAULT_PASSOFFSET;
 		p->preallocate = DEFAULT_PREALLOCATE;
 		p->queue_depth = DEFAULT_QUEUEDEPTH;
+		p->data_pattern_filename = (char *)DEFAULT_DATA_PATTERN_FILENAME;
+		p->data_pattern = (unsigned char *)DEFAULT_DATA_PATTERN;
+		p->data_pattern_length = DEFAULT_DATA_PATTERN_LENGTH;
+		p->data_pattern_prefix = (unsigned char *)DEFAULT_DATA_PATTERN_PREFIX;
+		p->data_pattern_prefix_length = DEFAULT_DATA_PATTERN_PREFIX_LENGTH;
 		p->block_size = DEFAULT_BLOCKSIZE;
 		p->mem_align = getpagesize();
 
 		p->processor = -1;
 		p->start_delay = DEFAULT_START_DELAY;
+		p->start_trigger_time = 0; /* Time to trigger another target to start */
+		p->stop_trigger_time = 0; /* Time to trigger another target to stop */
+		p->start_trigger_op = 0; /* Operation number to trigger another target to start */
+		p->stop_trigger_op = 0; /* Operation number  to trigger another target to stop */
+		p->start_trigger_percent = 0; /* Percentage of ops before triggering another target to start */
+		p->stop_trigger_percent = 0; /* Percentage of ops before triggering another target to stop */
+		p->start_trigger_bytes = 0; /* Number of bytes to transfer before triggering another target to start */
+		p->stop_trigger_bytes = 0; /* Number of bytes to transfer before triggering another target to stop */
+		p->start_trigger_target = -1; /* The number of the target to send the start trigger to */
+		p->stop_trigger_target = -1; /* The number of the target to send the stop trigger to */
 		p->run_status = 1;   /* This is the status of this thread 0=not started, 1=running */
+		p->trigger_types = 0;
+		p->ls_master = -1; /* The default master number  */
+		p->ls_slave  = -1; /* The default slave number */
+		p->ls_interval_type  = 0; /* The default interval type */
+		p->ls_interval_value  = 0; /* The default interval value  */
+		p->ls_interval_units  = "not defined"; /* The default interval units  */
+		p->ls_task_type  = 0; /* The default task type */
+		p->ls_task_value  = 0; /* The default task value  */
+		p->ls_task_units  = "not defined"; /* The default task units  */
+		p->ls_task_counter = 0; /* the default task counter */
 		/* Init the seeklist header fields */
 		p->seekhdr.seek_options = 0;
 		p->seekhdr.seek_range = DEFAULT_RANGE;
@@ -169,17 +194,22 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 		p->seekhdr.seek_savefile = NULL; /* file to save seek locations into */
 		p->seekhdr.seek_loadfile = NULL; /* file from which to load seek locations from */
 		p->seekhdr.seek_pattern = "sequential";
+		/* Init the read-after-write fields */
+		p->raw_sd = 0; /* raw socket descriptor */
+		p->raw_hostname = NULL;  /* Reader hostname */
+		p->raw_lag = DEFAULT_RAW_LAG; 
+		p->raw_port = DEFAULT_RAW_PORT;
+		p->raw_trigger = PTDS_RAW_MP; /* default to a message passing */
+		/* Init the end-to-end fields */
+		p->e2e_sd = 0; /* destination machine socket descriptor */
+		p->e2e_src_hostname = NULL;  /* E2E source hostname */
+		p->e2e_dest_hostname = NULL;  /* E2E destination hostname */
+		p->e2e_dest_port = DEFAULT_E2E_PORT;
+		p->e2e_dest_addr = 0;
+		p->e2e_wait_1st_msg = 0;
+		p->e2e_useUDP = 0;
 		/* Init the results structure */
 		memset((unsigned char *)&p->qthread_average_results,0,sizeof(results_t)); 
-
-		// Explicitly set these pointers to NULL
-		p->tsp = NULL;	// Time stamp structure
-		p->sgp = NULL;	// SGIO structure
-		p->dpp = NULL;	// Data Pettern structure
-		p->lsp = NULL;	// Lockstep structure
-		p->e2ep = NULL;	// End-to-End structure
-		p->rawp = NULL;	// Read_after_write structure
-		p->tgp = NULL;	// Trigger structure
 } /* end of xdd_init_new_ptds() */
 
 /*----------------------------------------------------------------------------*/
@@ -359,8 +389,6 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	int i;
 	ptds_t *mp, *sp; /* Master and Slave ptds pointers */
 
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_target_info: enter, p=0x%x\n",p);
-
     // Only display information for qthreads if requested
     if (!(p->target_options & TO_QTHREAD_INFO) && (p->my_qthread_number > 0))
         return;
@@ -397,26 +425,25 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_target_info: enter,
 		if (p->target_options & TO_SEQUENCED_PATTERN) fprintf(out,",sequenced ");
 		if (p->target_options & TO_INVERSE_PATTERN) fprintf(out,",inversed ");
 		if (p->target_options & TO_ASCII_PATTERN) fprintf(out,",ASCII: '%s' <%d bytes> %s ",
-			p->dpp->data_pattern,p->dpp->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
+			p->data_pattern,p->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
 		if (p->target_options & TO_HEX_PATTERN) {
 			fprintf(out,",HEX: 0x");
-			for (i=0; i<p->dpp->data_pattern_length; i++) 
-				fprintf(out,"%02x",p->dpp->data_pattern[i]);
+			for (i=0; i<p->data_pattern_length; i++) 
+				fprintf(out,"%02x",p->data_pattern[i]);
 			fprintf(out, " <%d bytes>, %s\n",
-				p->dpp->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
+				p->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
 		}
 		if (p->target_options & TO_PATTERN_PREFIX)  {
 			fprintf(out,",PREFIX: 0x");
-			for (i=0; i<p->dpp->data_pattern_prefix_length; i+=2) 
-				fprintf(out,"%02x",p->dpp->data_pattern_prefix[i]);
-			fprintf(out, " <%d nibbles>\n", p->dpp->data_pattern_prefix_length);
+			for (i=0; i<p->data_pattern_prefix_length; i+=2) 
+				fprintf(out,"%02x",p->data_pattern_prefix[i]);
+			fprintf(out, " <%d nibbles>\n", p->data_pattern_prefix_length);
 		}
 	} else { // Just display the one-byte hex pattern 
-		if (p->dpp)
-			fprintf(out,",0x%02x\n",p->dpp->data_pattern[0]);
+		fprintf(out,",0x%02x\n",p->data_pattern[0]);
 	}
 	if (p->target_options & TO_FILE_PATTERN) 
-		fprintf(out," From file: %s\n",p->dpp->data_pattern_filename);
+		fprintf(out," From file: %s\n",p->data_pattern_filename);
 	fprintf(out,"\t\tData buffer verification is");
 	if ((p->target_options & (TO_VERIFY_LOCATION | TO_VERIFY_CONTENTS)))
 		fprintf(out," enabled for %s verification.\n", (p->target_options & TO_VERIFY_LOCATION)?"Location":"Content");
@@ -428,46 +455,45 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_target_info: enter,
 	fprintf(out, "\t\tPreallocation, %d\n",p->preallocate);
 	fprintf(out, "\t\tQueue Depth, %d\n",p->queue_depth);
 	/* Timestamp options */
-	if ((p->tsp) && (p->tsp->ts_options & TS_ON)) {
-		fprintf(out, "\t\tTimestamping, enabled for %s %s\n",(p->tsp->ts_options & TS_DETAILED)?"DETAILED":"", (p->tsp->ts_options & TS_SUMMARY)?"SUMMARY":"");
+	if (p->ts_options & TS_ON) {
+		fprintf(out, "\t\tTimestamping, enabled for %s %s\n",(p->ts_options & TS_DETAILED)?"DETAILED":"", (p->ts_options & TS_SUMMARY)?"SUMMARY":"");
 		fprintf(out, "\t\tTimestamp ASCII output file name, %s.target.%04d.qthread.%04d.csv\n",xgp->tsoutput_filename,p->my_target_number,p->my_qthread_number);
-		if (p->tsp->ts_options & TS_DUMP) 
+		if (p->ts_options & TS_DUMP) 
 			fprintf(out, "\t\tTimestamp binary output file name, %s.target.%04d.qthread.%04d.bin\n",xgp->tsbinary_filename,p->my_target_number,p->my_qthread_number);
 	} else fprintf(out, "\t\tTimestamping, disabled\n");
 	fflush(out);
 	fprintf(out,"\t\tDelete file, %s", (p->target_options & TO_DELETEFILE)?"enabled\n":"disabled\n");
-	if ((p->my_qthread_number == 0) && (p->lsp)) {
-		if (p->lsp->ls_master >= 0) {
-			mp = xgp->ptdsp[p->lsp->ls_master];
-			fprintf(out,"\t\tMaster Target, %d\n", p->lsp->ls_master);
-			fprintf(out,"\t\tMaster Interval value and type, %lld,%s\n", (long long)mp->lsp->ls_interval_value, mp->lsp->ls_interval_units);
+	if (p->my_qthread_number == 0) {
+		if (p->ls_master >= 0) {
+			mp = xgp->ptdsp[p->ls_master];
+			fprintf(out,"\t\tMaster Target, %d\n", p->ls_master);
+			fprintf(out,"\t\tMaster Interval value and type, %lld,%s\n", (long long)mp->ls_interval_value, mp->ls_interval_units);
 		}
-		if (p->lsp->ls_slave >= 0) {
-			sp = xgp->ptdsp[p->lsp->ls_slave];
-			fprintf(out,"\t\tSlave Target, %d\n", p->lsp->ls_slave);
-			fprintf(out,"\t\tSlave Task value and type, %lld,%s\n", (long long)sp->lsp->ls_task_value,sp->lsp->ls_task_units);
-			fprintf(out,"\t\tSlave initial condition, %s\n",(sp->lsp->ls_ms_state & LS_SLAVE_RUN_IMMEDIATELY)?"Run":"Wait");
-			fprintf(out,"\t\tSlave termination, %s\n",(sp->lsp->ls_ms_state & LS_SLAVE_COMPLETE)?"Complete":"Abort");
+		if (p->ls_slave >= 0) {
+			sp = xgp->ptdsp[p->ls_slave];
+			fprintf(out,"\t\tSlave Target, %d\n", p->ls_slave);
+			fprintf(out,"\t\tSlave Task value and type, %lld,%s\n", (long long)sp->ls_task_value,sp->ls_task_units);
+			fprintf(out,"\t\tSlave initial condition, %s\n",(sp->ls_ms_state & LS_SLAVE_RUN_IMMEDIATELY)?"Run":"Wait");
+			fprintf(out,"\t\tSlave termination, %s\n",(sp->ls_ms_state & LS_SLAVE_COMPLETE)?"Complete":"Abort");
 		}
 	}
 
 	// Display information about any End-to-End operations for this target 
 	// Only qthread 0 displays the inforamtion
-	if ((p->target_options & TO_ENDTOEND) && (p->e2ep)) { // This target is part of an end-to-end operation
+	if (p->target_options & TO_ENDTOEND) { // This target is part of an end-to-end operation
 		fprintf(out,"\t\tEnd-to-End ACTIVE: this target is the %s side\n",
 			(p->target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
 		fprintf(out,"\t\tEnd-to-End Destination Address is %s using port %d",
-			p->e2ep->e2e_dest_hostname, p->e2ep->e2e_dest_port);
+			p->e2e_dest_hostname, p->e2e_dest_port);
 		if (p->queue_depth > 1) {
 			fprintf(out," of ports %d thru %d", 
-				(p->e2ep->e2e_dest_port - p->my_qthread_number), 
-				((p->e2ep->e2e_dest_port - p->my_qthread_number) + p->queue_depth - 1));
+				(p->e2e_dest_port - p->my_qthread_number), 
+				((p->e2e_dest_port - p->my_qthread_number) + p->queue_depth - 1));
 		}
 		fprintf(out,"\n");
 	}
 	fprintf(out, "\n");
 	fflush(out);
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_target_info: exit, p=0x%x\n",p);
 } /* end of xdd_target_info() */
 
 /*----------------------------------------------------------------------------*/
@@ -620,24 +646,12 @@ xdd_init_global_clock(pclk_t *pclkp) {
  */
 void
 xdd_pattern_buffer(ptds_t *p) {
-	int32_t 		i;
-	int32_t 		pattern_length; 	// Length of the pattern
-	int32_t 		remaining_length; 	// Length of the space in the pattern buffer
-	unsigned char	*ucp;          		// Pointer to an unsigned char type, duhhhh
-	uint32_t 		*lp;				// pointer to a pattern
-	data_pattern_t	*dpp;				// Pointer to the data pattern information
+	int32_t i;
+	int32_t pattern_length; // Length of the pattern
+	int32_t remaining_length; // Length of the space in the pattern buffer
+	unsigned char    *ucp;          // Pointer to an unsigned char type, duhhhh
+	uint32_t *lp;			// pointer to a pattern
 
-
-
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_pattern_buffer: enter, p=0x%x\n",p);
-	dpp = xdd_get_data_pattern_pointer(p);
-	if (p->dpp == NULL) {
-		fprintf(xgp->errout,"%s: [mythreadnum %d]:xdd_pattern_buffer: Internal error - no ptds data pattern pointer!\n",
-			xgp->progname,
-			p->mythreadnum);
-		xgp->abort_io = 1;
-		return;
-	}
 
 	if (p->target_options & TO_RANDOM_PATTERN) { // A nice random pattern
 			lp = (uint32_t *)p->rwbuf;
@@ -655,30 +669,30 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_pattern_buffer: ent
 				ucp = (unsigned char *)p->rwbuf;
 				remaining_length = p->iosize;
 				while (remaining_length) { 
-					if (dpp->data_pattern_length < remaining_length) 
-						pattern_length = dpp->data_pattern_length;
+					if (p->data_pattern_length < remaining_length) 
+						pattern_length = p->data_pattern_length;
 					else pattern_length = remaining_length;
 
-					memcpy(ucp,dpp->data_pattern,pattern_length);
+					memcpy(ucp,p->data_pattern,pattern_length);
 					remaining_length -= pattern_length;
 					ucp += pattern_length;
 				}
 			} else { // Just put the pattern at the beginning of the buffer once 
-				if (dpp->data_pattern_length < p->iosize) 
-					 pattern_length = dpp->data_pattern_length;
+				if (p->data_pattern_length < p->iosize) 
+					 pattern_length = p->data_pattern_length;
 				else pattern_length = p->iosize;
-				memcpy(p->rwbuf,dpp->data_pattern,pattern_length);
+				memcpy(p->rwbuf,p->data_pattern,pattern_length);
 			}
 	} else if (p->target_options & TO_LFPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(lfpat);
-                fprintf(stderr,"LFPAT length is %d\n", dpp->data_pattern_length);
+                p->data_pattern_length = sizeof(lfpat);
+                fprintf(stderr,"LFPAT length is %d\n", p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
+			if (p->data_pattern_length < remaining_length) 
+				pattern_length = p->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,lfpat,pattern_length);
 			remaining_length -= pattern_length;
@@ -686,14 +700,14 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_pattern_buffer: ent
 		}
 	} else if (p->target_options & TO_LTPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(ltpat);
-                fprintf(stderr,"LTPAT length is %d\n", dpp->data_pattern_length);
+                p->data_pattern_length = sizeof(ltpat);
+                fprintf(stderr,"LTPAT length is %d\n", p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
+			if (p->data_pattern_length < remaining_length) 
+				pattern_length = p->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,ltpat,pattern_length);
 			remaining_length -= pattern_length;
@@ -701,14 +715,14 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_pattern_buffer: ent
 		}
 	} else if (p->target_options & TO_CJTPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(cjtpat);
-                fprintf(stderr,"CJTPAT length is %d\n", dpp->data_pattern_length);
+                p->data_pattern_length = sizeof(cjtpat);
+                fprintf(stderr,"CJTPAT length is %d\n", p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
+			if (p->data_pattern_length < remaining_length) 
+				pattern_length = p->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,cjtpat,pattern_length);
 			remaining_length -= pattern_length;
@@ -716,14 +730,14 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_pattern_buffer: ent
 		}
 	} else if (p->target_options & TO_CRPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(crpat);
-                fprintf(stderr,"CRPAT length is %d\n", dpp->data_pattern_length);
+                p->data_pattern_length = sizeof(crpat);
+                fprintf(stderr,"CRPAT length is %d\n", p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
+			if (p->data_pattern_length < remaining_length) 
+				pattern_length = p->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,crpat,pattern_length);
 			remaining_length -= pattern_length;
@@ -731,27 +745,23 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_pattern_buffer: ent
 		}
 	} else if (p->target_options & TO_CSPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(cspat);
-                fprintf(stderr,"CSPAT length is %d\n", dpp->data_pattern_length);
+                p->data_pattern_length = sizeof(cspat);
+                fprintf(stderr,"CSPAT length is %d\n", p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
+			if (p->data_pattern_length < remaining_length) 
+				pattern_length = p->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,cspat,pattern_length);
 			remaining_length -= pattern_length;
 			ucp += pattern_length;
 		}
     } else { // Otherwise set the entire buffer to the character in "data_pattern"
-		if (dpp->data_pattern == NULL) 
-			dpp->data_pattern = DEFAULT_DATA_PATTERN;
-		
-		memset(p->rwbuf,*(dpp->data_pattern),p->iosize);
+                memset(p->rwbuf,*(p->data_pattern),p->iosize);
 	}
 		
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_pattern_buffer: exit, p=0x%x\n",p);
 	return;
 } // end of xdd_pattern_buffer()
 /*----------------------------------------------------------------------------*/
@@ -763,9 +773,8 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_pattern_buffer: exi
  */
 unsigned char *
 xdd_init_io_buffers(ptds_t *p) {
-	unsigned char 		*rwbuf; 			/* the read/write buffer for this op */
-	void 				*shmat_status;
-	int32_t				iosize_to_allocate;
+	unsigned char *rwbuf; /* the read/write buffer for this op */
+	void *shmat_status;
 #ifdef WIN32
 	LPVOID lpMsgBuf; /* Used for the error messages */
 #endif
@@ -773,10 +782,9 @@ xdd_init_io_buffers(ptds_t *p) {
 
 
 	/* allocate slightly larger buffer for meta data for end-to-end ops */
-	if ((p->target_options & TO_ENDTOEND) && (p->e2ep)) {
-		p->e2ep->e2e_iosize = p->iosize + sizeof(p->e2ep->e2e_msg);
-		iosize_to_allocate = p->e2ep->e2e_iosize;
-	} else	iosize_to_allocate = p->iosize;
+	if ((p->target_options & TO_ENDTOEND)) 
+		p->e2e_iosize = p->iosize + sizeof(p->e2e_msg);
+	else	p->e2e_iosize = p->iosize;
 	/* Check to see if we want to use a shared memory segment and allocate it using shmget() and shmat().
 	 * NOTE: This is not supported by all operating systems. 
 	 */
@@ -785,9 +793,9 @@ xdd_init_io_buffers(ptds_t *p) {
 		/* In AIX we need to get memory in a shared memory segment to avoid
 	     * the system continually trying to pin each page on every I/O operation */
 #if (AIX)
-		p->rwbuf_shmid = shmget(IPC_PRIVATE, iosize_to_allocate, IPC_CREAT | SHM_LGPAGE |SHM_PIN );
+		p->rwbuf_shmid = shmget(IPC_PRIVATE, p->e2e_iosize, IPC_CREAT | SHM_LGPAGE |SHM_PIN );
 #else
-		p->rwbuf_shmid = shmget(IPC_PRIVATE, iosize_to_allocate, IPC_CREAT );
+		p->rwbuf_shmid = shmget(IPC_PRIVATE, p->e2e_iosize, IPC_CREAT );
 #endif
 		if (p->rwbuf_shmid < 0) {
 			fprintf(xgp->errout,"%s: Cannot create shared memory segment\n", xgp->progname);
@@ -811,22 +819,22 @@ xdd_init_io_buffers(ptds_t *p) {
 			xgp->progname);
 		p->target_options &= ~TO_SHARED_MEMORY;
 #if (IRIX || SOLARIS || LINUX || AIX || OSX || FREEBSD)
-		rwbuf = valloc(iosize_to_allocate);
+		rwbuf = valloc(p->e2e_iosize);
 #else
-		rwbuf = malloc(iosize_to_allocate);
+		rwbuf = malloc(p->e2e_iosize);
 #endif
 #endif 
 	} else { /* Allocate memory the normal way */
 #if (IRIX || SOLARIS || LINUX || AIX || OSX || FREEBSD)
-		rwbuf = valloc(iosize_to_allocate);
+		rwbuf = valloc(p->e2e_iosize);
 #else
-		rwbuf = malloc(iosize_to_allocate);
+		rwbuf = malloc(p->e2e_iosize);
 #endif
 	}
 	/* Check to see if we really allocated some memory */
 	if (rwbuf == NULL) {
 		fprintf(xgp->errout,"%s: cannot allocate %d bytes of memory for I/O buffer\n",
-			xgp->progname,iosize_to_allocate);
+			xgp->progname,p->e2e_iosize);
 		fflush(xgp->errout);
 #ifdef WIN32 
 		FormatMessage( 
@@ -849,7 +857,7 @@ xdd_init_io_buffers(ptds_t *p) {
 	/* Memory allocation must have succeeded */
 
 	/* Lock all rwbuf pages in memory */
-	xdd_lock_memory(rwbuf, iosize_to_allocate, "RW BUFFER");
+	xdd_lock_memory(rwbuf, p->e2e_iosize, "RW BUFFER");
 
 	return(rwbuf);
 } /* end of xdd_init_io_buffers() */
@@ -956,8 +964,6 @@ xdd_processor(ptds_t *p) {
 	int32_t 	cpus; 		/* the number of CPUs configured on this system */
 	int32_t 	i; 
 
-	if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_processor: enter, p=0x%x\n",p);
-
 	cpumask_size = (unsigned int)sizeof(cpumask);
 	status = sched_getaffinity(syscall(SYS_gettid), cpumask_size, &cpumask);
 	if (status != 0) {
@@ -991,7 +997,6 @@ xdd_processor(ptds_t *p) {
 			p->processor,
 			p->mypid,
 			p->mythreadid);
-	if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"xdd_processor: exit, p=0x%x\n",p);
 	return;
 #elif (AIX)
 	int32_t status;
@@ -1252,6 +1257,7 @@ xdd_open_target(ptds_t *p) {
 	int32_t  fd; /* the file descriptor */
 	int32_t  flags; /* file open flags */
 	char	*bnp; /* Pointer to the base name of the target */
+
 	/* create the fully qualified target name */
 	memset(target_name,0,sizeof(target_name));
 	if (strlen(p->targetdir) > 0)
@@ -1362,9 +1368,7 @@ xdd_open_target(ptds_t *p) {
 			if ((status < 0) || (i < 30000)) 
 				fprintf(xgp->errout, "%s: xdd_open_target: sg driver prior to 3.x.y - specifically %d\n",xgp->progname,i);
 #endif // LINUX SGIO open stuff
-		} else {
-			fd = open(target_name,flags|O_WRONLY, 0666); /* write only */
-		}
+		} else fd = open(target_name,flags|O_WRONLY, 0666); /* write only */
 	} else if (p->rwratio == 1.0) { /* read only */
 		flags &= ~O_CREAT;
 		if (p->target_options & TO_SGIO) {
@@ -1382,9 +1386,7 @@ xdd_open_target(ptds_t *p) {
 					fprintf(xgp->errout, "%s: xdd_open_target: sg driver prior to 3.x.y - specifically %d\n",xgp->progname,i);
 				}
 #endif // LINUX SGIO open stuff
-		} else { 
-			fd = open(target_name,flags|O_RDONLY, 0777); /* Read only */
-		}
+		} else fd = open(target_name,flags|O_RDONLY, 0777); /* Read only */
 	} else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
 		flags &= ~O_CREAT;
 		fd = open(target_name,flags|O_RDWR, 0666);
@@ -1541,15 +1543,87 @@ fprintf(xgp->errout,"(%d) %s: xdd_open_target: The iosize of %d bytes is not an 
 void
 xdd_show_ptds(ptds_t *p) {
 		fprintf(stderr,"********* Start of PTDS for target my_target_number=%d **********\n",p->my_target_number);
+		//p->my_qthread_number = 0;
 		fprintf(stderr,"mypid=%d\n",p->mypid);
+		//p->mythreadid = 0; // This is set later by the actual thread 
+		//p->thread_complete = 0; // set upon creation
+		//p->nextp = 0; // set upon creation, used when other qthreads are created
+		//p->pm1 = 0; // set upon creation
+		//p->rwbuf = 0; // set during rwbuf allocation
+		//p->rwbuf_shmid = -1; // set upon creation of a shared memory segment
+		//p->rwbuf_save = 0; // used by the rwbuf allocation routine
+		//p->targetdir = DEFAULT_TARGETDIR; // can be changed by CLO
 		fprintf(stderr,"target=%s\n",p->target);
+		//sprintf(p->targetext,"%08d",1);  // can be changed by CLO
 		fprintf(stderr,"reqsize=%d\n",p->reqsize); 
-		if (p->tsp) fprintf(stderr,"ts_options=0x%16x\n",p->tsp->ts_options);
+		//p->throttle = DEFAULT_THROTTLE;
+		//p->throttle_variance = DEFAULT_VARIANCE;
+		//p->throttle_type = PTDS_THROTTLE_BW;
+		fprintf(stderr,"ts_options=0x%16x\n",p->ts_options);
 		fprintf(stderr,"target_options=0x%16x\n",p->target_options);
+		//p->time_limit = DEFAULT_TIME_LIMIT;
 		fprintf(stderr,"numreqs=%lld\n",(long long)p->numreqs);
 		fprintf(stderr,"flushwrite=%lld\n",(long long)p->flushwrite);
 		fprintf(stderr,"bytes=%lld\n",(long long)p->bytes); 
+		//p->report_threshold = DEFAULT_REPORT_THRESHOLD;
+		//p->start_offset = DEFAULT_STARTOFFSET;
+		//p->pass_offset = DEFAULT_PASSOFFSET;
+		//p->preallocate = DEFAULT_PREALLOCATE;
+		//p->queue_depth = DEFAULT_QUEUEDEPTH;
+		//p->data_pattern_filename = (char *)DEFAULT_DATA_PATTERN_FILENAME;
+		//p->data_pattern = DEFAULT_DATA_PATTERN;
+		//p->data_pattern_length = DEFAULT_DATA_PATTERN_LENGTH;
+		//p->data_pattern_prefix = DEFAULT_DATA_PATTERN_PREFIX;
+		//p->data_pattern_prefix_length = DEFAULT_DATA_PATTERN_PREFIX_LENGTH;
 		fprintf(stderr,"block_size=%d\n",p->block_size);
+		//p->mem_align = getpagesize();
+        //p->my_current_elapsed_time = 0;
+        //p->my_current_end_time = 0;
+        //p->my_current_start_time = 0;
+        //p->my_end_time = 0;
+        //p->my_start_time = 0;
+		//p->processor = -1;
+		//p->start_delay = DEFAULT_START_DELAY;
+		//p->start_trigger_time = 0; /* Time to trigger another target to start */
+		//p->stop_trigger_time = 0; /* Time to trigger another target to stop */
+		//p->start_trigger_op = 0; /* Operation number to trigger another target to start */
+		//p->stop_trigger_op = 0; /* Operation number  to trigger another target to stop */
+		//p->start_trigger_percent = 0; /* Percentage of ops before triggering another target to start */
+		//p->stop_trigger_percent = 0; /* Percentage of ops before triggering another target to stop */
+		//p->start_trigger_bytes = 0; /* Number of bytes to transfer before triggering another target to start */
+		//p->stop_trigger_bytes = 0; /* Number of bytes to transfer before triggering another target to stop */
+		//p->start_trigger_target = -1; /* The number of the target to send the start trigger to */
+		//p->stop_trigger_target = -1; /* The number of the target to send the stop trigger to */
+		//p->run_status = 1;   /* This is the status of this thread 0=not started, 1=running */
+		//p->trigger_types = 0;
+		//p->ls_master = -1; /* The default master number  */
+		//p->ls_slave  = -1; /* The default slave number */
+		//p->ls_interval_type  = 0; /* The default interval type */
+		//p->ls_interval_value  = 0; /* The default interval value  */
+		//p->ls_interval_units  = "not defined"; /* The default interval units  */
+		//p->ls_task_type  = 0; /* The default task type */
+		//p->ls_task_value  = 0; /* The default task value  */
+		//p->ls_task_units  = "not defined"; /* The default task units  */
+		//p->ls_task_counter = 0; /* the default task counter */
+		/* Init the seeklist header fields */
+		//p->seekhdr.seek_options = 0;
+		//p->seekhdr.seek_range = DEFAULT_RANGE;
+		//p->seekhdr.seek_seed = DEFAULT_SEED;
+		//p->seekhdr.seek_interleave = DEFAULT_INTERLEAVE;
+		//p->seekhdr.seek_iosize = DEFAULT_REQSIZE*DEFAULT_BLOCKSIZE;
+		//p->seekhdr.seek_num_rw_ops = DEFAULT_NUMREQS;
+		//p->seekhdr.seek_total_ops = DEFAULT_NUMREQS;
+		//p->seekhdr.seek_NumSeekHistBuckets = DEFAULT_NUM_SEEK_HIST_BUCKETS;/* Number of buckets for seek histogram */
+		//p->seekhdr.seek_NumDistHistBuckets = DEFAULT_NUM_DIST_HIST_BUCKETS;/* Number of buckets for distance histogram */
+		//p->seekhdr.seek_savefile = NULL; /* file to save seek locations into */
+		//p->seekhdr.seek_loadfile = NULL; /* file from which to load seek locations from */
+		//p->seekhdr.seek_pattern = "sequential";
+		/* Init the read-after-write fields */
+		//p->raw_sd = 0; /* raw socket descriptor */
+		//p->raw_hostname = NULL;  /* Reader hostname */
+		//p->raw_lag = DEFAULT_RAW_LAG; 
+		//p->raw_port = DEFAULT_RAW_PORT;
+		//p->raw_trigger = PTDS_RAW_MP; /* default to a message passing */
 		
 		fprintf(stderr,"+++++++++++++ End of PTDS for target my_target_number=%d +++++++++++++\n",p->my_target_number);
 } /* end of xdd_show_ptds() */ 

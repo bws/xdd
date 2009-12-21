@@ -74,10 +74,10 @@ xdd_io_thread_cleanup(ptds_t *p) {
 	} // Done closing files
 
 	// Close any network sockets 
-	if ((p->rawp) && (p->target_options & TO_READAFTERWRITE)) {
+	if (p->target_options & TO_READAFTERWRITE) {
 		if (xgp->global_options & GO_REALLYVERBOSE)
-			fprintf(stderr,"closing socket %d, recvd msgs = %d sent msgs = %d\n",p->rawp->raw_sd, p->rawp->raw_msg_recv, p->rawp->raw_msg_sent);
-		close(p->rawp->raw_sd);
+			fprintf(stderr,"closing socket %d, recvd msgs = %d sent msgs = %d\n",p->raw_sd, p->raw_msg_recv, p->raw_msg_sent);
+		close(p->raw_sd);
 	}
 
 	// Now let's get rid of the memory buffers and skidaddle on out of here

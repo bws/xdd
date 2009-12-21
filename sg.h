@@ -29,20 +29,6 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
-// The following data structure is specific to XDD and lives in the PTDS
-// This data structure is only used when the -sgio or equivalent device is used
-// and is specific to Linux
-#define SENSE_BUFF_LEN 64					// Number of bytes for the Sense buffer 
-struct sgio {
-	unsigned long long	sg_from_block;			// Starting block location for this operation 
-	unsigned int		sg_blocks;				// The number of blocks to transfer 
-	unsigned int		sg_blocksize;			// The size of a single block for an SG operation - generally == p->blocksize 
-    unsigned char 		sg_sense[SENSE_BUFF_LEN]; // The Sense Buffer  
-	unsigned int   		sg_num_sectors;			// Number of Sectors from Read Capacity command 
-	unsigned int   		sg_sector_size;			// Sector Size in bytes from Read Capacity command 
-};
-typedef struct sgio sgio_t;
-
 #if LINUX 
 #include <linux/major.h>
 #include <sys/sysmacros.h>

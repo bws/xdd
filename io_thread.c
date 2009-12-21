@@ -45,8 +45,6 @@ xdd_io_thread(void *pin) {
 
 	ptds_t *p = (ptds_t *)pin; 
 
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_thread: enter, p=0x%x\n",p);
-
 	status = xdd_io_thread_init(p);
 	if (status == FAILED) {
 		fprintf(xgp->errout,"%s: xdd_io_thread: Aborting target %d due to previous initialization failure.\n",
@@ -56,14 +54,10 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_thread: enter, p=0x%
 		xgp->abort_io = 1; // This will prevent all other threads from being created...
 	}
 
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_thread: entering barrier to let next thread start..., p=0x%x\n",p);
-
 	/* Enter the serializer barrier so that the next thread can start */
 	xdd_barrier(&xgp->serializer_barrier[p->mythreadnum%2]);
 	if ( xgp->abort_io == 1) // Something went wrong during thread initialization so let's just leave
 		return(0);
-
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_thread: out of barrier starting run, p=0x%x\n",p);
 
 	// OK - let's get the road on the show here...
 	xgp->run_complete = 0; 
@@ -87,12 +81,9 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_thread: out of barri
 		}
 		p->pass_complete = 0;
 
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_thread: calling xdd_io_loop for pass %d, p=0x%x\n",p->my_current_pass_number,p);
-
 	 	/* Do the actual I/O Loop */
 		xdd_io_loop(p);
 
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"io_thread: pass %d complete, p=0x%x\n",p->my_current_pass_number,p);
 		p->pass_complete = 1;
 		// This first barrier is where the results_manager() is waiting in 
 		// order to process/display the results for this pass

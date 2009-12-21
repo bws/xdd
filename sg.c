@@ -63,15 +63,11 @@ xdd_sg_io(ptds_t *p, char rw) {
 	int 			status;			// This is the status from the SG driver
 	int 			io_status;		// This is the status from the device itself
 	int64_t			last_sector;	// Last sector in range of sectors to transfer
-	sgio_t			*sgp;
-
-
-	sgp = p->sgp;
 
 	// Set up the sg-specific variables in the PTDS
-	sgp->sg_blocksize = 512; // This is because sg uses a sector size block size
-	sgp->sg_from_block = (p->my_current_byte_location / sgp->sg_blocksize);
-	sgp->sg_blocks = p->actual_iosize / sgp->sg_blocksize;
+	p->sg_blocksize = 512; // This is because sg uses a sector size block size
+	p->sg_from_block = (p->my_current_byte_location / p->sg_blocksize);
+	p->sg_blocks = p->actual_iosize / p->sg_blocksize;
 	
 	// Init the CDB
 	if (rw == 'w') 
@@ -79,19 +75,19 @@ xdd_sg_io(ptds_t *p, char rw) {
 	else Cmd[0] = READ_16; // Assume Read
 	Cmd[1] = 0;
 	// Starting sector - bytes 2-9 - 8-bytes
-	Cmd[2] = (unsigned char)((sgp->sg_from_block >> 56) & 0xFF);
-	Cmd[3] = (unsigned char)((sgp->sg_from_block >> 48) & 0xFF);
-	Cmd[4] = (unsigned char)((sgp->sg_from_block >> 40) & 0xFF);
-	Cmd[5] = (unsigned char)((sgp->sg_from_block >> 32) & 0xFF);
-	Cmd[6] = (unsigned char)((sgp->sg_from_block >> 24) & 0xFF);
-	Cmd[7] = (unsigned char)((sgp->sg_from_block >> 16) & 0xFF);
-	Cmd[8] = (unsigned char)((sgp->sg_from_block >> 8) & 0xFF);
-	Cmd[9] = (unsigned char)(sgp->sg_from_block & 0xFF);
+	Cmd[2] = (unsigned char)((p->sg_from_block >> 56) & 0xFF);
+	Cmd[3] = (unsigned char)((p->sg_from_block >> 48) & 0xFF);
+	Cmd[4] = (unsigned char)((p->sg_from_block >> 40) & 0xFF);
+	Cmd[5] = (unsigned char)((p->sg_from_block >> 32) & 0xFF);
+	Cmd[6] = (unsigned char)((p->sg_from_block >> 24) & 0xFF);
+	Cmd[7] = (unsigned char)((p->sg_from_block >> 16) & 0xFF);
+	Cmd[8] = (unsigned char)((p->sg_from_block >> 8) & 0xFF);
+	Cmd[9] = (unsigned char)(p->sg_from_block & 0xFF);
 	// Transfer Length - bytes 10-13 - 4-bytes
-	Cmd[10] = (unsigned char)((sgp->sg_blocks >> 24) & 0xff);
-	Cmd[11] = (unsigned char)((sgp->sg_blocks >> 16) & 0xff);
-	Cmd[12] = (unsigned char)((sgp->sg_blocks >> 8) & 0xff);
-	Cmd[13] = (unsigned char)(sgp->sg_blocks & 0xff);
+	Cmd[10] = (unsigned char)((p->sg_blocks >> 24) & 0xff);
+	Cmd[11] = (unsigned char)((p->sg_blocks >> 16) & 0xff);
+	Cmd[12] = (unsigned char)((p->sg_blocks >> 8) & 0xff);
+	Cmd[13] = (unsigned char)(p->sg_blocks & 0xff);
 	// MMC-4, and group number - NA
 	Cmd[14] = 0;
 	// Control 
@@ -105,10 +101,10 @@ xdd_sg_io(ptds_t *p, char rw) {
 	if (rw == 'w') 
 		io_hdr.dxfer_direction = SG_DXFER_TO_DEV; // Write op
 	else io_hdr.dxfer_direction = SG_DXFER_FROM_DEV; // Read op
-	io_hdr.dxfer_len = sgp->sg_blocksize * sgp->sg_blocks;
+	io_hdr.dxfer_len = p->sg_blocksize * p->sg_blocks;
 	io_hdr.dxferp = p->rwbuf;
 	io_hdr.mx_sb_len = SENSE_BUFF_LEN;
-	io_hdr.sbp = sgp->sg_sense;
+	io_hdr.sbp = p->sg_sense;
 	io_hdr.timeout = DEF_TIMEOUT;
 	io_hdr.pack_id = 0;
 	io_hdr.flags |= SG_FLAG_DIRECT_IO;
@@ -152,8 +148,8 @@ xdd_sg_io(ptds_t *p, char rw) {
 			p->target,
 			status,
 			p->my_current_op,
-			sgp->sg_from_block, 
-			sgp->sg_blocks);
+			p->sg_from_block, 
+			p->sg_blocks);
 		fflush(xgp->errout);
 
 		// Check the type of error and print out the sense information for this error if there was an error
@@ -168,21 +164,21 @@ xdd_sg_io(ptds_t *p, char rw) {
 					p->target,
 					status,
 					p->my_current_op,
-					sgp->sg_from_block, 
-					sgp->sg_blocks);
+					p->sg_from_block, 
+					p->sg_blocks);
 				break;
 			default:
 				status = xdd_sg_read_capacity(p); 
 				if (status == SUCCESS) { // Check for an out-of-bounds condition
-					last_sector = sgp->sg_from_block + sgp->sg_blocks - 1;
-					if ( last_sector > sgp->sg_num_sectors) { // LBA out of range error most likely
+					last_sector = p->sg_from_block + p->sg_blocks - 1;
+					if ( last_sector > p->sg_num_sectors) { // LBA out of range error most likely
 						fprintf(xgp->errout, "%s (T%d.Q%d): Attempting to access a sector that is PAST the END of the device: op# %d, from sector# %lld, for %d sectors\n",
 							xgp->progname,
 							p->my_target_number,
 							p->my_qthread_number,
 							p->my_current_op,
-							sgp->sg_from_block, 
-							sgp->sg_blocks);
+							p->sg_from_block, 
+							p->sg_blocks);
 					}
 				} // Done checking for out-of-range error
 				fprintf(xgp->errout, "%s (T%d.Q%d): %s Error on target %s - status %d, op# %d, from sector# %lld for %d sectors\n",
@@ -193,8 +189,8 @@ xdd_sg_io(ptds_t *p, char rw) {
 					p->target,
 					status,
 					p->my_current_op,
-					sgp->sg_from_block, 
-					sgp->sg_blocks);
+					p->sg_from_block, 
+					p->sg_blocks);
 				return(0);
 		
 		} // End of SWITCH stmnt
@@ -202,7 +198,7 @@ xdd_sg_io(ptds_t *p, char rw) {
 	} // End of looking at SG driver errors
 
 	// No error - return the amount of data that was transferred
-	return(sgp->sg_blocksize*sgp->sg_blocks);
+	return(p->sg_blocksize*p->sg_blocks);
 
 } // End of xdd_sg_io() 
 
@@ -217,10 +213,6 @@ xdd_sg_read_capacity(ptds_t *p) {
 	unsigned char	rcCmd[10];
 	unsigned char	rcBuff[READ_CAP_REPLY_LEN];
 	sg_io_hdr_t 	io_hdr;
-	sgio_t			*sgp;
-
-
-	sgp = p->sgp;
 
 	rcCmd[0] = 0x25;
 	rcCmd[1] = 0;
@@ -241,7 +233,7 @@ xdd_sg_read_capacity(ptds_t *p) {
 	io_hdr.dxfer_len = sizeof(rcBuff);
 	io_hdr.dxferp = rcBuff;
 	io_hdr.cmdp = rcCmd;
-	io_hdr.sbp = sgp->sg_sense;
+	io_hdr.sbp = p->sg_sense;
 	io_hdr.timeout = DEF_TIMEOUT;
 
 	status = ioctl(p->fd, SG_IO, &io_hdr);
@@ -261,8 +253,8 @@ xdd_sg_read_capacity(ptds_t *p) {
 	}
 
 	// Retrieve the number of sectors and the sector size from the buffer
-	sgp->sg_num_sectors = 1 + ((rcBuff[0] << 24) | (rcBuff[1] << 16) | (rcBuff[2] << 8) | rcBuff[3]);
-	sgp->sg_sector_size = (rcBuff[4] << 24) | (rcBuff[5] << 16) | (rcBuff[6] << 8) | rcBuff[7];
+	p->sg_num_sectors = 1 + ((rcBuff[0] << 24) | (rcBuff[1] << 16) | (rcBuff[2] << 8) | rcBuff[3]);
+	p->sg_sector_size = (rcBuff[4] << 24) | (rcBuff[5] << 16) | (rcBuff[6] << 8) | rcBuff[7];
 
 	return(SUCCESS);
 

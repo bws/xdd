@@ -98,30 +98,23 @@ xdd_status_after_io_operation(ptds_t *p) {
  */
 void // Read-After_Write Processing
 xdd_raw_after_io_operation(ptds_t *p) {
-	raw_t	*rawp;
-
 
 	if ((p->target_options & TO_READAFTERWRITE) && 
-	    (p->target_options & TO_RAW_WRITER) && 
-	    (p->rawp)) {
-		rawp = p->rawp;
+	    (p->target_options & TO_RAW_WRITER)) {
 		/* Since I am the writer in a read-after-write operation, and if 
 		 * we are using a socket connection to the reader for write-completion 
 		 * messages then I need to send the reader a message of what I just 
 		 * wrote - starting location and length of write.
 		 */
 	}
-	if ((p->my_io_status > 0) && 
-	    (p->target_options & TO_READAFTERWRITE) &&
-	    (p->rawp)) {
-		rawp = p->rawp;
+	if ( (p->my_io_status > 0) && (p->target_options & TO_READAFTERWRITE) ) {
 		if (p->target_options & TO_RAW_READER) { 
-			rawp->raw_data_ready -= p->my_io_status;
+			p->raw_data_ready -= p->my_io_status;
 		} else { /* I must be the writer, send a message to the reader if requested */
-			if (rawp->raw_trigger & PTDS_RAW_MP) {
-				rawp->raw_msg.magic = PTDS_RAW_MAGIC;
-				rawp->raw_msg.length = p->my_io_status;
-				rawp->raw_msg.location = p->my_current_byte_location;
+			if (p->raw_trigger & PTDS_RAW_MP) {
+				p->raw_msg.magic = PTDS_RAW_MAGIC;
+				p->raw_msg.length = p->my_io_status;
+				p->raw_msg.location = p->my_current_byte_location;
 				xdd_raw_writer_send_msg(p);
 			}
 		}
@@ -138,55 +131,51 @@ xdd_e2e_after_io_operation(ptds_t *p) {
 	pclk_t	beg_time_tmp;
 	pclk_t	end_time_tmp;
 	pclk_t	now;
-	e2e_t	*ep;
 
 
-	ep = p->e2ep; // It is assumed at this point that this pointer exists
-
-	if ((p->my_io_status > 0) && 
-		(p->target_options & TO_ENDTOEND)) {
+	if ( (p->my_io_status > 0) && (p->target_options & TO_ENDTOEND) ) {
 		if (p->target_options & TO_E2E_DESTINATION) {
-			ep->e2e_data_ready -= p->my_io_status;
-			if((ep->e2e_msg.sequence%1000 == 0) && 
+			p->e2e_data_ready -= p->my_io_status;
+			if((p->e2e_msg.sequence%1000 == 0) && 
 			   (xgp->global_options & GO_REALLYVERBOSE)) {
 				fprintf(stderr,"[mythreadnum %d]:e2e_after_io_operation: op %04d %04d: e2e-postion-destination: message %d, seq# %lld, len %ld, loc %ld, magic %08x sent %dB\n",
 					p->mythreadnum,
 					p->my_current_op,
-					ep->e2e_msg.sequence%1000,
-					ep->e2e_msg_recv,
-					ep->e2e_msg.sequence,
-					ep->e2e_msg.length,
-					ep->e2e_msg.location,
-					ep->e2e_msg.magic, 
+					p->e2e_msg.sequence%1000,
+					p->e2e_msg_recv,
+					p->e2e_msg.sequence,
+					p->e2e_msg.length,
+					p->e2e_msg.location,
+					p->e2e_msg.magic, 
 					p->iosize);
 			}
 		} else { /* I must be the SOURCE, send current data to the DESTINATION */
-			ep->e2e_msg.magic = PTDS_E2E_MAGIC;
+			p->e2e_msg.magic = PTDS_E2E_MAGIC;
 			pclk_now(&now);
 			if (p->time_limit) { /* times-up, signal DESTINATION to quit */
 				if ((now - p->my_pass_start_time)  >= (pclk_t)(p->time_limit*TRILLION)) {
-					ep->e2e_msg.magic = PTDS_E2E_MAGIQ;
+					p->e2e_msg.magic = PTDS_E2E_MAGIQ;
 					p->my_pass_ring = 1;
 				}
 			}
-			ep->e2e_msg.length = p->my_io_status;
-			ep->e2e_msg.location = p->my_current_byte_location;
-			ep->e2e_msg.sequence = p->my_current_op;
+			p->e2e_msg.length = p->my_io_status;
+			p->e2e_msg.location = p->my_current_byte_location;
+			p->e2e_msg.sequence = p->my_current_op;
 			if (xgp->global_options & GO_DEBUG) {
 				fprintf(stderr,"[mythreadnum %d]:e2e_after_io_operation: op %04d:e2e-postion-source: message %d, seq# %lld, len %ld, loc %ld, magic %08x sent %d\n",
 					p->mythreadnum,
 					p->my_current_op,
-					ep->e2e_msg_sent,
-					ep->e2e_msg.sequence,
-					ep->e2e_msg.length,
-					ep->e2e_msg.location,
-					ep->e2e_msg.magic, 
+					p->e2e_msg_sent,
+					p->e2e_msg.sequence,
+					p->e2e_msg.length,
+					p->e2e_msg.location,
+					p->e2e_msg.magic, 
 					p->iosize);
 			} // End of DEBUG print
 			pclk_now(&beg_time_tmp);
 			xdd_e2e_src_send_msg(p);
 			pclk_now(&end_time_tmp);
-			ep->e2e_sr_time += (end_time_tmp - beg_time_tmp); // Time spent sending to the destination machine
+			p->e2e_sr_time += (end_time_tmp - beg_time_tmp); // Time spent sending to the destination machine
 		} // End of me being the SOURCE in an End-to-End test 
 	} // End of processing a End-to-End
 

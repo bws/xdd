@@ -1,5 +1,4 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/* Copyright (C) 1992-2009 I/O Performance, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,18 +14,9 @@
  * along with this program in a file named 'Copying'; if not, write to
  * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
  */
-/* Principal Author:
+/* Author:
  *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
+ *      I/O Perofrmance, Inc.
  */
 /*
  * This file contains the subroutines necessary to parse the command line
@@ -144,17 +134,23 @@ xdd_combine_results(results_t *to, results_t *from)
 		to->percent_cpu = (to->us_time / to->elapsed_pass_time) * 100.0; 	// Percent CPU time used by this process: user+system time for this pass 
 
 	} else if (to->flags & RESULTS_TARGET_AVG) {
-		if (to->earliest_start_time_this_pass > from->earliest_start_time_this_pass)
+		if (from->my_qthread_number == 0) {
 			to->earliest_start_time_this_pass = from->earliest_start_time_this_pass;
+		} else {
+			if (to->earliest_start_time_this_pass > from->earliest_start_time_this_pass)
+				to->earliest_start_time_this_pass = from->earliest_start_time_this_pass;
+		}
 
-		if (from->pass_number == 1) 
+		if (from->pass_number == 1)
 			to->earliest_start_time_this_run = to->earliest_start_time_this_pass; 
 
 		if (to->latest_end_time_this_pass < from->latest_end_time_this_pass)
 			to->latest_end_time_this_pass = from->latest_end_time_this_pass;
 
 		to->latest_end_time_this_run = to->latest_end_time_this_pass;
-		to->elapsed_pass_time  += from->elapsed_pass_time;
+
+		to->elapsed_pass_time = (to->latest_end_time_this_pass - to->earliest_start_time_this_pass)/FLOAT_TRILLION;
+fprintf(stderr,"\nrm:t%dQ%d to elapsed pass time %f, latest_end_time %f, earliest_start_time %f\n",to->my_target_number, to->my_qthread_number, to->elapsed_pass_time, from->latest_end_time_this_pass, from->earliest_start_time_this_pass);
 		to->accumulated_elapsed_time += to->elapsed_pass_time; // Accumulated elapsed time is "virtual" time since the qthreads run in parallel
 		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N qthreads
 		to->latency = (to->accumulated_latency/to->queue_depth)/to->pass_number; // This is the "average" latency or milliseconds per op for this target over all passes
@@ -210,8 +206,8 @@ xdd_combine_results(results_t *to, results_t *from)
 		to->e2e_sr_time_this_run += from->e2e_sr_time_this_pass; // SR Time in Seconds
 		to->e2e_sr_time_percent_this_pass = (to->e2e_sr_time_this_pass/to->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
 		to->e2e_sr_time_percent_this_run = (to->e2e_sr_time_this_run/to->e2e_io_time_this_run)*100.0; // Percentage of IO Time spent in SendReceive
-		if (to->op_count == 0.0) 
-			to->latency = 0.0;
+		if (to->elapsed_pass_time == 0.0) 
+			to->latency = -1.0;
 		else to->latency = (to->elapsed_pass_time / to->op_count) * 1000.0 ;
 
 		// CPU Utilization Information >> see user_time, system_time, and us_time below
@@ -427,16 +423,14 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p)
 	rp->iops = (double)((double)rp->op_count / (double)rp->elapsed_pass_time);  // OPs/sec
 	rp->read_iops = (double)(rp->read_op_count / (double)rp->elapsed_pass_time);  // OPs/sec
 	rp->write_iops = (double)(rp->write_op_count / (double)rp->elapsed_pass_time);  // OPs/sec
-	if (rp->iops == 0.0)
-		rp->latency = 0.0;
-	else rp->latency = (double)((1.0/rp->iops) * 1000.0);  // milliseconds
+	rp->latency = (double)((1.0/rp->iops) * 1000.0);  // milliseconds
 	rp->user_time =   (double)(p->my_current_cpu_times.tms_utime  - p->my_starting_cpu_times_this_pass.tms_utime)/(double)(xgp->clock_tick); // Seconds
 	rp->system_time = (double)(p->my_current_cpu_times.tms_stime  - p->my_starting_cpu_times_this_pass.tms_stime)/(double)(xgp->clock_tick); // Seconds
 	rp->us_time = (double)(rp->user_time + rp->system_time); // MilliSeconds
 	if (rp->elapsed_pass_time == 0.0) {
-		rp->percent_user = 0.0;
-		rp->percent_system = 0.0;
-		rp->percent_cpu = 0.0;
+		rp->percent_user = -1.0;
+		rp->percent_system = -1.0;
+		rp->percent_cpu = -1.0;
 	} else {
 		rp->percent_user = (double)(rp->user_time/rp->elapsed_pass_time) * 100.0; // Percent User Time
 		rp->percent_system = (double)(rp->system_time/rp->elapsed_pass_time) * 100.0; // Percent System Time
@@ -444,9 +438,7 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p)
 	}
 	rp->e2e_sr_time_this_pass = (double)p->e2e_sr_time/FLOAT_TRILLION; // E2E SendReceive Time in MicroSeconds
 	rp->e2e_io_time_this_pass = (double)rp->elapsed_pass_time; // E2E IO  Time in MicroSeconds
-	if (rp->e2e_io_time_this_pass == 0.0)
-		rp->e2e_sr_time_percent_this_pass = 0.0; // Percentage of IO Time spent in SendReceive
-	else rp->e2e_sr_time_percent_this_pass = (rp->e2e_sr_time_this_pass/rp->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
+	rp->e2e_sr_time_percent_this_pass = (rp->e2e_sr_time_this_pass/rp->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
 	rp->e2e_wait_1st_msg = (double)p->e2e_wait_1st_msg/FLOAT_TRILLION; // MicroSeconds
 	// The Hig/Low values are only updated when the -extendedstats option is specified
 	if (xgp->global_options & GO_EXTENDED_STATS) {
@@ -522,20 +514,19 @@ xdd_process_pass_results(void)
 	// Next, gather results from all target qthreads and display pass results
 	for (i=0; i<xgp->number_of_targets; i++) {
 		p = xgp->ptdsp[i]; /* Get the ptds for this target */
-		// Init the Target Average Results struct
+		// Init the Target Average Results struct (only on first pass)
 		tarp = xgp->target_average_resultsp[i];
-		tarp->format_string = xgp->format_string;
-		tarp->what = "TARGET_AVERAGE";
-		if (p->my_current_pass_number == 1) {
+		//if (p->my_current_pass_number == 1) {
+			tarp->format_string = xgp->format_string;
+			tarp->what = "TARGET_AVERAGE";
 			tarp->earliest_start_time_this_run = (double)LLONG_MAX;
 			tarp->earliest_start_time_this_pass = (double)LLONG_MAX;
 			tarp->shortest_op_time = (double)LLONG_MAX;
 			tarp->shortest_read_op_time = (double)LLONG_MAX;
 			tarp->shortest_write_op_time = (double)LLONG_MAX;
-		}
+		//}
 		
 		// Init the Target Pass Results struct
-		trp = &target_pass_results;
 		memset(trp, 0, sizeof(results_t));
 		trp->format_string = xgp->format_string;
 		trp->what = "TARGET_PASS   ";
@@ -544,10 +535,15 @@ xdd_process_pass_results(void)
 		trp->shortest_op_time = (double)LLONG_MAX;
 		trp->shortest_read_op_time = (double)LLONG_MAX;
 		trp->shortest_write_op_time = (double)LLONG_MAX;
-		trp->e2e_sr_time_this_pass = 0;
-		trp->e2e_io_time_this_pass = 0;
+
+		// Init the Queue Pass Results struct
+		memset(qrp, 0, sizeof(results_t));
+		qrp->earliest_start_time_this_run = (double)LLONG_MAX;
+		qrp->earliest_start_time_this_pass = (double)LLONG_MAX;
+		qrp->shortest_op_time = (double)LLONG_MAX;
+		qrp->shortest_read_op_time = (double)LLONG_MAX;
+		qrp->shortest_write_op_time = (double)LLONG_MAX;
 		while (p) { /* Look at all the qthreads for this target */
-			qrp = &qthread_pass_results;
 
 			xdd_extract_pass_results(qrp, p);
 	
@@ -575,15 +571,12 @@ xdd_process_pass_results(void)
 			// Combine qthread results for Target Average
 			trp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_PASS);
 			xdd_combine_results(trp, qrp);
+			tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
+			xdd_combine_results(tarp, qrp);
 
 			// get ptds for the next qthread for this target 
 			p = p->nextp; 
 		} // Done with results for this target
-
-		// Combine the pass results from this target with its average results so far
-		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
-		xdd_combine_results(tarp, trp);
-
 		// At this point all the pass results from each qthread for this particular
 		// target have been squished into a single results structure for this target.
 		// Display the Pass Results for this target
@@ -617,7 +610,6 @@ xdd_process_run_results(void)
 {
 	int			i;	
 	ptds_t		*p;		// PTDS pointer
-	ptds_t		*qp;	// PTDS pointer to a qthread ptds
 	results_t	*tarp;	// Pointer to the Target Average results structure
 	results_t	*crp;	// Pointer to the temporary combined run results
 	results_t	combined_results; // Temporary for target combined results
@@ -669,29 +661,6 @@ xdd_process_run_results(void)
 		crp->delimiter = ',';
 		xdd_results_display(crp);
 	}
-
-	for (i=0; i<xgp->number_of_targets; i++) { // Processing TimeStamp reports
-		p = xgp->ptdsp[i]; /* Get the ptds for this target */
-		qp = p;
-		while (qp) {
-			/* Display and write the time stamping information if requested */
-			if (qp->ts_options & (TS_ON | TS_TRIGGERED)) {
-				if (qp->timestamps > qp->ttp->tt_size) 
-					qp->ttp->numents = qp->ttp->tt_size;
-				else qp->ttp->numents = qp->timestamps;
-				if (qp->run_complete == 0) {
-					fprintf(xgp->errout,"%s: Houston, we have a problem... thread for Target %d Q %d is not complete and we are trying to dump the time stamp file!\n", 
-						xgp->progname, 
-						qp->my_target_number, 
-						qp->my_qthread_number);
-				}
-				xdd_ts_reports(qp);  /* generate reports if requested */
-				xdd_ts_write(qp); 
-				xdd_ts_cleanup(qp->ttp); /* call this to free the TS table in memory */
-			}
-			qp = qp->nextp;
-		}
-	} // End of processing TimeStamp reports
 	// Release all the other qthreads so that they can do their cleanup and exit
 	xdd_barrier(&xgp->results_display_final_barrier);
 	return;
@@ -765,8 +734,6 @@ xdd_results_manager(void *n)
 	} // End of main WHILE loop for the results_manager()
 }
 
-/*----------------------------------------------------------------------------*/
-// xdd_results_dump 
 void *
 xdd_results_dump(results_t *rp, char *dumptype)
 {

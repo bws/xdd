@@ -82,10 +82,6 @@ xdd_init_seek_list(ptds_t *p) {
 	int32_t  current_op;  /* Current operation - SO_OP_READ or SO_OP_WRITE */
 	char  state[256];
 	seekhdr_t *sp;   /* pointer to the seek header */
-
-
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"init_seek_list: enter, p=0x%x\n",p);
-
 	/* If a throttle value has been specified, calculate the time that each operation should take */
 	if (p->throttle > 0.0){
 		if (p->throttle_type & PTDS_THROTTLE_BW){
@@ -208,7 +204,6 @@ if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"init_seek_list: enter, 
 	/* Save this seek list to a file if requested to do so */
 	if (sp->seek_options & (SO_SEEK_SAVE | SO_SEEK_SEEKHIST | SO_SEEK_DISTHIST)) 
 		xdd_save_seek_list(p);
-if (xgp->global_options & GO_DEBUG_INIT) fprintf(stderr,"init_seek_list: exit, p=0x%x\n",p);
 } /* end of xdd_init_seek_list() */
 /*----------------------------------------------------------------------------*/
 /* xdd_save_seek_list() - save the specified seek list in a file    

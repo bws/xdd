@@ -82,35 +82,35 @@ int32_t
 xdd_raw_setup_reader_socket(ptds_t *p)
 {
 	/* Create the socket and set some options */
-	if ((p->rawp->raw_sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
+	if ((p->raw_sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
 		xdd_raw_err("error opening socket");
 		return(FALSE);
 	}
     /* Bind the name to the socket */
-	(void) memset(&p->rawp->raw_sname, 0, sizeof(p->rawp->raw_sname));
-	p->rawp->raw_sname.sin_family = AF_INET;
-	p->rawp->raw_sname.sin_addr.s_addr = htonl(p->rawp->raw_addr);
-	p->rawp->raw_sname.sin_port = htons(p->rawp->raw_port);
-	p->rawp->raw_snamelen = sizeof(p->rawp->raw_sname);
-	if (bind(p->rawp->raw_sd, (struct sockaddr *) &p->rawp->raw_sname, p->rawp->raw_snamelen)) {
+	(void) memset(&p->raw_sname, 0, sizeof(p->raw_sname));
+	p->raw_sname.sin_family = AF_INET;
+	p->raw_sname.sin_addr.s_addr = htonl(p->raw_addr);
+	p->raw_sname.sin_port = htons(p->raw_port);
+	p->raw_snamelen = sizeof(p->raw_sname);
+	if (bind(p->raw_sd, (struct sockaddr *) &p->raw_sname, p->raw_snamelen)) {
 		xdd_raw_err("error binding name to socket");
 		return(FALSE);
 	}
 	/* Get and display the name (in case "any" was used) */
-	if (getsockname(p->rawp->raw_sd, (struct sockaddr *) &p->rawp->raw_sname, &p->rawp->raw_snamelen)) {
+	if (getsockname(p->raw_sd, (struct sockaddr *) &p->raw_sname, &p->raw_snamelen)) {
 		xdd_raw_err("error getting socket name");
 		return(FALSE);
 	}
-	p->rawp->raw_addr = ntohl(p->rawp->raw_sname.sin_addr.s_addr);
-	p->rawp->raw_port = ntohs(p->rawp->raw_sname.sin_port);
+	p->raw_addr = ntohl(p->raw_sname.sin_addr.s_addr);
+	p->raw_port = ntohs(p->raw_sname.sin_port);
 	fprintf(stderr,"%s: Reader Hostname is %s\n\tSocket address is 0x%x = %s\n\tPort %d <0x%x>\n", 
 		xgp->progname,
-		p->rawp->raw_myhostname,
-		p->rawp->raw_sname.sin_addr.s_addr, 
-		inet_ntoa(p->rawp->raw_sname.sin_addr),
-		p->rawp->raw_sname.sin_port,p->rawp->raw_port);
+		p->raw_myhostname,
+		p->raw_sname.sin_addr.s_addr, 
+		inet_ntoa(p->raw_sname.sin_addr),
+		p->raw_sname.sin_port,p->raw_port);
 	/* All set; prepare to accept connection requests */
-	if (listen(p->rawp->raw_sd, SOMAXCONN)) {
+	if (listen(p->raw_sd, SOMAXCONN)) {
 		xdd_raw_err("error starting listening on socket");
 		return(FALSE);
 	}
@@ -184,18 +184,18 @@ xdd_raw_reader_init(ptds_t *p) {
 		return(FALSE);
 	}
 	/* Get the name of the machine that we are running on */
-	status = gethostname(p->rawp->raw_myhostname, sizeof(p->rawp->raw_myhostname));
+	status = gethostname(p->raw_myhostname, sizeof(p->raw_myhostname));
 	if (status != 0 ) {
 		xdd_raw_err("could not get hostname");
 		return(FALSE);
 	}
 	/* Get the IP address of this host */
-	p->rawp->raw_hostent = gethostbyname(p->rawp->raw_myhostname);
-	if (! p->rawp->raw_hostent) {
+	p->raw_hostent = gethostbyname(p->raw_myhostname);
+	if (! p->raw_hostent) {
 		xdd_raw_err("unable to identify host");
 		return(FALSE);
 	}
-	p->rawp->raw_addr = ntohl(((struct in_addr *) p->rawp->raw_hostent->h_addr)->s_addr);
+	p->raw_addr = ntohl(((struct in_addr *) p->raw_hostent->h_addr)->s_addr);
 	/* Set up the server sockets */
 	status = xdd_raw_setup_reader_socket(p);
 	if (status == FALSE) {
@@ -203,29 +203,29 @@ xdd_raw_reader_init(ptds_t *p) {
 		return(FALSE);
 	}
 	/* clear out the csd table */
-	for (p->rawp->raw_current_csd = 0; p->rawp->raw_current_csd < FD_SETSIZE; p->rawp->raw_current_csd++)
-		p->rawp->raw_csd[p->rawp->raw_current_csd] = 0;
-	p->rawp->raw_current_csd = p->rawp->raw_next_csd = 0;
+	for (p->raw_current_csd = 0; p->raw_current_csd < FD_SETSIZE; p->raw_current_csd++)
+		p->raw_csd[p->raw_current_csd] = 0;
+	p->raw_current_csd = p->raw_next_csd = 0;
 	/* Initialize the socket sets for select() */
-    FD_ZERO(&p->rawp->raw_readset);
-    FD_SET(p->rawp->raw_sd, &p->rawp->raw_readset);
-	p->rawp->raw_active = p->rawp->raw_readset;
-	p->rawp->raw_current_csd = p->rawp->raw_next_csd = 0;
+    FD_ZERO(&p->raw_readset);
+    FD_SET(p->raw_sd, &p->raw_readset);
+	p->raw_active = p->raw_readset;
+	p->raw_current_csd = p->raw_next_csd = 0;
 	/* Find out how many sockets are in each set (berkely only) */
 #if (IRIX || WIN32 )
-    p->rawp->raw_nd = getdtablehi();
+    p->raw_nd = getdtablehi();
 #endif
 #if (LINUX || OSX)
-    p->rawp->raw_nd = getdtablesize();
+    p->raw_nd = getdtablesize();
 #endif
 #if (AIX)
-	p->rawp->raw_nd = FD_SETSIZE;
+	p->raw_nd = FD_SETSIZE;
 #endif
 #if (SOLARIS )
-	p->rawp->raw_nd = FD_SETSIZE;
+	p->raw_nd = FD_SETSIZE;
 #endif
-	p->rawp->raw_msg_recv = 0;
-	p->rawp->raw_msg_last_sequence = 0;
+	p->raw_msg_recv = 0;
+	p->raw_msg_last_sequence = 0;
 	return(TRUE);
 } /* end of xdd_raw_reader_init() */
 /*----------------------------------------------------------------------*/
@@ -240,9 +240,9 @@ xdd_raw_read_wait(ptds_t *p)
 	int  bytes_received;
 	int  bytes_remaining;
 #if (IRIX || WIN32 )
-	p->rawp->raw_nd = getdtablehi();
+	p->raw_nd = getdtablehi();
 #endif
-	status = select(p->rawp->raw_nd, &p->rawp->raw_readset, NULL, NULL, NULL);
+	status = select(p->raw_nd, &p->raw_readset, NULL, NULL, NULL);
 	/* Handle all the descriptors that are ready */
 	/* There are two type of sockets: the one sd socket and multiple 
 		* client sockets. We first check to see if the sd is in the readset.
@@ -250,17 +250,17 @@ xdd_raw_read_wait(ptds_t *p)
 		* in which case we need to issue an accept to establish the connection
 		* and obtain a new Client Socket Descriptor (csd).
 		*/
-	if (FD_ISSET(p->rawp->raw_sd, &p->rawp->raw_readset)) { /* Process an incoming connection */
-		p->rawp->raw_current_csd = p->rawp->raw_next_csd;
-		p->rawp->raw_csd[p->rawp->raw_current_csd] = accept(p->rawp->raw_sd, NULL, NULL);
-		FD_SET(p->rawp->raw_csd[p->rawp->raw_current_csd], &p->rawp->raw_active); /* Mark this fd as active */
-		FD_SET(p->rawp->raw_csd[p->rawp->raw_current_csd], &p->rawp->raw_readset); /* Put in readset so that it gets processed */
+	if (FD_ISSET(p->raw_sd, &p->raw_readset)) { /* Process an incoming connection */
+		p->raw_current_csd = p->raw_next_csd;
+		p->raw_csd[p->raw_current_csd] = accept(p->raw_sd, NULL, NULL);
+		FD_SET(p->raw_csd[p->raw_current_csd], &p->raw_active); /* Mark this fd as active */
+		FD_SET(p->raw_csd[p->raw_current_csd], &p->raw_readset); /* Put in readset so that it gets processed */
 		/* Find the next available csd close to the beginning of the CSD array */
-		p->rawp->raw_next_csd = 0;
-		while (p->rawp->raw_csd[p->rawp->raw_next_csd] != 0) {
-			p->rawp->raw_next_csd++;
-			if (p->rawp->raw_next_csd == FD_SETSIZE) {
-					p->rawp->raw_next_csd = 0;
+		p->raw_next_csd = 0;
+		while (p->raw_csd[p->raw_next_csd] != 0) {
+			p->raw_next_csd++;
+			if (p->raw_next_csd == FD_SETSIZE) {
+					p->raw_next_csd = 0;
 					fprintf(xgp->errout,"%s: xdd_raw_read_wait: no csd entries left\n",xgp->progname);
 					break;
 			}
@@ -271,8 +271,8 @@ xdd_raw_read_wait(ptds_t *p)
 		* receive the incoming data. The clock is then read from pclk() and the
 		* new clock value is sent back to the client.
 		*/
-	for (p->rawp->raw_current_csd = 0; p->rawp->raw_current_csd < FD_SETSIZE; p->rawp->raw_current_csd++) {
-		if (FD_ISSET(p->rawp->raw_csd[p->rawp->raw_current_csd], &p->rawp->raw_readset)) { /* Process this csd */
+	for (p->raw_current_csd = 0; p->raw_current_csd < FD_SETSIZE; p->raw_current_csd++) {
+		if (FD_ISSET(p->raw_csd[p->raw_current_csd], &p->raw_readset)) { /* Process this csd */
 			/* Receive the writer's current location and length.
 				*
 				* When the writer closes the socket we get a read
@@ -280,22 +280,22 @@ xdd_raw_read_wait(ptds_t *p)
 				* a failed connection and silently clean up.
 				*/
 			bytes_received = 0;
-			while (bytes_received < sizeof(p->rawp->raw_msg)) {
-				bytes_remaining = sizeof(p->rawp->raw_msg) - bytes_received;
-				status = recv(p->rawp->raw_csd[p->rawp->raw_current_csd], (char *) &p->rawp->raw_msg+bytes_received, bytes_remaining, 0);
+			while (bytes_received < sizeof(p->raw_msg)) {
+				bytes_remaining = sizeof(p->raw_msg) - bytes_received;
+				status = recv(p->raw_csd[p->raw_current_csd], (char *) &p->raw_msg+bytes_received, bytes_remaining, 0);
 				if (status < 0) break;
 				bytes_received += status;
 			}
-			p->rawp->raw_msg_recv++;
-			pclk_now(&p->rawp->raw_msg.recvtime);
-			p->rawp->raw_msg.recvtime += xgp->gts_delta;
+			p->raw_msg_recv++;
+			pclk_now(&p->raw_msg.recvtime);
+			p->raw_msg.recvtime += xgp->gts_delta;
 			if (status > 0) status = bytes_received;
-			if (status == sizeof(p->rawp->raw_msg)) { /* Successful receive */
-				if (p->rawp->raw_msg.magic != PTDS_RAW_MAGIC) {
-					fprintf(stderr,"xdd_raw_read_wait: Bad magic number %08x on recv %d\n",p->rawp->raw_msg.magic, p->rawp->raw_msg_recv);
+			if (status == sizeof(p->raw_msg)) { /* Successful receive */
+				if (p->raw_msg.magic != PTDS_RAW_MAGIC) {
+					fprintf(stderr,"xdd_raw_read_wait: Bad magic number %08x on recv %d\n",p->raw_msg.magic, p->raw_msg_recv);
 				}
-				if (p->rawp->raw_msg.recvtime < p->rawp->raw_msg.sendtime) {
-					fprintf(stderr,"xdd_raw_read_wait: msg %d recv time before send time by %llu picoseconds\n",p->rawp->raw_msg.sequence,p->rawp->raw_msg.sendtime-p->rawp->raw_msg.recvtime);
+				if (p->raw_msg.recvtime < p->raw_msg.sendtime) {
+					fprintf(stderr,"xdd_raw_read_wait: msg %d recv time before send time by %llu picoseconds\n",p->raw_msg.sequence,p->raw_msg.sendtime-p->raw_msg.recvtime);
 				}
 				return(TRUE);
 			} /* end of successful recv processing */
@@ -303,15 +303,15 @@ xdd_raw_read_wait(ptds_t *p)
 				/* At this point, a recv returned an error in which case the connection
 					* was most likely closed and we need to clear out this csd */
 				/*"Deactivate" the socket. */
-				FD_CLR(p->rawp->raw_csd[p->rawp->raw_current_csd], &p->rawp->raw_active);
-				(void) closesocket(p->rawp->raw_csd[p->rawp->raw_current_csd]);
-				p->rawp->raw_csd[p->rawp->raw_current_csd] = 0;
+				FD_CLR(p->raw_csd[p->raw_current_csd], &p->raw_active);
+				(void) closesocket(p->raw_csd[p->raw_current_csd]);
+				p->raw_csd[p->raw_current_csd] = 0;
 				return(FALSE);
 				/* indicate that the writer is done and the reader should finish too */
 			}
 		} /* End of IF stmnt that processes a CSD */
 	} /* End of FOR loop that processes all CSDs that were ready */
-	p->rawp->raw_readset = p->rawp->raw_active;  /* Prepare for the next select */
+	p->raw_readset = p->raw_active;  /* Prepare for the next select */
     return(TRUE);
 } /* end of xdd_raw_read_wait() */
 /*----------------------------------------------------------------------*/
@@ -325,23 +325,23 @@ xdd_raw_setup_writer_socket(ptds_t *p)
 	int  status; /* status of send/recv function calls */
 	char  optionvalue; /* used to set the socket option */
     /* Create the socket and set some options */    
-	p->rawp->raw_sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-	if (p->rawp->raw_sd < 0) {
+	p->raw_sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (p->raw_sd < 0) {
 		xdd_raw_err("error opening socket for RAW writer");
 		return(FALSE);
 	}
     /* Set the TCP_NODELAY option so that packets get sent instantly */
 	optionvalue = 1;
-	status = setsockopt(p->rawp->raw_sd, IPPROTO_TCP, TCP_NODELAY, &optionvalue, sizeof(optionvalue));
+	status = setsockopt(p->raw_sd, IPPROTO_TCP, TCP_NODELAY, &optionvalue, sizeof(optionvalue));
 	if (status != 0) {
 		xdd_raw_err("error setting TCP_NODELAY for RAW writer");
 	}
     /* Now build the "name" of the server and connect to it. */
-    (void) memset(&p->rawp->raw_sname, 0, sizeof(p->rawp->raw_sname));
-    p->rawp->raw_sname.sin_family = AF_INET;
-    p->rawp->raw_sname.sin_addr.s_addr = htonl(p->rawp->raw_addr);
-    p->rawp->raw_sname.sin_port = htons(p->rawp->raw_port);
-	status = connect(p->rawp->raw_sd, (struct sockaddr *) &p->rawp->raw_sname, sizeof(p->rawp->raw_sname));
+    (void) memset(&p->raw_sname, 0, sizeof(p->raw_sname));
+    p->raw_sname.sin_family = AF_INET;
+    p->raw_sname.sin_addr.s_addr = htonl(p->raw_addr);
+    p->raw_sname.sin_port = htons(p->raw_port);
+	status = connect(p->raw_sd, (struct sockaddr *) &p->raw_sname, sizeof(p->raw_sname));
     if (status) {
 		xdd_raw_err("error connecting to socket for RAW writer");
 		return(FALSE);
@@ -365,20 +365,20 @@ xdd_raw_writer_init(ptds_t *p) {
 		return(FALSE);
 	}
 	/* Get the IP address of the reader host */
-	p->rawp->raw_hostent = gethostbyname(p->rawp->raw_hostname);
-	if (! p->rawp->raw_hostent) {
+	p->raw_hostent = gethostbyname(p->raw_hostname);
+	if (! p->raw_hostent) {
 		xdd_raw_err("unable to identify the reader host");
 		return(FALSE);
 	}
-	p->rawp->raw_addr = ntohl(((struct in_addr *) p->rawp->raw_hostent->h_addr)->s_addr);
+	p->raw_addr = ntohl(((struct in_addr *) p->raw_hostent->h_addr)->s_addr);
 	/* Set up the server sockets */
 	status = xdd_raw_setup_writer_socket(p);
 	if (status == FALSE){
 		xdd_raw_err("couldn't setup sockets for RAW writer");
 		return(FALSE);
 	}
-	p->rawp->raw_msg_sent = 0;
-	p->rawp->raw_msg_last_sequence = 0;
+	p->raw_msg_sent = 0;
+	p->raw_msg_last_sequence = 0;
 	return(TRUE);
 } /* end of xdd_raw_writer_init() */
 /*----------------------------------------------------------------------*/
@@ -389,15 +389,15 @@ xdd_raw_writer_init(ptds_t *p) {
 int32_t
 xdd_raw_writer_send_msg(ptds_t *p) {
 	int  status; /* status of various function calls */
-	pclk_now(&p->rawp->raw_msg.sendtime);
-	p->rawp->raw_msg.sendtime += xgp->gts_delta;
-	status = send(p->rawp->raw_sd, (char *) &p->rawp->raw_msg, sizeof(p->rawp->raw_msg),0);
-	if (status != sizeof(p->rawp->raw_msg)) {
+	pclk_now(&p->raw_msg.sendtime);
+	p->raw_msg.sendtime += xgp->gts_delta;
+	status = send(p->raw_sd, (char *) &p->raw_msg, sizeof(p->raw_msg),0);
+	if (status != sizeof(p->raw_msg)) {
 		xdd_raw_err("could not send message from RAW writer");
 		return(FALSE);
 	}
-	p->rawp->raw_msg_sent++;
-	p->rawp->raw_msg.sequence++;
+	p->raw_msg_sent++;
+	p->raw_msg.sequence++;
 	return(TRUE);
 } /* end of xdd_raw_writer_send_msg() */
  

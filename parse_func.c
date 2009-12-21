@@ -233,30 +233,6 @@ xddfunc_csvout(int32_t argc, char *argv[], uint32_t flags)
 	}
     return(2);
 } // End of xddfunc_csvout()
-
-/*----------------------------------------------------------------------------*/
-// xdd_get_data_pattern_pointer() - This is a helper function for the
-//     xddfunc_datapattern() parsing function. 
-//     This function checks to see if there is a valid pointer to the data_pattern
-//     information structure in the specified PTDS. If there is no pointer then
-//     this function will allocate memory for the data_pattern structure and 
-//     set the "ddp" member of the specified PTDS accordingly. 
-//     If for some strange reason the malloc() fails this routine will return 0.
-// Arguments: Pointer to a PTDS
-// Return value: This function normally returns a valid data_pattern pointer as well. 
-// 
-data_pattern_t *
-xdd_get_data_pattern_pointer(ptds_t *p)
-{
-	if (p->dpp == NULL) { // Allocate a new data pattern struct for this target PTDS
-		p->dpp = (data_pattern_t *)malloc(sizeof(data_pattern_t));
-		if (p->dpp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate memory for the data_pattern PTDS structure.\n",xgp->progname);
-			return(0);
-		}
-	}
-	return(p->dpp);
-} 
 /*----------------------------------------------------------------------------*/
 // Specify the starting offset into the device in blocks between passes
 // Arguments: -datapattern [target #] # <option> 
@@ -315,20 +291,18 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		pattern = (unsigned char *)argv[args+2];
 		pattern_length = strlen((char *)pattern);
 		if (p) { /* set option for specific target */
-			xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 			p->target_options |= TO_ASCII_PATTERN;
-			p->dpp->data_pattern = (unsigned char *)argv[args+2];
-			p->dpp->data_pattern_length = strlen((char *)p->dpp->data_pattern);
+			p->data_pattern = (unsigned char *)argv[args+2];
+			p->data_pattern_length = strlen((char *)p->data_pattern);
 		}
 		else  {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) { 
-					xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 					p->target_options |= TO_ASCII_PATTERN;
-					p->dpp->data_pattern = pattern;
-					p->dpp->data_pattern_length = pattern_length;
+					p->data_pattern = pattern;
+					p->data_pattern_length = pattern_length;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -368,20 +342,18 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		} else pattern_length = 0;
 
 		if (p) { /* set option for specific target */
-			xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 			p->target_options |= TO_HEX_PATTERN;
-			p->dpp->data_pattern = pattern_value; // The actual 64-bit value left-justtified
-			p->dpp->data_pattern_length = pattern_length; // length in nibbles 
+			p->data_pattern = pattern_value; // The actual 64-bit value left-justtified
+			p->data_pattern_length = pattern_length; // length in nibbles 
 		}
 		else  {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) { 
-					xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 					p->target_options |= TO_HEX_PATTERN;
-					p->dpp->data_pattern = pattern_value; // The actual 64-bit value right-justtified
-					p->dpp->data_pattern_length = pattern_length; // length in bytes
+					p->data_pattern = pattern_value; // The actual 64-bit value right-justtified
+					p->data_pattern_length = pattern_length; // length in bytes
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -435,23 +407,21 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 			pattern_binary <<= ((sizeof(uint64_t)*8)-(pattern_length*2));
 		}
 		if (p) { /* set option for specific target */
-			xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 			p->target_options |= TO_PATTERN_PREFIX;
-			p->dpp->data_pattern_prefix = pattern;
-			p->dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
-			p->dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
-			p->dpp->data_pattern_prefix_length = pattern_length; // Length in nibbles
+			p->data_pattern_prefix = pattern;
+			p->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
+			p->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
+			p->data_pattern_prefix_length = pattern_length; // Length in nibbles
 		} else  {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) { 
-					xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 					p->target_options |= TO_PATTERN_PREFIX;
-					p->dpp->data_pattern_prefix = pattern;
-					p->dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
-					p->dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
-					p->dpp->data_pattern_prefix_length = pattern_length; // Length in nibbles
+					p->data_pattern_prefix = pattern;
+					p->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
+					p->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
+					p->data_pattern_prefix_length = pattern_length; // Length in nibbles
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -464,17 +434,15 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 			return(0);
 		}
 		if (p) {/* set option for specific target */
-			xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 			p->target_options |= TO_FILE_PATTERN;
-			p->dpp->data_pattern_filename = (char *)argv[args+2];
+			p->data_pattern_filename = (char *)argv[args+2];
 		} else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 					p->target_options |= TO_FILE_PATTERN;
-					p->dpp->data_pattern_filename = (char *)argv[args+2];
+					p->data_pattern_filename = (char *)argv[args+2];
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -594,17 +562,15 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else {
 		if (p) { /* set option for a specific target */ 
-			xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 			p->target_options |= TO_SINGLECHAR_PATTERN;
-			p->dpp->data_pattern = (unsigned char *)pattern_type;
+			p->data_pattern = (unsigned char *)pattern_type;
 		} else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_data_pattern_pointer(p); // make sure p->dpp exists
 					p->target_options |= TO_SINGLECHAR_PATTERN;
-					p->dpp->data_pattern = (unsigned char *)pattern_type;
+					p->data_pattern = (unsigned char *)pattern_type;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -619,7 +585,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_debug(int32_t argc, char *argv[], uint32_t flags)
 {
-		xgp->global_options |= (GO_DEBUG | GO_DEBUG_INIT);
+	xgp->global_options |= GO_DEBUG;
 	return(1);
 } // End of xddfunc_debug()
 
@@ -734,29 +700,6 @@ xddfunc_dio(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
-// xdd_get_e2e_pointer() - This is a helper function for the
-//     xddfunc_endtoend() parsing function. 
-//     This function checks to see if there is a valid pointer to the e2e
-//     information structure in the specified PTDS. If there is no pointer then
-//     this function will allocate memory for the  e2e structure and 
-//     set the "e2ep" member of the specified PTDS accordingly. 
-//     If for some strange reason the malloc() fails this routine will return 0.
-// Arguments: Pointer to a PTDS
-// Return value: This function normally returns a valid e2e pointer as well. 
-// 
-e2e_t *
-xdd_get_e2e_pointer(ptds_t *p)
-{
-	if (p->e2ep == NULL) { // Allocate a new data pattern struct for this target PTDS
-		p->e2ep = (e2e_t *)malloc(sizeof(e2e_t));
-		if (p->e2ep == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate memory for the EndToEnd PTDS structure.\n",xgp->progname);
-			return(0);
-		}
-	}
-	return(p->e2ep);
-} 
-/*----------------------------------------------------------------------------*/
 // Specify the end-to-end options for either the source or the destination
 // Arguments: -endtoend [target #] 
 //				destination <hostname> 
@@ -793,8 +736,6 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 			return(0);
 		}
 	}
-
-	// Check to see if the e2e struct is present in the PTDS and if not, allocate one
 	/* At this point "args_index" indexes to the -e2e "option" argument */
 	if ((strcmp(argv[args_index], "destination") == 0) ||
 	    (strcmp(argv[args_index], "dest") == 0) ||
@@ -804,17 +745,15 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
 			if (p == NULL) return(-1);
-			xdd_get_e2e_pointer(p);
 			p->target_options |= TO_ENDTOEND;
-			p->e2ep->e2e_dest_hostname = argv[args_index];
+			p->e2e_dest_hostname = argv[args_index];
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_e2e_pointer(p);
 					p->target_options |= TO_ENDTOEND;
-					p->e2ep->e2e_dest_hostname = argv[args_index];
+					p->e2e_dest_hostname = argv[args_index];
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -871,19 +810,17 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
 			if (p == NULL) return(-1);
-			xdd_get_e2e_pointer(p);
 			p->target_options |= TO_ENDTOEND;
-			p->e2ep->e2e_dest_base_port = atoi(argv[args_index]);
-			p->e2ep->e2e_dest_port = p->e2ep->e2e_dest_base_port;
+			p->e2e_dest_base_port = atoi(argv[args_index]);
+			p->e2e_dest_port = p->e2e_dest_base_port;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_e2e_pointer(p);
 					p->target_options |= TO_ENDTOEND;
-					p->e2ep->e2e_dest_base_port = atoi(argv[args_index]);
-					p->e2ep->e2e_dest_port = p->e2ep->e2e_dest_base_port;
+					p->e2e_dest_base_port = atoi(argv[args_index]);
+					p->e2e_dest_port = p->e2e_dest_base_port;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -895,17 +832,15 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
 			if (p == NULL) return(-1);
-			xdd_get_e2e_pointer(p);
 			p->target_options |= TO_ENDTOEND;
-			p->e2ep->e2e_useUDP = 1;
+			p->e2e_useUDP = 1;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_e2e_pointer(p);
 					p->target_options |= TO_ENDTOEND;
-					p->e2ep->e2e_useUDP = 1;
+					p->e2e_useUDP = 1;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -1127,29 +1062,6 @@ xddfunc_kbytes(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
-// xdd_get_lockstep_pointer() - This is a helper function for the
-//     xddfunc_lockstep() parsing function. 
-//     This function checks to see if there is a valid pointer to the lockstep
-//     information structure in the specified PTDS. If there is no pointer then
-//     this function will allocate memory for the  lockstep structure and 
-//     set the "lsp" member of the specified PTDS accordingly. 
-//     If for some strange reason the malloc() fails this routine will return 0.
-// Arguments: Pointer to a PTDS
-// Return value: This function normally returns a valid lockstep pointer as well. 
-// 
-lockstep_t *
-xdd_get_lockstep_pointer(ptds_t *p)
-{
-	if (p->lsp == NULL) { // Allocate a new data pattern struct for this target PTDS
-		p->lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (p->lsp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate memory for the EndToEnd PTDS structure.\n",xgp->progname);
-			return(0);
-		}
-	}
-	return(p->lsp);
-} 
-/*----------------------------------------------------------------------------*/
 /*  -lockstep
 	-ls
 	-lockstepoverlapped
@@ -1226,40 +1138,37 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 	/* Both the master and the slave must know that they are in lockstep. */
 	masterp->target_options |= lsmode;
 	slavep->target_options |= lsmode; 
-
-	xdd_get_lockstep_pointer(masterp);
-	xdd_get_lockstep_pointer(slavep);
-	masterp->lsp->ls_slave = st; /* The master has to know the number of the slave target */
-	slavep->lsp->ls_master = mt; /* The slave has to know the target number of its master */
+	masterp->ls_slave = st; /* The master has to know the number of the slave target */
+	slavep->ls_master = mt; /* The slave has to know the target number of its master */
 	when = argv[3];
 
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		masterp->lsp->ls_interval_type = LS_INTERVAL_TIME;
-		masterp->lsp->ls_interval_units = "SECONDS";
-		masterp->lsp->ls_interval_value = (pclk_t)(tmpf * TRILLION);
-		if (masterp->lsp->ls_interval_value <= 0.0) {
+		masterp->ls_interval_type = LS_INTERVAL_TIME;
+		masterp->ls_interval_units = "SECONDS";
+		masterp->ls_interval_value = (pclk_t)(tmpf * TRILLION);
+		if (masterp->ls_interval_value <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep interval time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
             return(0);
 		};
 		retval = 5;
 	} else if (strcmp(when,"op") == 0){ /* get the number of operations to wait before triggering the other target */
-		masterp->lsp->ls_interval_value = atoll(argv[4]);
-		masterp->lsp->ls_interval_type = LS_INTERVAL_OP;
-		masterp->lsp->ls_interval_units = "OPERATIONS";
-		if (masterp->lsp->ls_interval_value <= 0) {
+		masterp->ls_interval_value = atoll(argv[4]);
+		masterp->ls_interval_type = LS_INTERVAL_OP;
+		masterp->ls_interval_units = "OPERATIONS";
+		if (masterp->ls_interval_value <= 0) {
 			fprintf(stderr,"%s: Invalid lockstep interval op: %lld. This value must be greater than 0\n",
 				xgp->progname, 
-				(long long)masterp->lsp->ls_interval_value);
+				(long long)masterp->ls_interval_value);
             return(0);
 		}
 		retval = 5;  
 	} else if (strcmp(when,"percent") == 0){ /* get the percentage of operations to wait before triggering the other target */
-		masterp->lsp->ls_interval_value = (uint64_t)(atof(argv[4]) / 100.0);
-		masterp->lsp->ls_interval_type = LS_INTERVAL_PERCENT;
-		masterp->lsp->ls_interval_units = "PERCENT";
-		if ((masterp->lsp->ls_interval_value < 0.0) || (masterp->lsp->ls_interval_value > 1.0)) {
+		masterp->ls_interval_value = (uint64_t)(atof(argv[4]) / 100.0);
+		masterp->ls_interval_type = LS_INTERVAL_PERCENT;
+		masterp->ls_interval_units = "PERCENT";
+		if ((masterp->ls_interval_value < 0.0) || (masterp->ls_interval_value > 1.0)) {
 			fprintf(stderr,"%s: Invalid lockstep interval percent: %f. This value must be between 0.0 and 100.0\n",
 				xgp->progname, atof(argv[4]) );
             return(0);
@@ -1267,9 +1176,9 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 		retval = 5;    
 	} else if (strcmp(when,"mbytes") == 0){ /* get the number of megabytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		masterp->lsp->ls_interval_value = (uint64_t)(tmpf * 1024*1024);
-		masterp->lsp->ls_interval_type = LS_INTERVAL_BYTES;
-		masterp->lsp->ls_interval_units = "BYTES";
+		masterp->ls_interval_value = (uint64_t)(tmpf * 1024*1024);
+		masterp->ls_interval_type = LS_INTERVAL_BYTES;
+		masterp->ls_interval_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep interval mbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1278,9 +1187,9 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 		retval = 5;    
 	} else if (strcmp(when,"kbytes") == 0){ /* get the number of kilobytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		masterp->lsp->ls_interval_value = (uint64_t)(tmpf * 1024);
-		masterp->lsp->ls_interval_type = LS_INTERVAL_BYTES;
-		masterp->lsp->ls_interval_units = "BYTES";
+		masterp->ls_interval_value = (uint64_t)(tmpf * 1024);
+		masterp->ls_interval_type = LS_INTERVAL_BYTES;
+		masterp->ls_interval_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep interval kbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1296,31 +1205,31 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 	what = argv[5];
 	if (strcmp(what,"time") == 0){ /* get the number of seconds to run a task */
 		tmpf = atof(argv[6]);
-		slavep->lsp->ls_task_type = LS_TASK_TIME;
-		slavep->lsp->ls_task_units = "SECONDS";
-		slavep->lsp->ls_task_value = (pclk_t)(tmpf * TRILLION);
-		if (slavep->lsp->ls_task_value <= 0.0) {
+		slavep->ls_task_type = LS_TASK_TIME;
+		slavep->ls_task_units = "SECONDS";
+		slavep->ls_task_value = (pclk_t)(tmpf * TRILLION);
+		if (slavep->ls_task_value <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
             return(0);
 		};
 		retval += 2;
 	} else if (strcmp(what,"op") == 0){ /* get the number of operations to execute per task */
-		slavep->lsp->ls_task_value = atoll(argv[6]);
-		slavep->lsp->ls_task_type = LS_TASK_OP;
-		slavep->lsp->ls_task_units = "OPERATIONS";
-		if (slavep->lsp->ls_task_value <= 0) {
+		slavep->ls_task_value = atoll(argv[6]);
+		slavep->ls_task_type = LS_TASK_OP;
+		slavep->ls_task_units = "OPERATIONS";
+		if (slavep->ls_task_value <= 0) {
 			fprintf(stderr,"%s: Invalid lockstep task op: %lld. This value must be greater than 0\n",
 				xgp->progname, 
-				(long long)slavep->lsp->ls_task_value);
+				(long long)slavep->ls_task_value);
             return(0);
 		}
 		retval += 2;       
 	} else if (strcmp(what,"mbytes") == 0){ /* get the number of megabytes to transfer per task */
 		tmpf = atof(argv[6]);
-		slavep->lsp->ls_task_value = (uint64_t)(tmpf * 1024*1024);
-		slavep->lsp->ls_task_type = LS_TASK_BYTES;
-		slavep->lsp->ls_task_units = "BYTES";
+		slavep->ls_task_value = (uint64_t)(tmpf * 1024*1024);
+		slavep->ls_task_type = LS_TASK_BYTES;
+		slavep->ls_task_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task mbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1329,9 +1238,9 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 		retval += 2;     
 	} else if (strcmp(what,"kbytes") == 0){ /* get the number of kilobytes to transfer per task */
 		tmpf = atof(argv[6]);
-		slavep->lsp->ls_task_value = (uint64_t)(tmpf * 1024);
-		slavep->lsp->ls_task_type = LS_TASK_BYTES;
-		slavep->lsp->ls_task_units = "BYTES";
+		slavep->ls_task_value = (uint64_t)(tmpf * 1024);
+		slavep->ls_task_type = LS_TASK_BYTES;
+		slavep->ls_task_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task kbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1345,20 +1254,20 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 	}
 	lockstep_startup = argv[7];  
 	if (strcmp(lockstep_startup,"run") == 0) { /* have the slave start running immediately */
-		slavep->lsp->ls_ms_state |= LS_SLAVE_RUN_IMMEDIATELY;
-		slavep->lsp->ls_ms_state &= ~LS_SLAVE_WAITING;
-		slavep->lsp->ls_task_counter = 1;
+		slavep->ls_ms_state |= LS_SLAVE_RUN_IMMEDIATELY;
+		slavep->ls_ms_state &= ~LS_SLAVE_WAITING;
+		slavep->ls_task_counter = 1;
 	} else { /* Have the slave wait for the master to tell it to run */
-		slavep->lsp->ls_ms_state &= ~LS_SLAVE_RUN_IMMEDIATELY;
-		slavep->lsp->ls_ms_state |= LS_SLAVE_WAITING;
-		slavep->lsp->ls_task_counter = 0;
+		slavep->ls_ms_state &= ~LS_SLAVE_RUN_IMMEDIATELY;
+		slavep->ls_ms_state |= LS_SLAVE_WAITING;
+		slavep->ls_task_counter = 0;
 	}
     retval++;
 	lockstep_completion = argv[8];
 	if (strcmp(lockstep_completion,"complete") == 0) { /* Have slave complete all operations if master finishes first */
-		slavep->lsp->ls_ms_state |= LS_SLAVE_COMPLETE;
+		slavep->ls_ms_state |= LS_SLAVE_COMPLETE;
 	} else if (strcmp(lockstep_completion,"stop") == 0){ /* Have slave stop when master stops */
-		slavep->lsp->ls_ms_state |= LS_SLAVE_STOP;
+		slavep->ls_ms_state |= LS_SLAVE_STOP;
 	} else {
 		fprintf(stderr,"%s: Invalid lockstep slave completion directive: %s. This value must be either 'complete' or 'stop'\n",
 				xgp->progname,lockstep_completion);
@@ -2063,29 +1972,6 @@ xddfunc_randomize(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
-// xdd_get_raw_pointer() - This is a helper function for the
-//     xddfunc_readafterwrite() parsing function. 
-//     This function checks to see if there is a valid pointer to the raw
-//     information structure in the specified PTDS. If there is no pointer then
-//     this function will allocate memory for the  raw structure and 
-//     set the "rawp" member of the specified PTDS accordingly. 
-//     If for some strange reason the malloc() fails this routine will return 0.
-// Arguments: Pointer to a PTDS
-// Return value: This function normally returns a valid raw pointer as well. 
-// 
-raw_t *
-xdd_get_raw_pointer(ptds_t *p)
-{
-	if (p->rawp == NULL) { // Allocate a new data pattern struct for this target PTDS
-		p->rawp = (raw_t *)malloc(sizeof(raw_t));
-		if (p->rawp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate memory for the EndToEnd PTDS structure.\n",xgp->progname);
-			return(0);
-		}
-	}
-	return(p->rawp);
-} 
-/*----------------------------------------------------------------------------*/
 // Specify the read-after-write options for either the reader or the writer
 // Arguments: -readafterwrite [target #] option_name value
 // Valid options are trigger [stat | mp]
@@ -2132,13 +2018,11 @@ xddfunc_readafterwrite(int32_t argc, char *argv[], uint32_t flags)
 		} else {  /* set option for specific target */
 			p = xdd_get_ptdsp(target_number, argv[0]);
 			if (p == NULL) return(-1);
-
-			xdd_get_raw_pointer(p); // Make sure there is a valid p->rawp pointer
 			p->target_options |= TO_READAFTERWRITE;
 			if (strcmp(argv[i+1], "stat") == 0)
-					p->rawp->raw_trigger |= PTDS_RAW_STAT;
+					p->raw_trigger |= PTDS_RAW_STAT;
 				else if (strcmp(argv[i+1], "mp") == 0)
-					p->rawp->raw_trigger |= PTDS_RAW_MP;
+					p->raw_trigger |= PTDS_RAW_MP;
 				else {
 					fprintf(stderr,"%s: Invalid trigger type specified for read-after-write option: %s\n",
 						xgp->progname, argv[i+1]);
@@ -2149,37 +2033,34 @@ xddfunc_readafterwrite(int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[i], "lag") == 0) { /* set the lag block count */
 		if (target_number < 0) {
 			for (target_number=0; target_number<MAX_TARGETS; target_number++) {  /* set option for all targets */
+//				xgp->global_ptds.target_options |= TO_READAFTERWRITE;
+//				xgp->global_ptds.raw_lag = atoi(argv[i+1]);
 			}
 		} else {  /* set option for specific target */
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_raw_pointer(p); // Make sure there is a valid p->rawp pointer
 			p->target_options |= TO_READAFTERWRITE;
-			p->rawp->raw_lag = atoi(argv[i+1]);
+			p->raw_lag = atoi(argv[i+1]);
 		}
         return(i+2);
 	} else if (strcmp(argv[i], "reader") == 0) { /* hostname of the reader for this read-after-write */
 		/* This assumes that these targets are all writers and need to know who the reader is */
 		if (target_number < 0) {
+//			xgp->global_ptds.target_options |= TO_READAFTERWRITE;
+//			xgp->global_ptds.raw_hostname = argv[i+1];
 		} else {  /* set option for specific target */
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_raw_pointer(p); // Make sure there is a valid p->rawp pointer
 			p->target_options |= TO_READAFTERWRITE;
-			p->rawp->raw_hostname = argv[i+1];
+			p->raw_hostname = argv[i+1];
 		}
         return(i+2);
 	} else if (strcmp(argv[i], "port") == 0) { /* set the port number for the socket used by the writer */
 		if (target_number < 0) {
+//			xgp->global_ptds.target_options |= TO_READAFTERWRITE;
+//			xgp->global_ptds.raw_port = atoi(argv[i+1]);
 		} else {  /* set option for specific target */
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_raw_pointer(p); // Make sure there is a valid p->rawp pointer
 			p->target_options |= TO_READAFTERWRITE;
-			p->rawp->raw_port = atoi(argv[i+1]);
+			p->raw_port = atoi(argv[i+1]);
 		}
         return(i+2);
 	} else {
@@ -2936,29 +2817,6 @@ xddfunc_starttime(int32_t argc, char *argv[], uint32_t flags)
     return(2);
 }
 /*----------------------------------------------------------------------------*/
-// xdd_get_trigger_pointer() - This is a helper function for the
-//     xddfunc_starttrigger() and xddfunc_stoptrigger parsing functions.
-//     This function checks to see if there is a valid pointer to the trigger
-//     information structure in the specified PTDS. If there is no pointer then
-//     this function will allocate memory for the  trigger structure and 
-//     set the "tgp" member of the specified PTDS accordingly. 
-//     If for some strange reason the malloc() fails this routine will return 0.
-// Arguments: Pointer to a PTDS
-// Return value: This function normally returns a valid trigger pointer as well. 
-// 
-trigger_t *
-xdd_get_trigger_pointer(ptds_t *p)
-{
-	if (p->tgp == NULL) { // Allocate a new data pattern struct for this target PTDS
-		p->tgp = (trigger_t *)malloc(sizeof(trigger_t));
-		if (p->tgp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate memory for the EndToEnd PTDS structure.\n",xgp->progname);
-			return(0);
-		}
-	}
-	return(p->tgp);
-} 
-/*----------------------------------------------------------------------------*/
 /* The Trigger options all fillow the same format:  
 *                -xxxtrigger <target1> <target2> <when #>
                     0           1          2       3   4 
@@ -3003,62 +2861,59 @@ xddfunc_starttrigger(int32_t argc, char *argv[], uint32_t flags)
 	p2 = xdd_get_ptdsp(t2, argv[0]);
 	if (p2 == NULL) return(-1); 
 	  
-	// Make sure the PTDS for p1 and p2 have valid trigger structure pointers
-	xdd_get_trigger_pointer(p1);
-	xdd_get_trigger_pointer(p2);
-	p1->tgp->start_trigger_target = t2; /* The target that does the triggering has to 
+	p1->start_trigger_target = t2; /* The target that does the triggering has to 
 									* know the target number to trigger */
 	p2->target_options |= TO_WAITFORSTART; /* The target that will be triggered has to know to wait */
 	when = argv[3];
 
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->tgp->start_trigger_time = (pclk_t)(tmpf * TRILLION);
-		if (p1->tgp->start_trigger_time <= 0.0) {
+		p1->start_trigger_time = (pclk_t)(tmpf * TRILLION);
+		if (p1->start_trigger_time <= 0.0) {
 			fprintf(stderr,"%s: Invalid starttrigger time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
 			return(0);
 		}
-		p1->tgp->trigger_types |= TRIGGER_STARTTIME;
+		p1->trigger_types |= TRIGGER_STARTTIME;
         return(5);
 	} else if (strcmp(when,"op") == 0){ /* get the number of operations to wait before triggering the other target */
-		p1->tgp->start_trigger_op = atoll(argv[4]);
-		if (p1->tgp->start_trigger_op <= 0) {
+		p1->start_trigger_op = atoll(argv[4]);
+		if (p1->start_trigger_op <= 0) {
 			fprintf(stderr,"%s: Invalid starttrigger op: %lld. This value must be greater than 0\n",
 				xgp->progname, 
-				(long long)p1->tgp->start_trigger_op);
+				(long long)p1->start_trigger_op);
 			return(0);
 		}
-		p1->tgp->trigger_types |= TRIGGER_STARTOP;
+		p1->trigger_types |= TRIGGER_STARTOP;
 		return(5);    
 	} else if (strcmp(when,"percent") == 0){ /* get the percentage of operations to wait before triggering the other target */
-		p1->tgp->start_trigger_percent = (atof(argv[4]) / 100.0);
-		if ((p1->tgp->start_trigger_percent < 0.0) || (p1->tgp->start_trigger_percent > 1.0)) {
+		p1->start_trigger_percent = (atof(argv[4]) / 100.0);
+		if ((p1->start_trigger_percent < 0.0) || (p1->start_trigger_percent > 1.0)) {
 			fprintf(stderr,"%s: Invalid starttrigger percent: %f. This value must be between 0.0 and 100.0\n",
-				xgp->progname, p1->tgp->start_trigger_percent * 100.0 );
+				xgp->progname, p1->start_trigger_percent * 100.0 );
 			return(0);
 		}
-		p1->tgp->trigger_types |= TRIGGER_STARTPERCENT;
+		p1->trigger_types |= TRIGGER_STARTPERCENT;
 		return(5);    
 	} else if (strcmp(when,"mbytes") == 0){ /* get the number of megabytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->tgp->start_trigger_bytes = (uint64_t)(tmpf * 1024*1024);
+		p1->start_trigger_bytes = (uint64_t)(tmpf * 1024*1024);
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid starttrigger mbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
             return(0);
 		}
-		p1->tgp->trigger_types |= TRIGGER_STARTBYTES;
+		p1->trigger_types |= TRIGGER_STARTBYTES;
 		return(5);    
 	} else if (strcmp(when,"kbytes") == 0){ /* get the number of kilobytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->tgp->start_trigger_bytes = (uint64_t)(tmpf * 1024);
+		p1->start_trigger_bytes = (uint64_t)(tmpf * 1024);
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid starttrigger kbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
             return(0);
 		}
-		p1->tgp->trigger_types |= TRIGGER_STARTBYTES;
+		p1->trigger_types |= TRIGGER_STARTBYTES;
 		return(5);    
 	} else {
 		fprintf(stderr,"%s: Invalid starttrigger qualifer: %s\n",
@@ -3096,28 +2951,26 @@ xddfunc_stoptrigger(int32_t argc, char *argv[], uint32_t flags)
 
 	p1 = xdd_get_ptdsp(t1, argv[0]);  
 	if (p1 == NULL) return(-1);
-	// Make sure the PTDS for p1 has a valid trigger structure pointer
-	xdd_get_trigger_pointer(p1);
 
-	p1->tgp->stop_trigger_target = t2; /* The target that does the triggering has to 
+	p1->stop_trigger_target = t2; /* The target that does the triggering has to 
 									* know the target number to trigger */
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->tgp->stop_trigger_time = (pclk_t)(tmpf * TRILLION);
+		p1->stop_trigger_time = (pclk_t)(tmpf * TRILLION);
         return(5);
 	} else if (strcmp(when,"op") == 0){ /* get the number of operations to wait before triggering the other target */
-		p1->tgp->stop_trigger_op = atoll(argv[4]);
+		p1->stop_trigger_op = atoll(argv[4]);
         return(5);
 	} else if (strcmp(when,"percent") == 0){ /* get the percentage of operations to wait before triggering the other target */
-		p1->tgp->stop_trigger_percent = atof(argv[4]);
+		p1->stop_trigger_percent = atof(argv[4]);
         return(5);
 	} else if (strcmp(when,"mbytes") == 0){ /* get the number of megabytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->tgp->stop_trigger_bytes = (uint64_t)(tmpf * 1024*1024);
+		p1->stop_trigger_bytes = (uint64_t)(tmpf * 1024*1024);
         return(5);
 	} else if (strcmp(when,"kbytes") == 0){ /* get the number of kilobytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->tgp->stop_trigger_bytes = (uint64_t)(tmpf * 1024);
+		p1->stop_trigger_bytes = (uint64_t)(tmpf * 1024);
         return(5);
 	} else {
 		fprintf(stderr,"%s: Invalid %s qualifer: %s\n",
@@ -3516,29 +3369,6 @@ xddfunc_timeserver(int32_t argc, char *argv[], uint32_t flags)
 
 }
 /*----------------------------------------------------------------------------*/
-// xdd_get_timestamp_pointer() - This is a helper function for the
-//     xddfunc_timestamp() parsing function. 
-//     This function checks to see if there is a valid pointer to the timestamp
-//     information structure in the specified PTDS. If there is no pointer then
-//     this function will allocate memory for the  timestamp structure and 
-//     set the "tsp" member of the specified PTDS accordingly. 
-//     If for some strange reason the malloc() fails this routine will return 0.
-// Arguments: Pointer to a PTDS
-// Return value: This function normally returns a valid timestamp pointer as well. 
-// 
-timestamp_t *
-xdd_get_timestamp_pointer(ptds_t *p)
-{
-	if (p->tsp == NULL) { // Allocate a new data pattern struct for this target PTDS
-		p->tsp = (timestamp_t *)malloc(sizeof(timestamp_t));
-		if (p->tsp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate memory for the EndToEnd PTDS structure.\n",xgp->progname);
-			return(0);
-		}
-	}
-	return(p->tsp);
-} 
-/*----------------------------------------------------------------------------*/
  // -ts on|off|detailed|summary|oneshot
  //     output filename
 int
@@ -3572,16 +3402,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
 			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= (TS_ON | TS_ALL);
+			p->ts_options |= (TS_ON | TS_ALL);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= (TS_ON | TS_ALL);
+					p->ts_options |= (TS_ON | TS_ALL);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3591,17 +3418,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "off") == 0) { /* Turn off the time stamp reporting option */
 		if (target_number >= 0) { 
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options &= ~TS_ON; /* Turn OFF time stamping */
+			p->ts_options &= ~TS_ON; /* Turn OFF time stamping */
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options &= ~TS_ON; /* Turn OFF time stamping */
+					p->ts_options &= ~TS_ON; /* Turn OFF time stamping */
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3611,17 +3434,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "wrap") == 0) { /* Turn on the TS Wrap option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= TS_WRAP;
+			p->ts_options |= TS_WRAP;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= TS_WRAP;
+					p->ts_options |= TS_WRAP;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3631,17 +3450,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "oneshot") == 0) { /* Turn on the TS Wrap option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= TS_ONESHOT;
+			p->ts_options |= TS_ONESHOT;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= TS_ONESHOT;
+					p->ts_options |= TS_ONESHOT;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3656,17 +3471,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
         args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_size = atoi(argv[args_index]);
+			p->ts_size = atoi(argv[args_index]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_size = atoi(argv[args_index]);
+					p->ts_size = atoi(argv[args_index]);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3681,19 +3492,15 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
         args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= (TS_ON | TS_TRIGTIME);
-			p->tsp->ts_trigtime = atoll(argv[args_index]);
+			p->ts_options |= (TS_ON | TS_TRIGTIME);
+			p->ts_trigtime = atoll(argv[args_index]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= (TS_ON | TS_TRIGTIME);
-					p->tsp->ts_trigtime = atoll(argv[args_index]);
+					p->ts_options |= (TS_ON | TS_TRIGTIME);
+					p->ts_trigtime = atoll(argv[args_index]);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3708,19 +3515,15 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 		args_index++;
         if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= (TS_ON | TS_TRIGOP);
-			p->tsp->ts_trigop = atoi(argv[args_index]);
+			p->ts_options |= (TS_ON | TS_TRIGOP);
+			p->ts_trigop = atoi(argv[args_index]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= (TS_ON | TS_TRIGOP);
-					p->tsp->ts_trigop = atoi(argv[args_index]);
+					p->ts_options |= (TS_ON | TS_TRIGOP);
+					p->ts_trigop = atoi(argv[args_index]);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3730,17 +3533,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "normalize") == 0) { /* set the time stamp Append Output File  reporting option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
+			p->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
+					p->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3755,17 +3554,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 		args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= (TS_ON | TS_ALL);
+			p->ts_options |= (TS_ON | TS_ALL);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= (TS_ON | TS_ALL);
+					p->ts_options |= (TS_ON | TS_ALL);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3776,17 +3571,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "append") == 0) { /* set the time stamp Append Output File  reporting option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_APPEND);
+			p->ts_options |= ((TS_ON | TS_ALL) | TS_APPEND);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_APPEND);
+					p->ts_options |= ((TS_ON | TS_ALL) | TS_APPEND);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3797,17 +3588,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
         args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
+			p->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
+					p->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3818,17 +3605,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "summary") == 0) { /* set the time stamp SUMMARY reporting option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
+			p->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
+					p->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3838,17 +3621,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "detailed") == 0) { /* set the time stamp DETAILED reporting option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-
-			xdd_get_timestamp_pointer(p);
-			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
+			p->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					xdd_get_timestamp_pointer(p);
-					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
+					p->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
 					i++;
 					p = xgp->ptdsp[i];
 				}
