@@ -136,7 +136,7 @@ let "reqsize      = $xfer / $blocksize"
 #date
 qipcrm ${USER}
 pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
-ssh ${HDestin} 'qipcrm ${USER}; pgrep -u ${USER} -f xdd.Linux | xargs kill -9' 
+ssh ${HDestin} pgrep -u ${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9; qipcrm ${USER} &>/dev/null
 #ssh ${HDestin} "mkdir -m 1777 /dev/shm/condata" 2> /dev/null
 
 #################################################
