@@ -50,7 +50,6 @@ HEADERS = 	access_pattern.h \
 		sg_include.h \
 		ticker.h \
 		timestamp.h \
-		end_to_end.h \
 		xdd.h \
 		xdd_common.h \
 		xdd_version.h
@@ -129,9 +128,15 @@ clean: oclean
 install: clean all fastinstall
 
 fastinstall: all
-	cp bin/xdd.$(OS) /sbin/xdd
-	cp bin/timeserver.$(OS) /sbin/timeserver
-	cp bin/gettime.$(OS) /sbin/gettime
+	rm -f /sbin/xdd.$(OS) /sbin/xdd
+	cp bin/xdd.$(OS) /sbin
+	ln /sbin/xdd.$(OS) /sbin/xdd
+	rm -f /sbin/timeserver.$(OS) /sbin/timeserver
+	cp bin/timeserver.$(OS) /sbin
+	ln /sbin/timeserver.$(OS) /sbin/timeserver
+	rm -f /sbin/gettime.$(OS) /sbin/gettime
+	cp bin/gettime.$(OS) /sbin
+	ln /sbin/gettime.$(OS) /sbin/gettime
 
 doc:
 	doxygen doc/Doxyfile
