@@ -127,7 +127,9 @@ xdd_io_thread(void *pin) {
 			p->seekhdr.seeks[i].block_location += p->pass_offset;
 
 		/* Close current file, create a new target file, and open the new (or existing) file is requested */
-		if (((p->target_options & TO_CREATE_NEW_FILES) || (p->target_options & TO_REOPEN) || (p->target_options & TO_RECREATE)) && (p->my_qthread_number == 0)){
+		if ((p->target_options & TO_CREATE_NEW_FILES) || 
+		    (p->target_options & TO_REOPEN) || 
+		    (p->target_options & TO_RECREATE)) {
 			// Close the existing target
 #if (WIN32)
 			CloseHandle(p->fd);
