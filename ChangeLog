@@ -6,6 +6,7 @@ xdd-7.0.0 RC8
 =============
 * -createnewfiles patched to correctly create file sizes over multiple passes
 * -dio works on destination side of e2e transfers of files of odd sizes
+* fastinstall makefile target added
 
 xdd-7.0.0 RC7
 =============
