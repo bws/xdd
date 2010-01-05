@@ -302,6 +302,59 @@ xdd_lockstep_before_io_operation(ptds_t *p) {
 } // xdd_lockstep_before_io_operation()
 
 /*----------------------------------------------------------------------------*/
+/* xdd_dio_before_io_operation(ptds_t *p)
+ * This routine will check several conditions to make sure that DIO will work
+ * for this particular I/O operation. If any of the DIO conditions are not met
+ * then DIO is turned off for this operation and all subsequent operations by
+ * this qthread. 
+ */
+void	// DirectIO checking
+xdd_dio_before_io_operation(ptds_t *p) {
+	int		pagesize;
+	int		status;
+
+
+	// Check to see if DIO is enable for this I/O - return if no DIO required
+	if (!(p->target_options & TO_DIO)) 
+		return;
+
+	// If this is an SG device with DIO turned on for whatever reason then just exit
+	if (p->target_options & TO_SGIO)
+		return;
+
+	// Check to see if this I/O location is aligned on the proper boundary
+	pagesize = getpagesize();
+	status = 0;
+	if ((p->my_current_op == (p->target_ops - 1)) && // This is the last IO Operation
+	    (p->last_iosize)) { // there is a short I/O at the end
+		if (p->last_iosize % pagesize) // If the last io size is strange 
+			status = 1; // Indicate a problem
+		if (p->my_current_byte_location % pagesize) // If the I/O starts on a strange boundary
+			status = 1; // Indicate a problem
+	}
+		
+	// If all the above checks passed then return
+	if (status == 0)
+		return;
+
+	// At this point one or more of the above checks failed.
+	// It is necessary to close and reopen this target file with DirectIO disabaled
+	p->target_options &= ~TO_DIO;
+	close(p->fd);
+	p->fd = 0;
+	p->fd = xdd_open_target(p);
+	if ((unsigned int)p->fd == -1) { /* error openning target */
+		fprintf(xgp->errout,"%s: xdd_dio_before_io_operation: ERROR: Reopen of target %d <%s> failed\n",xgp->progname,p->my_target_number,p->target);
+		fflush(xgp->errout);
+		xgp->abort_io = 1;
+	}
+	// Actually turn DIO back on in case there are more passes
+	if (xgp->passes > 1) 
+		p->target_options |= TO_DIO;
+
+} // End of xdd_dio_before_io_operation()
+
+/*----------------------------------------------------------------------------*/
 /* xdd_raw_before_io_operation(ptds_t *p) {
  */
 void	// Read-After_Write Processing
@@ -625,6 +678,12 @@ xdd_io_loop_before_io_operation(ptds_t *p) {
 	else p->my_current_byte_location = (uint64_t)((p->my_target_number * xgp->target_offset) + 
 											p->seekhdr.seeks[p->my_current_op].block_location) * 
 											p->block_size;
+
+	// DirectIO Handling
+	if (xgp->global_options & GO_DEBUG) 
+		fprintf(stderr,"before_io_operation: calling dio\n");
+	xdd_dio_before_io_operation(p);
+
 	if (xgp->global_options & GO_DEBUG) 
 		fprintf(stderr,"before_io_operation: calling raw\n");
 	// Read-After_Write Processing
