@@ -4,6 +4,11 @@ XDD Release ChangeLog
 
 xdd-7.0.0 RC7
 =============
+* -createnewfiles patched to correctly create file sizes over multiple passes
+* -dio works on destination side of e2e transfers of files of odd sizes
+
+xdd-7.0.0 RC7
+=============
 * ChangeLog file added for changelog information.
 * HOWTO file added describing how a release is cut.
 * xddcp script updated to work with -e2e style options and fix mis-quote
