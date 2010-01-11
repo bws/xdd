@@ -368,6 +368,7 @@ xdd_e2e_setup_dest_socket(ptds_t *p) {
 int32_t
 xdd_e2e_dest_init(ptds_t *p) {
 	int  status; /* status of various function calls */
+	restart_t	*rp;
 
 
 	if (xgp->global_options & GO_DEBUG) {
@@ -427,6 +428,20 @@ xdd_e2e_dest_init(ptds_t *p) {
 	// Initialize the message counter and sequencer to 0
 	p->e2e_msg_recv = 0;
 	p->e2e_msg_last_sequence = 0;
+
+	// Restart processing if necessary
+	if ((p->target_options & TO_RESTART_ENABLE) && (p->restartp)) { // Check to see if restart was requested
+		// Set the last_committed_location to 0
+		rp = p->restartp;
+		rp->last_committed_location = 0;
+		rp->last_committed_length = 0;
+		rp->high_byte_offset = 0;
+		rp->low_byte_offset = LONGLONG_MAX;
+		// Check to see if byte_offset was set to something which indicates a restart operation
+		// If so, then change the start offset to be the place that we restart from and 
+		// reduce the number of bytes to transfer and number of operations to perform accordingly. 
+		// This next part simply makes the byte_offset*my_qthread_number*reqsize_in_bytes the start offset 
+	}
 
 	//  Say good night Dick
 	return(SUCCESS);
@@ -707,6 +722,7 @@ xdd_e2e_setup_src_socket(ptds_t *p) {
 int32_t
 xdd_e2e_src_init(ptds_t *p) {
 	int  status; /* status of various function calls */
+	restart_t	*rp;	// pointer to a restart structure
 
 
 	if (xgp->global_options & GO_DEBUG) {
@@ -741,6 +757,17 @@ xdd_e2e_src_init(ptds_t *p) {
 	p->e2e_msg.recvtime = 0;
 	p->e2e_msg.location = 0;
 	p->e2e_msg.sendqnum = 0;
+
+	// Restart processing if necessary
+	if ((p->target_options & TO_RESTART_ENABLE) && (p->restartp)) { // Check to see if restart was requested
+		// Set the last_committed_location to 0
+		rp = p->restartp;
+		rp->last_committed_location = 0;
+		rp->last_committed_length = 0;
+		rp->byte_offset = 0;
+		rp->high_byte_offset = 0;
+		rp->low_byte_offset = LONGLONG_MAX;
+	}
 
 	if (xgp->global_options & GO_DEBUG) {
 		fprintf(xgp->errout,"[mythreadnum %d]:xdd_e2e_src_init: Exiting\n",p->mythreadnum);
@@ -800,7 +827,6 @@ xdd_e2e_src_send_msg(ptds_t *p) {
 		xdd_e2e_err("xdd_e2e_src_send_msg: could not send message from e2e source\n");
 		return(FAILED);
 	}
-
 
 	p->e2e_msg_sent++;
 	p->e2e_msg.sequence++;

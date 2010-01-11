@@ -27,6 +27,7 @@ OBJECTS =	access_pattern.o \
 		parse_table.o \
 		pclk.o \
 		read_after_write.o \
+		restart.o \
 		results_display.o \
 		results_manager.o \
 		sg.o \
@@ -44,6 +45,7 @@ HEADERS = 	access_pattern.h \
 		pclk.h \
 		ptds.h \
 		read_after_write.h \
+		restart.h \
 		results.h \
 		sg.h \
 		sg_err.h \

@@ -123,7 +123,7 @@ xdd_io_thread(void *pin) {
 		}
 
 		/* Add an offset to each location in the seeklist */
-		for (i = 0; i < p->target_ops; i++)
+		for (i = 0; i < p->qthread_ops; i++)
 			p->seekhdr.seeks[i].block_location += p->pass_offset;
 
 		/* Close current file, create a new target file, and open the new (or existing) file is requested */

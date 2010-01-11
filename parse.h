@@ -104,6 +104,7 @@ int xddfunc_recreatefiles(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_reopen(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_report_threshold(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_reqsize(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_restart(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_retry(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_roundrobin(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_runtime(int32_t argc, char *argv[], uint32_t flags);

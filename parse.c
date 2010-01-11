@@ -198,9 +198,9 @@ xdd_build_ptds_substructure(void)
 			fflush(xgp->errout);
 		}
 		if (p->numreqs) 
-			p->bytes_to_xfer_per_pass = (uint64_t)(p->numreqs * p->iosize);
+			p->target_bytes_to_xfer_per_pass = (uint64_t)(p->numreqs * p->iosize);
 		else if (p->bytes)
-			p->bytes_to_xfer_per_pass = (uint64_t)p->bytes;
+			p->target_bytes_to_xfer_per_pass = (uint64_t)p->bytes;
 		else { // Yikes - something was not specified
 			fprintf(xgp->errout,"%s: io_thread_init: ERROR! iothread for target %d queue %d has numreqs of %lld, bytes of %lld - one of these must be specified\n",
 				xgp->progname, p->my_target_number, p->my_qthread_number, p->numreqs, p->bytes);
@@ -208,50 +208,62 @@ xdd_build_ptds_substructure(void)
 			exit(0);
 		}
 
+		// Check to see if this is a restart operation
+		if (p->restartp) {
+			// We have a good restart pointer 
+			if (p->restartp->flags & RESTART_FLAG_RESUME_COPY) {
+				// Change the startoffset to reflect the shift in starting point
+				p->start_offset = p->restartp->byte_offset / p->block_size;
+				// Change the bytes-to-be-transferred to reflect the shift in starting point
+				// Since qthreads transfer 1/qd*totalbytes we need to recalculate this carefully
+				p->target_bytes_to_xfer_per_pass -= p->restartp->byte_offset;
+			}
+		}
+
 		// At this point it is possible that the number of bytes to transfer is an odd number.
 		// This means that one of the qthreads will need to do a "short" I/O operation - something less than the iosize 
 		// and possibly not an even number.
-		// The p->total_ops includes the last short op if there is one.
+		// The p->target_ops includes the last short op if there is one.
 		// The "p->last_iosize" will contain the number of bytes for the last I/O *ONLY* if the last
 		// I/O operation is not equal to p->iosize.
 		//
 
 	 	//
 		// This calculates the number of iosize (or smaller) operations that need to be performed. 
-		p->total_ops = p->bytes_to_xfer_per_pass / p->iosize;
+		p->target_ops = p->target_bytes_to_xfer_per_pass / p->iosize;
 
 	 	// In the event the number of bytes to transfer is not an integer number of iosize requests then 
 	 	// the total number of ops is incremented by 1 and the last I/O op will be the residual.
-		if (p->bytes_to_xfer_per_pass % p->iosize) {
-			p->total_ops++;
-			p->last_iosize = p->bytes_to_xfer_per_pass % p->iosize;
+		if (p->target_bytes_to_xfer_per_pass % p->iosize) {
+			p->target_ops++;
+			p->last_iosize = p->target_bytes_to_xfer_per_pass % p->iosize;
 		}
 
 		// Adjust the number of ops based on the queue_depth (aka number of qthreads)
 		// This is the situation where the number of ops is 3 but the qdepth is 4.
 		// In this case the qdepth is reset to the number of ops (3 in this example) and the number
 		// of ops for each qthread is set to 1.
-		if ((p->total_ops > 0) && (p->total_ops < p->queue_depth)) { 
+		if ((p->target_ops > 0) && (p->target_ops < p->queue_depth)) { 
 			fprintf(xgp->errout,"%s: Target %d Number of requests is too small to use with a queuedepth of %d\n",
 				xgp->progname, 
 				target_number, 
 				p->queue_depth);
 			fprintf(xgp->errout,"%s: queuedepth will be reset to be equal to the number of requests: %lld\n",
 				xgp->progname, 
-				(long long)p->total_ops);
+				(long long)p->target_ops);
 
-			p->queue_depth = p->total_ops;
-			p->target_ops = 1;
+			p->queue_depth = p->target_ops;
+			p->qthread_ops = 1;
 			p->residual_ops = 0;
 		} else {
-			// Otherwise, the number of ops for each target is simply total_ops / queue_depth
+			// Otherwise, the number of ops for each target is simply target_ops / queue_depth
 			// with the exception for some qthread targets getting one extra op if,for example,
 			// the total number of ops is not an interger multiple of the qdepth like total ops being
 			// 10 with a qdepth of 4 - targets 0 and 1 will do 3 ops each and targets 2 & 3 will only
 			// do 2 ops each.
 			// The "residual_ops" are the number of left over ops (i.e. 2 in the previous example)
-			p->residual_ops = p->total_ops % p->queue_depth;
-			p->target_ops = p->total_ops / p->queue_depth;
+			p->residual_ops = p->target_ops % p->queue_depth;
+			p->qthread_ops = p->target_ops / p->queue_depth;
 		}
 		// This is where the qthread PTDSs are added to a target PTDS if the queue_depth is greater than 1
 		p->mythreadnum = xgp->number_of_iothreads;
@@ -278,9 +290,9 @@ xdd_build_ptds_substructure(void)
 					// is not an even multiple of the queue depth. 
 					// Therefore some qthreads will have more requests 
 					// than others to account for the difference.
-					p->nextp->target_ops++; 
+					p->nextp->qthread_ops++; 
 				}
-				p->nextp->bytes_to_xfer_per_pass = p->nextp->target_ops * p->nextp->iosize;
+				p->nextp->qthread_bytes_to_xfer_per_pass = p->nextp->qthread_ops * p->nextp->iosize;
 				xgp->number_of_iothreads++;
 				p = p->nextp;
 			} // End of FOR loop that adds all PTDSs to a target PTDS linked list
@@ -291,9 +303,9 @@ xdd_build_ptds_substructure(void)
 				// This means that the number of requests is not an even multiple 
 				// of the queue depth. Therefore some qthreads will have more 
 				// requests than others to account for the difference.
-				p->target_ops++; 
+				p->qthread_ops++; 
 			}
-			p->bytes_to_xfer_per_pass = p->target_ops * p->iosize;
+			p->qthread_bytes_to_xfer_per_pass = p->qthread_ops * p->iosize;
 		} // End of IF clause that adds PTDSs to a target PTDS
 		if ((p->last_iosize) && (p->queue_depth > 1)) { // This means that the qthread that issues the last I/O must use this request size which is 0 < last_iosize < iosize
 			if (p->residual_ops == 0) // This means that the q number to issue the last I/O is the last qthread ->> qdepth-1  - otherwise it is residual_ops-1
@@ -308,7 +320,7 @@ xdd_build_ptds_substructure(void)
 			}
 			// At this point p points to the qthread that will have to issue the weird iosize
 			// As such, we need to adjust its bytes_to_xfer_per_pass to be slightly less than it is
-			p->bytes_to_xfer_per_pass = (p->bytes_to_xfer_per_pass - p->iosize + p->last_iosize);
+			p->qthread_bytes_to_xfer_per_pass = (p->qthread_bytes_to_xfer_per_pass - p->iosize + p->last_iosize);
 		} // End of figuring out which qthread issues the last weird-sized I/O
 			
 	} // End of FOR loop that builds PTDS for each target
@@ -578,6 +590,23 @@ xdd_get_ptdsp(int32_t target_number, char *op) {
 	}
 	return(xgp->ptdsp[target_number]);
 } /* End of xdd_get_ptdsp() */
+/*----------------------------------------------------------------------------*/
+/* xdd_get_restartp() - return a pointer to the RESTART for the specified target
+ */
+restart_t *
+xdd_get_restartp(ptds_t *p) {
+	
+	if (p->restartp == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
+		p->restartp = malloc(sizeof(struct restart));
+		if (p->restartp == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESTART structure for target %d\n",
+			xgp->progname, sizeof(struct restart), p->my_target_number);
+			return(NULL);
+		}
+		// Initialize the new RESTART structure and lets rock and roll!
+	}
+	return(p->restartp);
+} /* End of xdd_get_restartp() */
 
 #if (LINUX)
 /*----------------------------------------------------------------------------*/

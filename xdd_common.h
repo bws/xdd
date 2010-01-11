@@ -170,6 +170,7 @@ struct xdd_globals {
 	volatile     int32_t 	run_complete;   		/* Set to a 1 to indicate that all passes have completed */
 	volatile     int32_t 	deskew_ring;    		/* The alarm that goes off when the the first thread finishes */
 	volatile     int32_t 	abort_io;       		/* abort the run due to some catastrophic failure */
+	volatile     int32_t 	restart_terminate;		/* Tells the restart monitor to terminate */
 	time_t       			current_time_for_this_run; /* run time for this run */
 	char         			*progname;              /* Program name from argv[0] */
 	int32_t      			argc;                   /* The original arg count */
@@ -190,6 +191,7 @@ struct xdd_globals {
 	FILE         			*csvoutput;             /* Comma Separated Values output file */
 	FILE         			*combined_output;       /* Combined output file */
 	uint32_t     			heartbeat;              /* seconds between heartbeats */
+	uint32_t     			restart_frequency;      /* seconds between restart monitor checks */
 	int32_t      			syncio;                 /* the number of I/Os to perform btw syncs */
 	uint64_t     			target_offset;          /* offset value */
 	int32_t      			number_of_targets;      /* number of targets to operate on */
@@ -271,6 +273,7 @@ void     xdd_destroy_barrier(struct xdd_barrier *bp);
 void     xdd_display_system_info(void);
 char     *xdd_getnexttoken(char *tp);
 ptds_t   *xdd_get_ptdsp(int32_t target_number, char *op);
+restart_t   *xdd_get_restartp(ptds_t *p);
 void     *xdd_heartbeat(void*);
 int32_t  xdd_init_all_barriers(void);
 int32_t  xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name);
@@ -332,6 +335,7 @@ int32_t  xdd_raw_setup_writer_socket(ptds_t *p);
 int32_t  xdd_raw_sockets_init(void);
 int32_t  xdd_raw_writer_init(ptds_t *p);
 int32_t  xdd_raw_writer_send_msg(ptds_t *p);
+void     *xdd_restart_monitor(void *);
 void 	 xdd_results_format_id_add( char *sp );
 void     *xdd_results_manager(void *);
 void     *xdd_results_display(results_t *rp);

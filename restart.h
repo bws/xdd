@@ -28,53 +28,23 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <signal.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <unistd.h> /* UNIX Only */
-#include <sys/time.h>
-#include <sys/ipc.h>
-#include <sys/sem.h>
-#include <sys/times.h>
-#include <sys/prctl.h>
-#include <sys/param.h>
-#include <sys/mman.h>
-#include <sys/resource.h> /* needed for multiple processes */
-#include <pthread.h>
-#include <sched.h>
-#include <math.h>
-#include <sys/stat.h>
-#include <sys/unistd.h>
-#include <sys/utsname.h>
-#include <string.h>
-#include <syscall.h>
-#include "sg.h"
-/* for the global clock stuff */
-#include <netdb.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
-#if (SNFS)
-#include <client/cvdrfile.h>
-#endif
-#include "pclk.h" /* pclk_t, prototype compatibility */
-#include "misc.h"
-
-#define MP_MUSTRUN 1 /* Assign this thread to a specific processor */
-#define MP_NPROCS 2 /* return the number of processors on the system */
-typedef int  sd_t;  /* A socket descriptor */
-#define CLK_TCK sysconf(_SC_CLK_TCK)
-#define DFL_FL_ADDR INADDR_ANY /* Any address */  /* server only */
-#define closesocket(sd) close(sd)
-static bool  sockets_init(void);
-
-#include "restart.h"
-
-#include "ptds.h"
- 
+struct restart {
+	FILE		*fp;				// File pointer for the restart file
+	char		*restart_filename;	// Name of the restart file
+	char		*source_host;		// Name of the source host
+	char		*source_filename;	// Name of the file on the source side of an xddcp
+	char		*destination_host;	// Name of the destination host
+	char		*destination_filename;	// Name of the file on the destination side of an xddcp
+	uint64_t	byte_offset;		// Offset into the file of last good xmit/write
+	uint64_t	low_byte_offset;	// Lowest Offset into the file 
+	uint64_t	high_byte_offset;	// Highest Offset into the file 
+	uint64_t	last_committed_location;	// Location (aka byte offset into file) that was last sent/written
+	uint64_t	last_committed_length;	// Length of data that was last sent/written
+	pclk_t		last_update;		// Time stamp of last update to restart file
+	pclk_t		starting_time;		// When this restart operation started
+	uint64_t	flags;				// Flags with various information as defined below
+};
+typedef struct restart restart_t;
+// Restart.h flag bit definitions
+#define	RESTART_FLAG_ISSOURCE		0x0000000000000001		// Indicates this is the source side of a copy
+#define	RESTART_FLAG_RESUME_COPY	0x0000000000000002		// Indicates that this is a resumption of a previous copy

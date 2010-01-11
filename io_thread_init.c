@@ -100,7 +100,7 @@ xdd_io_thread_init(ptds_t *p) {
 	}
 
 	/* set up the seek list */
-	p->seekhdr.seek_total_ops = p->total_ops;
+	p->seekhdr.seek_total_ops = p->target_ops;
 	p->seekhdr.seeks = (seek_t *)calloc((int32_t)p->seekhdr.seek_total_ops,sizeof(seek_t));
 	if (p->seekhdr.seeks == 0) {
 		fprintf(xgp->errout,"%s: io_thread_init: cannot allocate memory for seek list\n",xgp->progname);
@@ -144,7 +144,7 @@ xdd_io_thread_init(ptds_t *p) {
 	xdd_ts_setup(p);
 	/* set up for the big loop */
 	if (xgp->max_errors == 0) 
-		xgp->max_errors = p->total_ops;
+		xgp->max_errors = p->target_ops;
 
 	/* If we are synchronizing to a Global Clock, let's synchronize
 	 * here so that we all start at *roughly* the same time

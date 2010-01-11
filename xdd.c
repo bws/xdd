@@ -45,6 +45,7 @@ main(int32_t argc,char *argv[]) {
 	pclk_t tt; 
 	pthread_t heartbeat_thread;
 	pthread_t results_thread;
+	pthread_t restart_thread;
 	ptds_t *p;
 	char *c;
 #if (LINUX)
@@ -167,11 +168,21 @@ main(int32_t argc,char *argv[]) {
 		fprintf(xgp->errout,"%s: xdd_main: Error creating Results Manager thread", xgp->progname);
 		fflush(xgp->errout);
 	}
+
 	/* start a heartbeat monitor if necessary */
 	if (xgp->heartbeat) {
 		status = pthread_create(&heartbeat_thread, NULL, xdd_heartbeat, (void *)(unsigned long)j);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_main: Error creating heartbeat monitor thread", xgp->progname);
+			fflush(xgp->errout);
+		}
+	}
+
+	/* start a restart monitor if necessary */
+	if (xgp->restart_frequency) {
+		status = pthread_create(&restart_thread, NULL, xdd_restart_monitor, (void *)(unsigned long)j);
+		if (status) {
+			fprintf(xgp->errout,"%s: xdd_main: Error creating restart monitor thread", xgp->progname);
 			fflush(xgp->errout);
 		}
 	}

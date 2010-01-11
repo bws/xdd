@@ -82,6 +82,7 @@
 #define TO_QTHREAD_INFO        0x0000002000000000ULL  // Display Q thread information 
 #define TO_VERIFY_CONTENTS     0x0000004000000000ULL  // Verify the contents of the I/O buffer 
 #define TO_VERIFY_LOCATION     0x0000008000000000ULL  // Verify the location of the I/O buffer (first 8 bytes) 
+#define TO_RESTART_ENABLE      0x0000010000000000ULL  // Restart option enabled 
 
 // Per Thread Data Structure - one for each thread 
 struct ptds {
@@ -111,8 +112,8 @@ struct ptds {
 	int32_t				op_delay; 			// Number of seconds to delay between operations 
 	int32_t				filetype;  			// Type of file: regular, device, socket, ... 
 	int64_t				filesize;  			// Size of target file in bytes 
-	int64_t				target_ops;  		// Total number of ops to perform per qthread 
-	int64_t				total_ops;  		// Total number of ops to perform on behalf of a "target"
+	int64_t				qthread_ops;  		// Total number of ops to perform per qthread 
+	int64_t				target_ops;  		// Total number of ops to perform on behalf of a "target"
 	int64_t				residual_ops;  		// Number of requests mod the queue depth 
 	int64_t				writer_total; 		// Total number of bytes written so far - used by read after write
 	seekhdr_t			seekhdr;  			// For all the seek information 
@@ -136,6 +137,7 @@ struct ptds {
 	int32_t				time_limit;  			// timelimit in seconds for each thread 
 	char				*targetdir;  			// The target directory for the target 
 	char				*target;  				// devices to perform operation on 
+	char				*target_name;  			// Fully qualified path name to the target device/file
 	char				targetext[32]; 			// The target extension number 
 	int32_t				processor;  			// Processor/target assignments 
 	pclk_t				start_delay; 			// number of picoseconds to delay the start  of this operation 
@@ -186,7 +188,8 @@ struct ptds {
 	//
 	pclk_t				run_start_time; 			// This is time t0 of this run - set by xdd_main
 	pclk_t				first_pass_start_time; 		// Time the first pass started but before the first operation is issued
-	uint64_t			bytes_to_xfer_per_pass; 	// Number of bytes to xfer per pass 
+	uint64_t			target_bytes_to_xfer_per_pass; 	// Number of bytes to xfer per pass for the entire target (all qthreads)
+	uint64_t			qthread_bytes_to_xfer_per_pass;	// Number of bytes to xfer per pass for this qthread
 	int32_t				block_size;  				// Size of a block in bytes for this target 
 	int32_t				queue_depth; 				// Command queue depth for each target 
 	int32_t				preallocate; 				// File preallocation value 
@@ -234,9 +237,11 @@ struct ptds {
 	volatile int64_t	my_current_error_count;		// The number of I/O errors for this qthread
 	volatile int32_t	my_current_state;			// State of this thread at any given time (see Current State definitions below)
 	// State Definitions for "my_current_state"
-#define	CURRENT_STATE_IO		0x0000000000000001	// Currently waiting for an I/O operation to complete
-#define	CURRENT_STATE_BTW		0x0000000000000002	// Currently between I/O operations
-#define	CURRENT_STATE_BARRIER	0x0000000000000004	// Currently stuck in a barrier
+#define	CURRENT_STATE_IO				0x0000000000000001	// Currently waiting for an I/O operation to complete
+#define	CURRENT_STATE_BTW				0x0000000000000002	// Currently between I/O operations
+#define	CURRENT_STATE_BARRIER			0x0000000000000004	// Currently stuck in a barrier
+#define	CURRENT_STATE_COMPLETE			0x0000000000000008	// This target qthread has completed all I/O and is waiting for other to complete
+#define	CURRENT_STATE_RESTART_COMPLETE	0x0000000000000010	// This restart monitor has completed its check of this target after it finished
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS 
 	// These values are only updated when the -extendedstats option is specified
@@ -419,6 +424,7 @@ struct ptds {
 	int64_t				raw_data_ready; 		// The amount of data that is ready to be read in an RAW op 
 	int64_t				raw_data_length; 		// The amount of data that is ready to be read for this operation 
 	// ------------------ End of the ReadAfterWrite stuff --------------------------------------
+	struct restart		*restartp;				// pointer to the restart structure used by the restart monitor
 	struct ptds			*pm1;					// ptds minus  1 - used for report print queueing - don't ask 
 };
 typedef struct ptds ptds_t;

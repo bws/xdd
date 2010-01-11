@@ -50,8 +50,8 @@ xdd_io_loop_perform_io_operation(ptds_t *p) {
 
 	p->my_current_state = CURRENT_STATE_IO;	// Starting an I/O Operation now...
 
-	if ((p->bytes_to_xfer_per_pass - p->my_current_bytes_xfered) < p->iosize)
-		p->actual_iosize = (p->bytes_to_xfer_per_pass - p->my_current_bytes_xfered);
+	if ((p->qthread_bytes_to_xfer_per_pass - p->my_current_bytes_xfered) < p->iosize)
+		p->actual_iosize = (p->qthread_bytes_to_xfer_per_pass - p->my_current_bytes_xfered);
 	else p->actual_iosize = p->iosize;
 		  
 // If a data pattern PREFIX was specified then set the local pattern prefix value.

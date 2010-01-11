@@ -82,6 +82,7 @@ xdd_init_globals(char *progname) {
 	xgp->gts_delta = 0;
 	xgp->gts_seconds_before_starting = 0; /* number of seconds before starting I/O */
 	xgp->heartbeat = 0;
+	xgp->restart_frequency = 0;
 	xgp->run_ring = 0;       /* The alarm that goes off when the total run time has been exceeded */
 	xgp->deskew_ring = 0;    /* The alarm that goes off when the the first thread finishes */
 	xgp->abort_io = 0;       /* abort the run due to some catastrophic failure */
@@ -481,6 +482,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	// Display information about any End-to-End operations for this target 
 	// Only qthread 0 displays the inforamtion
 	if (p->target_options & TO_ENDTOEND) { // This target is part of an end-to-end operation
+		// Display info
 		fprintf(out,"\t\tEnd-to-End ACTIVE: this target is the %s side\n",
 			(p->target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
 		fprintf(out,"\t\tEnd-to-End Destination Address is %s using port %d",
@@ -491,6 +493,26 @@ xdd_target_info(FILE *out, ptds_t *p) {
 				((p->e2e_dest_port - p->my_qthread_number) + p->queue_depth - 1));
 		}
 		fprintf(out,"\n");
+		// Check for RESTART and setup restart structure if required
+		if (p->target_options & TO_RESTART_ENABLE) { 
+			// Set up the restart structure in this PTDS
+			if (p->restartp == NULL) {
+				fprintf(out,"\t\tRESTART - Internal Error - no restart structure assigned to this target!\n");
+				p->target_options &= ~TO_RESTART_ENABLE; // turn off restart
+				return;
+			} 
+			// ok - we have a good restart structure
+			if (p->restartp->flags & RESTART_FLAG_ISSOURCE) {
+				 p->restartp->source_filename = p->target_name; 		// The source_filename is the name of the file being copied on the source side
+				 p->restartp->destination_filename = NULL;		// The destination_filename is the name of the file being copied on the destination side
+			} else {
+				 p->restartp->source_filename = NULL; 		// The source_filename is the name of the file being copied on the source side
+				 p->restartp->destination_filename = p->target_name;		// The destination_filename is the name of the file being copied on the destination side
+			}
+
+			p->restartp->source_host = p->e2e_src_hostname; 		// Name of the Source machine 
+			p->restartp->destination_host = p->e2e_dest_hostname; 	// Name of the Destination machine 
+		}
 	}
 	fprintf(out, "\n");
 	fflush(out);
@@ -1142,6 +1164,7 @@ int32_t
 #endif 
 xdd_open_target(ptds_t *p) {
 	char target_name[MAX_TARGET_NAME_LENGTH]; /* target directory + target name */
+	int	target_name_length;
 #ifdef WIN32
 	HANDLE hfile;  /* The file handle */
 	LPVOID lpMsgBuf; /* Used for the error messages */
@@ -1153,6 +1176,17 @@ xdd_open_target(ptds_t *p) {
 	if (strlen(p->targetdir) > 0)
 		sprintf(target_name, "%s%s", p->targetdir, p->target);
 	else sprintf(target_name, "%s",p->target);
+
+	if (p->target_options & TO_CREATE_NEW_FILES) { // Add the target extension to the name
+		strcat(target_name, ".");
+		strcat(target_name, p->targetext);
+	}
+
+	target_name_length = strlen(target_name);
+	if (p->target_name == NULL) {
+		p->target_name = (char *)malloc(target_name_length+32);
+	}
+	memcpy(p->target_name, target_name, target_name_length);
 	
 	// Check to see if this is a "device" target - must have \\.\ before the name
 	// Otherwise, it is assumed that this is a regular file
@@ -1268,6 +1302,12 @@ xdd_open_target(ptds_t *p) {
 		strcat(target_name, ".");
 		strcat(target_name, p->targetext);
 	}
+	target_name_length = strlen(target_name);
+	if (p->target_name == NULL) {
+		p->target_name = (char *)malloc(target_name_length+32);
+	}
+	memcpy(p->target_name, target_name, target_name_length);
+
 	/* Set the open flags according to specific OS requirements */
 	flags = O_CREAT;
 #if (SOLARIS || AIX)
@@ -1338,12 +1378,12 @@ xdd_open_target(ptds_t *p) {
  	* file. Send out a WARNING if this is a possibility
  	*/
 	if ( (p->target_options & TO_REGULARFILE) && !(p->rwratio < 1.0)) { // This is a purely read operation
-		if (p->bytes_to_xfer_per_pass > statbuf.st_size) { // Check to make sure that the we won't read off the end of the file
+		if (p->target_bytes_to_xfer_per_pass > statbuf.st_size) { // Check to make sure that the we won't read off the end of the file
 		fprintf(xgp->errout,"%s (%d): xdd_open_target: WARNING! The target file <%lld bytes> is shorter than the the total requested transfer size <%lld bytes>\n",
 			xgp->progname,
 			p->my_target_number,
 			(long long)statbuf.st_size, 
-			(long long)p->bytes_to_xfer_per_pass);
+			(long long)p->target_bytes_to_xfer_per_pass);
 		fflush(xgp->errout);
 		}
 	}

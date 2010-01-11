@@ -98,7 +98,7 @@ xdd_start_trigger_before_io_operation(ptds_t *p) {
 			}
 			if (p->trigger_types & TRIGGER_STARTPERCENT) {
 				/* If we have completed percentage of operations then signal the specified target to start */
-				if (p->my_current_op > (p->start_trigger_percent * p->target_ops)) {
+				if (p->my_current_op > (p->start_trigger_percent * p->qthread_ops)) {
 					xdd_barrier(&p2->Start_Trigger_Barrier[p2->Start_Trigger_Barrier_index]);
 				}
 			}
@@ -153,7 +153,7 @@ xdd_lockstep_before_io_operation(ptds_t *p) {
 		if (p->ls_interval_type & LS_INTERVAL_PERCENT) {
 			/* If we have completed percentage of operations then signal the specified target to start.
 			 */
-			if (p->my_current_op >= ((p->ls_interval_value*p->ls_interval_base_value) * p->target_ops)) {
+			if (p->my_current_op >= ((p->ls_interval_value*p->ls_interval_base_value) * p->qthread_ops)) {
 				ping_slave = TRUE;
 				p->ls_interval_base_value++;
 			}
@@ -228,7 +228,7 @@ xdd_lockstep_before_io_operation(ptds_t *p) {
 			if (p->ls_task_type & LS_TASK_PERCENT) {
 				/* If we have completed percentage of operations then indicate slave to wait.
 				*/
-				if (p->my_current_op >= ((p->ls_task_value * p->ls_task_base_value) * p->target_ops)) {
+				if (p->my_current_op >= ((p->ls_task_value * p->ls_task_base_value) * p->qthread_ops)) {
 					slave_wait = TRUE;
 					p->ls_task_base_value++;
 					p->ls_task_counter--;
@@ -325,7 +325,7 @@ xdd_dio_before_io_operation(ptds_t *p) {
 	// Check to see if this I/O location is aligned on the proper boundary
 	pagesize = getpagesize();
 	status = 0;
-	if ((p->my_current_op == (p->target_ops - 1)) && // This is the last IO Operation
+	if ((p->my_current_op == (p->qthread_ops - 1)) && // This is the last IO Operation
 	    (p->last_iosize)) { // there is a short I/O at the end
 		if (p->last_iosize % pagesize) // If the last io size is strange 
 			status = 1; // Indicate a problem
@@ -550,7 +550,7 @@ fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_opt
 
 		// If this is the last message and the length of the data in the message is 
 		// less than iosize then we can just exit the loop now because this will be a short write
-		if ((p->my_current_op == (p->target_ops - 1)) &&
+		if ((p->my_current_op == (p->qthread_ops - 1)) &&
 		    (p->e2e_msg.length < p->iosize)) {
 			p->iosize = p->e2e_msg.length;
 			break;

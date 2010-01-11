@@ -2223,7 +2223,136 @@ xddfunc_reqsize(int32_t argc, char *argv[], uint32_t flags)
 		}
         return(2);
 	}
-}
+} // End of xddfunc_reqsize()
+/*----------------------------------------------------------------------------*/
+// Control restart operation options
+int
+xddfunc_restart(int32_t argc, char *argv[], uint32_t flags)
+{
+    int 		i; 
+    int 		args; 
+    int 		args_index;
+    int 		target_number;
+    ptds_t 		*p;
+	restart_t	*rp;
+
+fprintf(stderr,"parse_func_restart: enter\n");
+
+	args_index = 1;
+    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+	if (target_number >= 0) { /* Set this option value for a specific target */
+		if (target_number >= MAX_TARGETS) { /* Make sure the target number is somewhat valid */
+			fprintf(stderr,"%s: Invalid Target Number %d specified for seek option %s\n",
+					xgp->progname, target_number, argv[args_index+args]);
+            return(0);
+		}
+		args_index += args;  /* skip past the "target <taget number>" */
+	}
+	/* At this point "args_index" is an index to the "option" argument */
+	if (strcmp(argv[args_index], "enable") == 0) { /* Enable the restart option for this command */
+		if(xgp->restart_frequency == 0) 
+			xgp->restart_frequency = 1;
+		if (target_number >= 0) {  /* set option for specific target */
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rp = xdd_get_restartp(p);
+			if (rp == NULL) return(-1);
+			p->target_options |= TO_RESTART_ENABLE;
+		} else {  /* set option for all targets */
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					rp = xdd_get_restartp(p);
+					if (rp == NULL) return(-1);
+					p->target_options |= TO_RESTART_ENABLE;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+		}
+		return(args_index+1);
+	} else if (strcmp(argv[args_index], "file") == 0) { /* Read restart file from "filename" */
+		if(xgp->restart_frequency == 0) 
+			xgp->restart_frequency = 1;
+		if (target_number >= 0) {  /* set option for specific target */
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rp = xdd_get_restartp(p);
+			if (rp == NULL) return(-1);
+			rp->restart_filename = argv[args_index+1];
+		} else {  /* set option for all targets */
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					rp = xdd_get_restartp(p);
+					if (rp == NULL) return(-1);
+					rp->restart_filename = argv[args_index+1];
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+		} 
+		return(args_index+2);
+	} else if ((strcmp(argv[args_index], "frequency") == 0) || 
+			   (strcmp(argv[args_index], "freq") == 0)) { // The frequency in seconds to check the threads
+		if (target_number >= 0) {  /* set option for specific target */
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rp = xdd_get_restartp(p);
+			if (rp == NULL) return(-1);
+			xgp->restart_frequency = atoi(argv[args_index+1]);
+		} else {  /* set option for all targets */
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					rp = xdd_get_restartp(p);
+					if (rp == NULL) return(-1);
+					xgp->restart_frequency = atoi(argv[args_index+1]);
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+		} 
+		return(args_index+2);
+	} else if ((strcmp(argv[args_index], "byteoffset") == 0) || 
+			   (strcmp(argv[args_index], "offset") == 0)) { /*  Restart from a specific offset */
+		if(xgp->restart_frequency == 0) 
+			xgp->restart_frequency = 1;
+		if (target_number >= 0) {  /* set option for specific target */
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rp = xdd_get_restartp(p);
+			if (rp == NULL) return(-1);
+			rp->byte_offset = atoll(argv[args_index+1]);
+			rp->flags |= RESTART_FLAG_RESUME_COPY;
+		} else {  /* set option for all targets */
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				rp = xdd_get_restartp(p);
+				if (rp == NULL) return(-1);
+				i = 0;
+				while (p) {
+					rp = xdd_get_restartp(p);
+					if (rp == NULL) return(-1);
+					rp->byte_offset = atoll(argv[args_index+1]);
+					rp->flags |= RESTART_FLAG_RESUME_COPY;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+		}  
+		return(args_index+2);
+    } else {
+			fprintf(stderr,"%s: Invalid RESTART suboption %s\n",xgp->progname, argv[args_index]);
+            return(0);
+    } /* End of the -restart sub options */
+
+} // End of xddfunc_restart()
 /*----------------------------------------------------------------------------*/
 // Set the retry count for each target. The retry count gets inherited by any
 // nsubsequent queue threads for the target.

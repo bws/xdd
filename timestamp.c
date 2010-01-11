@@ -81,7 +81,7 @@ xdd_ts_setup(ptds_t *p) {
 	if ((xgp->global_options & GO_DESKEW) && !(p->ts_options & TS_ON)) {
 		p->ts_options |= (TS_ON | TS_ALL | TS_ONESHOT | TS_SUPPRESS_OUTPUT);
 		p->ts_size = xgp->passes * p->total_threads;
-	} else p->ts_size = xgp->passes * p->total_ops;
+	} else p->ts_size = xgp->passes * p->target_ops;
 	if (p->ts_options & (TS_TRIGTIME | TS_TRIGOP)) 
 		p->ts_options &= ~TS_ALL; /* turn off the "time stamp all operations" flag if a trigger was requested */
 	if (p->ts_options & TS_TRIGTIME) { /* adjust the trigger time to an actual local time */
@@ -91,12 +91,12 @@ xdd_ts_setup(ptds_t *p) {
 	/* calculate size of the time stamp table and malloc it */
 	if (xgp->global_options & GO_DESKEW) { /* This is a case where the target has time stamping already enabled as well as deskew */
 		/* Make sure the ts table is large enough for the deskew operation */
-		if (p->total_ops < p->total_threads) /* not big enough - make it BIGGER */
+		if (p->target_ops < p->total_threads) /* not big enough - make it BIGGER */
 			tt_entries = xgp->passes * p->total_threads;
-		else tt_entries = xgp->passes * p->total_ops; /* calculate the size */
+		else tt_entries = xgp->passes * p->target_ops; /* calculate the size */
 	} else {
 		tt_entries = p->ts_size; 
-		if (tt_entries < (xgp->passes * p->total_ops)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
+		if (tt_entries < (xgp->passes * p->target_ops)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
 			if (((p->ts_options & TS_WRAP) == 0) &&
 				((p->ts_options & TS_ONESHOT) == 0) &&
 				(!(xgp->global_options & GO_DESKEW))) {
