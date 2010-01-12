@@ -269,7 +269,10 @@ xdd_build_ptds_substructure(void)
 		p->mythreadnum = xgp->number_of_iothreads;
 		xgp->number_of_iothreads++;
 		psave = p;
-		if (p->queue_depth > 1) { /* Create some more ptds structures for this target */
+		if (p->queue_depth <= 1) { // For a single qthread (qthread 0) set the correct bytes to xfer and qthread ops
+			p->qthread_bytes_to_xfer_per_pass = p->target_bytes_to_xfer_per_pass;
+			p->qthread_ops = p->target_ops;
+		} else { // For qdepths greater than 1 we need to set up the qthread ptds structs
 			for (q = 1; q < p->queue_depth; q++ ) {
 				p->seekhdr.seek_pattern = "queued_interleaved";
 				p->seekhdr.seek_interleave = p->queue_depth;
