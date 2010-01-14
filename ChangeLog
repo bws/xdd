@@ -2,6 +2,11 @@
 XDD Release ChangeLog
 -----------------------
 
+xdd-7.0.0 RC9
+=============
+* Added a -restart option to allow resuming a partial transfer
+* Added a -a option to xddcp to automate the restart/resume process for user
+
 xdd-7.0.0 RC8
 =============
 * -createnewfiles patched to correctly create file sizes over multiple passes

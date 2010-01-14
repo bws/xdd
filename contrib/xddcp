@@ -1,4 +1,4 @@
-#!/bin/sh 
+#!/bin/bash 
 #
 #
 # IMPORTANT NOTE: I found it necessary to delete the destination file
@@ -10,90 +10,128 @@
 #
 #
 
-if [ "$1" == "-h" ]
-then
-echo "xddcp [ -d -s -t threads ] source_file destination_host destination_file [bytes_to_transfer]"
+# XDD Configurable global settings
+XDDCP_DEFAULT_E2E_PORT=40010
+XDDCP_DEFAULT_XFER_SIZE=16777216
+XDDCP_DEFAULT_QUEUE_DEPTH=4
+
+#
+# Print out the usage information
+#
+function print_usage() {
+    echo "xddcp [ -a -d -f -s -t threads ] source_file destination_host destination_file [bytes_to_transfer]"
 #echo "source_host       - source host IP or Name over which data is transferred"
-echo "-d		- Use direct I/O on the destination end"
-echo "-s		- Use direct I/O on the source end"
-echo "-t threads	- Use 'threads' number of threads during transfer"
-echo "source_file       - complete /filepath/name for source file on source host"
-echo "destination_host  - destination host IP or Name over which data is transferred"
-echo "destination_file  - complete /filepath/name for destination file on destination host"
-echo "bytes_to_transfer - total bytes to transfer (default - size of source file)"
-echo "Note: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
-exit -1
-fi
+    echo "-a		- Resume transfer if it was only partially completed and the -a flag was specified"
+    echo "-d		- Use direct I/O on the destination end"
+    #echo "-f		- Handle a list of files"
+    echo "-h		- Print out usage information"
+    echo "-s		- Use direct I/O on the source end"
+    echo "-t threads	- Use 'threads' number of threads during transfer"
+    echo "source_file       - complete /filepath/name for source file on source host"
+    echo "destination_host  - destination host IP or Name over which data is transferred"
+    echo "destination_file  - complete /filepath/name for destination file on destination host"
+    echo "bytes_to_transfer - total bytes to transfer (default - size of source file)"
+    echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
+}
 
-if [ $# -lt 2 ]
-then
-	echo "usage: $0 [ -d -s -t threads ] /full_path/source_file destination_host /full_path/destination_file [bytes_to_transfer]"
+#
+# Check preconditions
+#
+function check_preconditions() {
+    source_side_filename="$1"
+
+    # Check for qipcrm script
+    which qipcrm > /dev/null 2> /dev/null
+    if [ $? -eq 1 ]; then
+	echo "ERROR: qipcrm executable was not found.  Please make sure it is in your PATH."
 	exit -1
+    fi
+
+    # Check for xdd.Linux binary
+    which xdd.Linux >/dev/null 2> /dev/null
+    if [ $? -eq 1 ]; then
+        echo "ERROR: xdd.Linux executable was not found.  Please make sure it is in your PATH."
+        exit -2
+    fi
+
+    # Check for confidence directory
+    if [ ! -d /dev/shm/condata ]; then
+	mkdir /dev/shm/condata
+	chmod 1777 /dev/shm/condata
+    fi
+
+    # Ensure confidence directory is writable
+    if [ ! -w /dev/shm/condata ]; then
+	echo "ERROR: /dev/shm/condata needs to be writeable"
+	exit -3
+    fi
+
+    # Ensure source side file exists
+    if [ ! -e ${source_side_file} ]; then
+	echo "ERROR: Source file doesn't exist: ${source_side_file}"
+	exit -4
+    fi
+
+    # Ensure source side file is larger than 16MB
+    source_file_size=`ls -l ${TDSource} | awk '{print $5}'`
+    if [ $source_file_size -lt 16777216 ]; then
+	echo "ERROR: File must be larger than 16777216, actual size: $source_file_size"
+	exit -5
+    fi
+}
+
+#
+# Main
+#
+if [ "$1" == "-h" ]; then
+    print_usage
+    exit 0
+elif [ $# -lt 2 ]; then
+    echo "usage: $0 [OPTION] /full_path/source_file destination_host /full_path/destination_file [bytes_to_transfer]"
+    echo "Try '$0 -h' for more information."
+    exit -1
 fi
 
-which qipcrm > /dev/null 2> /dev/null
+# Parse options
+resumeFlag=0
+destinationDIO=""
+sourceDIO=""
+queueDepth=4
+fileListFile=""
 
-if [ $? -eq 1 ]; then
-	echo "qipcrm executable was not found.  Please make sure it in your PATH."
-	exit -1
-fi
-
-which xdd.Linux >/dev/null 2> /dev/null
-
-if [ $? -eq 1 ]; then
-        echo "xdd.Linux executable was not found.  Please make sure it in your PATH."
-        exit 1
-fi
-
-uselocalDIO=" "		# To use Direct IO on the local side
-useDIO=" "		# To use Direct IO on the remote side
-queuedepth=4       	# queuedepth = number of I/O threads
-
-while getopts dst: option
+while getopts adf:hst: option
 do case $option in
-	d) useDIO="-dio";;
-	s) uselocalDIO="-dio";;
+        a) resumeFlag=1;;
+	d) destinationDIO="-dio";;
+        f) fileListFile=$OPTARG;;
+	s) sourceDIO="-dio";;
 	t) queuedepth=$OPTARG;;
+	h) print_usage; exit 0;;
 	esac
 done
 shift $((OPTIND-1))
 
-
-if [ ! -d /dev/shm/condata ]; then
-	mkdir /dev/shm/condata
-	chmod 1777 /dev/shm/condata
-fi
-
-if [ ! -w /dev/shm/condata ]; then
-	echo "/dev/shm/condata needs to be writeable"
-	exit -1
-fi
-
-
-##########################################################################################
-#Command Line Parameter   
-##########################################################################################
-HSourceIP=`hostname`           # HSourceIP - Source Host IP over which data is transferred
+# Parse filenames
+HSourceIP=`hostname`      # HSourceIP - Source Host IP over which data is transferred
 HDestinIP="$2"            # HDestinIP - Destin Host IP over which data is transferred
-HSource=$HSourceIP              # assume Hostname==HostIP
+HSource=$HSourceIP        # assume Hostname==HostIP
 TDSource="$1"             # complete filepath for source file
 HDestin="$2"              # assume Hostname==HostIP
 TDDestin="$3"             # complete filepath for destination file
-#let "bytesperpass = ${5}" # Total bytes to transfer, do it in one XDD pass
 
 colon_count=`echo $2 | grep -c ":"`
-
 if [ $colon_count -eq 1 ]; then
 	HDestin=`echo $2 | awk -F: '{print $1}'`
 	HDestinIP=$HDestin
 	TDDestin=`echo $2 | awk -F: '{print $2}'`
 fi
 
-if [ ! -e ${TDSource} ]; then
-	echo "${TDSource} doesn't exist"
-	exit -1
-fi
 
+# Ensure local-side preconditions are met
+check_preconditions ${TDSource}
+
+# Determine bytes per pass
+bytesperpass=167772160
 if [ $# -eq 4 ]; then
 	bytesperpass=${4}
 else
@@ -104,56 +142,116 @@ else
 	fi
 fi
 
-if [ $bytesperpass -lt 16777216 ]; then
-	echo "xdd only works on files larger than 16777216"
-	exit -1
-fi
+# Construct destination XDD settings
+test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".file-to-file.xfs.xdd"
+e2ePort="-e2e port ${XDDCP_DEFAULT_E2E_PORT}"
+let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
+let "numreqs   = $bytesperpass / $xfer"
+let "blocksize = 1024"
+let "reqsize   = $xfer / $blocksize"
+destinationFile=$TDDestin
+destinationDir=`dirname $destinationFile`
+destinationQD=${XDDCP_DEFAULT_QUEUE_DEPTH}
 
-#ssh ${HDestin} "mkdir -m 1777 /dev/shm/condata" 2> /dev/null
-
-#################################################
-#Hardwired stuff - change to suit
-#################################################
-E2EPORT1="-e2e port 40010"     # If ports get gummed up change them here
-#useDIO="    "                 # To use Direct IO, or not (on the remote side)
-#useDIO="-dio"                 # To use Direct IO, or not
-#uselocalDIO=" "			# To use Direct IO on the local side
-#let "queuedepth   = 4"       # queuedepth = number of I/O threads
-#let "queuedepth   = 16"       # queuedepth = number of I/O threads
-#let "xfer         = 1048576" # bytes per request per I/O thread
-let "xfer         = 16777216" # bytes per request per I/O thread
-##########################################################################
-#DON'T CHANGE ANYTHING BELOW THIS LINE 
-##########################################################################
-let "numreqs      = $bytesperpass / $xfer" #numreqs is total number of requests of size blocksizeXreqsize=XFER 
-let "blocksize    = 1024"
-let "reqsize      = $xfer / $blocksize"
-#let "reqsize      = 4096"
-
-#################################################
-# Always clean-up xdd garbage from previous tests
-#################################################
-#date
+#
+# Perform local cleanup operations
+#
 qipcrm ${USER}
 pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
-ssh ${HDestin} pgrep -u ${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9; qipcrm ${USER} &>/dev/null
-#ssh ${HDestin} "mkdir -m 1777 /dev/shm/condata" 2> /dev/null
 
-#################################################
-# end-to-end: /dev/file-to-file
-test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".file-to-file.xfs.xdd"
-#################################################
+#
+# Perform remote cleanup and construct remote transport endpoint
+#
+remote_output=`ssh -t ${HDestin} bash -e <<EOF
 
-#ssh ${HDestin} xdd.Linux -targets 1 ${TDDestin} -minall -numreqs $numreqs  -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op write -war writer ${HDestinIP} ${WARPORT1}  ${useDIO} &> ${test}.${HDestin}.out &
+# Kill any stale xdd processes
+pgrep -u \\${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9 
 
-ssh ${HDestin} "xdd.Linux -targets 1 ${TDDestin} -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op write -e2e isdestination -e2e dest ${HDestinIP} ${E2EPORT1}  ${useDIO} &> ${test}.${HDestin}.out &"
+# Cleanup leaked system resources
+qipcrm \\${USER} &>/dev/null
 
-sleep 6
+# If the filename uses a relative path, path complement it
+path_char=\\$(dirname $TDDestin |cut -c 1)
+echo First path char: \\$path_char
+if [ "." == \\$path_char ]; then
+    default_dir=\\$(pwd)
+    destinationFile="\\${default_dir}/${TDDestin}"
+    destinationLog="\\${default_dir}/${test}.${HDestin}.out"
+else
+    destinationFile="${TDDestin}"
+    destinationLog="${test}.${HDestin}.out"
+fi
+echo "Path complemented filename is \\$destinationFile"
+echo "Path complemented logfile is \\$destinationLog"
 
-#ssh ${HSource} xdd.Linux -targets 1  ${TDSource} -minall -numreqs $numreqs -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${useDIO}  &> ${test}.${HSource}.out &
+# Perform restart if neccesary
+restart_offset=0
+if [ 1 == $resumeFlag ]; then
 
-#xdd.Linux -targets 1  ${TDSource} -noconfidump -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${uselocalDIO}  -timerinfo #&> ${test}.${HSource}.out &
-xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $queuedepth -op read -e2e issource -e2e dest ${HDestinIP} ${E2EPORT1}  ${uselocalDIO}  -timerinfo &> ${test}.${HSource}.out &
+    # Create the restart directory if it does not exits
+    if [ ! -d $destinationDir/.xdd ]; then
+        echo mkdir -p $destinationDir/.xdd
+        mkdir -p $destinationDir/.xdd
+    fi
+    if [ ! -w $destinationDir/.xdd ]; then
+        echo "Cannot write: $destinationDir/.xdd"
+        exit -1
+    fi
+
+    # Check for the existence a restart cookie
+    restart_file=\\$(basename ${TDDestin})
+    most_recent_restart_cookie=\\$(ls -l destination.NA.NA.${HDestinIP}.\\${restart_file}.*.rst |tail -1 | cut -d ' ' -f 9)
+    echo "Using restart cookie: \\$most_recent_restart_cookie"
+    if [ -z "\\$most_recent_restart_cookie" ]; then
+       destinationRestart="-restart enable"
+    else
+       destinationRestart=\\$(cat \\$most_recent_restart_cookie)
+    fi
+fi
+
+# Start the XDD process
+echo xdd.Linux -targets 1 \\${destinationFile} -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $destinationQD -op write -e2e isdestination -e2e dest ${HDestinIP} ${e2ePort} ${destinationDIO} \\${destinationRestart}
+xdd.Linux -targets 1 \\${destinationFile} -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $destinationQD -op write -e2e isdestination -e2e dest ${HDestinIP} ${e2ePort} ${destinationDIO} \\${destinationRestart} &> \\${destinationLog} &
+
+# Send the restart offset back to the source side via an exit code
+if [ 1 == $resumeFlag ]; then
+    echo "XDDCP RESTART TOKENS: \\${destinationRestart}"
+fi
+
+EOF
+`
+
+# Check the status of remote operations
+dest_rc=$?
+echo "Remote output strings are > $remote_output <"
+echo "Remote return code is: $dest_rc"
+if [ 255 -eq $dest_rc ]; then
+    echo "ERROR: Failure spawning remote XDD: $remote_output"
+    exit -7
+fi
+
+# Construct source XDD settings
+sourceQD=${XDDCP_DEFAULT_QUEUE_DEPTH}
+sourceLog="${test}.${HSource}.out"
+
+if [ 1 == $resumeFlag ]; then
+    resume_offset=$(echo $remote_output |rev |cut -d ' ' -f 1 |rev)
+    if [ "enable" == "$resume_offset" ]; then
+        sourceRestart="-restart enable"
+    elif [ 0 -le "$resume_offset" ]; then
+        echo "INFO: Resuming XDD file transfer at offset: $resume_offset"
+        sourceRestart="-restart offset $resume_offset"
+    else
+	echo "ERROR: Invalid restart offset: $resume_offset"
+	exit -8
+    fi
+fi
+
+#
+# Construct local transport endpoint
+#
+echo xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $sourceQD -op read -e2e issource -e2e dest ${HDestinIP} ${e2ePort} ${sourceDIO} ${sourceRestart} -timerinfo
+xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $sourceQD -op read -e2e issource -e2e dest ${HDestinIP} ${e2ePort} ${sourceDIO} ${sourceRestart} -timerinfo &> ${sourceLog} &
 
 wait
 
