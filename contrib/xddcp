@@ -249,8 +249,11 @@ fi
 #
 # Construct local transport endpoint
 #
-xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $sourceQD -op read -e2e issource -e2e dest ${HDestinIP} ${e2ePort} ${sourceDIO} ${sourceRestart} -timerinfo &> ${sourceLog} &
+xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $sourceQD -op read -e2e issource -e2e dest ${HDestinIP} ${e2ePort} ${sourceDIO} ${sourceRestart} -timerinfo &> ${sourceLog}
 
-wait
-
-echo "Transfer finished"
+xdd_rc=$?
+if [ 0 -eq $xdd_rc ]; then
+    echo "Transfer finished."
+else
+    echo "ERROR: Transfer did not complete.  XDD Error Code: $xdd_rc"
+fi
