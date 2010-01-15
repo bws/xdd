@@ -19,18 +19,19 @@ XDDCP_DEFAULT_QUEUE_DEPTH=4
 # Print out the usage information
 #
 function print_usage() {
-    echo "xddcp [ -a -d -f -s -t threads ] source_file destination_host destination_file [bytes_to_transfer]"
+    echo "xddcp [OPTIONS] source_file destination_host:destination_file [bytes_to_transfer]"
 #echo "source_host       - source host IP or Name over which data is transferred"
     echo "-a		- Resume transfer if it was only partially completed and the -a flag was specified"
     echo "-d		- Use direct I/O on the destination end"
     #echo "-f		- Handle a list of files"
     echo "-h		- Print out usage information"
+    echo "-p portnum    - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo "-s		- Use direct I/O on the source end"
-    echo "-t threads	- Use 'threads' number of threads during transfer"
+    echo "-t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
     echo "source_file       - complete /filepath/name for source file on source host"
     echo "destination_host  - destination host IP or Name over which data is transferred"
     echo "destination_file  - complete /filepath/name for destination file on destination host"
-    echo "bytes_to_transfer - total bytes to transfer (default - size of source file)"
+    echo "bytes_to_transfer - total bytes to transfer [Default: size of source file]"
     echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
 }
 
@@ -87,7 +88,7 @@ if [ "$1" == "-h" ]; then
     print_usage
     exit 0
 elif [ $# -lt 2 ]; then
-    echo "usage: $0 [OPTION] /full_path/source_file destination_host /full_path/destination_file [bytes_to_transfer]"
+    echo "usage: $0 [OPTION] /full_path/source_file destination_host:/full_path/destination_file [bytes_to_transfer]"
     echo "Try '$0 -h' for more information."
     exit -1
 fi
@@ -95,15 +96,17 @@ fi
 # Parse options
 resumeFlag=0
 destinationDIO=""
+e2eport=$XDDCP_DEFAULT_E2E_PORT
 sourceDIO=""
-queueDepth=4
+queuedepth=$XDDCP_DEFAULT_QUEUE_DEPTH
 fileListFile=""
 
-while getopts adf:hst: option
+while getopts adf:hp:st: option
 do case $option in
         a) resumeFlag=1;;
 	d) destinationDIO="-dio";;
         f) fileListFile=$OPTARG;;
+        p) e2eport=$OPTARG;;
 	s) sourceDIO="-dio";;
 	t) queuedepth=$OPTARG;;
 	h) print_usage; exit 0;;
@@ -144,14 +147,14 @@ fi
 
 # Construct destination XDD settings
 test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".file-to-file.xfs.xdd"
-e2ePort="-e2e port ${XDDCP_DEFAULT_E2E_PORT}"
+e2ePortConfig="-e2e port ${e2eport}"
 let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
 let "numreqs   = $bytesperpass / $xfer"
 let "blocksize = 1024"
 let "reqsize   = $xfer / $blocksize"
 destinationFile=$TDDestin
 destinationDir=`dirname $destinationFile`
-destinationQD=${XDDCP_DEFAULT_QUEUE_DEPTH}
+destinationQD=${queuedepth}
 
 #
 # Perform local cleanup operations
@@ -210,7 +213,7 @@ if [ 1 == $resumeFlag ]; then
 fi
 
 # Start the XDD process
-xdd.Linux -targets 1 \\${destinationFile} -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $destinationQD -op write -e2e isdestination -e2e dest ${HDestinIP} ${e2ePort} ${destinationDIO} \\${destinationRestart} &> \\${destinationLog} &
+xdd.Linux -targets 1 \\${destinationFile} -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $destinationQD -op write -e2e isdestination -e2e dest ${HDestinIP} ${e2ePortConfig} ${destinationDIO} \\${destinationRestart} &> \\${destinationLog} &
 
 # Send the restart offset back to the source side via an exit code
 if [ 1 == $resumeFlag ]; then
@@ -230,7 +233,7 @@ if [ 255 -eq $dest_rc ]; then
 fi
 
 # Construct source XDD settings
-sourceQD=${XDDCP_DEFAULT_QUEUE_DEPTH}
+sourceQD=${queuedepth}
 sourceLog="${test}.${HSource}.out"
 
 if [ 1 == $resumeFlag ]; then
@@ -249,11 +252,14 @@ fi
 #
 # Construct local transport endpoint
 #
-xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $sourceQD -op read -e2e issource -e2e dest ${HDestinIP} ${e2ePort} ${sourceDIO} ${sourceRestart} -timerinfo &> ${sourceLog}
+xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $sourceQD -op read -e2e issource -e2e dest ${HDestinIP} ${e2ePortConfig} ${sourceDIO} ${sourceRestart} -timerinfo &> ${sourceLog}
 
+#
+# Check transfer completion status
+#
 xdd_rc=$?
 if [ 0 -eq $xdd_rc ]; then
-    echo "Transfer finished."
+    echo "Transfer finished (use md5sum to validate transfer)."
 else
     echo "ERROR: Transfer did not complete.  XDD Error Code: $xdd_rc"
 fi

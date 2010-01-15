@@ -6,6 +6,8 @@ xdd-7.0.0 RC9
 =============
 * Added a -restart option to allow resuming a partial transfer
 * Added a -a option to xddcp to automate the restart/resume process for user
+* Added -p portnum option to xddcp script
+* Tried to fix trailing message in xddcp script
 
 xdd-7.0.0 RC8
 =============
