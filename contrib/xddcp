@@ -1,6 +1,5 @@
 #!/bin/bash 
 #
-#
 # IMPORTANT NOTE: I found it necessary to delete the destination file
 # before every test *IF* the same namespace is used AND the test used
 # a smaller file size than the previous test. It seems as though the
@@ -14,12 +13,13 @@
 XDDCP_DEFAULT_E2E_PORT=40010
 XDDCP_DEFAULT_XFER_SIZE=16777216
 XDDCP_DEFAULT_QUEUE_DEPTH=4
+XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 
 #
 # Print out the usage information
 #
 function print_usage() {
-    echo "xddcp [OPTIONS] source_file destination_host:destination_file [bytes_to_transfer]"
+    echo "xddcp [OPTIONS] source_file destination_host:destination_file"
 #echo "source_host       - source host IP or Name over which data is transferred"
     echo "-a		- Resume transfer if it was only partially completed and the -a flag was specified"
     echo "-d		- Use direct I/O on the destination end"
@@ -28,10 +28,10 @@ function print_usage() {
     echo "-p portnum    - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo "-s		- Use direct I/O on the source end"
     echo "-t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
+    #echo "-Y		- Force SSH to create psueo-terminal tty"
     echo "source_file       - complete /filepath/name for source file on source host"
     echo "destination_host  - destination host IP or Name over which data is transferred"
     echo "destination_file  - complete /filepath/name for destination file on destination host"
-    echo "bytes_to_transfer - total bytes to transfer [Default: size of source file]"
     echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
 }
 
@@ -100,16 +100,18 @@ e2eport=$XDDCP_DEFAULT_E2E_PORT
 sourceDIO=""
 queuedepth=$XDDCP_DEFAULT_QUEUE_DEPTH
 fileListFile=""
+sshoption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
 
-while getopts adf:hp:st: option
+while getopts adf:hp:st:Y option
 do case $option in
         a) resumeFlag=1;;
 	d) destinationDIO="-dio";;
         f) fileListFile=$OPTARG;;
+	h) print_usage; exit 0;;
         p) e2eport=$OPTARG;;
 	s) sourceDIO="-dio";;
 	t) queuedepth=$OPTARG;;
-	h) print_usage; exit 0;;
+        Y) sshoption="-tt";;
 	esac
 done
 shift $((OPTIND-1))
@@ -135,15 +137,15 @@ check_preconditions ${TDSource}
 
 # Determine bytes per pass
 bytesperpass=167772160
-if [ $# -eq 4 ]; then
-	bytesperpass=${4}
-else
-	if [ $TDSource = "/dev/null" -o $TDSource = "/dev/zero" ]; then
-		bytesperpass=167772160
-	else
-		bytesperpass=`ls -l ${TDSource} | awk '{print $5}'`
-	fi
-fi
+#if [ $# -eq 4 ]; then
+#	bytesperpass=${4}
+#else
+#	if [ $TDSource = "/dev/null" -o $TDSource = "/dev/zero" ]; then
+#		bytesperpass=167772160
+#	else
+#		bytesperpass=`ls -l ${TDSource} | awk '{print $5}'`
+#	fi
+#fi
 
 # Construct destination XDD settings
 test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".file-to-file.xfs.xdd"
@@ -154,7 +156,7 @@ let "blocksize = 1024"
 let "reqsize   = $xfer / $blocksize"
 destinationFile=$TDDestin
 destinationDir=`dirname $destinationFile`
-destinationQD=${queuedepth}
+destinationQD="-queuedepth ${queuedepth}"
 
 #
 # Perform local cleanup operations
@@ -165,27 +167,27 @@ pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
 #
 # Perform remote cleanup and construct remote transport endpoint
 #
-remote_output=`ssh -t ${HDestin} bash -e <<EOF
+remote_output=$(ssh ${sshoption} ${HDestin} bash <<EOF
 
 # Kill any stale xdd processes
-pgrep -u \\${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9 
+pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9 
 
 # Cleanup leaked system resources
-qipcrm \\${USER} &>/dev/null
+qipcrm \${USER} &>/dev/null
 
 # If the filename uses a relative path, path complement it
-path_char=\\$(dirname $TDDestin |cut -c 1)
-echo First path char: \\$path_char
-if [ "." == \\$path_char ]; then
-    default_dir=\\$(pwd)
-    destinationFile="\\${default_dir}/${TDDestin}"
-    destinationLog="\\${default_dir}/${test}.${HDestin}.out"
+path_char=\$(dirname $TDDestin |cut -c 1)
+echo "First path char: \$path_char"
+if [ "." == \$path_char ]; then
+    default_dir=\$(pwd)
+    destinationFile="\${default_dir}/${TDDestin}"
+    destinationLog="\${default_dir}/${test}.${HDestin}.out"
 else
     destinationFile="${TDDestin}"
     destinationLog="${test}.${HDestin}.out"
 fi
-echo "Path complemented filename is \\$destinationFile"
-echo "Path complemented logfile is \\$destinationLog"
+echo "Path complemented filename is \$destinationFile"
+echo "Path complemented logfile is \$destinationLog"
 
 # Perform restart if neccesary
 restart_offset=0
@@ -202,57 +204,63 @@ if [ 1 == $resumeFlag ]; then
     fi
 
     # Check for the existence a restart cookie
-    restart_file=\\$(basename ${TDDestin})
-    most_recent_restart_cookie=\\$(ls -l destination.NA.NA.${HDestinIP}.\\${restart_file}.*.rst |tail -1 | cut -d ' ' -f 9)
-    echo "Using restart cookie: \\$most_recent_restart_cookie"
-    if [ -z "\\$most_recent_restart_cookie" ]; then
+    restart_file=\$(basename ${TDDestin})
+    most_recent_restart_cookie=\$(ls -l destination.NA.NA.${HDestinIP}.\${restart_file}.*.rst 2>/dev/null |tail -1 | cut -d ' ' -f 9)
+    echo "Using restart cookie: \$most_recent_restart_cookie"
+    if [ -z "\$most_recent_restart_cookie" ]; then
        destinationRestart="-restart enable"
     else
-       destinationRestart=\\$(cat \\$most_recent_restart_cookie)
+       destinationRestart="-restart enable \$(cat \$most_recent_restart_cookie)"
     fi
 fi
 
 # Start the XDD process
-xdd.Linux -targets 1 \\${destinationFile} -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $destinationQD -op write -e2e isdestination -e2e dest ${HDestinIP} ${e2ePortConfig} ${destinationDIO} \\${destinationRestart} &> \\${destinationLog} &
+xdd.Linux -targets 1 \${destinationFile} -minall -bytes $bytesperpass -reqsize $reqsize -verbose ${destinationQD} -op write -e2e isdestination -e2e dest ${HDestinIP} ${e2ePortConfig} ${destinationDIO} \${destinationRestart} &> \${destinationLog} &
 
 # Send the restart offset back to the source side via an exit code
 if [ 1 == $resumeFlag ]; then
-    echo "XDDCP RESTART TOKENS: \\${destinationRestart}"
+    echo "XDDCP RESTART TOKENS: \${destinationRestart}"
 fi
 
 EOF
-`
+)
 
 # Check the status of remote operations
 dest_rc=$?
-#echo "Remote output strings are > $remote_output <"
+#echo "Remote output strings are >$remote_output<"
 #echo "Remote return code is: $dest_rc"
 if [ 255 -eq $dest_rc ]; then
     echo "ERROR: Failure spawning remote XDD: $remote_output"
     exit -7
+elif [ -z "$remote_output" ]; then
+    echo "ERROR: Remote session failed."
+    exit -8
 fi
 
 # Construct source XDD settings
-sourceQD=${queuedepth}
+sourceQD="-queuedepth ${queuedepth}"
 sourceLog="${test}.${HSource}.out"
 
 if [ 1 == $resumeFlag ]; then
     resume_offset=$(echo $remote_output |rev |cut -d ' ' -f 1 |rev)
-    if [ "enable" == "$resume_offset" ]; then
+    if [ -z "$resume_offset" ]; then
+        echo "ERROR: SSH psueo-terminal problems.  Adding '-Y' to the command line may fix this problem."
+        exit -9
+    elif [ "enable" == "$resume_offset" ]; then
         sourceRestart="-restart enable"
-    elif [ 0 -le "$resume_offset" ]; then
+    elif [ 0 -le $resume_offset ]; then
         echo "INFO: Resuming XDD file transfer at offset: $resume_offset"
-        sourceRestart="-restart offset $resume_offset"
+        sourceRestart="-restart enable -restart offset $resume_offset"
     else
 	echo "ERROR: Invalid restart offset: $resume_offset"
-	exit -8
+	exit -10
     fi
 fi
 
 #
 # Construct local transport endpoint
 #
-xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $sourceQD -op read -e2e issource -e2e dest ${HDestinIP} ${e2ePortConfig} ${sourceDIO} ${sourceRestart} -timerinfo &> ${sourceLog}
+xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize ${sourceQD} -op read -e2e issource -e2e dest ${HDestinIP} ${e2ePortConfig} ${sourceDIO} ${sourceRestart} -timerinfo &> ${sourceLog}
 
 #
 # Check transfer completion status

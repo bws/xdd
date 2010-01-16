@@ -4,10 +4,15 @@ XDD Release ChangeLog
 
 xdd-7.0.0 RC9
 =============
-* Added a -restart option to allow resuming a partial transfer
-* Added a -a option to xddcp to automate the restart/resume process for user
-* Added -p portnum option to xddcp script
-* Tried to fix trailing message in xddcp script
+* XDD: Added a -restart option to allow resuming a partial transfer
+* XDDCP: Added a -a option to automate the restart/resume process for user
+* XDDCP: Added -p portnum option to script
+* XDDCP: Remove option that appeared to allow partial file transfers.  It
+  didn't do exactly what it said it did, and positional parameters are error prone.
+* XDDCP: Explictly documented the host:<path_to_file> format of input.  Its supported,
+  if it doesn't work for you, file a bug and we'll fix it.
+* XDDCP: Tried to fix trailing message in script (still says "Transfer finished."
+  when the user explicitly cancels xdd with Ctrl-c.
 
 xdd-7.0.0 RC8
 =============
