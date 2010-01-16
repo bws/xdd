@@ -68,15 +68,15 @@ function check_preconditions() {
     fi
 
     # Ensure source side file exists
-    if [ ! -e ${source_side_file} ]; then
-	echo "ERROR: Source file doesn't exist: ${source_side_file}"
+    if [ ! -r "${source_side_filename}" ]; then
+	echo "ERROR: Cannot read source file: ${source_side_filename}"
 	exit -4
     fi
 
     # Ensure source side file is larger than 16MB
-    source_file_size=`ls -l ${TDSource} | awk '{print $5}'`
+    source_file_size=`ls -l ${source_side_filename} | awk '{print $5}'`
     if [ $source_file_size -lt 16777216 ]; then
-	echo "ERROR: File must be larger than 16777216, actual size: $source_file_size"
+	echo "ERROR: Source file must be larger than 16777216, actual size: $source_file_size"
 	exit -5
     fi
 }
