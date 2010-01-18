@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # IMPORTANT NOTE: I found it necessary to delete the destination file
 # before every test *IF* the same namespace is used AND the test used
@@ -175,11 +175,11 @@ function init_remote_transfer() {
     local destinationBase=$(basename $destFile)
     local destinationDir=$(dirname $destFile)
     local destinationLog="nt1.qd${queueDepth}.${xfer}x${numReqs}.file-to-file.xfs.xdd.${destinationBase}.out"
-    local distinationQD="-queuedepth ${queueDepth}"
+    local destinationQD="-queuedepth ${queueDepth}"
     if [ 1 -eq $destDIOFlag ]; then
         local destinationDIO="-dio"
     fi
-    remote_output=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
+    remote_output=$(ssh ${sshOpts} ${remoteHost} bash -x <<EOF
 
 # Kill any stale xdd processes
 pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9 
@@ -193,10 +193,10 @@ echo "First path char: \$path_char"
 if [ "." == \$path_char ]; then
     default_dir=\$(pwd)
     destinationFile="\${default_dir}/${destFile}"
-    destinationLog="\${default_dir}/${test}.${remoteHost}.out"
+    destinationLog="\${default_dir}/${destinationLog}"
 else
     destinationFile="${destFile}"
-    destinationLog="${test}.${remoteHost}.out"
+    destinationLog="${destinationLog}"
 fi
 echo "Path complemented filename is \$destinationFile"
 echo "Path complemented logfile is \$destinationLog"
