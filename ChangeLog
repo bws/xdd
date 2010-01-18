@@ -11,8 +11,10 @@ xdd-7.0.0 RC9
   didn't do exactly what it said it did, and positional parameters are error prone.
 * XDDCP: Explictly documented the host:<path_to_file> format of input.  Its supported,
   if it doesn't work for you, file a bug and we'll fix it.
-* XDDCP: Tried to fix trailing message in script (still says "Transfer finished."
-  when the user explicitly cancels xdd with Ctrl-c.
+* XDDCP: Tried to fix trailing message in script (still says 
+  "Transfer finished."  when the user explicitly cancels xdd with Ctrl-c.
+* XDDCP: Added -F option that allows user to specify transfer files inside
+  of the source side file.
 
 xdd-7.0.0 RC8
 =============

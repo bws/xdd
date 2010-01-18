@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 #
 # IMPORTANT NOTE: I found it necessary to delete the destination file
 # before every test *IF* the same namespace is used AND the test used
@@ -20,18 +20,20 @@ XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 #
 function print_usage() {
     echo "xddcp [OPTIONS] source_file destination_host:destination_file"
-#echo "source_host       - source host IP or Name over which data is transferred"
-    echo "-a		- Resume transfer if it was only partially completed and the -a flag was specified"
-    echo "-d		- Use direct I/O on the destination end"
-    #echo "-f		- Handle a list of files"
-    echo "-h		- Print out usage information"
-    echo "-p portnum    - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
-    echo "-s		- Use direct I/O on the source end"
-    echo "-t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
-    #echo "-Y		- Force SSH to create psueo-terminal tty"
+    echo ""
     echo "source_file       - complete /filepath/name for source file on source host"
     echo "destination_host  - destination host IP or Name over which data is transferred"
     echo "destination_file  - complete /filepath/name for destination file on destination host"
+    echo ""
+    echo "OPTIONS: "
+    echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
+    echo " -d		- Use direct I/O on the destination end"
+    echo " -F		- Transfer a list of files named in source_file"
+    echo " -h		- Print out usage information"
+    echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
+    echo " -s		- Use direct I/O on the source end"
+    echo " -t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
+    #echo "-Y		- Force SSH to create psueo-terminal tty"
     echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
 }
 
@@ -74,10 +76,185 @@ function check_preconditions() {
     fi
 
     # Ensure source side file is larger than 16MB
-    source_file_size=`ls -l ${source_side_filename} | awk '{print $5}'`
+    source_file_size=$(stat -c "%s" ${source_side_filename})
     if [ $source_file_size -lt 16777216 ]; then
 	echo "ERROR: Source file must be larger than 16777216, actual size: $source_file_size"
 	exit -5
+    fi
+}
+
+#
+# Perform local cleanup operations
+#
+function perform_local_cleanup() {
+    qipcrm ${USER}
+    pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
+}
+
+#
+# Initialize local transfer
+#
+function init_local_transfer() {
+
+    # Arguments
+    local remoteHost=$1
+    local sourceFile=$2
+    local totalBytes=$3
+    local queueDepth=$4
+    local e2ePort=$5
+    local sourceDIOFlag=$6
+    local resumeFlag=$7
+    local resumeOffset=$8
+
+    # Construct XDD transfer settings
+    let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
+    let "numreqs   = ${totalBytes} / $xfer"
+    let "blocksize = 1024"
+    let "reqsize   = $xfer / $blocksize"
+
+    # Validate restart flag if necessary
+    sourceRestart=""
+    if [ 1 == $resumeFlag ]; then
+        if [ "enable" == "$resumeOffset" ]; then
+            sourceRestart="-restart enable"
+        elif [ 0 -le $resumeOffset ]; then
+            echo "INFO: Resuming XDD file transfer at offset: $resumeOffset"
+            sourceRestart="-restart enable -restart offset $resumeOffset"
+        else
+	    echo "ERROR: Invalid restart offset: $resumeOffset"
+	    exit -10
+        fi
+    fi
+
+    # Construct source XDD settings
+    local sourceBase=$(basename ${sourceFile})
+    local sourceQD="-queuedepth ${queuedepth}"
+    local sourceLog="nt1.qd${queueDepth}.${xfer}x${numReqs}.file-to-file.xfs.xdd.${sourceBase}.out"
+    if [ 1 -eq $sourceDIOFlag ]; then
+        local sourceDIO="-dio"
+    fi
+
+    # Construct local transport endpoint
+    xdd.Linux -targets 1  ${sourceFile} -op read -minall \
+        -bytes ${totalBytes} -reqsize ${reqsize} ${sourceQD} \
+        -e2e issource -e2e dest ${remoteHost} -e2e port ${e2ePort} \
+        ${sourceDIO} ${sourceRestart} \
+        -timerinfo -verbose &> ${sourceLog}
+
+    # Check transfer completion status
+    transfer_rc=$?
+    if [ 0 -eq "$transfer_rc" ]; then
+        echo "Transfer finished (use md5sum to validate transfer)."
+    else
+        echo "ERROR: Transfer did not complete.  XDD Error Code: $transfer_rc"
+        exit -11
+    fi
+}
+
+#
+# Perform remote cleanup and construct remote transport endpoint
+#
+function init_remote_transfer() {
+    # Arguments
+    local remoteHost="$1"
+    local sshOpts="$2"
+    local destFile="$3"
+    local totalBytes="$4"
+    local queueDepth="$5"
+    local e2ePort="$6"
+    local destDIOFlag="$7"
+    local resumeFlag="$8"
+
+    # Construct transfer settings
+    let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
+    let "numreqs   = $totalBytes / $xfer"
+    let "blocksize = 1024"
+    let "reqsize   = $xfer / $blocksize"
+
+    # Other variables
+    local destinationBase=$(basename $destFile)
+    local destinationDir=$(dirname $destFile)
+    local destinationLog="nt1.qd${queueDepth}.${xfer}x${numReqs}.file-to-file.xfs.xdd.${destinationBase}.out"
+    local distinationQD="-queuedepth ${queueDepth}"
+    if [ 1 -eq $destDIOFlag ]; then
+        local destinationDIO="-dio"
+    fi
+    remote_output=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
+
+# Kill any stale xdd processes
+pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9 
+
+# Cleanup leaked system resources
+qipcrm \${USER} &>/dev/null
+
+# If the filename uses a relative path, path complement it
+path_char=\$(dirname $destFile |cut -c 1)
+echo "First path char: \$path_char"
+if [ "." == \$path_char ]; then
+    default_dir=\$(pwd)
+    destinationFile="\${default_dir}/${destFile}"
+    destinationLog="\${default_dir}/${test}.${remoteHost}.out"
+else
+    destinationFile="${destFile}"
+    destinationLog="${test}.${remoteHost}.out"
+fi
+echo "Path complemented filename is \$destinationFile"
+echo "Path complemented logfile is \$destinationLog"
+
+# Ensure destination is writable
+if [ ! -d $destinationDir ]; then
+    echo "Cannot write to directory: $destinationDir"
+    exit -1
+fi
+
+# Perform restart if neccesary
+if [ 1 == $resumeFlag ]; then
+
+    # Check for the existence a restart cookie
+    restart_file=\$(basename ${TDDestin})
+    most_recent_restart_cookie=\$(ls -l destination.NA.NA.${HDestinIP}.\${restart_file}.*.rst 2>/dev/null |tail -1 | cut -d ' ' -f 9)
+    echo "Using restart cookie: \$most_recent_restart_cookie"
+    if [ -z "\$most_recent_restart_cookie" ]; then
+       destinationRestart="-restart enable"
+    else
+       destinationRestart="-restart enable \$(cat \$most_recent_restart_cookie)"
+    fi
+fi
+
+# Start the XDD process
+xdd.Linux -targets 1 \${destinationFile} -op write -minall \
+    -bytes ${totalBytes} -reqsize $reqsize ${destinationQD} \
+    -e2e isdestination -e2e dest ${remoteHost} -e2e port ${e2ePort} \
+    ${destinationDIO} \${destinationRestart} \
+    -verbose &> \${destinationLog} &
+
+# Send the restart offset back to the source side via an exit code
+if [ 1 == $resumeFlag ]; then
+    echo "XDDCP RESTART TOKENS: \${destinationRestart}"
+fi
+
+EOF
+    )
+
+    # Check the status of remote operations
+    dest_rc=$?
+    #echo "Remote output strings are >$remote_output<"
+    #echo "Remote return code is: $dest_rc"
+    if [ 255 -eq $dest_rc ]; then
+        echo "ERROR: Failure spawning remote XDD: $remote_output"
+        exit -7
+    elif [ -z "$remote_output" ]; then
+        echo "ERROR: Remote session failed."
+        exit -8
+    fi
+
+    # Extract the resume offset from the remote output
+    if [ 1 == $resumeFlag ]; then
+        resumeOffset=$(echo $remote_output |rev |cut -d ' ' -f 1 |rev)
+        if [ -z "$resumeOffset" ]; then
+            echo "ERROR: SSH psueo-terminal problems.  Adding '-Y' to the command line may fix this problem."
+            exit -9
+        fi
     fi
 }
 
@@ -95,21 +272,21 @@ fi
 
 # Parse options
 resumeFlag=0
-destinationDIO=""
+destinationDIOFlag=0
 e2eport=$XDDCP_DEFAULT_E2E_PORT
-sourceDIO=""
+fileListFlag=0
+sourceDIOFlag=0
 queuedepth=$XDDCP_DEFAULT_QUEUE_DEPTH
-fileListFile=""
 sshoption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
 
-while getopts adf:hp:st:Y option
+while getopts adFhp:st:Y option
 do case $option in
         a) resumeFlag=1;;
-	d) destinationDIO="-dio";;
-        f) fileListFile=$OPTARG;;
+	d) destinationDIOFlag=1;;
+        F) fileListFlag=1;;
 	h) print_usage; exit 0;;
         p) e2eport=$OPTARG;;
-	s) sourceDIO="-dio";;
+	s) sourceDIOFlag=1;;
 	t) queuedepth=$OPTARG;;
         Y) sshoption="-tt";;
 	esac
@@ -131,143 +308,49 @@ if [ $colon_count -eq 1 ]; then
 	TDDestin=`echo $2 | awk -F: '{print $2}'`
 fi
 
-
-# Ensure local-side preconditions are met
-check_preconditions ${TDSource}
-
-# Determine bytes per pass
-bytesperpass=167772160
-#if [ $# -eq 4 ]; then
-#	bytesperpass=${4}
-#else
-#	if [ $TDSource = "/dev/null" -o $TDSource = "/dev/zero" ]; then
-#		bytesperpass=167772160
-#	else
-#		bytesperpass=`ls -l ${TDSource} | awk '{print $5}'`
-#	fi
-#fi
-
-# Construct destination XDD settings
-test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".file-to-file.xfs.xdd"
-e2ePortConfig="-e2e port ${e2eport}"
-let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
-let "numreqs   = $bytesperpass / $xfer"
-let "blocksize = 1024"
-let "reqsize   = $xfer / $blocksize"
-destinationFile=$TDDestin
-destinationDir=`dirname $destinationFile`
-destinationQD="-queuedepth ${queuedepth}"
-
-#
-# Perform local cleanup operations
-#
-qipcrm ${USER}
-pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
-
-#
-# Perform remote cleanup and construct remote transport endpoint
-#
-remote_output=$(ssh ${sshoption} ${HDestin} bash <<EOF
-
-# Kill any stale xdd processes
-pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9 
-
-# Cleanup leaked system resources
-qipcrm \${USER} &>/dev/null
-
-# If the filename uses a relative path, path complement it
-path_char=\$(dirname $TDDestin |cut -c 1)
-echo "First path char: \$path_char"
-if [ "." == \$path_char ]; then
-    default_dir=\$(pwd)
-    destinationFile="\${default_dir}/${TDDestin}"
-    destinationLog="\${default_dir}/${test}.${HDestin}.out"
-else
-    destinationFile="${TDDestin}"
-    destinationLog="${test}.${HDestin}.out"
-fi
-echo "Path complemented filename is \$destinationFile"
-echo "Path complemented logfile is \$destinationLog"
-
-# Perform restart if neccesary
-restart_offset=0
-if [ 1 == $resumeFlag ]; then
-
-    # Create the restart directory if it does not exits
-    if [ ! -d $destinationDir/.xdd ]; then
-        echo mkdir -p $destinationDir/.xdd
-        mkdir -p $destinationDir/.xdd
+# Handle a set of input file
+sourceFileList="${TDSource}"
+if [ 1 -eq $fileListFlag ]; then
+    if [ 1 -eq $resumeFlag ]; then
+        echo "ERROR: The -a and -F flags cannot be used simulataneously."
+        exit -12
     fi
-    if [ ! -w $destinationDir/.xdd ]; then
-        echo "Cannot write: $destinationDir/.xdd"
-        exit -1
+    sourceFileList=$(cat ${TDSource})
+fi
+
+# Process all source files
+for sourceFile in ${sourceFileList}; do
+
+    # Construct the detination filename if there are multiple sources
+    destFile=${TDDestin}
+    if [ 1 -eq $fileListFlag ]; then
+        sourceNameBase=$(basename $sourceFile)
+        destFile="${TDDestin}/${sourceNameBase}"
+        echo "INFO: Starting transfer for: $sourceFile"
     fi
 
-    # Check for the existence a restart cookie
-    restart_file=\$(basename ${TDDestin})
-    most_recent_restart_cookie=\$(ls -l destination.NA.NA.${HDestinIP}.\${restart_file}.*.rst 2>/dev/null |tail -1 | cut -d ' ' -f 9)
-    echo "Using restart cookie: \$most_recent_restart_cookie"
-    if [ -z "\$most_recent_restart_cookie" ]; then
-       destinationRestart="-restart enable"
-    else
-       destinationRestart="-restart enable \$(cat \$most_recent_restart_cookie)"
+    # Ensure local-side preconditions are met
+    check_preconditions ${sourceFile}
+
+    # Perform source side cleanup
+    perform_local_cleanup
+
+    # Determine file size
+    totalbytes=$(stat -c "%s" ${sourceFile})
+
+    # Initialize the remote transfer (note $resumeOffset is set as a side effect of init_remote_transfer
+    init_remote_transfer ${HDestinIP} ${sshoption} ${destFile} ${totalbytes} ${queuedepth} ${e2eport} ${destinationDIOFlag} ${resumeFlag} 
+    if [ 1 -eq "${resumeFlag}" ]; then
+        if [ -z "${resumeOffset}" ]; then
+            echo "ERROR: Restart offset could not be determined."
+            exit -10
+        fi
     fi
-fi
 
-# Start the XDD process
-xdd.Linux -targets 1 \${destinationFile} -minall -bytes $bytesperpass -reqsize $reqsize -verbose ${destinationQD} -op write -e2e isdestination -e2e dest ${HDestinIP} ${e2ePortConfig} ${destinationDIO} \${destinationRestart} &> \${destinationLog} &
+    # Initialize the local-side transfer (note $resumeOffset is set as a side effect of init_remote_transfer)
+    init_local_transfer ${HDestinIP} ${sourceFile} ${totalbytes} ${queuedepth} ${e2eport} ${sourceDIOFlag} ${resumeFlag} ${resumeOffset}
 
-# Send the restart offset back to the source side via an exit code
-if [ 1 == $resumeFlag ]; then
-    echo "XDDCP RESTART TOKENS: \${destinationRestart}"
-fi
+done
 
-EOF
-)
-
-# Check the status of remote operations
-dest_rc=$?
-#echo "Remote output strings are >$remote_output<"
-#echo "Remote return code is: $dest_rc"
-if [ 255 -eq $dest_rc ]; then
-    echo "ERROR: Failure spawning remote XDD: $remote_output"
-    exit -7
-elif [ -z "$remote_output" ]; then
-    echo "ERROR: Remote session failed."
-    exit -8
-fi
-
-# Construct source XDD settings
-sourceQD="-queuedepth ${queuedepth}"
-sourceLog="${test}.${HSource}.out"
-
-if [ 1 == $resumeFlag ]; then
-    resume_offset=$(echo $remote_output |rev |cut -d ' ' -f 1 |rev)
-    if [ -z "$resume_offset" ]; then
-        echo "ERROR: SSH psueo-terminal problems.  Adding '-Y' to the command line may fix this problem."
-        exit -9
-    elif [ "enable" == "$resume_offset" ]; then
-        sourceRestart="-restart enable"
-    elif [ 0 -le $resume_offset ]; then
-        echo "INFO: Resuming XDD file transfer at offset: $resume_offset"
-        sourceRestart="-restart enable -restart offset $resume_offset"
-    else
-	echo "ERROR: Invalid restart offset: $resume_offset"
-	exit -10
-    fi
-fi
-
-#
-# Construct local transport endpoint
-#
-xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize ${sourceQD} -op read -e2e issource -e2e dest ${HDestinIP} ${e2ePortConfig} ${sourceDIO} ${sourceRestart} -timerinfo &> ${sourceLog}
-
-#
-# Check transfer completion status
-#
-xdd_rc=$?
-if [ 0 -eq $xdd_rc ]; then
-    echo "Transfer finished (use md5sum to validate transfer)."
-else
-    echo "ERROR: Transfer did not complete.  XDD Error Code: $xdd_rc"
-fi
+# Return success
+exit 0
