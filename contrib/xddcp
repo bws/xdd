@@ -347,8 +347,8 @@ fi
 # Get the specified size if it is defined
 fileSizeFlag=0
 totalbytes=0
-if [ 3 -eq $# ]; then
-    filesizeFlag=1
+if [ ! -z "$3" ]; then
+    fileSizeFlag=1
     totalbytes=$3
 fi
 
