@@ -19,11 +19,12 @@ XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 # Print out the usage information
 #
 function print_usage() {
-    echo "xddcp [OPTIONS] source_file destination_host:destination_file"
+    echo "xddcp [OPTIONS] source_file destination_host:destination_file [size]"
     echo ""
     echo "source_file       - complete /filepath/name for source file on source host"
     echo "destination_host  - destination host IP or Name over which data is transferred"
     echo "destination_file  - complete /filepath/name for destination file on destination host"
+    echo "size              - number of bytes to transfer [Default: size of source file]"
     echo ""
     echo "OPTIONS: "
     echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
@@ -38,48 +39,73 @@ function print_usage() {
 }
 
 #
-# Check preconditions
+# Check preconditions for the host
 #
-function check_preconditions() {
-    source_side_filename="$1"
+function check_host_preconditions() {
+
+    # Arguments
+    local sourceSideFilename=$1
+    local fileListFlag=$2
+    local fileSizeFlag=$3
+    local resumeFlag=$4
 
     # Check for qipcrm script
     which qipcrm > /dev/null 2> /dev/null
     if [ $? -eq 1 ]; then
 	echo "ERROR: qipcrm executable was not found.  Please make sure it is in your PATH."
-	exit -1
+	exit 10
     fi
 
     # Check for xdd.Linux binary
     which xdd.Linux >/dev/null 2> /dev/null
     if [ $? -eq 1 ]; then
         echo "ERROR: xdd.Linux executable was not found.  Please make sure it is in your PATH."
-        exit -2
+        exit 11
     fi
 
-    # Check for confidence directory
-    if [ ! -d /dev/shm/condata ]; then
-	mkdir /dev/shm/condata
-	chmod 1777 /dev/shm/condata
-    fi
-
-    # Ensure confidence directory is writable
-    if [ ! -w /dev/shm/condata ]; then
-	echo "ERROR: /dev/shm/condata needs to be writeable"
-	exit -3
+    # Ensure flag combinations are valid
+    if [ 1 -eq $fileListFlag -a 1 -eq $resumeFlag ]; then
+        echo "ERROR: The -a and -F flags cannot be used simulataneously."
+        exit 12
+    elif [ 1 -eq $fileListFlag -a 1 -eq $fileSizeFlag ]; then
+        echo "ERROR: Cannot specify -F flag and a file size simulataneously."
+        exit 13
     fi
 
     # Ensure source side file exists
-    if [ ! -r "${source_side_filename}" ]; then
-	echo "ERROR: Cannot read source file: ${source_side_filename}"
-	exit -4
+    if [ ! -r "${sourceSideFilename}" ]; then
+	echo "ERROR: Cannot read source file: ${sourceSideFilename}"
+	exit 14
+    fi
+}
+
+#
+# Check preconditions for the source side file
+#
+function check_source_file_preconditions() {
+
+    # Arguments
+    local sourceSideFilename=$1
+    local fileSizeFlag=$2
+    local transferSize=$3
+
+    # Ensure source side file exists
+    if [ ! -r "${sourceSideFilename}" ]; then
+	echo "ERROR: Cannot read source file: ${sourceSideFilename}"
+	exit 20
     fi
 
-    # Ensure source side file is larger than 16MB
-    source_file_size=$(stat -c "%s" ${source_side_filename})
-    if [ $source_file_size -lt 16777216 ]; then
-	echo "ERROR: Source file must be larger than 16777216, actual size: $source_file_size"
-	exit -5
+    # Ensure file is large enough
+    local sourceDir="$(dirname $sourceSideFilename)"
+    if [ "$sourceDir" != "/dev" ]; then
+        local trueSize=$(stat -c '%s' "$sourceSideFilename")
+        if [ 16777216 -gt $trueSize ]; then
+            echo "ERROR: Cannot transfer files smaller than 16MiB"
+            exit 21
+        elif [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
+            echo "ERROR: Requested transfer size is larger than file size: $transferSize > $trueSize"
+            exit 22
+        fi
     fi
 }
 
@@ -87,7 +113,7 @@ function check_preconditions() {
 # Perform local cleanup operations
 #
 function perform_local_cleanup() {
-    qipcrm ${USER}
+    qipcrm ${USER} > /dev/null
     pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
 }
 
@@ -139,7 +165,7 @@ function init_local_transfer() {
         -bytes ${totalBytes} -reqsize ${reqsize} ${sourceQD} \
         -e2e issource -e2e dest ${remoteHost} -e2e port ${e2ePort} \
         ${sourceDIO} ${sourceRestart} \
-        -timerinfo -verbose &> ${sourceLog}
+        -timerinfo -verbose -heartbeat 10
 
     # Check transfer completion status
     transfer_rc=$?
@@ -158,12 +184,13 @@ function init_remote_transfer() {
     # Arguments
     local remoteHost="$1"
     local sshOpts="$2"
-    local destFile="$3"
-    local totalBytes="$4"
-    local queueDepth="$5"
-    local e2ePort="$6"
-    local destDIOFlag="$7"
-    local resumeFlag="$8"
+    local srcFile="$3"
+    local destFile="$4"
+    local totalBytes="$5"
+    local queueDepth="$6"
+    local e2ePort="$7"
+    local destDIOFlag="$8"
+    local resumeFlag="$9"
 
     # Construct transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
@@ -172,9 +199,10 @@ function init_remote_transfer() {
     let "reqsize   = $xfer / $blocksize"
 
     # Other variables
+    local srcBase=$(basename $srcFile)
     local destinationBase=$(basename $destFile)
     local destinationDir=$(dirname $destFile)
-    local destinationLog="nt1.qd${queueDepth}.${xfer}x${numReqs}.file-to-file.xfs.xdd.${destinationBase}.out"
+    local destinationLog="xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.$(date -u +'%Y-%m-%d-%H%M').log"
     local destinationQD="-queuedepth ${queueDepth}"
     if [ 1 -eq $destDIOFlag ]; then
         local destinationDIO="-dio"
@@ -267,7 +295,7 @@ if [ "$1" == "-h" ]; then
 elif [ $# -lt 2 ]; then
     echo "usage: $0 [OPTION] /full_path/source_file destination_host:/full_path/destination_file [bytes_to_transfer]"
     echo "Try '$0 -h' for more information."
-    exit -1
+    exit 1
 fi
 
 # Parse options
@@ -293,28 +321,43 @@ do case $option in
 done
 shift $((OPTIND-1))
 
-# Parse filenames
-HSourceIP=`hostname`      # HSourceIP - Source Host IP over which data is transferred
-HDestinIP="$2"            # HDestinIP - Destin Host IP over which data is transferred
-HSource=$HSourceIP        # assume Hostname==HostIP
-TDSource="$1"             # complete filepath for source file
-HDestin="$2"              # assume Hostname==HostIP
-TDDestin="$3"             # complete filepath for destination file
+# Parse out source file and source host
+TDSource="$1"
+HSourceIP=`hostname`
 
+# Parse out destination file and destination host
 colon_count=`echo $2 | grep -c ":"`
 if [ $colon_count -eq 1 ]; then
-	HDestin=`echo $2 | awk -F: '{print $1}'`
-	HDestinIP=$HDestin
-	TDDestin=`echo $2 | awk -F: '{print $2}'`
+    HDestin=`echo $2 | awk -F: '{print $1}'`
+    HDestinIP=$HDestin
+    TDDestin=`echo $2 | awk -F: '{print $2}'`
+
+    # Pull off the username if it exists
+    amp_count=$(echo ${HDestinIP} |grep -c "@")
+    if [ 1 -eq $amp_count ]; then
+        remoteUsername=$(echo ${HDestinIP} |awk -F@ '{print $1}')
+        HDestinIP=$(echo ${HDestinIP} |awk -F@ '{print $2}')
+        sshoptions="$sshoptions -l $remoteUsername"
+    fi
+else
+    echo "ERROR: Destination format must be in the form '[user@]host:filename'"
+    exit 2
 fi
+
+# Get the specified size if it is defined
+fileSizeFlag=0
+totalbytes=0
+if [ 3 -eq $# ]; then
+    filesizeFlag=1
+    totalbytes=$3
+fi
+
+# Ensure local-side preconditions are met
+check_host_preconditions ${TDSource} ${fileListFlag} ${fileSizeFlag} ${resumeFlag}
 
 # Handle a set of input file
 sourceFileList="${TDSource}"
 if [ 1 -eq $fileListFlag ]; then
-    if [ 1 -eq $resumeFlag ]; then
-        echo "ERROR: The -a and -F flags cannot be used simulataneously."
-        exit -12
-    fi
     sourceFileList=$(cat ${TDSource})
 fi
 
@@ -329,17 +372,17 @@ for sourceFile in ${sourceFileList}; do
         echo "INFO: Starting transfer for: $sourceFile"
     fi
 
-    # Ensure local-side preconditions are met
-    check_preconditions ${sourceFile}
-
     # Perform source side cleanup
     perform_local_cleanup
 
-    # Determine file size
-    totalbytes=$(stat -c "%s" ${sourceFile})
+    # Ensure source file preconditions are met
+    check_source_file_preconditions ${sourceFile} ${fileSizeFlag} ${totalbytes}
+    if [ 0 -eq $fileSizeFlag ]; then
+        totalbytes=$(stat -c "%s" ${sourceFile})
+    fi
 
     # Initialize the remote transfer (note $resumeOffset is set as a side effect of init_remote_transfer
-    init_remote_transfer ${HDestinIP} ${sshoption} ${destFile} ${totalbytes} ${queuedepth} ${e2eport} ${destinationDIOFlag} ${resumeFlag} 
+    init_remote_transfer ${HDestinIP} ${sshoption} ${sourceFile} ${destFile} ${totalbytes} ${queuedepth} ${e2eport} ${destinationDIOFlag} ${resumeFlag} 
     if [ 1 -eq "${resumeFlag}" ]; then
         if [ -z "${resumeOffset}" ]; then
             echo "ERROR: Restart offset could not be determined."
