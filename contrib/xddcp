@@ -165,7 +165,7 @@ function init_local_transfer() {
         -bytes ${totalBytes} -reqsize ${reqsize} ${sourceQD} \
         -e2e issource -e2e dest ${remoteHost} -e2e port ${e2ePort} \
         ${sourceDIO} ${sourceRestart} \
-        -timerinfo -verbose -heartbeat 10
+        -heartbeat 10
 
     # Check transfer completion status
     transfer_rc=$?
