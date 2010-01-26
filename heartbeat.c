@@ -73,7 +73,7 @@ xdd_heartbeat(void *junk) {
 		fprintf(stderr,"Pass %04d Op/AvgRate ",xgp->ptdsp[0]->my_current_pass_number);
 		for (i = 0; i < xgp->number_of_targets; i++) {
 			total_bytes_xferred = 0;
-			earliest_start_time = (double)LLONG_MAX;
+			earliest_start_time = PCLK_MAX;
 			latest_end_time = 0.0;
 			total_ops_issued = 0;
 			p = xgp->ptdsp[i];

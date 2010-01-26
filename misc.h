@@ -69,9 +69,14 @@ typedef enum { false = 0, true } bool;
 #define FLOAT_MILLION 1000000.0 /**< 10^6 as floating point */
 #define FLOAT_BILLION 1000000000.0 /**< 10^9 as floating point */
 #define FLOAT_TRILLION 1000000000000.0 /**< 10^12 as floating point */
+#ifndef DOUBLE_MAX
+#define DOUBLE_MAX 1.7976931348623158e+308 /* max value of a double float*/
+#define NATIONAL_DEBT DOUBLE_MAX
+#endif
 
 //-----------------------------------------------------------------
 /* Windows defines these values a different way... */
+// Signed 64-bit integer
 #ifndef LLONG_MAX
 #define LLONG_MAX 9223372036854775807LL
 #endif
@@ -88,6 +93,13 @@ typedef enum { false = 0, true } bool;
 #else
 #define LONGLONG_MIN _I64_MIN
 #define LONGLONG_MAX _I64_MAX
+#endif
+// Unsigned 64-bit integer
+#ifndef ULLONG_MAX
+#define ULLONG_MAX 18446744073709551615LL
+#endif
+#ifndef ULONGLONG_MAX
+#define ULONGLONG_MAX ULLONG_MAX
 #endif
 /* ------ */
 /* Macros */

@@ -46,7 +46,7 @@ typedef tick_t pclk_t;  /* Number of picoseconds */
 /* --------- */
 /* Constants */
 /* --------- */
-#define PCLK_MAX LONGLONG_MAX
+#define PCLK_MAX ULONGLONG_MAX
 #define PCLK_BAD LONGLONG_MIN
 /* --------------------- */
 /* Structure declarations */

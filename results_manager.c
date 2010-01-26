@@ -527,11 +527,11 @@ xdd_process_pass_results(void)
 		tarp->format_string = xgp->format_string;
 		tarp->what = "TARGET_AVERAGE";
 		if (p->my_current_pass_number == 1) {
-			tarp->earliest_start_time_this_run = (double)LLONG_MAX;
-			tarp->earliest_start_time_this_pass = (double)LLONG_MAX;
-			tarp->shortest_op_time = (double)LLONG_MAX;
-			tarp->shortest_read_op_time = (double)LLONG_MAX;
-			tarp->shortest_write_op_time = (double)LLONG_MAX;
+			tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
+			tarp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
+			tarp->shortest_op_time = (double)DOUBLE_MAX;
+			tarp->shortest_read_op_time = (double)DOUBLE_MAX;
+			tarp->shortest_write_op_time = (double)DOUBLE_MAX;
 		}
 		
 		// Init the Target Pass Results struct
@@ -539,11 +539,11 @@ xdd_process_pass_results(void)
 		memset(trp, 0, sizeof(results_t));
 		trp->format_string = xgp->format_string;
 		trp->what = "TARGET_PASS   ";
-		trp->earliest_start_time_this_run = (double)LLONG_MAX;
-		trp->earliest_start_time_this_pass = (double)LLONG_MAX;
-		trp->shortest_op_time = (double)LLONG_MAX;
-		trp->shortest_read_op_time = (double)LLONG_MAX;
-		trp->shortest_write_op_time = (double)LLONG_MAX;
+		trp->earliest_start_time_this_run = (double)DOUBLE_MAX;
+		trp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
+		trp->shortest_op_time = (double)DOUBLE_MAX;
+		trp->shortest_read_op_time = (double)DOUBLE_MAX;
+		trp->shortest_write_op_time = (double)DOUBLE_MAX;
 		trp->e2e_sr_time_this_pass = 0;
 		trp->e2e_io_time_this_pass = 0;
 		while (p) { /* Look at all the qthreads for this target */
@@ -635,10 +635,10 @@ xdd_process_run_results(void)
 	crp->flags = (RESULTS_PASS_INFO | RESULTS_COMBINED);
 	crp->format_string = xgp->format_string;
 	crp->what = "COMBINED      ";
-	crp->earliest_start_time_this_run = (double)LLONG_MAX;
-	crp->shortest_op_time = (double)LLONG_MAX;
-	crp->shortest_read_op_time = (double)LLONG_MAX;
-	crp->shortest_write_op_time = (double)LLONG_MAX;
+	crp->earliest_start_time_this_run = (double)DOUBLE_MAX;
+	crp->shortest_op_time = (double)DOUBLE_MAX;
+	crp->shortest_read_op_time = (double)DOUBLE_MAX;
+	crp->shortest_write_op_time = (double)DOUBLE_MAX;
 
 	for (i=0; i<xgp->number_of_targets; i++) {
 		p = xgp->ptdsp[i]; /* Get the ptds for this target */
