@@ -14,6 +14,7 @@ XDDCP_DEFAULT_E2E_PORT=40010
 XDDCP_DEFAULT_XFER_SIZE=16777216
 XDDCP_DEFAULT_QUEUE_DEPTH=4
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
+XDDCP_DEFAULT_HEARTBEAT_SECS=4
 
 #
 # Print out the usage information
@@ -165,7 +166,7 @@ function init_local_transfer() {
         -bytes ${totalBytes} -reqsize ${reqsize} ${sourceQD} \
         -e2e issource -e2e dest ${remoteHost} -e2e port ${e2ePort} \
         ${sourceDIO} ${sourceRestart} \
-        -heartbeat 10
+        -heartbeat ${XDDCP_DEFAULT_HEARTBEAT_SECS}
 
     # Check transfer completion status
     transfer_rc=$?
