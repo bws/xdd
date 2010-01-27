@@ -42,6 +42,7 @@ struct restart {
 	uint64_t	last_committed_length;	// Length of data that was last sent/written
 	pclk_t		last_update;		// Time stamp of last update to restart file
 	pclk_t		starting_time;		// When this restart operation started
+	struct tm	tm;					// The time structure contains the time the restart files were created
 	uint64_t	flags;				// Flags with various information as defined below
 };
 typedef struct restart restart_t;

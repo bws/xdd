@@ -34,82 +34,78 @@
 
 // Prototypes
 int xdd_restart_create_restart_file(restart_t *rp);
-int xdd_restart_read_restart_file(restart_t *rp);
 int xdd_restart_write_restart_file(restart_t *rp);
 
 /*----------------------------------------------------------------------------*/
 // This routine is called to create a new restart file when a new copy 
 // operation is started for the first time.
+// The filename of the restart file can be specified by the "-restart file xxx"
+// option where xxx will be the file name of the restart file. 
+// If the restart file name is not specified then the default location and 
+// name will be used. Currently, the default location is the current working
+// directory where xddcp is being executed and the file name will be 
+//     xdd.$src.$src_basename.$dest.$dest_basename.$gmt_timestamp.$ext
+// where $src is the host name of the source machine
+//       $src_basename is the base name of the source file
+//       $dest is the host name of the destination machine
+//       $dest_basename is the base name of the destination file
+//       $gmt_timestamp is the time at which this restart file was created in
+//         the form YYYY-MM-DD-hhmm or year-month-day-hourminutes
+//       $ext is the file extension which is ".rst" for this type of file
+//
 int 
 xdd_restart_create_restart_file(restart_t *rp) {
 
 	char	*homep;			// Pointer to a string that contains the home directory
 	time_t	t;				// Time structure
-	struct	tm		*tm;			// Broken-down time
-	char	*filename;
+	struct 	tm	*tm;		// Pointer to the broken-down time struct that lives in the restart struct
 	
 
-fprintf(stderr,"RESTART_MONITOR: CREATE_RESTART_FILE enter...rp is %x\n",rp);
-	// Get the current home directory name
-	homep = getenv("HOME");
-	if (homep == NULL) {
-		fprintf(xgp->errout,"%s: WARNING: No home directory specified, using current working directory for restart file\n",xgp->progname);
-		perror("Reason");
-		homep = ".";
+ 
+	// Check to see if the file name was provided or not. If not, the create a file name.
+	if (rp->restart_filename == NULL) { // Need to create the file name here
+		rp->restart_filename = malloc(MAX_TARGET_NAME_LENGTH);
+		if (rp->restart_filename == NULL) {
+			fprintf(xgp->errout,"%s: ALERT: Cannot allocate %d bytes of memory for the restart file name\n",
+				xgp->progname,
+				MAX_TARGET_NAME_LENGTH);
+			perror("Reason");
+			rp->fp = xgp->errout;
+			return(0);
+		}
+		// Get the current time in a appropriate format for a file name
+		time(&t);
+		tm = gmtime_r(&t, &rp->tm);
+		sprintf(rp->restart_filename,"xdd.%s.%s.%s.%s.%4d-%02d-%02d-%02d%02d-GMT.rst",
+			(rp->source_host==NULL)?"NA":rp->source_host,
+			(rp->source_filename==NULL)?"NA":basename(rp->source_filename),
+			(rp->destination_host==NULL)?"NA":rp->destination_host,
+			(rp->destination_filename==NULL)?"NA":basename(rp->destination_filename),
+			tm->tm_year+1900, // number of years since 1900
+			tm->tm_mon+1,  // month since January - range 0 to 11 
+			tm->tm_mday,   // day of the month range 1 to 31
+			tm->tm_hour,
+			tm->tm_min);
 	}
-	filename = malloc(MAX_TARGET_NAME_LENGTH);
-	if (filename == NULL) {
-		fprintf(xgp->errout,"%s: ALERT: Cannot allocate %d bytes of memory for the restart file name\n",
-			xgp->progname,
-			MAX_TARGET_NAME_LENGTH);
-		perror("Reason");
-		rp->fp = xgp->errout;
-		return(0);
-	}
 
-	// Get the current time in a appropriate format for a file name
-	time(&t);
-	tm = localtime(&t);
-	sprintf(filename,"%s/%s.%s.%s.%s.%s.%02d.%02d.%2d.%02d.%02d.%02d.rst",
-		homep,
-		(rp->flags & RESTART_FLAG_ISSOURCE)?"source":"destination",
-		(rp->source_host==NULL)?"NA":rp->source_host,
-		(rp->source_filename==NULL)?"NA":basename(rp->source_filename),
-		(rp->destination_host==NULL)?"NA":rp->destination_host,
-		(rp->destination_filename==NULL)?"NA":basename(rp->destination_filename),
-		tm->tm_mon+1,  // month since January - range 0 to 11 
-		tm->tm_mday,   // day of the month range 1 to 31
-		tm->tm_year+1900, // number of years since 1900
-		tm->tm_hour,
-		tm->tm_min,
-		tm->tm_sec);
-
-	fprintf(stderr,"RESTART_MONITOR: CREATE_RESTART_FILE name is %s\n",filename);
-
-	rp->fp = fopen(filename,"w");
+	// Now that we have a file name lets try to open it in purely write mode.
+	rp->fp = fopen(rp->restart_filename,"w");
 	if (rp->fp == NULL) {
 		fprintf(xgp->errout,"%s: ERROR: Cannot create restart file %s!\n",
 			xgp->progname,
-			filename);
+			rp->restart_filename);
 		perror("Reason");
 		rp->fp = xgp->errout;
+		rp->restart_filename = NULL;
+		free(rp->restart_filename);
 		return(-1);
 	}
 	
 	// Success - everything must have worked and we have a restart file
-	fprintf(xgp->errout,"%s: RESTART: Successfully created restart file %s!\n",
+	fprintf(xgp->output,"%s: RESTART: Successfully created restart file %s!\n",
 		xgp->progname,
-		filename);
-	rp->restart_filename = filename; // Save this file name in this restart structure
+		rp->restart_filename);
 	return(0);
-}
-/*----------------------------------------------------------------------------*/
-// This routine is called to read an existing restart file when trying to
-// restart a copy operation
-// 
-int
-xdd_restart_read_restart_file(restart_t *rp) {
-
 }
 /*----------------------------------------------------------------------------*/
 // This routine is called to write new information to an existing restart file 
@@ -178,7 +174,7 @@ xdd_restart_monitor(void *junk) {
 	
 
 	// Initialize stuff
-fprintf(stderr,"RESTART_MONITOR: Initializing...\n");
+	fprintf(xgp->output,"RESTART_MONITOR: Initializing...\n");
 	for (target_number=0; target_number < xgp->number_of_targets; target_number++) {
 		current_ptds = xgp->ptdsp[target_number];
 		status = xdd_restart_create_restart_file(current_ptds->restartp);
@@ -234,6 +230,8 @@ fprintf(stderr,"RESTART_MONITOR: Initializing...\n");
 			if (xgp->abort_io | xgp->restart_terminate) 
 				break;
 	} // End of FOREVER loop that checks stuff
+sleep(5);
 	fprintf(xgp->output,"%s: RESTART Monitor is exiting\n",xgp->progname);
+sleep(5);
 	return;
 }

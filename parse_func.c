@@ -2236,7 +2236,6 @@ xddfunc_restart(int32_t argc, char *argv[], uint32_t flags)
     ptds_t 		*p;
 	restart_t	*rp;
 
-fprintf(stderr,"parse_func_restart: enter\n");
 
 	args_index = 1;
     args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
@@ -2274,8 +2273,8 @@ fprintf(stderr,"parse_func_restart: enter\n");
 			}
 		}
 		return(args_index+1);
-	} else if (strcmp(argv[args_index], "file") == 0) { /* Read restart file from "filename" */
-		if(xgp->restart_frequency == 0) 
+	} else if (strcmp(argv[args_index], "file") == 0) { /* Use this filename for the restart file */
+		if(xgp->restart_frequency == 0)  // Turn on restart 
 			xgp->restart_frequency = 1;
 		if (target_number >= 0) {  /* set option for specific target */
 			p = xdd_get_ptdsp(target_number, argv[0]);
