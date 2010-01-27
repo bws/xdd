@@ -69,6 +69,10 @@ typedef enum { false = 0, true } bool;
 #define FLOAT_MILLION 1000000.0 /**< 10^6 as floating point */
 #define FLOAT_BILLION 1000000000.0 /**< 10^9 as floating point */
 #define FLOAT_TRILLION 1000000000000.0 /**< 10^12 as floating point */
+#define FLOAT_KILOBYTE 1024.0 /**< 2^10 as floating point */
+#define FLOAT_MEGABYTE 1048576.0 /**< 2^20 as floating point */
+#define FLOAT_GIGABYTE 1073741824.0 /**< 2^30 as floating point */
+#define FLOAT_TERABYTE 1099511627776.0 /**< 2^40 as floating point */
 #ifndef DOUBLE_MAX
 #define DOUBLE_MAX 1.7976931348623158e+308 /* max value of a double float*/
 #define NATIONAL_DEBT DOUBLE_MAX

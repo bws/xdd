@@ -401,7 +401,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
     if (p->processor == -1) 
 		    fprintf(out,"\t\tProcessor, all/any\n");
 	else fprintf(out,"\t\tProcessor, %d\n",p->processor);
-	fprintf(out,"\t\tRead/write ratio, %5.2f, %5.2f\n",p->rwratio*100.0,(1.0-p->rwratio)*100.0);
+	fprintf(out,"\t\tRead/write ratio, %5.2f READ, %5.2f WRITE\n",p->rwratio*100.0,(1.0-p->rwratio)*100.0);
 	fprintf(out,"\t\tThrottle in %s, %6.2f\n",
 		(p->throttle_type & PTDS_THROTTLE_OPS)?"ops/sec":((p->throttle_type & PTDS_THROTTLE_BW)?"MB/sec":"Delay"), p->throttle);
 	fprintf(out,"\t\tPer-pass time limit in seconds, %d\n",p->time_limit);
@@ -409,14 +409,45 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	fprintf(out,"\t\tFile write synchronization, %s", (p->target_options & TO_SYNCWRITE)?"enabled\n":"disabled\n");
 	fprintf(out, "\t\tBlocksize in bytes, %d\n", p->block_size);
 	fprintf(out,"\t\tRequest size, %d, blocks, %d, bytes\n",p->reqsize,p->reqsize*p->block_size);
-
-	if (p->numreqs > 0) 
-		fprintf(out, "\t\tNumber of Requests, %lld, of, %lld, target ops for all qthreads\n", (long long)p->numreqs, (long long)p->target_ops);
-
-	fprintf(out, "\t\tStart offset, %lld\n",(long long)p->start_offset);
+	fprintf(out, "\t\tNumber of Operations, %lld, of, %lld, target ops for all qthreads\n", (long long)p->qthread_ops, (long long)p->target_ops);
+	fprintf(out, "\t\tStart offset, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes \n",
+		(long long)p->start_offset, 
+		(long long)p->start_offset*p->block_size,
+		(double)((p->start_offset*p->block_size)/FLOAT_KILOBYTE),
+		(double)((p->start_offset*p->block_size)/FLOAT_MEGABYTE),
+		(double)((p->start_offset*p->block_size)/FLOAT_GIGABYTE),
+		(double)((p->start_offset*p->block_size)/FLOAT_TERABYTE));
+	fprintf(out, "\t\tTotal data transfer for this target, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n", 
+		(long long)p->target_bytes_to_xfer_per_pass/p->block_size,
+		(long long)p->target_bytes_to_xfer_per_pass,
+		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
+		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
+		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_GIGABYTE),
+		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_TERABYTE));
+	fprintf(out, "\t\tTotal data transfer for this QTHREAD, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n", 
+		(long long)p->qthread_bytes_to_xfer_per_pass/p->block_size,
+		(long long)p->qthread_bytes_to_xfer_per_pass,
+		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
+		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
+		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_GIGABYTE),
+		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_TERABYTE));
+	fprintf(out, "\t\tPass Offset, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n", 
+		(long long)p->pass_offset, 
+		(long long)p->pass_offset*p->block_size,
+		(double)((p->pass_offset*p->block_size)/FLOAT_KILOBYTE),
+		(double)((p->pass_offset*p->block_size)/FLOAT_MEGABYTE),
+		(double)((p->pass_offset*p->block_size)/FLOAT_GIGABYTE),
+		(double)((p->pass_offset*p->block_size)/FLOAT_TERABYTE));
+	if (p->seekhdr.seek_range > 0) {
+		fprintf(out, "\t\tSeek range, %lld, blocks, %lld, bytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n",
+			(long long)p->seekhdr.seek_range,
+			(long long)p->seekhdr.seek_range*p->block_size,
+			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_MEGABYTE ),
+			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_GIGABYTE ),
+			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_TERABYTE ));
+	}
+	fprintf(out, "\t\tSeek pattern, %s\n", p->seekhdr.seek_pattern);
 	fprintf(out, "\t\tFlushwrite interval, %lld\n", (long long)p->flushwrite);
-	fprintf(out, "\t\tNumber of Bytes, %lld, of %lld, total Bytes to transfer\n", (long long)(p->numreqs*(p->reqsize*p->block_size)),(long long)p->bytes);
-	fprintf(out, "\t\tPass Offset in blocks, %lld\n", (long long)p->pass_offset);
 	fprintf(out,"\t\tI/O memory buffer is %s\n", 
 		(p->target_options & TO_SHARED_MEMORY)?"a shared memory segment":"a normal memory buffer");
 	fprintf(out,"\t\tI/O memory buffer alignment in bytes, %d\n", p->mem_align);
@@ -450,9 +481,6 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		fprintf(out," enabled for %s verification.\n", (p->target_options & TO_VERIFY_LOCATION)?"Location":"Content");
 	else fprintf(out," disabled.\n");
 	fprintf(out,"\t\tDirect I/O, %s", (p->target_options & TO_DIO)?"enabled\n":"disabled\n");
-	fprintf(out, "\t\tSeek pattern, %s\n", p->seekhdr.seek_pattern);
-	if (p->seekhdr.seek_range > 0)
-		fprintf(out, "\t\tSeek range, %lld\n",(long long)p->seekhdr.seek_range);
 	fprintf(out, "\t\tPreallocation, %d\n",p->preallocate);
 	fprintf(out, "\t\tQueue Depth, %d\n",p->queue_depth);
 	/* Timestamp options */
