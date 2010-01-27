@@ -44,13 +44,14 @@ int xdd_restart_write_restart_file(restart_t *rp);
 // If the restart file name is not specified then the default location and 
 // name will be used. Currently, the default location is the current working
 // directory where xddcp is being executed and the file name will be 
-//     xdd.$src.$src_basename.$dest.$dest_basename.$gmt_timestamp.$ext
+//     xdd.$src.$src_basename.$dest.$dest_basename.$gmt_timestamp-GMT.$ext
 // where $src is the host name of the source machine
 //       $src_basename is the base name of the source file
 //       $dest is the host name of the destination machine
 //       $dest_basename is the base name of the destination file
 //       $gmt_timestamp is the time at which this restart file was created in
-//         the form YYYY-MM-DD-hhmm or year-month-day-hourminutes
+//         the form YYYY-MM-DD-hhmm-GMT or year-month-day-hourminutes in GMT
+//         and the "-GMT" is appended to the timestamp to indicate this timezone
 //       $ext is the file extension which is ".rst" for this type of file
 //
 int 
@@ -60,7 +61,6 @@ xdd_restart_create_restart_file(restart_t *rp) {
 	time_t	t;				// Time structure
 	struct 	tm	*tm;		// Pointer to the broken-down time struct that lives in the restart struct
 	
-
  
 	// Check to see if the file name was provided or not. If not, the create a file name.
 	if (rp->restart_filename == NULL) { // Need to create the file name here
