@@ -63,6 +63,10 @@ xdd_heartbeat(void *junk) {
 
 
 	activity_index = 0;
+
+	// Enter this barrier and wait for the heartbeat monitor to initialize
+	xdd_barrier(&xgp->heartbeat_initialization_barrier);
+
 	while (1) {
 		sleep(xgp->heartbeat);
 		if (xgp->heartbeat_holdoff == 1) 

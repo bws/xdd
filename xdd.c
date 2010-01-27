@@ -168,6 +168,8 @@ main(int32_t argc,char *argv[]) {
 		fprintf(xgp->errout,"%s: xdd_main: Error creating Results Manager thread", xgp->progname);
 		fflush(xgp->errout);
 	}
+	// Enter this barrier and wait for the results monitor to initialize
+	xdd_barrier(&xgp->results_initialization_barrier);
 
 	/* start a heartbeat monitor if necessary */
 	if (xgp->heartbeat) {
@@ -176,6 +178,8 @@ main(int32_t argc,char *argv[]) {
 			fprintf(xgp->errout,"%s: xdd_main: Error creating heartbeat monitor thread", xgp->progname);
 			fflush(xgp->errout);
 		}
+		// Enter this barrier and wait for the heartbeat monitor to initialize
+		xdd_barrier(&xgp->heartbeat_initialization_barrier);
 	}
 
 	/* start a restart monitor if necessary */
@@ -185,9 +189,16 @@ main(int32_t argc,char *argv[]) {
 			fprintf(xgp->errout,"%s: xdd_main: Error creating restart monitor thread", xgp->progname);
 			fflush(xgp->errout);
 		}
+		// Enter this barrier and wait for the restart monitor to initialize
+		xdd_barrier(&xgp->restart_initialization_barrier);
 	}
 
-	/* Wait for all children to finish */
+	// Entering this barrier will tell all the target qthreads to begin now that all the monitor threads have started
+	xdd_barrier(&xgp->initialization_barrier);
+
+	// At this point all the target qthreads are running and we will enter the final_barrier waiting for them to finish
+
+	// Wait for all children to finish 
 	xdd_barrier(&xgp->final_barrier);
 
 	// Display the Ending Time for this run
@@ -197,7 +208,7 @@ main(int32_t argc,char *argv[]) {
 	if (xgp->csvoutput)
 		fprintf(xgp->csvoutput,"Ending time for this run, %s\n",c);
 
-	/* Cleanup the semaphores and barriers */
+	// Cleanup the semaphores and barriers 
 	xdd_destroy_all_barriers();
 
 	/* Time to leave... sigh */

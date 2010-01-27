@@ -213,21 +213,27 @@ struct xdd_globals {
 	char         *gts_hostname;          /* name of the time server */
 	pclk_t       ActualLocalStartTime;   /* The time to start operations */
 /* Thread Barriers */
-	pthread_mutex_t  xdd_init_barrier_mutex; /* locking mutex for the xdd_init_barrier() routine */
-	xdd_barrier_t    *barrier_chain;         /* First barrier on the chain */
-	int32_t          barrier_count;          /* Number of barriers on the chain */
-	xdd_barrier_t    thread_barrier[2];		/* barriers for synchronization */
-	xdd_barrier_t    syncio_barrier[2];      /* barriers for syncio */
-	xdd_barrier_t    serializer_barrier[2];  /* barriers for serialization of pthread_create() */
-	xdd_barrier_t    cleanup_barrier;        /* barrier for cleanup sync */
-	xdd_barrier_t    final_barrier;          /* barrier for all thereads to sync with xddmain */
-	xdd_barrier_t    results_pass_barrier[2];    /* barrier for all thereads to sync with the results manager at the end of a pass */
-	xdd_barrier_t    results_display_barrier[2]; /* barrier for all thereads to sync with the results manager while it displays information */
-	xdd_barrier_t    results_run_barrier;     /* barrier for all thereads to sync with the results manager at the end of the run */
-	xdd_barrier_t    results_display_final_barrier; /* barrier for all thereads to sync with the results manager while it displays run information */
-	char			*format_string;			// Pointer to the format string used by the results_display() to display results 
-	char			results_header_displayed;	// 1 means that the header has been displayed, 0 means no
-	int32_t			heartbeat_holdoff;		/* set to 1 by the results_manager when it wants to display pass results, 
+	pthread_mutex_t  xdd_init_barrier_mutex;/* locking mutex for the xdd_init_barrier() routine */
+	xdd_barrier_t    *barrier_chain;        /* First barrier on the chain */
+	int32_t          barrier_count;         /* Number of barriers on the chain */
+
+	xdd_barrier_t		results_initialization_barrier;	/* barrier for xdd_main to make sure that the results manager has initialized */
+	xdd_barrier_t		heartbeat_initialization_barrier;/* barrier for xdd_main to make sure that the heartbeat monitor has initialized */
+	xdd_barrier_t		restart_initialization_barrier;	/* barrier for xdd_main to make sure that the restart monitor has initialized */
+	xdd_barrier_t		initialization_barrier;			/* barrier to ensure all initiazation functions have completed */
+	
+	xdd_barrier_t		thread_barrier[2];	/* barriers for synchronization */
+	xdd_barrier_t		syncio_barrier[2];     /* barriers for syncio */
+	xdd_barrier_t		serializer_barrier[2]; /* barriers for serialization of pthread_create() */
+	xdd_barrier_t		cleanup_barrier;       /* barrier for cleanup sync */
+	xdd_barrier_t		final_barrier;         /* barrier for all thereads to sync with xddmain */
+	xdd_barrier_t		results_pass_barrier[2];    /* barrier for all thereads to sync with the results manager at the end of a pass */
+	xdd_barrier_t		results_display_barrier[2]; /* barrier for all thereads to sync with the results manager while it displays information */
+	xdd_barrier_t		results_run_barrier;     /* barrier for all thereads to sync with the results manager at the end of the run */
+	xdd_barrier_t		results_display_final_barrier; /* barrier for all thereads to sync with the results manager while it displays run information */
+	char				*format_string;			// Pointer to the format string used by the results_display() to display results 
+	char				results_header_displayed;	// 1 means that the header has been displayed, 0 means no
+	int32_t				heartbeat_holdoff;		/* set to 1 by the results_manager when it wants to display pass results, 
 											 * set back to 0 after everything is displayed
 											 * set back to 2 to tell heartbeat to exit */
 #ifdef WIN32

@@ -210,24 +210,29 @@ xdd_init_all_barriers(void) {
 	}
 	xgp->barrier_chain = (NULL);
 	xgp->barrier_count = 0;
-	status =   xdd_init_barrier(&xgp->thread_barrier[0], xgp->number_of_iothreads, "Thread0");
-	status +=  xdd_init_barrier(&xgp->thread_barrier[1], xgp->number_of_iothreads, "Thread1");
+	// The initialization barrier 
+	status =  xdd_init_barrier(&xgp->results_initialization_barrier, 2, "ResultsInitialization");
+	status += xdd_init_barrier(&xgp->heartbeat_initialization_barrier, 2, "HeartbeatInitialization");
+	status += xdd_init_barrier(&xgp->restart_initialization_barrier, 2, "RestartInitialization");
+	status += xdd_init_barrier(&xgp->initialization_barrier, xgp->number_of_iothreads+1, "Initialization");
+	status += xdd_init_barrier(&xgp->thread_barrier[0], xgp->number_of_iothreads, "Thread0");
+	status += xdd_init_barrier(&xgp->thread_barrier[1], xgp->number_of_iothreads, "Thread1");
 	status += xdd_init_barrier(&xgp->cleanup_barrier, xgp->number_of_iothreads, "CleanUp");
 	status += xdd_init_barrier(&xgp->final_barrier, xgp->number_of_iothreads+1, "Final");
-	status +=  xdd_init_barrier(&xgp->syncio_barrier[0], xgp->number_of_iothreads, "Syncio0");
+	status += xdd_init_barrier(&xgp->syncio_barrier[0], xgp->number_of_iothreads, "Syncio0");
 	status += xdd_init_barrier(&xgp->syncio_barrier[1], xgp->number_of_iothreads, "Syncio1");
-	status +=  xdd_init_barrier(&xgp->results_pass_barrier[0],    xgp->number_of_iothreads+1, "ResultsPass0");
+	status += xdd_init_barrier(&xgp->results_pass_barrier[0],    xgp->number_of_iothreads+1, "ResultsPass0");
 	status += xdd_init_barrier(&xgp->results_pass_barrier[1],    xgp->number_of_iothreads+1, "ResultsPass1");
-	status +=  xdd_init_barrier(&xgp->results_display_barrier[0], xgp->number_of_iothreads+1, "ResultsDisplay0");
+	status += xdd_init_barrier(&xgp->results_display_barrier[0], xgp->number_of_iothreads+1, "ResultsDisplay0");
 	status += xdd_init_barrier(&xgp->results_display_barrier[1], xgp->number_of_iothreads+1, "ResultsDisplay1");
-	status +=  xdd_init_barrier(&xgp->results_run_barrier,    xgp->number_of_iothreads+1, "ResultsRun");
+	status += xdd_init_barrier(&xgp->results_run_barrier,    xgp->number_of_iothreads+1, "ResultsRun");
 	status += xdd_init_barrier(&xgp->results_display_final_barrier, xgp->number_of_iothreads+1, "ResultsDisplayFinal");
+	status += xdd_init_barrier(&xgp->serializer_barrier[0], 2, "Serializer0");
+	status += xdd_init_barrier(&xgp->serializer_barrier[1], 2, "Serializer1");
 	if (status < 0)  {
-		fprintf(stderr,"%s: xdd_init_all_barriers: ERROR: Cannot init barrier for the results manager.\n",xgp->progname);
+		fprintf(stderr,"%s: xdd_init_all_barriers: ERROR: Cannot init some barriers.\n",xgp->progname);
 		return(status);
 	}
-	status = xdd_init_barrier(&xgp->serializer_barrier[0], 2, "Serializer0");
-	status += xdd_init_barrier(&xgp->serializer_barrier[1], 2, "Serializer1");
 	xgp->abort_io = 0;
 	return(0);
 } /* end of xdd_init_all_barriers() */

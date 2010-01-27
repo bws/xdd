@@ -59,6 +59,9 @@ xdd_io_thread(void *pin) {
 	if ( xgp->abort_io == 1) // Something went wrong during thread initialization so let's just leave
 		return(0);
 
+	/* Enter the initialization barrier - we get released after all the montior threads are started */
+	xdd_barrier(&xgp->initialization_barrier);
+
 	// OK - let's get the road on the show here...
 	xgp->run_complete = 0; 
 	p->thread_barrier_index = 0;

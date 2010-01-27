@@ -179,9 +179,13 @@ xdd_restart_monitor(void *junk) {
 		current_ptds = xgp->ptdsp[target_number];
 		status = xdd_restart_create_restart_file(current_ptds->restartp);
 	}
-	// Go into a loop that periodically checks all the targets/qthreads 
 
 	check_counter = 0;
+
+	// Enter this barrier and wait for the restart monitor to initialize
+	xdd_barrier(&xgp->restart_initialization_barrier);
+
+	// This is the loop that periodically checks all the targets/qthreads 
 	for (;;) {
 		// Sleep for the specified period of time
 		sleep(xgp->restart_frequency);

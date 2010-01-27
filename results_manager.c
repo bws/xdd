@@ -733,6 +733,11 @@ xdd_results_manager(void *n)
 			perror("results_manager: Reason");
 			return;
 	}
+
+	// Enter this barrier and wait for the results monitor to initialize
+	xdd_barrier(&xgp->results_initialization_barrier);
+
+	// This is the loop that runs continuously throughout the xdd run
 	while (1) {
 		/* Enter the results barrier and wait for the target threads to get here */
 		xdd_barrier(&xgp->results_pass_barrier[results_pass_barrier_index]);
