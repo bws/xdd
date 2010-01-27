@@ -66,7 +66,7 @@ xdd_restart_create_restart_file(restart_t *rp) {
 	if (rp->restart_filename == NULL) { // Need to create the file name here
 		rp->restart_filename = malloc(MAX_TARGET_NAME_LENGTH);
 		if (rp->restart_filename == NULL) {
-			fprintf(xgp->errout,"%s: ALERT: Cannot allocate %d bytes of memory for the restart file name\n",
+			fprintf(xgp->errout,"%s: RESTART_MONITOR: ALERT: Cannot allocate %d bytes of memory for the restart file name\n",
 				xgp->progname,
 				MAX_TARGET_NAME_LENGTH);
 			perror("Reason");
@@ -91,10 +91,12 @@ xdd_restart_create_restart_file(restart_t *rp) {
 	// Now that we have a file name lets try to open it in purely write mode.
 	rp->fp = fopen(rp->restart_filename,"w");
 	if (rp->fp == NULL) {
-		fprintf(xgp->errout,"%s: ERROR: Cannot create restart file %s!\n",
+		fprintf(xgp->errout,"%s: RESTART_MONITOR: ALERT: Cannot create restart file %s!\n",
 			xgp->progname,
 			rp->restart_filename);
 		perror("Reason");
+		fprintf(xgp->errout,"%s: RESTART_MONITOR: ALERT: Defaulting to error out for restart file\n",
+			xgp->progname);
 		rp->fp = xgp->errout;
 		rp->restart_filename = NULL;
 		free(rp->restart_filename);
@@ -102,7 +104,7 @@ xdd_restart_create_restart_file(restart_t *rp) {
 	}
 	
 	// Success - everything must have worked and we have a restart file
-	fprintf(xgp->output,"%s: RESTART: Successfully created restart file %s!\n",
+	fprintf(xgp->output,"%s: RESTART_MONITOR: INFO: Successfully created restart file %s\n",
 		xgp->progname,
 		rp->restart_filename);
 	return(0);
@@ -121,7 +123,7 @@ xdd_restart_write_restart_file(restart_t *rp) {
 	// Seek to the beginning of the file 
 	status = fseek(rp->fp, 0L, SEEK_SET);
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: RESTART: WARNING: Seek to beginning of restart file %s failed\n",
+		fprintf(xgp->errout,"%s: RESTART_MONITOR: WARNING: Seek to beginning of restart file %s failed\n",
 			xgp->progname,
 			rp->restart_filename);
 		perror("Reason");
@@ -174,17 +176,25 @@ xdd_restart_monitor(void *junk) {
 	
 
 	// Initialize stuff
-	fprintf(xgp->output,"RESTART_MONITOR: Initializing...\n");
+	fprintf(xgp->output,"%s: RESTART_MONITOR: Initializing...\n", xgp->progname);
 	for (target_number=0; target_number < xgp->number_of_targets; target_number++) {
 		current_ptds = xgp->ptdsp[target_number];
-		status = xdd_restart_create_restart_file(current_ptds->restartp);
+		if (current_ptds->target_options & TO_E2E_DESTINATION) {
+			xdd_restart_create_restart_file(current_ptds->restartp);
+		} else {
+			fprintf(xgp->output,"%s: RESTART_MONITOR: INFO: No restart file being created for target %d [ %s ] %d because this is not the destination side of an E2E operation.\n", 
+				xgp->progname,
+				current_ptds->my_target_number,
+				current_ptds->target,
+				strlen(current_ptds->target));
+		}
 	}
-
-	check_counter = 0;
+	fprintf(xgp->output,"%s: RESTART_MONITOR: Initialization complete.\n", xgp->progname);
 
 	// Enter this barrier and wait for the restart monitor to initialize
 	xdd_barrier(&xgp->restart_initialization_barrier);
 
+	check_counter = 0;
 	// This is the loop that periodically checks all the targets/qthreads 
 	for (;;) {
 		// Sleep for the specified period of time
@@ -225,7 +235,8 @@ xdd_restart_monitor(void *junk) {
 			// Now that we have all the information for this target's qthreads, generate the appropriate information
 			// and write it to the restart file and sync sync sync
 			current_ptds->restartp->low_byte_offset = low_byte_offset;
-			xdd_restart_write_restart_file(current_ptds->restartp);
+			if (current_ptds->target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
+				xdd_restart_write_restart_file(current_ptds->restartp);
 
 		} // End of FOR loop that checks all targets 
 		// Done checking all targets

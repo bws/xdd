@@ -1306,7 +1306,7 @@ xdd_open_target(ptds_t *p) {
 	if (p->target_name == NULL) {
 		p->target_name = (char *)malloc(target_name_length+32);
 	}
-	memcpy(p->target_name, target_name, target_name_length);
+	sprintf(p->target_name,"%s",target_name);
 
 	/* Set the open flags according to specific OS requirements */
 	flags = O_CREAT;
