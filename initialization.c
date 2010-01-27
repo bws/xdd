@@ -439,9 +439,10 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		(double)((p->pass_offset*p->block_size)/FLOAT_GIGABYTE),
 		(double)((p->pass_offset*p->block_size)/FLOAT_TERABYTE));
 	if (p->seekhdr.seek_range > 0) {
-		fprintf(out, "\t\tSeek range, %lld, blocks, %lld, bytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n",
+		fprintf(out, "\t\tSeek range, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n",
 			(long long)p->seekhdr.seek_range,
 			(long long)p->seekhdr.seek_range*p->block_size,
+			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_KILOBYTE ),
 			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_MEGABYTE ),
 			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_GIGABYTE ),
 			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_TERABYTE ));
@@ -530,16 +531,40 @@ xdd_target_info(FILE *out, ptds_t *p) {
 				return;
 			} 
 			// ok - we have a good restart structure
-			if (p->restartp->flags & RESTART_FLAG_ISSOURCE) {
-				 p->restartp->source_filename = p->target_name; 		// The source_filename is the name of the file being copied on the source side
-				 p->restartp->destination_filename = NULL;		// The destination_filename is the name of the file being copied on the destination side
-			} else {
-				 p->restartp->source_filename = NULL; 		// The source_filename is the name of the file being copied on the source side
-				 p->restartp->destination_filename = p->target_name;		// The destination_filename is the name of the file being copied on the destination side
-			}
-
 			p->restartp->source_host = p->e2e_src_hostname; 		// Name of the Source machine 
 			p->restartp->destination_host = p->e2e_dest_hostname; 	// Name of the Destination machine 
+			if (p->restartp->flags & RESTART_FLAG_ISSOURCE) { // This is the SOURCE sside of the biz
+				 p->restartp->source_filename = p->target_name; 		// The source_filename is the name of the file being copied on the source side
+				 p->restartp->destination_filename = NULL;		// The destination_filename is the name of the file being copied on the destination side
+				if (p->restartp->flags & RESTART_FLAG_RESUME_COPY) { // Indicate that this is the resumption of a previous copy from source file XXXXX
+						fprintf(out,"\t\tRESTART: RESUMING COPY: Source File, %s, on source host name, %s\n", 
+								p->restartp->source_filename,
+								p->restartp->source_host);
+				}
+			} else { // This is the DESTINATION side of the biz
+				 p->restartp->source_filename = NULL; 		// The source_filename is the name of the file being copied on the source side
+				 p->restartp->destination_filename = p->target_name;		// The destination_filename is the name of the file being copied on the destination side
+				if (p->restartp->flags & RESTART_FLAG_RESUME_COPY) {  // Indicate that this is the resumption of a previous copy from source file XXXXX
+						fprintf(out,"\t\tRESTART: RESUMING COPY: Destination File, %s, on destination host name, %s\n", 
+								p->restartp->destination_filename,
+								p->restartp->destination_host);
+				}
+			}
+
+			if (p->restartp->flags & RESTART_FLAG_RESUME_COPY) { // Indicate that this is the resumption of a previous copy
+				fprintf(out,"\t\tRESTART: RESUMING COPY: Starting offset, %lld Bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n",
+					(long long)p->restartp->byte_offset,
+					(double)(p->restartp->byte_offset/FLOAT_KILOBYTE),
+					(double)(p->restartp->byte_offset/FLOAT_MEGABYTE),
+					(double)(p->restartp->byte_offset/FLOAT_GIGABYTE),
+					(double)(p->restartp->byte_offset/FLOAT_TERABYTE));
+				fprintf(out,"\t\tRESTART: RESUMING COPY: Remaining data,  %lld Bytes, %12.3f KBytes, %9.3f MBytes, %6.3f GBytes, %10.6f TBytes\n",
+					(long long)p->target_bytes_to_xfer_per_pass,
+					(double)(p->target_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
+					(double)(p->target_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
+					(double)(p->target_bytes_to_xfer_per_pass/FLOAT_GIGABYTE),
+					(double)(p->target_bytes_to_xfer_per_pass/FLOAT_TERABYTE));
+			}	
 		}
 	}
 	fprintf(out, "\n");
