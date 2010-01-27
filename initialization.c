@@ -49,7 +49,8 @@ xdd_init_globals(char *progname) {
 	memset(xgp,0,sizeof(struct xdd_globals));
 
 	xgp->progname = progname;
-	xgp->global_options = 0;
+	// This is the default in order to avoid all the warning messages, overridden by selecting -maxall andor -proclock + -memlock
+	xgp->global_options = (GO_NOPROCLOCK|GO_NOMEMLOCK);
 	xgp->output = stdout;
 	xgp->output_filename = "stdout";
 	xgp->errout = stderr;
