@@ -294,7 +294,7 @@ xdd_verify(ptds_t *p, int32_t current_op) {
 	* sequence number(s) in it.
 	*/
 	if (!(p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION))) { // If we don't need to verify location or contents of the buffer, then just return.
-		fprintf(xgp->errout, "%s [%d] xdd_verify: Data verification type <location or contents> not specified. No verification performed.\n",
+		fprintf(xgp->errout, "%s [%d] xdd_verify: Data verification type <location or contents> not specified for target %s. No verification performed.\n",
 				xgp->progname, p->my_target_number, p->target);
 		return(0);
 	}
