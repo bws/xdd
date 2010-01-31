@@ -70,12 +70,12 @@ xdd_init_seek_list(ptds_t *p) {
 	double  bytes_per_sec;  /* The tranfer rate requested by the -throttle option */
 	double  seconds_per_op; /* a floating point representation of the time per operation */
 	double  variance_seconds_per_op; /* a floating point representation of the time variance per operation */
-	double  seconds_per_op_low; /* a floating point representation of the time per operation */
-	double  seconds_per_op_high; /* a floating point representation of the time per operation */
+	double  seconds_per_op_low = DOUBLE_MAX; /* a floating point representation of the time per operation */
+	double  seconds_per_op_high = 0; /* a floating point representation of the time per operation */
     double  low_bw, hi_bw;
 	double  bytes_per_request; /* self explanatory */
-	pclk_t  pico_seconds_per_op; /* self explanatory */
-    pclk_t  pico_second_throttle_variance; /* Max variance per operation */
+	pclk_t  pico_seconds_per_op = 0; /* self explanatory */
+    pclk_t  pico_second_throttle_variance = 0; /* Max variance per operation */
 	pclk_t  relative_time; /* Time in picosecond relative to the first operation */
 	int32_t  previous_percent_op; /* used to determine read/write operation */
 	int32_t  percent_op;  /* used to determine read/write operation */
@@ -233,6 +233,7 @@ xdd_save_seek_list(ptds_t *p) {
 		return;
 	}
 	/* Save the seek locations in specified file */
+	longest = 0;
 	if (sp->seek_options & SO_SEEK_SAVE) {
 		longest = 0;
 		shortest = sp->seek_range;
@@ -260,11 +261,11 @@ xdd_save_seek_list(ptds_t *p) {
 			else opc = "u";
 			fprintf(tmp,"%010d %012llu %d %s %016llu %016llu\n",
 				i,
-				sp->seeks[i].block_location, 
+				(unsigned long long)sp->seeks[i].block_location, 
 				sp->seeks[i].reqsize, 
 				opc, 
-				(unsigned long long)sp->seeks[i].time1,
-				(unsigned long long)sp->seeks[i].time2);
+				(unsigned long long)(sp->seeks[i].time1),
+				(unsigned long long)(sp->seeks[i].time2));
 		}
 	} /* end of section that saves the seek locations */
 	/* Collect and print any requested histogram information */
@@ -272,7 +273,9 @@ xdd_save_seek_list(ptds_t *p) {
 		/* init the buckets and calculate the divisor */
 		buckets = malloc(sp->seek_NumSeekHistBuckets * sizeof(seek_t));
 		if (buckets == NULL) {
-			sprintf(errormessage,"#%s: Cannot allocate %d bytes for seek histogram buckets\n",xgp->progname, sp->seek_NumSeekHistBuckets*sizeof(seek_t));
+			sprintf(errormessage,"#%s: Cannot allocate %lu bytes for seek histogram buckets\n", 
+				xgp->progname, 
+				(unsigned int)sp->seek_NumSeekHistBuckets*sizeof(seek_t));
 			fputs(errormessage,xgp->errout);
 			fputs(errormessage,tmp);
 		} else {
@@ -300,7 +303,9 @@ xdd_save_seek_list(ptds_t *p) {
 	if (sp->seek_options & SO_SEEK_DISTHIST) { /* This section will create a seek distance histogram */
 		buckets = malloc(sp->seek_NumDistHistBuckets * sizeof(seek_t));
 		if (buckets == NULL) {
-			sprintf(errormessage,"#%s: Cannot allocate %d bytes for distance histogram buckets\n",xgp->progname, sp->seek_NumDistHistBuckets*sizeof(seek_t));
+			sprintf(errormessage,"#%s: Cannot allocate %lu bytes for distance histogram buckets\n",
+				xgp->progname, 
+				(unsigned int)sp->seek_NumDistHistBuckets*sizeof(seek_t));
 			fputs(errormessage,xgp->errout);
 			fputs(errormessage,tmp);
 		} else {
@@ -337,17 +342,20 @@ xdd_save_seek_list(ptds_t *p) {
 /*----------------------------------------------------------------------------*/
 int32_t
 xdd_load_seek_list(ptds_t *p) {
-	int32_t i;  /* index variable */
-	FILE *loadfp; /* Load File Pointer */
-	char line[1024]; /* one line of characters */
-	char *tp;  /* token pointer */
-	int32_t ordinal; /* ordinal number of the seek */
-	uint64_t loc;  /* location */
-	int32_t reqsz,t1,t2; /* request size, time1 and time2 */
-	int32_t reqsz_high; /* highest request size*/
-	char rw;  /* read or write operation */
-	char *status; /* status of the fgets */
-	struct seekhdr *sp;
+	int32_t		i;  		/* index variable */
+	FILE 		*loadfp; 	/* Load File Pointer */
+	char 		*tp;  		/* token pointer */
+	int32_t 	ordinal; 	/* ordinal number of the seek */
+	uint64_t 	loc;  		/* location */
+	int32_t 	reqsz; 		// Request Size
+	pclk_t		t1,t2; 		/* time1 and time2 */
+	int32_t 	reqsz_high; 	/* highest request size*/
+	char 		rw;  		/* read or write operation */
+	char 		*status; 	/* status of the fgets */
+	struct seekhdr	*sp;
+	char 		line[1024]; 	/* one line of characters */
+
+
 	sp = &p->seekhdr;
 	/* open the load file */
 	loadfp = fopen(sp->seek_loadfile,"r");
@@ -374,7 +382,13 @@ xdd_load_seek_list(ptds_t *p) {
 			continue;
 		}
 		/* Must be a seek line */
-		sscanf(line,"%d %llu %d %c %d %d", &ordinal,&loc,&reqsz,&rw,&t1,&t2);
+		sscanf(line,"%d %llu %d %c %llu %llu", 
+			&ordinal,
+			(unsigned long long *)(&loc),
+			&reqsz,
+			&rw,
+			(unsigned long long *)(&t1),
+			(unsigned long long *)(&t2));
 		sp->seeks[i].block_location = loc;
 		if ((rw == 'w') || (rw == 'W')) 
 			sp->seeks[i].operation = SO_OP_WRITE;
