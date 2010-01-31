@@ -62,7 +62,9 @@ xdd_heartbeat(void *junk) {
 	int			prior_activity_index;	// Used to save the state of the activity index 
 
 
-	activity_index = 0;
+	// Init indices to 0
+	activity_index = 0; 
+	prior_activity_index = 0;
 
 	// Enter this barrier and wait for the heartbeat monitor to initialize
 	xdd_barrier(&xgp->heartbeat_initialization_barrier);
@@ -72,7 +74,7 @@ xdd_heartbeat(void *junk) {
 		if (xgp->heartbeat_holdoff == 1) 
 			continue;
 		if (xgp->heartbeat_holdoff == 2) 
-			return;
+			return(0);
 		fprintf(stderr,"\r");
 		fprintf(stderr,"Pass %04d Op/AvgRate ",xgp->ptdsp[0]->my_current_pass_number);
 		for (i = 0; i < xgp->number_of_targets; i++) {
