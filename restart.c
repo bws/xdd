@@ -57,7 +57,6 @@ int xdd_restart_write_restart_file(restart_t *rp);
 int 
 xdd_restart_create_restart_file(restart_t *rp) {
 
-	char	*homep;			// Pointer to a string that contains the home directory
 	time_t	t;				// Time structure
 	struct 	tm	*tm;		// Pointer to the broken-down time struct that lives in the restart struct
 	
@@ -118,7 +117,6 @@ xdd_restart_create_restart_file(restart_t *rp) {
 int
 xdd_restart_write_restart_file(restart_t *rp) {
 	int		status;
-	char	output[256];
 
 	// Seek to the beginning of the file 
 	status = fseek(rp->fp, 0L, SEEK_SET);
@@ -130,7 +128,7 @@ xdd_restart_write_restart_file(restart_t *rp) {
 	}
 	
 	// Issue a write operation for the stuff
-	fprintf(rp->fp,"-restart offset %lld\n", rp->last_committed_location);
+	fprintf(rp->fp,"-restart offset %lld\n", (long long)rp->last_committed_location);
 
 	// Flush the file for safe keeping
 	fflush(rp->fp);
@@ -163,15 +161,11 @@ xdd_restart_write_restart_file(restart_t *rp) {
 void *
 xdd_restart_monitor(void *junk) {
 	int		target_number;
-	int		qthread_number;
 	ptds_t	*current_ptds;
 	ptds_t	*current_qthread;
 	int32_t low_qthread_number;
 	uint64_t low_byte_offset;
-	uint64_t high_offset;
-	uint64_t offset_separation;
 	uint64_t check_counter;
-	int		status;
 
 	
 
@@ -182,11 +176,10 @@ xdd_restart_monitor(void *junk) {
 		if (current_ptds->target_options & TO_E2E_DESTINATION) {
 			xdd_restart_create_restart_file(current_ptds->restartp);
 		} else {
-			fprintf(xgp->output,"%s: RESTART_MONITOR: INFO: No restart file being created for target %d [ %s ] %d because this is not the destination side of an E2E operation.\n", 
+			fprintf(xgp->output,"%s: RESTART_MONITOR: INFO: No restart file being created for target %d [ %s ] because this is not the destination side of an E2E operation.\n", 
 				xgp->progname,
 				current_ptds->my_target_number,
-				current_ptds->target,
-				strlen(current_ptds->target));
+				current_ptds->target);
 		}
 	}
 	fprintf(xgp->output,"%s: RESTART_MONITOR: Initialization complete.\n", xgp->progname);
@@ -248,5 +241,5 @@ xdd_restart_monitor(void *junk) {
 sleep(5);
 	fprintf(xgp->output,"%s: RESTART Monitor is exiting\n",xgp->progname);
 sleep(5);
-	return;
+	return(0);
 }
