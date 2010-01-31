@@ -383,9 +383,11 @@ xdd_ts_reports(ptds_t *p) {
 			block_location = ttp->tte[i].byte_location/ttp->blocksize; /* normalize the location in blocksized-units */
 			io_time[i] = ttp->tte[i].end - ttp->tte[i].start;
 			relative_time = ttp->tte[i].start - ttp->tte[0].start;
-			if (i > 0) 
-				if (ttp->tte[i].pass > ttp->tte[i-1].pass) fprintf(p->tsfp,"\n");
-			else { 
+			if (i > 0) {
+				if (ttp->tte[i].pass > ttp->tte[i-1].pass) {
+					fprintf(p->tsfp,"\n");
+				}
+			} else { 
 				total_distance += distance[i];
 				if (hi_dist < distance[i]) hi_dist = distance[i];
 				if (lo_dist > distance[i]) lo_dist = distance[i];
