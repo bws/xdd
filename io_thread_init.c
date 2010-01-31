@@ -39,8 +39,7 @@
  */
 int32_t
 xdd_io_thread_init(ptds_t *p) {
-	int32_t  i,j;  /* k? random variables */
-	int32_t  barrierindx; /* Thread barrier index */
+	int32_t  i;  /* working variables */
 	pclk_t  CurrentLocalTime; /* The time */
 	pclk_t  TimeDelta; /* The difference between now and the Actual Local Start Time */
 	uint32_t sleepseconds; /* Number of seconds to sleep while waiting for the global time to start */

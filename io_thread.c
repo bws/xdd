@@ -39,7 +39,7 @@
  */
 void *
 xdd_io_thread(void *pin) {
-	int32_t  	i,j;  /* k? random variables */
+	int32_t  	i;  /* working variables */
 	int32_t  	status;
 
 

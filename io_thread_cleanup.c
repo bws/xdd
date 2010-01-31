@@ -39,10 +39,7 @@
  */
 int32_t
 xdd_io_thread_cleanup(ptds_t *p) {
-	int32_t  	i,j;  	/* k? random variables */
-	ptds_t  	*qp;   	/* Pointer to a qthread ptds */
-	ptds_t  	*tp;   	/* Pointer to a target ptds */
-	char errmsg[256];
+	int32_t  	i;  	/* working variables */
 #ifdef WIN32
 	LPVOID lpMsgBuf; /* Used for the error messages */
 	HANDLE tmphandle;
