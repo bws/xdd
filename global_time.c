@@ -63,7 +63,6 @@
 #include <stdarg.h>
 #endif
 #include "xdd.h"
-static bool sockets_init(void);
 /*
  * err(fmt, ...)
  *

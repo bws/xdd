@@ -112,6 +112,7 @@ xdd_start_trigger_before_io_operation(ptds_t *p) {
 			}
 		}
 	} /* End of the trigger processing */
+	return(0);
 
 } // End of xdd_start_trigger_before_io_operation()
 
@@ -410,8 +411,8 @@ xdd_raw_before_io_operation(ptds_t *p) {
 							p->raw_msg_recv-1, 
 							(long long)p->raw_msg.location,  
 							(long long)p->raw_msg.length, 
-							p->raw_msg.sequence, 
-							p->raw_msg_last_sequence);
+							(long long)p->raw_msg.sequence, 
+							(long long)p->raw_msg_last_sequence);
 					}
 					if (p->raw_msg_last_sequence == 0) { /* this is the first message so prime the prev_loc and length with the current values */
 						p->raw_prev_loc = p->raw_msg.location;
@@ -425,7 +426,7 @@ xdd_raw_before_io_operation(ptds_t *p) {
 					p->raw_data_ready += p->raw_data_length;
 					if (p->raw_data_length > p->iosize) 
 						fprintf(stderr,"msgseq=%lld, loc=%lld, len=%lld, data_length is %lld, data_ready is now %lld, iosize=%d\n",
-							p->raw_msg.sequence, 
+							(long long)p->raw_msg.sequence, 
 							(long long)p->raw_msg.location, 
 							(long long)p->raw_msg.length, 
 							(long long)p->raw_data_length, 
@@ -451,8 +452,6 @@ xdd_e2e_before_io_operation(ptds_t *p) {
 	int32_t	status;			// Status of subroutine calls
 
 
-if (xgp->global_options & GO_DEBUG) 
-fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_options);
 	// If there is no end-to-end operation then just skip all this...
 	if (!(p->target_options & TO_ENDTOEND)) 
 		return(SUCCESS); 
@@ -468,11 +467,11 @@ fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_opt
 	/* ------------------------------------------------------ */
 	// We are the Destination side of an End-to-End op
 	if (xgp->global_options & GO_DEBUG) {
-		fprintf(stderr,"e2e_before_io_operation: data_ready=%lld, current_op=%d,prev_loc=%lld, prev_len=%lld, iosize=%d\n",
-			p->e2e_data_ready, 
-			p->my_current_op,
-			p->e2e_prev_loc, 
-			p->e2e_prev_len, 
+		fprintf(stderr,"e2e_before_io_operation: data_ready=%lld, current_op=%lld,prev_loc=%lld, prev_len=%lld, iosize=%d\n",
+			(long long)p->e2e_data_ready, 
+			(long long)p->my_current_op,
+			(long long)p->e2e_prev_loc, 
+			(long long)p->e2e_prev_len, 
 			p->iosize);
 	}
 
@@ -497,10 +496,10 @@ fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_opt
 				xgp->progname,
 				p->my_qthread_number, 
 				p->e2e_msg_recv-1, 
-				p->e2e_msg.location,  
-				p->e2e_msg.length, 
-				p->e2e_msg.sequence, 
-				p->e2e_msg_last_sequence);
+				(long long)p->e2e_msg.location,  
+				(long long)p->e2e_msg.length, 
+				(long long)p->e2e_msg.sequence, 
+				(long long)p->e2e_msg_last_sequence);
 			return(FAILED);
 		}
 
@@ -520,11 +519,11 @@ fprintf(stderr,"e2e_before_io_operation: target_options=0x%016x\n",p->target_opt
 		// Display some useful information if we are debugging this thing
 		if (xgp->global_options & GO_DEBUG) {
 			fprintf(stderr, "[mythreadnum %d]:e2e_before_io_operation: XXXXXXXX  msg.sequence=%lld, msg.location=%lld, msg.length=%lld, msg_last_sequence=%lld\n",
-				p->mythreadnum, p->e2e_msg.sequence, p->e2e_msg.location, p->e2e_msg.length, p->e2e_msg_last_sequence);
+				p->mythreadnum, (long long)p->e2e_msg.sequence, (long long)p->e2e_msg.location, (long long)p->e2e_msg.length, (long long)p->e2e_msg_last_sequence);
 			fprintf(stderr, "[mythreadnum %d]:e2e_before_io_operation: XXXXXXXX  data_length=%lld, data_ready=%lld, iosize=%d\n",
-				p->mythreadnum, p->e2e_data_length, p->e2e_data_ready, p->iosize );
+				p->mythreadnum, (long long)p->e2e_data_length, (long long)p->e2e_data_ready, p->iosize );
 			fprintf(stderr, "[mythreadnum %d]:e2e_before_io_operation: XXXXXXXX  prev_loc=%lld, prev_len=%lld\n",
-				p->mythreadnum, p->e2e_prev_loc, p->e2e_prev_len );
+				p->mythreadnum, (long long)p->e2e_prev_loc, (long long)p->e2e_prev_len );
 		}
 		// Check to see which message we are on and set up the msg counters properly
 		if (p->e2e_msg_last_sequence == 0) { 
@@ -618,7 +617,6 @@ xdd_throttle_before_io_operation(ptds_t *p) {
 		pclk_now(&now);
 		if (p->throttle_type & PTDS_THROTTLE_DELAY) {
 			sleep_time = p->throttle*1000000;
-fprintf(stderr,"throttle delay for %d seconds\n",sleep_time);
 		} else { // Process the throttle for IOPS or BW
 			now -= p->my_pass_start_time;
 			if (now < p->seekhdr.seeks[p->my_current_op].time1) { /* Then we may need to sleep */
@@ -632,7 +630,6 @@ fprintf(stderr,"throttle delay for %d seconds\n",sleep_time);
 #if (IRIX )
 						sginap((sleep_time_dw*CLK_TCK)/1000);
 #elif (LINUX || AIX || OSX || FREEBSD) /* Change this line to use usleep */
-fprintf(stderr,"throttle sleeping for %d seconds\n",sleep_time_dw*1000);
 						usleep(sleep_time_dw*1000);
 #endif
 #endif
