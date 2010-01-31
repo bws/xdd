@@ -133,7 +133,6 @@ private int  snamelen = sizeof(sname); /* used by setup_server_socket */
 /* ---------- */
 private void     parseargs(int argc, char **argv);
 private void     usage(char *fmt, ...);
-private void     server(void);
 private sd_t     setup_server_socket(void);
 private bool     sockets_init(void);
 /* -------------------- */
@@ -358,12 +357,8 @@ usage(char *fmt, ...) {
     fprintf(stderr, "\n\n");
     fprintf(stderr, "\tDefault port value is %uh, max is %uh; 0 means any\n",
 	DFL_FL_PORT, PORT_MAX);
-#ifdef WIN32
     fprintf(stderr, "\tDefault global_time value is %d picoseconds\n",
-#else
-    fprintf(stderr, "\tDefault global_time value is %d picoseconds\n",
-#endif
-	DFL_FL_TIME);
+	(int)DFL_FL_TIME);
     fprintf(stderr, "\n\n");
     exit(1);
 } /* end of usage() */
@@ -398,7 +393,7 @@ setup_server_socket(void)
 	if (bind(sd, (struct sockaddr *) &sname, snamelen))
 		timeserver_err("error binding name to socket");
 	/* Get and display the name (in case "any" was used) */
-	if (getsockname(sd, (struct sockaddr *) &sname, &snamelen))
+	if (getsockname(sd, (struct sockaddr *) &sname, (socklen_t *)&snamelen))
 		timeserver_err("error getting socket name");
 	flags.fl_addr = ntohl(sname.sin_addr.s_addr);
 	flags.fl_port = ntohs(sname.sin_port);
