@@ -92,12 +92,11 @@ void xdd_e2e_set_socket_opts(char *sktname, int skt) {
  *
  */
 void xdd_e2e_prt_socket_opts(char *sktname, int skt) {
-	int level = SOL_SOCKET;
-	//  int level = IPPROTO_UDP;
-	int 	sockbuf_sizs;
-	int		sockbuf_sizr;
-	int		reuse_addr;
-	int		optlen;
+	int 		level = SOL_SOCKET;
+	int 		sockbuf_sizs;
+	int			sockbuf_sizr;
+	int			reuse_addr;
+	socklen_t	optlen;
 
 
 	optlen = sizeof(sockbuf_sizs);
@@ -254,7 +253,6 @@ xdd_e2e_setup_dest_socket(ptds_t *p) {
 	int  	status;
 	char 	msg[256];
 	int 	type;
-	struct 	timeval udp_timeout;  
 
 
 	if (!p) { // Technically, this should *never* happen
@@ -544,9 +542,9 @@ xdd_e2e_dest_wait(ptds_t *p) {
 					fprintf(xgp->errout,"[mythreadnum %d]:xdd_e2e_dest_wait: Successful Receive message %d, seq# %lld, len %lld, loc %lld, magic %08x e2e_iosize %d\n",
 						p->mythreadnum,
 						p->e2e_msg_recv,
-						p->e2e_msg.sequence,
-						p->e2e_msg.length,
-						p->e2e_msg.location,
+						(long long)p->e2e_msg.sequence,
+						(long long)p->e2e_msg.length,
+						(long long)p->e2e_msg.location,
 						p->e2e_msg.magic, 
 						p->e2e_iosize);
 				}
@@ -584,7 +582,7 @@ xdd_e2e_dest_wait(ptds_t *p) {
 				fprintf(xgp->errout,"%s: [mythreadnum %d]: xdd_e2e_dest_wait: possible msg %lld recv time before send time by %llu picoseconds\n",
 					xgp->progname,
 					p->mythreadnum,
-					p->e2e_msg.sequence,
+					(long long)p->e2e_msg.sequence,
 					p->e2e_msg.sendtime-p->e2e_msg.recvtime);
 				return(FAILED);
 			}
@@ -611,7 +609,6 @@ xdd_e2e_setup_src_socket(ptds_t *p) {
 	int  	status; /* status of send/recv function calls */
 	char 	msg[256];
 	int 	type;
-	char  	optionvalue; /* used to set the socket option */
 
 
 	if (!p) { // Technically, this should *never* happen
@@ -785,19 +782,18 @@ xdd_e2e_src_init(ptds_t *p) {
 int32_t
 xdd_e2e_src_send_msg(ptds_t *p) {
 	int  	status; /* status of various function calls */
-	int 	j;
 	int 	sent;
-	int	sendsize; 
-	int	maxmit;
+	int		sendsize; 
+	int		maxmit;
 
 
 	if (xgp->global_options & GO_DEBUG) {
 		fprintf(xgp->errout,"[mythreadnum %d]:xdd_e2e_src_send_msg: sending message %d, seq# %lld, len %lld, loc %lld, magic %08x...",
 			p->mythreadnum,
 			p->e2e_msg_sent,
-			p->e2e_msg.sequence,
-			p->e2e_msg.length,
-			p->e2e_msg.location,
+			(long long)p->e2e_msg.sequence,
+			(long long)p->e2e_msg.length,
+			(long long)p->e2e_msg.location,
 			p->e2e_msg.magic);
 	}
 	p->e2e_msg.sendqnum = p->mythreadnum;
@@ -895,12 +891,12 @@ xdd_e2e_dest_wait_UDP(ptds_t *p) {
 
 	/* copy meta data into destinations e2e_msg struct */
 	if (xgp->global_options & GO_DEBUG) {
-		fprintf(xgp->errout,"[mythreadnum %d]:xdd_e2e_dest_wait_UDP message %d, seq# %lld, len %ld, loc %ld, magic %08x sent %d\n",
+		fprintf(xgp->errout,"[mythreadnum %d]:xdd_e2e_dest_wait_UDP message %d, seq# %lld, len %lld, loc %lld, magic %08x sent %d\n",
 			p->mythreadnum,
 			p->e2e_msg_recv,
-			p->e2e_msg.sequence,
-			p->e2e_msg.length,
-			p->e2e_msg.location,
+			(long long)p->e2e_msg.sequence,
+			(long long)p->e2e_msg.length,
+			(long long)p->e2e_msg.location,
 			p->e2e_msg.magic, 
 			p->e2e_iosize);
 	}
@@ -911,22 +907,22 @@ xdd_e2e_dest_wait_UDP(ptds_t *p) {
 		p->e2e_wait_1st_msg = p->e2e_msg.recvtime - e2e_wait_1st_msg_start_time;
 	p->e2e_msg.recvtime += xgp->gts_delta;
 	if (xgp->global_options & GO_DEBUG) {
-		fprintf(xgp->errout,"[mythreadnum %d]:msg loc %lld, length %lld seq num is %d\n",
+		fprintf(xgp->errout,"[mythreadnum %d]:msg loc %lld, length %lld seq num is %lld\n",
 			p->mythreadnum, 
-			p->e2e_msg.location,  
-			p->e2e_msg.length, 
-			p->e2e_msg.sequence);
+			(long long)p->e2e_msg.location,  
+			(long long)p->e2e_msg.length, 
+			(long long)p->e2e_msg.sequence);
 	}
 
 	/* Successful receive  - check to see if the data in the buffer is correct */
 	if ((p->e2e_msg.magic != PTDS_E2E_MAGIC) && 
-	    (p->e2e_msg.magic != PTDS_E2E_MAGIQ) || 
-	    (p->e2e_msg.recvtime < p->e2e_msg.sendtime && xgp->gts_time > 0) ) {
+	    ((p->e2e_msg.magic != PTDS_E2E_MAGIQ) || 
+	    ((p->e2e_msg.recvtime < p->e2e_msg.sendtime) && (xgp->gts_time > 0))) ) {
 		fprintf(xgp->errout,"xdd_e2e_dest_wait_UDP possible Bad magic number %08x on recv %d\n",
 			p->e2e_msg.magic, 
 			p->e2e_msg_recv);
 		fprintf(xgp->errout,"xdd_e2e_dest_wait_UDP possible msg %lld recv time before send time by %llu picoseconds\n",
-			p->e2e_msg.sequence,
+			(long long)p->e2e_msg.sequence,
 			p->e2e_msg.sendtime-p->e2e_msg.recvtime);
 		/* At this point, a recv returned an error in which case the connection
  		 * was most likely closed and we need to clear out this csd */
