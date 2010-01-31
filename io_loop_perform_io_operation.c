@@ -44,8 +44,6 @@ void xdd_io_for_linux(ptds_t *p); // Used in this subroutine only
  */
 int32_t
 xdd_io_loop_perform_io_operation(ptds_t *p) {
-	pclk_t			start_time;			// Used for calculating elapsed times of ops
-	pclk_t			end_time;			// Used for calculating elapsed times of ops
 
 
 	p->my_current_state = CURRENT_STATE_IO;	// Starting an I/O Operation now...
@@ -164,12 +162,12 @@ xdd_io_for_linux(ptds_t *p) {
 
 	// Check status of the last operation 
 	if ((p->my_io_status < 0) || (p->my_io_status != p->actual_iosize)) {
-		fprintf(xgp->errout, "(%d.%d) %s: I/O error on target %s - status %d, iosize %d, operation number %d\n",
-			p->my_target_number,p->my_qthread_number,xgp->progname,p->target,p->my_io_status,p->actual_iosize,p->my_current_op);
+		fprintf(xgp->errout, "(%d.%d) %s: I/O error on target %s - status %d, iosize %d, operation number %lld\n",
+			p->my_target_number,p->my_qthread_number,xgp->progname,p->target,p->my_io_status,p->actual_iosize,(long long)p->my_current_op);
 		if (!(p->target_options & TO_SGIO)) {
 			if ((p->my_io_status == 0) && (errno == 0)) { // Indicate this is an end-of-file condition
-				fprintf(xgp->errout, "(%d.%d) %s: End-of-file reached on target %s at operation number %d\n",
-					p->my_target_number,p->my_qthread_number,xgp->progname,p->target,p->my_current_op);
+				fprintf(xgp->errout, "(%d.%d) %s: End-of-file reached on target %s at operation number %lld\n",
+					p->my_target_number,p->my_qthread_number,xgp->progname,p->target,(long long)p->my_current_op);
 			} else {
 				perror("reason"); // Only print the reason (aka errno text) if this is not an SGIO request
 			}
