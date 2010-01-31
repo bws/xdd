@@ -228,7 +228,6 @@ xdd_e2e_before_io_loop(ptds_t *p) {
  */
 int32_t
 xdd_io_loop_before_loop(ptds_t *p) {
-	int32_t  i;
 
 	// Timer Calibration and Information
 	xdd_timer_calibration_before_io_loop();
