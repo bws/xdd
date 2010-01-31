@@ -93,7 +93,7 @@ xdd_results_fmt_bytes_transferred(results_t *rp) {
 	} else if (rp->flags & RESULTS_UNITS_TAG) {
 		fprintf(rp->output,"%16s","           Bytes");
 	} else if (rp->flags & RESULTS_PASS_INFO) {
-		fprintf(rp->output,"%16lld",rp->bytes_xfered);
+		fprintf(rp->output,"%16lld",(long long)rp->bytes_xfered);
 	}
 
 }
@@ -105,7 +105,7 @@ xdd_results_fmt_bytes_read(results_t *rp) {
 	} else if (rp->flags & RESULTS_UNITS_TAG) {
 		fprintf(rp->output,"%16s","           Bytes");
 	} else if (rp->flags & RESULTS_PASS_INFO) {
-		fprintf(rp->output,"%16lld",rp->bytes_read);
+		fprintf(rp->output,"%16lld",(long long)rp->bytes_read);
 	}
 
 }
@@ -117,7 +117,7 @@ xdd_results_fmt_bytes_written(results_t *rp) {
 	} else if (rp->flags & RESULTS_UNITS_TAG) {
 		fprintf(rp->output,"%16s","           Bytes");
 	} else if (rp->flags & RESULTS_PASS_INFO) {
-		fprintf(rp->output,"%16lld",rp->bytes_written);
+		fprintf(rp->output,"%16lld",(long long)rp->bytes_written);
 	}
 
 }
@@ -129,7 +129,7 @@ xdd_results_fmt_ops(results_t *rp) {
 	} else if (rp->flags & RESULTS_UNITS_TAG) {
 		fprintf(rp->output,"%11s","       #ops");
 	} else if (rp->flags & RESULTS_PASS_INFO) {
-		fprintf(rp->output,"%11lld",rp->op_count);
+		fprintf(rp->output,"%11lld",(long long)rp->op_count);
 	}
 
 }
@@ -141,7 +141,7 @@ xdd_results_fmt_read_ops(results_t *rp) {
 	} else if (rp->flags & RESULTS_UNITS_TAG) {
 		fprintf(rp->output,"%11s","       #ops");
 	} else if (rp->flags & RESULTS_PASS_INFO) {
-		fprintf(rp->output,"%11lld",rp->read_op_count);
+		fprintf(rp->output,"%11lld",(long long)rp->read_op_count);
 	}
 
 }
@@ -153,7 +153,7 @@ xdd_results_fmt_write_ops(results_t *rp) {
 	} else if (rp->flags & RESULTS_UNITS_TAG) {
 		fprintf(rp->output,"%11s","       #ops");
 	} else if (rp->flags & RESULTS_PASS_INFO) {
-		fprintf(rp->output,"%11lld",rp->write_op_count);
+		fprintf(rp->output,"%11lld",(long long)rp->write_op_count);
 	}
 
 }
@@ -650,7 +650,7 @@ xdd_results_display(results_t *rp) {
 	sp = rp->format_string;
 	splen = strlen(sp);
 	if (splen <= 0) {
-		return;
+		return(0);
 	}
 	cp = sp;
 	remaining = splen;
@@ -687,6 +687,7 @@ xdd_results_display(results_t *rp) {
 
 	// At this point each of the fmt_ids have been processed.
 	fprintf(rp->output,"\n");
+	return(0);
 			
 }
 

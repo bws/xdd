@@ -62,6 +62,7 @@ xdd_results_header_display(results_t *tmprp)
 		xdd_results_display(tmprp);
 	}
 	xgp->heartbeat_holdoff = 0;
+	return(0);
 	
 } // End of xdd_results_header_display()
 
@@ -495,7 +496,7 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p)
 			rp->lowest_write_iops = -1.0;
 		}
 	}
-	return;
+	return(0);
 } // End of xdd_extract_pass_results() 
 /*----------------------------------------------------------------------------*/
 // xdd_process_pass_results() 
@@ -604,7 +605,7 @@ xdd_process_pass_results(void)
 
 	xgp->heartbeat_holdoff = 0;
 
-	return;
+	return(0);
 } // End of xdd_process_pass_results() 
 
 /*----------------------------------------------------------------------------*/
@@ -694,7 +695,7 @@ xdd_process_run_results(void)
 	} // End of processing TimeStamp reports
 	// Release all the other qthreads so that they can do their cleanup and exit
 	xdd_barrier(&xgp->results_display_final_barrier);
-	return;
+	return(0);
 } // End of xdd_process_run_results() 
 
 /*----------------------------------------------------------------------------*/
@@ -716,11 +717,11 @@ xdd_process_run_results(void)
 void *
 xdd_results_manager(void *n)
 {
-	int32_t  	i;  							/* Random variables */
+	//int32_t  	i;  							/* Random variables */
 	int32_t  	results_pass_barrier_index;		/* index for results pass barrier */
 	int32_t  	results_display_barrier_index;  /* index for results display barrier */
-	ptds_t  	*p;   							/* Pointer to a qthread ptds */
-	results_t	*rp;							// Pointer to the results struct in each qthread PTDS
+	//ptds_t  	*p;   							/* Pointer to a qthread ptds */
+	//results_t	*rp;							// Pointer to the results struct in each qthread PTDS
 	results_t	*tmprp;							// Pointer to the results struct in each qthread PTDS
 
 
@@ -731,7 +732,7 @@ xdd_results_manager(void *n)
 	if (tmprp == NULL) {
 			fprintf(xgp->errout, "%s: results_manager: Error: Cannot allocate memory for a temp results structure!\n", xgp->progname);
 			perror("results_manager: Reason");
-			return;
+			return(0);
 	}
 
 	// Enter this barrier and wait for the results monitor to initialize
@@ -745,7 +746,7 @@ xdd_results_manager(void *n)
 
 		if ( xgp->abort_io == 1) { // Something went wrong during thread initialization so let's just leave
 			xdd_process_run_results();
-			return;
+			return(0);
 		}
 
 		// Display the header and nuits line if necessary
@@ -759,7 +760,7 @@ xdd_results_manager(void *n)
 
 		if (xgp->run_complete) {
 			xdd_process_run_results();
-			return;
+			return(0);
 		} else { 
 			 xdd_process_pass_results();
 		}
@@ -768,8 +769,10 @@ xdd_results_manager(void *n)
 		results_display_barrier_index ^= 1; 
 
 	} // End of main WHILE loop for the results_manager()
+	return(0);
 }
 
+#ifdef ndef
 /*----------------------------------------------------------------------------*/
 // xdd_results_dump 
 void *
@@ -777,9 +780,9 @@ xdd_results_dump(results_t *rp, char *dumptype)
 {
 
 	fprintf(xgp->output,"\n\n------------------------ Dumping %s -------------------------------\n\n", dumptype);
-	fprintf(xgp->output,"	flags = 0x%016x\n",rp->flags);				// Flags that tell the display function what to display
+	fprintf(xgp->output,"	flags = 0x%016x\n",(unsigned int)rp->flags);				// Flags that tell the display function what to display
 	fprintf(xgp->output,"	*what = '%s'\n",rp->what);					// The type of information line to display - Queue Pass, Target Pass, Queue Avg, Target Avg, Combined
-	fprintf(xgp->output,"	*output = 0x%016x\n",rp->output);			// This points to the output file 
+	fprintf(xgp->output,"	*output = 0x%016x\n",(unsigned int)rp->output);			// This points to the output file 
 	fprintf(xgp->output,"	delimiter = 0x%1x\n",rp->delimiter);		// The delimiter to use between fields - i.e. a space or tab or comma
 
 	// Fundamental Variables
@@ -796,13 +799,13 @@ xdd_results_dump(results_t *rp, char *dumptype)
 	fprintf(xgp->output,"	*optype = '%s'\n",rp->optype);			// Operation type - read, write, or mixed
 
 	// Incremented Counters
-	fprintf(xgp->output,"	bytes_xfered = %lld\n",rp->bytes_xfered);		// Bytes transfered 
-	fprintf(xgp->output,"	bytes_read = %lld\n",rp->bytes_read);			// Bytes transfered during read operations
-	fprintf(xgp->output,"	bytes_written = %lld\n",rp->bytes_written);		// Bytes transfered during write operations
-	fprintf(xgp->output,"	op_count = %lld\n",rp->op_count);    			// Operations performed 
-	fprintf(xgp->output,"	read_op_count = %lld\n",rp->read_op_count);		// Read operations performed 
-	fprintf(xgp->output,"	write_op_count = %lld\n",rp->write_op_count); 	// Write operations performed 
-	fprintf(xgp->output,"	error_count = %lld\n",rp->error_count);  		// Number of I/O errors 
+	fprintf(xgp->output,"	bytes_xfered = %lld\n",(long long)rp->bytes_xfered);		// Bytes transfered 
+	fprintf(xgp->output,"	bytes_read = %lld\n",(long long)rp->bytes_read);			// Bytes transfered during read operations
+	fprintf(xgp->output,"	bytes_written = %lld\n",(long long)rp->bytes_written);		// Bytes transfered during write operations
+	fprintf(xgp->output,"	op_count = %lld\n",(long long)rp->op_count);    			// Operations performed 
+	fprintf(xgp->output,"	read_op_count = %lld\n",(long long)rp->read_op_count);		// Read operations performed 
+	fprintf(xgp->output,"	write_op_count = %lld\n",(long long)rp->write_op_count); 	// Write operations performed 
+	fprintf(xgp->output,"	error_count = %lld\n",(long long)rp->error_count);  		// Number of I/O errors 
 
 	// Timing Information - calculated from time stamps/values of when things hapened 
 	fprintf(xgp->output,"	accumulated_op_time = %8.3f\n",rp->accumulated_op_time);		// Total Accumulated Time in seconds processing I/O ops 
@@ -834,7 +837,7 @@ xdd_results_dump(results_t *rp, char *dumptype)
 	fprintf(xgp->output,"	percent_cpu = %8.3f\n",rp->percent_cpu); 		// Percent of CPU used by this process 
 
 	// Other information - only valid when certain options are used
-	fprintf(xgp->output,"	compare_errors = %lld\n",rp->compare_errors);			// Number of compare errors on a sequenced data pattern check 
+	fprintf(xgp->output,"	compare_errors = %lld\n",(long long)rp->compare_errors);			// Number of compare errors on a sequenced data pattern check 
 	fprintf(xgp->output,"	e2e_io_time_this_pass = %8.3f\n",rp->e2e_io_time_this_pass); 			// Time spent sending or receiving messages for E2E option 
 	fprintf(xgp->output,"	e2e_sr_time_this_pass = %8.3f\n",rp->e2e_sr_time_this_pass); 			// Time spent sending or receiving messages for E2E option 
 	fprintf(xgp->output,"	e2e_sr_time_percent_this_pass = %8.3f\n",rp->e2e_sr_time_percent_this_pass); 	// Percentage of total Time spent sending or receiving messages for E2E option 
@@ -854,26 +857,26 @@ xdd_results_dump(results_t *rp, char *dumptype)
 	fprintf(xgp->output,"	shortest_read_op_time = %12.3f\n",rp->shortest_read_op_time); 	// Shortest read op time that occured during this pass
 	fprintf(xgp->output,"	shortest_write_op_time = %12.3f\n",rp->shortest_write_op_time); // Shortest write op time that occured during this pass
 
-	fprintf(xgp->output,"	longest_op_bytes = %lld\n",rp->longest_op_bytes); 			// Bytes xfered when the longest op time occured during this pass
-	fprintf(xgp->output," 	longest_read_op_bytes = %lld\n",rp->longest_read_op_bytes);	 	// Bytes xfered when the longest read op time occured during this pass
-	fprintf(xgp->output," 	longest_write_op_bytes = %lld\n",rp->longest_write_op_bytes); 	// Bytes xfered when the longest write op time occured during this pass
-	fprintf(xgp->output," 	shortest_op_bytes = %lld\n",rp->shortest_op_bytes); 			// Bytes xfered when the shortest op time occured during this pass
-	fprintf(xgp->output," 	shortest_read_op_bytes = %lld\n",rp->shortest_read_op_bytes); 	// Bytes xfered when the shortest read op time occured during this pass
-	fprintf(xgp->output," 	shortest_write_op_bytes = %lld\n",rp->shortest_write_op_bytes);	// Bytes xfered when the shortest write op time occured during this pass
+	fprintf(xgp->output,"	longest_op_bytes = %lld\n",(long long)rp->longest_op_bytes); 			// Bytes xfered when the longest op time occured during this pass
+	fprintf(xgp->output," 	longest_read_op_bytes = %lld\n",(long long)rp->longest_read_op_bytes);	 	// Bytes xfered when the longest read op time occured during this pass
+	fprintf(xgp->output," 	longest_write_op_bytes = %lld\n",(long long)rp->longest_write_op_bytes); 	// Bytes xfered when the longest write op time occured during this pass
+	fprintf(xgp->output," 	shortest_op_bytes = %lld\n",(long long)rp->shortest_op_bytes); 			// Bytes xfered when the shortest op time occured during this pass
+	fprintf(xgp->output," 	shortest_read_op_bytes = %lld\n",(long long)rp->shortest_read_op_bytes); 	// Bytes xfered when the shortest read op time occured during this pass
+	fprintf(xgp->output," 	shortest_write_op_bytes = %lld\n",(long long)rp->shortest_write_op_bytes);	// Bytes xfered when the shortest write op time occured during this pass
 
-	fprintf(xgp->output,"	longest_op_number = %lld\n",rp->longest_op_number); 			// Operation Number when the longest op time occured during this pass
-	fprintf(xgp->output," 	longest_read_op_number = %lld\n",rp->longest_read_op_number); 	// Operation Number when the longest read op time occured during this pass
-	fprintf(xgp->output," 	longest_write_op_number = %lld\n",rp->longest_write_op_number); 	// Operation Number when the longest write op time occured during this pass
-	fprintf(xgp->output," 	shortest_op_number = %lld\n",rp->shortest_op_number); 		// Operation Number when the shortest op time occured during this pass
-	fprintf(xgp->output," 	shortest_read_op_number = %lld\n",rp->shortest_read_op_number); 	// Operation Number when the shortest read op time occured during this pass
-	fprintf(xgp->output," 	shortest_write_op_number = %lld\n",rp->shortest_write_op_number);	// Operation Number when the shortest write op time occured during this pass
+	fprintf(xgp->output,"	longest_op_number = %lld\n",(long long)rp->longest_op_number); 			// Operation Number when the longest op time occured during this pass
+	fprintf(xgp->output," 	longest_read_op_number = %lld\n",(long long)rp->longest_read_op_number); 	// Operation Number when the longest read op time occured during this pass
+	fprintf(xgp->output," 	longest_write_op_number = %lld\n",(long long)rp->longest_write_op_number); 	// Operation Number when the longest write op time occured during this pass
+	fprintf(xgp->output," 	shortest_op_number = %lld\n",(long long)rp->shortest_op_number); 		// Operation Number when the shortest op time occured during this pass
+	fprintf(xgp->output," 	shortest_read_op_number = %lld\n",(long long)rp->shortest_read_op_number); 	// Operation Number when the shortest read op time occured during this pass
+	fprintf(xgp->output," 	shortest_write_op_number = %lld\n",(long long)rp->shortest_write_op_number);	// Operation Number when the shortest write op time occured during this pass
 
-	fprintf(xgp->output,"	longest_op_pass_number = %lld\n",rp->longest_op_pass_number);		// Pass Number when the longest op time occured during this pass
-	fprintf(xgp->output,"	longest_read_op_pass_number = %lld\n",rp->longest_read_op_pass_number);// Pass Number when the longest read op time occured
-	fprintf(xgp->output,"	longest_write_op_pass_number = %lld\n",rp->longest_write_op_pass_number);// Pass Number when the longest write op time occured 
-	fprintf(xgp->output,"	shortest_op_pass_number = %lld\n",rp->shortest_op_pass_number);	// Pass Number when the shortest op time occured 
-	fprintf(xgp->output,"	shortest_read_op_pass_number = %lld\n",rp->shortest_read_op_pass_number);// Pass Number when the shortest read op time occured 
-	fprintf(xgp->output,"	shortest_write_op_pass_number = %lld\n",rp->shortest_write_op_pass_number);// Pass Number when the shortest write op time occured 
+	fprintf(xgp->output,"	longest_op_pass_number = %lld\n",(long long)rp->longest_op_pass_number);		// Pass Number when the longest op time occured during this pass
+	fprintf(xgp->output,"	longest_read_op_pass_number = %lld\n",(long long)rp->longest_read_op_pass_number);// Pass Number when the longest read op time occured
+	fprintf(xgp->output,"	longest_write_op_pass_number = %lld\n",(long long)rp->longest_write_op_pass_number);// Pass Number when the longest write op time occured 
+	fprintf(xgp->output,"	shortest_op_pass_number = %lld\n",(long long)rp->shortest_op_pass_number);	// Pass Number when the shortest op time occured 
+	fprintf(xgp->output,"	shortest_read_op_pass_number = %lld\n",(long long)rp->shortest_read_op_pass_number);// Pass Number when the shortest read op time occured 
+	fprintf(xgp->output,"	shortest_write_op_pass_number = %lld\n",(long long)rp->shortest_write_op_pass_number);// Pass Number when the shortest write op time occured 
 
 	fprintf(xgp->output,"	highest_bandwidth = %12.3f\n",rp->highest_bandwidth);		// Highest individual op data rate in MB/sec
 	fprintf(xgp->output,"	highest_read_bandwidth = %12.3f\n",rp->highest_read_bandwidth);	// Highest individual op read data rate in MB/sec 
@@ -890,4 +893,6 @@ xdd_results_dump(results_t *rp, char *dumptype)
 	fprintf(xgp->output,"	lowest_write_iops = %12.3f\n",rp->lowest_write_iops);		// Lowest individual op write I/O Operations per second 
 
 	fprintf(xgp->output,"==================================================================\n");
+	return(0);
 }
+#endif 
