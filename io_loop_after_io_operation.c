@@ -138,14 +138,14 @@ xdd_e2e_after_io_operation(ptds_t *p) {
 			p->e2e_data_ready -= p->my_io_status;
 			if((p->e2e_msg.sequence%1000 == 0) && 
 			   (xgp->global_options & GO_REALLYVERBOSE)) {
-				fprintf(stderr,"[mythreadnum %d]:e2e_after_io_operation: op %04d %04d: e2e-postion-destination: message %d, seq# %lld, len %ld, loc %ld, magic %08x sent %dB\n",
+				fprintf(stderr,"[mythreadnum %d]:e2e_after_io_operation: op %08lld %08lld: e2e-after-io-destination: message %d, seq# %lld, len %lld, loc %lld, magic %08x sent %dB\n",
 					p->mythreadnum,
-					p->my_current_op,
-					p->e2e_msg.sequence%1000,
+					(long long)p->my_current_op,
+					(long long)p->e2e_msg.sequence%1000,
 					p->e2e_msg_recv,
-					p->e2e_msg.sequence,
-					p->e2e_msg.length,
-					p->e2e_msg.location,
+					(long long)p->e2e_msg.sequence,
+					(long long)p->e2e_msg.length,
+					(long long)p->e2e_msg.location,
 					p->e2e_msg.magic, 
 					p->iosize);
 			}
@@ -162,13 +162,13 @@ xdd_e2e_after_io_operation(ptds_t *p) {
 			p->e2e_msg.location = p->my_current_byte_location;
 			p->e2e_msg.sequence = p->my_current_op;
 			if (xgp->global_options & GO_DEBUG) {
-				fprintf(stderr,"[mythreadnum %d]:e2e_after_io_operation: op %04d:e2e-postion-source: message %d, seq# %lld, len %ld, loc %ld, magic %08x sent %d\n",
+				fprintf(stderr,"[mythreadnum %d]:e2e_after_io_operation: op %08lld:e2e-postion-source: message %d, seq# %lld, len %lld, loc %lld, magic %08x sent %d\n",
 					p->mythreadnum,
-					p->my_current_op,
+					(long long)p->my_current_op,
 					p->e2e_msg_sent,
-					p->e2e_msg.sequence,
-					p->e2e_msg.length,
-					p->e2e_msg.location,
+					(long long)p->e2e_msg.sequence,
+					(long long)p->e2e_msg.length,
+					(long long)p->e2e_msg.location,
 					p->e2e_msg.magic, 
 					p->iosize);
 			} // End of DEBUG print
