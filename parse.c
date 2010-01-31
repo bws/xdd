@@ -203,7 +203,7 @@ xdd_build_ptds_substructure(void)
 			p->target_bytes_to_xfer_per_pass = (uint64_t)p->bytes;
 		else { // Yikes - something was not specified
 			fprintf(xgp->errout,"%s: io_thread_init: ERROR! iothread for target %d queue %d has numreqs of %lld, bytes of %lld - one of these must be specified\n",
-				xgp->progname, p->my_target_number, p->my_qthread_number, p->numreqs, p->bytes);
+				xgp->progname, p->my_target_number, p->my_qthread_number, (long long)p->numreqs, (long long)p->bytes);
 			fflush(xgp->errout);
 			exit(0);
 		}
@@ -577,7 +577,7 @@ xdd_get_ptdsp(int32_t target_number, char *op) {
 		xgp->ptdsp[target_number] = malloc(sizeof(struct ptds));
 		if (xgp->ptdsp[target_number] == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS for target %d\n",
-			xgp->progname, sizeof(struct ptds), target_number);
+			xgp->progname, (int)sizeof(struct ptds), target_number);
 			fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
 			   	xgp->progname, target_number, op);
 			return(NULL);
@@ -587,7 +587,7 @@ xdd_get_ptdsp(int32_t target_number, char *op) {
 		xgp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
 		if (xgp->target_average_resultsp[target_number] == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESULTS struct for target %d\n",
-			xgp->progname, sizeof(results_t), target_number);
+			xgp->progname, (int)sizeof(results_t), target_number);
 			return(NULL);
 		}
 	}
@@ -603,7 +603,7 @@ xdd_get_restartp(ptds_t *p) {
 		p->restartp = malloc(sizeof(struct restart));
 		if (p->restartp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESTART structure for target %d\n",
-			xgp->progname, sizeof(struct restart), p->my_target_number);
+			xgp->progname, (int)sizeof(struct restart), p->my_target_number);
 			return(NULL);
 		}
 		// Initialize the new RESTART structure and lets rock and roll!

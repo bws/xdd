@@ -246,7 +246,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 	char          *pattern_type; // The pattern type of ascii, hex, random, ...etc
 	unsigned char *pattern; // The ACSII representation of the specified data pattern
 	unsigned char *pattern_value; // The ACSII representation of the specified data pattern
-	uint64_t      pattern_binary; // The 64-bit value shifted all the way to the left
+	uint64_t      pattern_binary = 0; // The 64-bit value shifted all the way to the left
 	size_t        pattern_length; // The length of the pattern string from the command line
 	unsigned char *tmpp;
 	int           retval;
@@ -324,7 +324,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		if (pattern_value == 0) {
 			fprintf(xgp->errout, "%s: WARNING: cannot allocate %d bytes for hex data pattern - defaulting to no pattern\n",
 				xgp->progname,
-				((pattern_length+1)/2));
+				(int)((pattern_length+1)/2));
 		}
 		memset(pattern_value,0,((pattern_length+1)/2));
 		// At this point "pattern" points to the ascii string of hex characters (0-9,a-f)
@@ -375,14 +375,14 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 			pattern_length = 2;
 		}
 		if (pattern_length > 16) { // 16 nibbles or 8 bytes
-			fprintf(xgp->errout, "%s: WARNING: Length of data pattern is too long <%d> - truncating to 8 bytes.\n",xgp->progname, pattern_length);
+			fprintf(xgp->errout, "%s: WARNING: Length of data pattern is too long <%d> - truncating to 8 bytes.\n",xgp->progname, (int)pattern_length);
 			pattern[16] = '\0';
 		}
 		pattern_value = malloc(((pattern_length+1)/2));
 		if (pattern_value == 0) {
 			fprintf(xgp->errout, "%s: WARNING: cannot allocate %d bytes for prefix data pattern - defaulting to no prefix\n",
 				xgp->progname,
-				((pattern_length+1)/2));
+				(int)((pattern_length+1)/2));
 		}
 		memset(pattern_value,0,((pattern_length+1)/2));
 		
@@ -2909,7 +2909,7 @@ xddfunc_startoffset(int32_t argc, char *argv[], uint32_t flags)
 
 	start_offset = atoll(argv[args+1]);
 	if (start_offset < 0) {
-		fprintf(xgp->errout,"%s: start offset of %d is not valid. start offset must be a number equal to or greater than 0\n",xgp->progname,start_offset);
+		fprintf(xgp->errout,"%s: start offset of %lld is not valid. start offset must be a number equal to or greater than 0\n",xgp->progname,(long long)start_offset);
 		return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
