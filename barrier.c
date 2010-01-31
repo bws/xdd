@@ -200,7 +200,6 @@ int32_t
 xdd_init_all_barriers(void) {
 	int32_t status;
 	char errmsg[512];
-	int i,j;
 	
 	status = pthread_mutex_init(&xgp->xdd_init_barrier_mutex, 0);
 	if (status) {
