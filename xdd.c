@@ -39,7 +39,7 @@
  */
 int32_t
 main(int32_t argc,char *argv[]) {
-	int32_t i,j,q;
+	int32_t j,q;
 	int32_t status;
 	pclk_t base_time; /* This is time t=0 */
 	pclk_t tt; 
@@ -117,7 +117,7 @@ main(int32_t argc,char *argv[]) {
 		} 
 		status = setrlimit(RLIMIT_STACK, &rlim);
 		if (status) {
-			fprintf(xgp->errout, "%s: WARNING: Cannot set resource limit stack size to %lld\n",xgp->progname, rlim.rlim_cur);
+			fprintf(xgp->errout, "%s: WARNING: Cannot set resource limit stack size to %lld\n",xgp->progname, (long long)rlim.rlim_cur);
 			perror("Reason");
 			fflush(xgp->errout);
 		}
