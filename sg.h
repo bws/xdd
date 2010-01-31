@@ -287,7 +287,9 @@ static const char *group_2_commands[] = {
 #define WRITE_16              0x8a
 #endif
 
-/* The following are 16 byte commands in group 5 */
+#ifdef ndef
+// The group_4 command are currently not used
+/* The following are 16 byte commands in group 4 */
 static const char *group_4_commands[] = {
 /* 80  Z              */ "XDWRITE EXTENDED(16) [SBC] or WRITE FILEMARKS(16)"
 /* 81  Z              */ "REBUILD(16) [SBC] or READ REVERSE(16)",
@@ -316,6 +318,7 @@ static const char *group_4_commands[] = {
 /* 9E                 */ "SERVICE ACTION IN(16)",
 /* 9F              M  */ "SERVICE ACTION OUT(16)",
 };
+#endif
 
 /* The following are 12 byte commands in group 5 */
 static const char *group_5_commands[] = {
