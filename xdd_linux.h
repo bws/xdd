@@ -40,6 +40,7 @@
 #include <sys/time.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <sys/shm.h>
 #include <sys/times.h>
 #include <sys/prctl.h>
 #include <sys/param.h>
@@ -53,7 +54,6 @@
 #include <sys/utsname.h>
 #include <string.h>
 #include <syscall.h>
-#include "sg.h"
 /* for the global clock stuff */
 #include <netdb.h>
 #include <sys/socket.h>
@@ -72,9 +72,12 @@ typedef int  sd_t;  /* A socket descriptor */
 #define CLK_TCK sysconf(_SC_CLK_TCK)
 #define DFL_FL_ADDR INADDR_ANY /* Any address */  /* server only */
 #define closesocket(sd) close(sd)
-static bool  sockets_init(void);
 
 #include "restart.h"
 
 #include "ptds.h"
  
+int32_t xdd_sg_io(ptds_t *p, char rw);
+int32_t xdd_sg_read_capacity(ptds_t *p);
+void xdd_sg_set_reserved_size(ptds_t *p, int fd);
+void xdd_sg_get_version(ptds_t *p, int fd);

@@ -38,6 +38,7 @@
  */
 #include "xdd.h"
 #if LINUX
+#include "sg.h"
 // #define SG_DEBUG
 
 #define READ_CAP_REPLY_LEN 8
@@ -118,14 +119,14 @@ xdd_sg_io(ptds_t *p, char rw) {
 	}
 	// Check status of sending the IO Header to the SG driver
 	if (status < 0) {
-		fprintf(xgp->errout, "%s:(T%d.Q%d): Error sending IO Header and CDB to SG Driver for a %s Command on target %s - status %d, op# %d\n",
+		fprintf(xgp->errout, "%s:(T%d.Q%d): Error sending IO Header and CDB to SG Driver for a %s Command on target %s - status %d, op# %lld\n",
 			xgp->progname,
 			p->my_target_number,
 			p->my_qthread_number,
 			(rw == 'w')?"Write":"Read",
 			p->target,
 			status,
-			p->my_current_op);
+			(long long)p->my_current_op);
 		fflush(xgp->errout);
 		return(status);
 	}
@@ -140,15 +141,15 @@ xdd_sg_io(ptds_t *p, char rw) {
 	// Check status of sending the IO Header to the SG driver
 	io_status = sg_chk_n_print3("xdd: SG Sense", &io_hdr, stderr);
 	if ((status < 0) || (io_status == 0)) { // There was an error....
-		fprintf(xgp->errout, "%s (T%d.Q%d): SG I/O Error for %s Command on target %s - status %d, op# %d, from sector# %lld for %d sectors\n",
+		fprintf(xgp->errout, "%s (T%d.Q%d): SG I/O Error for %s Command on target %s - status %d, op# %lld, from sector# %llu for %d sectors\n",
 			xgp->progname,
 			p->my_target_number,
 			p->my_qthread_number,
 			(rw == 'w')?"Write":"Read",
 			p->target,
 			status,
-			p->my_current_op,
-			p->sg_from_block, 
+			(long long)p->my_current_op,
+			(unsigned long long)p->sg_from_block, 
 			p->sg_blocks);
 		fflush(xgp->errout);
 
@@ -156,15 +157,15 @@ xdd_sg_io(ptds_t *p, char rw) {
 		io_status = sg_err_category3(&io_hdr);
 		switch (io_status) {
 			case SG_ERR_CAT_RECOVERED:
-				fprintf(xgp->errout, "%s (T%d.Q%d): Recovered %s Error on target %s - status %d, op# %d, from sector# %lld for %d sectors\n",
+				fprintf(xgp->errout, "%s (T%d.Q%d): Recovered %s Error on target %s - status %d, op# %lld, from sector# %llu for %d sectors\n",
 					xgp->progname,
 					p->my_target_number,
 					p->my_qthread_number,
 					(rw == 'w')?"Write":"Read",
 					p->target,
 					status,
-					p->my_current_op,
-					p->sg_from_block, 
+					(long long)p->my_current_op,
+					(unsigned long long)p->sg_from_block, 
 					p->sg_blocks);
 				break;
 			default:
@@ -172,24 +173,24 @@ xdd_sg_io(ptds_t *p, char rw) {
 				if (status == SUCCESS) { // Check for an out-of-bounds condition
 					last_sector = p->sg_from_block + p->sg_blocks - 1;
 					if ( last_sector > p->sg_num_sectors) { // LBA out of range error most likely
-						fprintf(xgp->errout, "%s (T%d.Q%d): Attempting to access a sector that is PAST the END of the device: op# %d, from sector# %lld, for %d sectors\n",
+						fprintf(xgp->errout, "%s (T%d.Q%d): Attempting to access a sector that is PAST the END of the device: op# %llu, from sector# %lld, for %d sectors\n",
 							xgp->progname,
 							p->my_target_number,
 							p->my_qthread_number,
-							p->my_current_op,
-							p->sg_from_block, 
+							(long long)p->my_current_op,
+							(unsigned long long)p->sg_from_block, 
 							p->sg_blocks);
 					}
 				} // Done checking for out-of-range error
-				fprintf(xgp->errout, "%s (T%d.Q%d): %s Error on target %s - status %d, op# %d, from sector# %lld for %d sectors\n",
+				fprintf(xgp->errout, "%s (T%d.Q%d): %s Error on target %s - status %d, op# %lld, from sector# %llu for %d sectors\n",
 					xgp->progname,
 					p->my_target_number,
 					p->my_qthread_number,
 					(rw == 'w')?"Write":"Read",
 					p->target,
 					status,
-					p->my_current_op,
-					p->sg_from_block, 
+					(long long)p->my_current_op,
+					(unsigned long long)p->sg_from_block, 
 					p->sg_blocks);
 				return(0);
 		
@@ -238,8 +239,12 @@ xdd_sg_read_capacity(ptds_t *p) {
 
 	status = ioctl(p->fd, SG_IO, &io_hdr);
 	if (status < 0) {
-		fprintf(xgp->errout, "(T%d.Q%d) %s: I/O Error - Read Capacity Command on target %s - status %d, op# %d\n",
-			p->my_target_number,p->my_qthread_number,xgp->progname,p->target,status,p->my_current_op);
+		fprintf(xgp->errout, "(T%d.Q%d) %s: I/O Error - Read Capacity Command on target %s - status %d, op# %lld\n",
+			p->my_target_number,
+			p->my_qthread_number,
+			xgp->progname,
+			p->target,status,
+			(long long)p->my_current_op);
 		fflush(xgp->errout);
 		perror("reason");
 		return(FAILED);
@@ -259,6 +264,41 @@ xdd_sg_read_capacity(ptds_t *p) {
 	return(SUCCESS);
 
 } // End of xdd_sg_read_capacity() 
+
+/*----------------------------------------------------------------------------*/
+/* xdd_sg_set_reserved_size() - issued after open  - called from initialization.c
+ */
+void
+xdd_sg_set_reserved_size(ptds_t *p, int fd) {
+	int		reserved_size;
+	int		status;
+
+
+	reserved_size = (p->block_size*p->reqsize);
+	status = ioctl(fd, SG_SET_RESERVED_SIZE, &reserved_size);
+	if (status < 0) {
+		fprintf(xgp->errout,"%s: xdd_open_target: SG_SET_RESERVED_SIZE error - request for %d bytes denied",
+			xgp->progname, 
+			(p->block_size*p->reqsize));
+	}
+} // End of xdd_sg_set_reserved_size() 
+
+/*----------------------------------------------------------------------------*/
+/* xdd_sg_get_version() - issued after open  - get the current version of SG
+ */
+void
+xdd_sg_get_version(ptds_t *p, int fd) {
+	int 	version;
+	int		status;
+
+
+	status = ioctl(fd, SG_GET_VERSION_NUM, &version);
+	if ((status < 0) || (version < 30000)) {
+		fprintf(xgp->errout, "%s: xdd_open_target: sg driver prior to 3.x.y - specifically %d\n",
+			xgp->progname,
+			version);
+	}
+} // End of xdd_sg_get_version()
 
 /*----------------------------------------------------------------------------*/
 /* sg_print_opcode() 

@@ -34,18 +34,8 @@
 #include <sys/sysmacros.h>
 #include <ctype.h>
 #include <sys/ioctl.h>
-#ifdef SG_KERNEL_INCLUDES
-  #include "/usr/src/linux/include/scsi/sg.h"
-  #include "/usr/src/linux/include/scsi/scsi.h"
-#else
-  #ifdef SG_TRICK_GNU_INCLUDES
-    #include <linux/../scsi/sg.h>
-    #include <linux/../scsi/scsi.h>
-  #else
-    #include <scsi/sg.h>
-    #include <scsi/scsi.h>
-  #endif
-#endif
+#include <scsi/sg.h>
+#include <scsi/scsi.h>
 /*
   Getting the correct include files for the sg interface can be an ordeal.
   In a perfect world, one would just write:

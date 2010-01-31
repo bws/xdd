@@ -103,17 +103,6 @@
 #define DEFAULT_XDD_RLIMIT_STACK_SIZE (8192*1024)
 #define DEFAULT_OUTPUT_FORMAT_STRING "+WHAT+PASS+TARGET+QUEUE+BYTESXFERED+OPS+ELAPSEDTIMEPASS+BANDWIDTH+IOPS+LATENCY+PERCENTCPUTIME+OPTYPE+XFERSIZEBYTES "
 
-/*
- * Note that IP addresses are stored in host byte order; they're
- * converted to network byte order prior to use for network routines.
- */
-typedef struct flags_t {
-	bool fl_server; /* true: runs as server; false: run as client */
-	in_addr_t fl_addr; /* IP address to use */
-	in_port_t fl_port; /* Port number to use */
-	uint32_t fl_count; /* Number of time bounces */
-	pclk_t fl_time; /* Global clock time to wait for */
-} flags_t;
 /* ------------------------------------------------------------------
  * Constants
  * ------------------------------------------------------------------ */
@@ -130,16 +119,6 @@ typedef struct flags_t {
 /* XXX *//* Windows might be limiting the range from 1024 to 5000 */
 #define PORT_MAX USHRT_MAX /* Max value for a port number */
 
-/* ------------------------------------------------------------------
- * Private Globals
- * ------------------------------------------------------------------ */
-static flags_t flags = {
-	DFL_FL_SERVER,
-	DFL_FL_ADDR,
-	DFL_FL_PORT,
-	DFL_FL_COUNT,
-	DFL_FL_TIME
-};
 
 // Bit field definitions for the xdd_global_options - The "GO_XXXX" definitions are specifically for the Global Options 
 

@@ -42,7 +42,7 @@ xdd_init_globals(char *progname) {
 
 	xgp = (xdd_globals_t *)malloc(sizeof(struct xdd_globals));
 	if (xgp == 0) {
-		fprintf(stderr,"%s: Cannot allocate %d bytes of memory for global variables!\n",progname, sizeof(struct xdd_globals));
+		fprintf(stderr,"%s: Cannot allocate %d bytes of memory for global variables!\n",progname, (int)sizeof(struct xdd_globals));
 		perror("Reason");
 		exit(1);
 	}
@@ -376,8 +376,8 @@ xdd_options_info(FILE *out) {
 	fprintf(out,"Number of Targets, %d\n",xgp->number_of_targets);
 	fprintf(out,"Number of I/O Threads, %d\n",xgp->number_of_iothreads);
 	if (xgp->global_options & GO_REALLYVERBOSE) {
-		fprintf(out, "Size of PTDS is %d bytes, %d Aggregate\n",sizeof(ptds_t), sizeof(ptds_t)*xgp->number_of_iothreads);
-		fprintf(out, "Size of RESULTS is %d bytes, %d Aggregate\n",sizeof(results_t), sizeof(results_t)*(xgp->number_of_iothreads*2+xgp->number_of_targets));
+		fprintf(out, "Size of PTDS is %d bytes, %d Aggregate\n",(int)sizeof(ptds_t), (int)sizeof(ptds_t)*xgp->number_of_iothreads);
+		fprintf(out, "Size of RESULTS is %d bytes, %d Aggregate\n",(int)sizeof(results_t), (int)sizeof(results_t)*(xgp->number_of_iothreads*2+xgp->number_of_targets));
 	}
 	fprintf(out, "\n");
 	fflush(out);
@@ -396,7 +396,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
         return;
 
 	fprintf(out,"\tTarget[%d] Q[%d], %s\n",p->my_target_number, p->my_qthread_number, p->target);
-	fprintf(out,"\t\tTarget directory, %s\n",(p->targetdir=="")?"\"./\"":p->targetdir);
+	fprintf(out,"\t\tTarget directory, %s\n",(strlen(p->targetdir)==0)?"\"./\"":p->targetdir);
 	fprintf(out,"\t\tProcess ID, %d\n",p->mypid);
 	fprintf(out,"\t\tThread ID, %d\n",p->mythreadid);
     if (p->processor == -1) 
@@ -459,19 +459,19 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		if (p->target_options & TO_SEQUENCED_PATTERN) fprintf(out,",sequenced ");
 		if (p->target_options & TO_INVERSE_PATTERN) fprintf(out,",inversed ");
 		if (p->target_options & TO_ASCII_PATTERN) fprintf(out,",ASCII: '%s' <%d bytes> %s ",
-			p->data_pattern,p->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
+			p->data_pattern,(int)p->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
 		if (p->target_options & TO_HEX_PATTERN) {
 			fprintf(out,",HEX: 0x");
 			for (i=0; i<p->data_pattern_length; i++) 
 				fprintf(out,"%02x",p->data_pattern[i]);
 			fprintf(out, " <%d bytes>, %s\n",
-				p->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
+				(int)p->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
 		}
 		if (p->target_options & TO_PATTERN_PREFIX)  {
 			fprintf(out,",PREFIX: 0x");
 			for (i=0; i<p->data_pattern_prefix_length; i+=2) 
 				fprintf(out,"%02x",p->data_pattern_prefix[i]);
-			fprintf(out, " <%d nibbles>\n", p->data_pattern_prefix_length);
+			fprintf(out, " <%d nibbles>\n", (int)p->data_pattern_prefix_length);
 		}
 	} else { // Just display the one-byte hex pattern 
 		fprintf(out,",0x%02x\n",p->data_pattern[0]);
@@ -762,7 +762,7 @@ xdd_pattern_buffer(ptds_t *p) {
 	} else if (p->target_options & TO_LFPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 p->data_pattern_length = sizeof(lfpat);
-                fprintf(stderr,"LFPAT length is %d\n", p->data_pattern_length);
+                fprintf(stderr,"LFPAT length is %d\n", (int)p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
@@ -777,7 +777,7 @@ xdd_pattern_buffer(ptds_t *p) {
 	} else if (p->target_options & TO_LTPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 p->data_pattern_length = sizeof(ltpat);
-                fprintf(stderr,"LTPAT length is %d\n", p->data_pattern_length);
+                fprintf(stderr,"LTPAT length is %d\n", (int)p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
@@ -792,7 +792,7 @@ xdd_pattern_buffer(ptds_t *p) {
 	} else if (p->target_options & TO_CJTPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 p->data_pattern_length = sizeof(cjtpat);
-                fprintf(stderr,"CJTPAT length is %d\n", p->data_pattern_length);
+                fprintf(stderr,"CJTPAT length is %d\n", (int)p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
@@ -807,7 +807,7 @@ xdd_pattern_buffer(ptds_t *p) {
 	} else if (p->target_options & TO_CRPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 p->data_pattern_length = sizeof(crpat);
-                fprintf(stderr,"CRPAT length is %d\n", p->data_pattern_length);
+                fprintf(stderr,"CRPAT length is %d\n", (int)p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
@@ -822,7 +822,7 @@ xdd_pattern_buffer(ptds_t *p) {
 	} else if (p->target_options & TO_CSPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 p->data_pattern_length = sizeof(cspat);
-                fprintf(stderr,"CSPAT length is %d\n", p->data_pattern_length);
+                fprintf(stderr,"CSPAT length is %d\n", (int)p->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
@@ -1340,11 +1340,11 @@ xdd_open_target(ptds_t *p) {
 #elif ( LINUX || OSX || FREEBSD )
 	struct stat statbuf; /* buffer for file statistics */
 #endif
-	int32_t  i; /* working variable */
-	int32_t  status; /* working variable */
-	int32_t  fd; /* the file descriptor */
-	int32_t  flags; /* file open flags */
-	char	*bnp; /* Pointer to the base name of the target */
+	int32_t		i; 		/* Working variable */
+	int32_t  	status; /* Status of various system function calls */
+	int32_t  	fd = -2;/* The file descriptor - initialized to -1 just in case */
+	int32_t  	flags; 	/* File open flags */
+	char		*bnp; 	/* Pointer to the base name of the target */
 
 	/* create the fully qualified target name */
 	memset(target_name,0,sizeof(target_name));
@@ -1451,34 +1451,17 @@ xdd_open_target(ptds_t *p) {
 		if (p->target_options & TO_SGIO) {
 #if (LINUX)
 			fd = open(target_name,flags|O_RDWR, 0777); /* Must open RDWR for SGIO */
-			i = (p->block_size*p->reqsize);
-			status = ioctl(fd, SG_SET_RESERVED_SIZE, &i);
-			if (status < 0) {
-				fprintf(xgp->errout,"%s: xdd_open_target: SG_SET_RESERVED_SIZE error - request for %d bytes denied",
-					xgp->progname, 
-					(p->block_size*p->reqsize));
-			}
-			status = ioctl(fd, SG_GET_VERSION_NUM, &i);
-			if ((status < 0) || (i < 30000)) 
-				fprintf(xgp->errout, "%s: xdd_open_target: sg driver prior to 3.x.y - specifically %d\n",xgp->progname,i);
+			xdd_sg_set_reserved_size(p,fd);
+			xdd_sg_get_version(p,fd);
 #endif // LINUX SGIO open stuff
 		} else fd = open(target_name,flags|O_WRONLY, 0666); /* write only */
 	} else if (p->rwratio == 1.0) { /* read only */
 		flags &= ~O_CREAT;
 		if (p->target_options & TO_SGIO) {
 #if (LINUX)
-				fd = open(target_name,flags|O_RDWR, 0777); /* Must open RDWR for SGIO  */
-				i = (p->block_size*p->reqsize);
-				status = ioctl(fd, SG_SET_RESERVED_SIZE, &i);
-				if (status < 0) {
-					fprintf(xgp->errout,"%s: xdd_open_target: SG_SET_RESERVED_SIZE error - request for %d bytes denied",
-						xgp->progname, 
-						(p->block_size*p->reqsize));
-				}
-				status = ioctl(fd, SG_GET_VERSION_NUM, &i);
-				if ((status < 0) || (i < 30000)) {
-					fprintf(xgp->errout, "%s: xdd_open_target: sg driver prior to 3.x.y - specifically %d\n",xgp->progname,i);
-				}
+			fd = open(target_name,flags|O_RDWR, 0777); /* Must open RDWR for SGIO  */
+			xdd_sg_set_reserved_size(p,fd);
+			xdd_sg_get_version(p,fd);
 #endif // LINUX SGIO open stuff
 		} else fd = open(target_name,flags|O_RDONLY, 0777); /* Read only */
 	} else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
@@ -1653,8 +1636,8 @@ xdd_show_ptds(ptds_t *p) {
 		//p->throttle = DEFAULT_THROTTLE;
 		//p->throttle_variance = DEFAULT_VARIANCE;
 		//p->throttle_type = PTDS_THROTTLE_BW;
-		fprintf(stderr,"ts_options=0x%16x\n",p->ts_options);
-		fprintf(stderr,"target_options=0x%16x\n",p->target_options);
+		//fprintf(stderr,"ts_options=0x%16x\n",p->ts_options);
+		//fprintf(stderr,"target_options=0x%16x\n",p->target_options);
 		//p->time_limit = DEFAULT_TIME_LIMIT;
 		fprintf(stderr,"numreqs=%lld\n",(long long)p->numreqs);
 		fprintf(stderr,"flushwrite=%lld\n",(long long)p->flushwrite);
