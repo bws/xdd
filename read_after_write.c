@@ -295,7 +295,7 @@ xdd_raw_read_wait(ptds_t *p)
 					fprintf(stderr,"xdd_raw_read_wait: Bad magic number %08x on recv %d\n",p->raw_msg.magic, p->raw_msg_recv);
 				}
 				if (p->raw_msg.recvtime < p->raw_msg.sendtime) {
-					fprintf(stderr,"xdd_raw_read_wait: msg %d recv time before send time by %llu picoseconds\n",p->raw_msg.sequence,p->raw_msg.sendtime-p->raw_msg.recvtime);
+					fprintf(stderr,"xdd_raw_read_wait: msg %lld recv time before send time by %llu picoseconds\n",(long long)p->raw_msg.sequence,(long long)(p->raw_msg.sendtime-p->raw_msg.recvtime));
 				}
 				return(TRUE);
 			} /* end of successful recv processing */
