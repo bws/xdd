@@ -156,7 +156,7 @@ function init_local_transfer() {
     # Construct source XDD settings
     local sourceBase=$(basename ${sourceFile})
     local sourceQD="-queuedepth ${queuedepth}"
-    local sourceLog="nt1.qd${queueDepth}.${xfer}x${numReqs}.file-to-file.xfs.xdd.${sourceBase}.out"
+    local sourceLog="xdd.${sourceBase}.out"
     if [ 1 -eq $sourceDIOFlag ]; then
         local sourceDIO="-dio"
     fi
@@ -203,7 +203,7 @@ function init_remote_transfer() {
     local srcBase=$(basename $srcFile)
     local destinationBase=$(basename $destFile)
     local destinationDir=$(dirname $destFile)
-    local destinationLog="xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.$(date -u +'%Y-%m-%d-%H%M').log"
+    local destinationLog="xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.$(date -u +'%Y-%m-%d-%H%M')-GMT.log"
     local destinationQD="-queuedepth ${queueDepth}"
     if [ 1 -eq $destDIOFlag ]; then
         local destinationDIO="-dio"
@@ -241,7 +241,7 @@ if [ 1 == $resumeFlag ]; then
 
     # Check for the existence a restart cookie
     restart_file=\$(basename ${TDDestin})
-    most_recent_restart_cookie=\$(ls -l destination.NA.NA.${HDestinIP}.\${restart_file}.*.rst 2>/dev/null |tail -1 | cut -d ' ' -f 9)
+    most_recent_restart_cookie=\$(ls xdd.NA.NA.${remoteHost}.\${restart_file}.*-GMT.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
        destinationRestart="-restart enable"
