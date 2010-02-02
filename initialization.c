@@ -411,28 +411,28 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	fprintf(out, "\t\tBlocksize in bytes, %d\n", p->block_size);
 	fprintf(out,"\t\tRequest size, %d, blocks, %d, bytes\n",p->reqsize,p->reqsize*p->block_size);
 	fprintf(out, "\t\tNumber of Operations, %lld, of, %lld, target ops for all qthreads\n", (long long)p->qthread_ops, (long long)p->target_ops);
-	fprintf(out, "\t\tStart offset, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes \n",
+	fprintf(out, "\t\tStart offset, %lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes \n",
 		(long long)p->start_offset, 
 		(long long)p->start_offset*p->block_size,
 		(double)((p->start_offset*p->block_size)/FLOAT_KILOBYTE),
 		(double)((p->start_offset*p->block_size)/FLOAT_MEGABYTE),
 		(double)((p->start_offset*p->block_size)/FLOAT_GIGABYTE),
 		(double)((p->start_offset*p->block_size)/FLOAT_TERABYTE));
-	fprintf(out, "\t\tTotal data transfer for this target, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n", 
+	fprintf(out, "\t\tTotal data transfer for this target, %lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n", 
 		(long long)p->target_bytes_to_xfer_per_pass/p->block_size,
 		(long long)p->target_bytes_to_xfer_per_pass,
 		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
 		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
 		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_GIGABYTE),
 		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_TERABYTE));
-	fprintf(out, "\t\tTotal data transfer for this QTHREAD, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n", 
+	fprintf(out, "\t\tTotal data transfer for this QTHREAD, %lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n", 
 		(long long)p->qthread_bytes_to_xfer_per_pass/p->block_size,
 		(long long)p->qthread_bytes_to_xfer_per_pass,
 		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
 		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
 		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_GIGABYTE),
 		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_TERABYTE));
-	fprintf(out, "\t\tPass Offset, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n", 
+	fprintf(out, "\t\tPass Offset, %lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n", 
 		(long long)p->pass_offset, 
 		(long long)p->pass_offset*p->block_size,
 		(double)((p->pass_offset*p->block_size)/FLOAT_KILOBYTE),
@@ -440,7 +440,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		(double)((p->pass_offset*p->block_size)/FLOAT_GIGABYTE),
 		(double)((p->pass_offset*p->block_size)/FLOAT_TERABYTE));
 	if (p->seekhdr.seek_range > 0) {
-		fprintf(out, "\t\tSeek range, %lld, blocks, %lld, bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n",
+		fprintf(out, "\t\tSeek range, %lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n",
 			(long long)p->seekhdr.seek_range,
 			(long long)p->seekhdr.seek_range*p->block_size,
 			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_KILOBYTE ),
@@ -553,13 +553,13 @@ xdd_target_info(FILE *out, ptds_t *p) {
 			}
 
 			if (p->restartp->flags & RESTART_FLAG_RESUME_COPY) { // Indicate that this is the resumption of a previous copy
-				fprintf(out,"\t\tRESTART: RESUMING COPY: Starting offset, %lld Bytes, %15.3f KBytes, %12.3f MBytes, %9.3f GBytes, %10.6f TBytes\n",
+				fprintf(out,"\t\tRESTART: RESUMING COPY: Starting offset, %lld Bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n",
 					(long long)p->restartp->byte_offset,
 					(double)(p->restartp->byte_offset/FLOAT_KILOBYTE),
 					(double)(p->restartp->byte_offset/FLOAT_MEGABYTE),
 					(double)(p->restartp->byte_offset/FLOAT_GIGABYTE),
 					(double)(p->restartp->byte_offset/FLOAT_TERABYTE));
-				fprintf(out,"\t\tRESTART: RESUMING COPY: Remaining data,  %lld Bytes, %12.3f KBytes, %9.3f MBytes, %6.3f GBytes, %10.6f TBytes\n",
+				fprintf(out,"\t\tRESTART: RESUMING COPY: Remaining data,  %lld Bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n",
 					(long long)p->target_bytes_to_xfer_per_pass,
 					(double)(p->target_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
 					(double)(p->target_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
