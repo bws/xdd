@@ -700,6 +700,13 @@ xddfunc_dio(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
+int
+xddfunc_dryrun(int32_t argc, char *argv[], uint32_t flags)
+{
+	xgp->global_options |= GO_DRYRUN;
+    return(1);
+}
+/*----------------------------------------------------------------------------*/
 // Specify the end-to-end options for either the source or the destination
 // Arguments: -endtoend [target #] 
 //				destination <hostname> 

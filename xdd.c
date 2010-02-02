@@ -197,6 +197,11 @@ main(int32_t argc,char *argv[]) {
 	xdd_barrier(&xgp->initialization_barrier);
 
 	// At this point all the target qthreads are running and we will enter the final_barrier waiting for them to finish
+	if (xgp->global_options & GO_DRYRUN) {
+		// Cleanup the semaphores and barriers 
+		xdd_destroy_all_barriers();
+		return(0);
+	}
 
 	// Wait for all children to finish 
 	xdd_barrier(&xgp->final_barrier);

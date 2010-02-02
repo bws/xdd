@@ -62,6 +62,10 @@ xdd_io_thread(void *pin) {
 	/* Enter the initialization barrier - we get released after all the montior threads are started */
 	xdd_barrier(&xgp->initialization_barrier);
 
+	// If this is a dry run then just exit at this point
+	if (xgp->global_options & GO_DRYRUN)
+		return(0);
+
 	// OK - let's get the road on the show here...
 	xgp->run_complete = 0; 
 	p->thread_barrier_index = 0;

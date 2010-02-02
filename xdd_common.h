@@ -139,6 +139,7 @@
 #define GO_DEBUG				0x0000000000004000ULL  /* DEBUG flag used by the Write After Read routines */
 #define GO_ENDTOEND				0x0000000000008000ULL  /* End to End operation - be sure to add the headers for the results display */
 #define GO_EXTENDED_STATS		0x0000000000010000ULL  /* Calculate Extended stats on each operation */
+#define GO_DRYRUN				0x0000000000020000ULL  /* Indicates a dry run */
 
 struct xdd_globals {
 /* Global variables relevant to all threads */
