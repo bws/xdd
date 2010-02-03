@@ -235,11 +235,9 @@ xdd_restart_monitor(void *junk) {
 		// Done checking all targets
 
 		// If it is time to leave then leave - the qthread cleanup will take care of closing the restart files
-			if (xgp->abort_io | xgp->restart_terminate) 
-				break;
+                if (xgp->abort_io | xgp->restart_terminate) 
+                    break;
 	} // End of FOREVER loop that checks stuff
-sleep(5);
 	fprintf(xgp->output,"%s: RESTART Monitor is exiting\n",xgp->progname);
-sleep(5);
 	return(0);
 }
