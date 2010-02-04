@@ -15,6 +15,7 @@ XDDCP_DEFAULT_XFER_SIZE=16777216
 XDDCP_DEFAULT_QUEUE_DEPTH=4
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
+XDDCP_DEFAULT_TIMESTAMP="$(date -u +'%Y-%m-%d-%H%M')-GMT"
 
 #
 # Print out the usage information
@@ -156,7 +157,7 @@ function init_local_transfer() {
     # Construct source XDD settings
     local sourceBase=$(basename ${sourceFile})
     local sourceQD="-queuedepth ${queuedepth}"
-    local sourceLog="xdd.${sourceBase}.out"
+    local sourceLog="xdd.$(hostname).${sourceBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
     if [ 1 -eq $sourceDIOFlag ]; then
         local sourceDIO="-dio"
     fi
@@ -166,7 +167,7 @@ function init_local_transfer() {
         -bytes ${totalBytes} -reqsize ${reqsize} ${sourceQD} \
         -e2e issource -e2e dest ${remoteHost} -e2e port ${e2ePort} \
         ${sourceDIO} ${sourceRestart} \
-        -heartbeat ${XDDCP_DEFAULT_HEARTBEAT_SECS}
+        -output ${sourceLog} -heartbeat ${XDDCP_DEFAULT_HEARTBEAT_SECS}
 
     # Check transfer completion status
     transfer_rc=$?
@@ -202,13 +203,13 @@ function init_remote_transfer() {
     # Other variables
     local srcBase=$(basename $srcFile)
     local destinationBase=$(basename $destFile)
-    local destinationDir=$(dirname $destFile)
-    local destinationLog="xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.$(date -u +'%Y-%m-%d-%H%M')-GMT.log"
+    local destinationDirname=$(dirname $destFile)
+    local destinationLog="xdd.${remoteHost}.${destinationBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
     local destinationQD="-queuedepth ${queueDepth}"
     if [ 1 -eq $destDIOFlag ]; then
         local destinationDIO="-dio"
     fi
-    remote_output=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
+    remote_output=$(ssh ${sshOpts} ${remoteHost} bash -x <<EOF
 
 # Kill any stale xdd processes
 pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9 
@@ -221,11 +222,13 @@ path_char=\$(dirname $destFile |cut -c 1)
 echo "First path char: \$path_char"
 if [ "." == \$path_char ]; then
     default_dir=\$(pwd)
+    destinationDir="\${default_dir}/${destinationDirname}"
     destinationFile="\${default_dir}/${destFile}"
     destinationLog="\${default_dir}/${destinationLog}"
 else
+    destinationDir="${destinationDirname}"
     destinationFile="${destFile}"
-    destinationLog="${destinationLog}"
+    destinationLog="\${destinationDir}/${destinationLog}"
 fi
 echo "Path complemented filename is \$destinationFile"
 echo "Path complemented logfile is \$destinationLog"
@@ -239,14 +242,16 @@ fi
 # Perform restart if neccesary
 if [ 1 == $resumeFlag ]; then
 
+    # Create the name for a new restart cookie
+    restart_logfile="\${destinationDir}/xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.${XDDCP_DEFAULT_TIMESTAMP}.rst"
+
     # Check for the existence a restart cookie
-    restart_file=\$(basename ${TDDestin})
-    most_recent_restart_cookie=\$(ls xdd.NA.NA.${remoteHost}.\${restart_file}.*-GMT.rst 2>/dev/null |tail -1)
+    most_recent_restart_cookie=\$(ls \${destinationDir}/xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.*.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
-       destinationRestart="-restart enable"
+       destinationRestart="-restart file \${restart_logfile} -restart enable"
     else
-       destinationRestart="-restart enable \$(cat \$most_recent_restart_cookie)"
+       destinationRestart="-restart file \${restart_logfile} -restart enable \$(cat \$most_recent_restart_cookie)"
     fi
 fi
 

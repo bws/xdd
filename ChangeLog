@@ -2,6 +2,18 @@
 XDD Release ChangeLog
 -----------------------
 
+xdd-7.0.0 RC10
+=============
+* XDD: Restart supports arbitrary filename
+* XDD: Source side restart cookie removed
+* XDD: Output less scary (WARNING Root locks pages, etc)
+* XDD: Added -dryrun
+* XDD: Miscellaneous cleanups
+* XDDCP: Heatbeat info on source side stdout
+* XDDCP: Log files and restart file named consistently
+* XDDCP: Destination side log and restart are put int
+  same directory as destination file
+
 xdd-7.0.0 RC9
 =============
 * XDD: Added a -restart option to allow resuming a partial transfer
