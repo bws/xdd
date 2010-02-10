@@ -10,8 +10,6 @@ xdd-7.0.0 RC10
 * XDD: Added -dryrun
 * XDD: Miscellaneous cleanups
 * XDD: Fixed issue that resulted in corrupt data after restarts
-* XDD: Buffered I/O on e2e with restart now adds an additional
-       fdatasync into restart I/O path.
 * XDDCP: Heatbeat info on source side stdout
 * XDDCP: Log files and restart file named consistently
 * XDDCP: Destination side log and restart are put int
