@@ -12,8 +12,8 @@ xdd-7.0.0 RC10
 * XDD: Fixed issue that resulted in corrupt data after restarts
 * XDDCP: Heatbeat info on source side stdout
 * XDDCP: Log files and restart file named consistently
-* XDDCP: Destination side log and restart are put int
-  same directory as destination file
+* XDDCP: Destination side log and restart file are put in the
+         same directory as destination file
 
 xdd-7.0.0 RC9
 =============
