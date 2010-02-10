@@ -168,10 +168,11 @@ xdd_restart_monitor(void *junk) {
 	int32_t high_qthread_number;
 	uint64_t low_byte_offset;
 	uint64_t high_byte_offset;
-	uint64_t separation;
 	uint64_t check_counter;
 	int64_t high_op_number, low_op_number;
-
+#ifdef DEBUG
+	uint64_t separation;
+#endif
 	
 
 	// Initialize stuff
@@ -260,11 +261,6 @@ xdd_restart_monitor(void *junk) {
 				(long long int)(high_op_number - low_op_number));
 #endif
 			
-			// Only need to sync the write data if direct I/O is disabled.  Note that
-			// the sync may get starved under Linux if writes occur rapidly enough.
-			if (!(current_ptds->target_options & TO_DIO))
-			    fdatasync(xgp->ptdsp[target_number]->fd);
-
 			// Now that we have all the information for this target's qthreads, generate the appropriate information
 			// and write it to the restart file and sync sync sync
 			current_ptds->restartp->last_committed_location = low_byte_offset;
