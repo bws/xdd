@@ -214,9 +214,9 @@ function init_remote_transfer() {
 # Kill any stale xdd processes
 xddpid=\$(pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ')
 if [ ! -z "$xddpid" ]; then
-    kill \$xddpid
+    kill \$xddpid 2>/dev/null
     sleep 1
-    kill -9 \$xddpid
+    kill -9 \$xddpid 2>/dev/null
 fi
 
 # Cleanup leaked system resources
