@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -295,6 +295,7 @@ xdd_build_ptds_substructure(void)
 					// than others to account for the difference.
 					p->nextp->qthread_ops++; 
 				}
+				p->nextp->restartp = NULL; // Zero this because QThread0 should be the only QThread with a restart struct
 				p->nextp->qthread_bytes_to_xfer_per_pass = p->nextp->qthread_ops * p->nextp->iosize;
 				xgp->number_of_iothreads++;
 				p = p->nextp;
@@ -774,7 +775,13 @@ xdd_atohex(unsigned char *destp, char *sourcep)
 	return(nibbles); // The length is the number of nibbles
 
 } /* end of xdd_atohex() */ 
- 
- 
- 
- 
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 8
+ *  c-basic-offset: 8
+ * End:
+ *
+ * vim: ts=8 sts=8 sw=8 noexpandtab
+ */

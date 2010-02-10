@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
  *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Brad Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
  *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
@@ -195,6 +195,9 @@ struct ptds {
 	int32_t				preallocate; 				// File preallocation value 
 	int32_t				mem_align;   				// Memory read/write buffer alignment value in bytes 
 	uint64_t			target_options; 			// I/O Options specific to each target 
+	int64_t				last_committed_op;		// Operation number of last r/w operation relative to zero
+	uint64_t			last_committed_location;	// Byte offset into target of last r/w operation
+	int32_t				last_committed_length;		// Number of bytes transferred to/from last_committed_location
 	//
     // Stuff UPDATED during each pass 
 	volatile int32_t	my_current_pass_number; 	// Current pass number 

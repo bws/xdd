@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  * Funding and resources provided by:
  * Oak Ridge National Labs, Department of Energy and Department of Defense
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
@@ -128,7 +128,8 @@ xdd_restart_write_restart_file(restart_t *rp) {
 	}
 	
 	// Issue a write operation for the stuff
-	fprintf(rp->fp,"-restart offset %lld\n", (long long)rp->last_committed_location);
+	fprintf(rp->fp,"-restart offset %llu\n", 
+		(unsigned long long int)rp->last_committed_location);
 
 	// Flush the file for safe keeping
 	fflush(rp->fp);
@@ -164,8 +165,12 @@ xdd_restart_monitor(void *junk) {
 	ptds_t	*current_ptds;
 	ptds_t	*current_qthread;
 	int32_t low_qthread_number;
+	int32_t high_qthread_number;
 	uint64_t low_byte_offset;
+	uint64_t high_byte_offset;
+	uint64_t separation;
 	uint64_t check_counter;
+	int64_t high_op_number, low_op_number;
 
 	
 
@@ -202,9 +207,15 @@ xdd_restart_monitor(void *junk) {
 				continue;
 			current_qthread = current_ptds;
 			// Check all qthreads on this target
-			low_byte_offset = current_qthread->restartp->last_committed_location;
-			low_qthread_number = current_qthread->my_qthread_number;
+			high_byte_offset = 0;
+			high_op_number = 0;
+			low_byte_offset = current_qthread->last_committed_location;
+			low_op_number = current_qthread->last_committed_op;
+			low_qthread_number = high_qthread_number = current_qthread->my_qthread_number;
 			while (current_qthread) {
+#ifdef DEBUG
+				fprintf(stderr, "QThread %d last_committed_location is: %llu\n", current_qthread->my_qthread_number, (unsigned long long int)current_qthread->last_committed_location);
+#endif
 				if ((current_qthread->my_current_state & CURRENT_STATE_COMPLETE) && // if this target has completed all I/O AND the restart monitor has checked it the continue
 					(current_qthread->my_current_state & CURRENT_STATE_RESTART_COMPLETE)) {
 					current_qthread = current_qthread->nextp;
@@ -218,15 +229,45 @@ xdd_restart_monitor(void *junk) {
 				// If information has not changed since last time, just increment the montior count and continue
                    //////tbd //////
 				// If information has changed then set the monitor count to 0, save the byte offset, and continue
-				if ( current_qthread->restartp->last_committed_location < low_byte_offset) {
-					low_byte_offset = current_qthread->restartp->last_committed_location; // the new low_byte_offset
+				if ( current_qthread->last_committed_location < low_byte_offset) {
+					low_byte_offset = current_qthread->last_committed_location; // the new low_byte_offset
 					low_qthread_number = current_qthread->my_qthread_number;
+					low_op_number = current_qthread->last_committed_op;
+				}
+				if ( current_qthread->last_committed_location > high_byte_offset) {
+					high_byte_offset = current_qthread->last_committed_location; // the new high_byte_offset
+					high_qthread_number = current_qthread->my_qthread_number;
+					high_op_number = current_qthread->last_committed_op;
 				}
 				current_qthread = current_qthread->nextp;
 			} // End of WHILE loop that looks at all qthreads for this target
+
+#ifdef DEBUG
+			fprintf(stderr, "\n>>>> Lowest  QThread %d last_committed_location is: %llu  operation# %lld <<<<\n", 
+				low_qthread_number, 
+				(unsigned long long int)low_byte_offset,
+				(long long int)low_op_number);
+			fprintf(stderr, ">>>> Highest QThread %d last_committed_location is: %llu  operation# %lld <<<<\n", 
+				high_qthread_number, 
+				(unsigned long long int)high_byte_offset,
+				(long long int)high_op_number);
+			separation = high_byte_offset - low_byte_offset;
+			fprintf(stderr, ">>>> Separation is %llu  bytes [ %llu KBytes, %llu MBytes, %llu GBytes] or %lld ops <<<<\n\n", 
+				(unsigned long long int)separation,
+				(unsigned long long int)(separation/1024),
+				(unsigned long long int)(separation/(1024*1024)),
+				(unsigned long long int)(separation/(1024*1024*1024)),
+				(long long int)(high_op_number - low_op_number));
+#endif
 			
+			// Only need to sync the write data if direct I/O is disabled.  Note that
+			// the sync may get starved under Linux if writes occur rapidly enough.
+			if (!(current_ptds->target_options & TO_DIO))
+			    fdatasync(xgp->ptdsp[target_number]->fd);
+
 			// Now that we have all the information for this target's qthreads, generate the appropriate information
 			// and write it to the restart file and sync sync sync
+			current_ptds->restartp->last_committed_location = low_byte_offset;
 			current_ptds->restartp->low_byte_offset = low_byte_offset;
 			if (current_ptds->target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
 				xdd_restart_write_restart_file(current_ptds->restartp);
@@ -241,3 +282,13 @@ xdd_restart_monitor(void *junk) {
 	fprintf(xgp->output,"%s: RESTART Monitor is exiting\n",xgp->progname);
 	return(0);
 }
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 8
+ *  c-basic-offset: 8
+ * End:
+ *
+ * vim: ts=8 sts=8 sw=8 noexpandtab
+ */

@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -285,14 +285,21 @@ xdd_io_loop_after_io_operation(ptds_t *p) {
 	// End of loop checking
 	status = xdd_loopcheck_after_io_operation(p);
 
-	// Update restart data if requested
-	if ((p->target_options & TO_RESTART_ENABLE) && (p->restartp)) {
-		p->restartp->last_committed_location = p->my_current_byte_location;
-		p->restartp->last_committed_length = p->actual_iosize;
-	}
+	// Update the "last_committed" variables in case we need the for restart
+	p->last_committed_op = p->my_current_op;
+	p->last_committed_location = p->my_current_byte_location;
+	p->last_committed_length = p->actual_iosize;
 
 	return(status);
 
 } // End of xdd_io_loop_after_io_operation()
 
- 
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 8
+ *  c-basic-offset: 8
+ * End:
+ *
+ * vim: ts=8 sts=8 sw=8 noexpandtab
+ */
