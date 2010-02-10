@@ -209,17 +209,22 @@ function init_remote_transfer() {
     if [ 1 -eq $destDIOFlag ]; then
         local destinationDIO="-dio"
     fi
-    remote_output=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
+    remote_output=$(ssh ${sshOpts} ${remoteHost} bash -x <<EOF
 
 # Kill any stale xdd processes
-pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ' |xargs -r kill -9 
+xddpid=\$(pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ')
+if [ ! -z "$xddpid" ]; then
+    kill \$xddpid
+    sleep 1
+    kill -9 \$xddpid
+fi
 
 # Cleanup leaked system resources
 qipcrm \${USER} &>/dev/null
 
 # If the filename uses a relative path, path complement it
 path_char=\$(dirname $destFile |cut -c 1)
-echo "First path char: \$path_char"
+#echo "First path char: \$path_char"
 if [ "." == \$path_char ]; then
     default_dir=\$(pwd)
     destinationDir="\${default_dir}/${destinationDirname}"
@@ -230,12 +235,12 @@ else
     destinationFile="${destFile}"
     destinationLog="\${destinationDir}/${destinationLog}"
 fi
-echo "Path complemented filename is \$destinationFile"
-echo "Path complemented logfile is \$destinationLog"
+#echo "Path complemented filename is \$destinationFile"
+#echo "Path complemented logfile is \$destinationLog"
 
 # Ensure destination is writable
-if [ ! -d $destinationDir ]; then
-    echo "Cannot write to directory: $destinationDir"
+if [ ! -d \$destinationDir ]; then
+    echo "Cannot write to directory: \$destinationDir"
     exit -1
 fi
 
@@ -256,6 +261,7 @@ if [ 1 == $resumeFlag ]; then
 fi
 
 # Start the XDD process
+echo "Starting remote xdd . . ."
 xdd.Linux -targets 1 \${destinationFile} -op write -minall \
     -bytes ${totalBytes} -reqsize $reqsize ${destinationQD} \
     -e2e isdestination -e2e dest ${remoteHost} -e2e port ${e2ePort} \
@@ -275,7 +281,7 @@ EOF
     #echo "Remote output strings are >$remote_output<"
     #echo "Remote return code is: $dest_rc"
     if [ 255 -eq $dest_rc ]; then
-        echo "ERROR: Failure spawning remote XDD: $remote_output"
+        echo "ERROR: Failure spawning remote XDD.  $remote_output"
         exit -7
     elif [ -z "$remote_output" ]; then
         echo "ERROR: Remote session failed."
@@ -313,8 +319,8 @@ sourceDIOFlag=0
 queuedepth=$XDDCP_DEFAULT_QUEUE_DEPTH
 sshoption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
 
-while getopts adFhp:st:Y option
-do case $option in
+while getopts ":adFhp:st:Y" option; do
+    case $option in
         a) resumeFlag=1;;
 	d) destinationDIOFlag=1;;
         F) fileListFlag=1;;
@@ -323,7 +329,8 @@ do case $option in
 	s) sourceDIOFlag=1;;
 	t) queuedepth=$OPTARG;;
         Y) sshoption="-tt";;
-	esac
+        \?) echo "ERROR:  Invalid option specified: -$OPTARG"; exit 1;;
+    esac
 done
 shift $((OPTIND-1))
 
