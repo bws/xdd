@@ -2,7 +2,7 @@
 XDD Release ChangeLog
 -----------------------
 
-xdd-7.0.0 RC10
+xdd-7.0.0 RC11
 =============
 * XDDCP: Destination logs are written to the home dir if permissions don't
          exist to write log to destination dir.  If home dir permissions

@@ -216,7 +216,7 @@ function init_remote_transfer() {
     if [ 1 -eq $destDIOFlag ]; then
         local destinationDIO="-dio"
     fi
-    remote_output=$(ssh ${sshOpts} ${remoteHost} bash -x <<EOF
+    remote_output=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
 
 # Kill any stale xdd processes
 xddpid=\$(pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ')
