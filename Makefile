@@ -79,6 +79,11 @@ CC = 		cc
 CFLAGS =	-DXDD_VERSION=$(XDDVERSION) -DSOLARIS -g
 LIBRARIES =	-lsocket -lnsl -lpthread  -lxnet -lposix4 -v 
 endif
+ifeq '$(OS)' 'AIX'
+CC =            gxlc
+CFLAGS =        -DXDD_VERSION=$(XDDVERSION) -DAIX -g
+LIBRARIES =     -lnsl -lpthread  -lxnet -v
+endif
 
 all:	xdd timeserver gettime
 

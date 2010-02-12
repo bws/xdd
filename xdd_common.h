@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
  *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Brad Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
  *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
@@ -349,7 +349,6 @@ void     clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp
 void     clk_initialize(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp);
  
 extern int errno;
-extern int h_errno; // For socket calls
 
 /*
  * Local variables:
