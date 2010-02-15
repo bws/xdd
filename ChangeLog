@@ -2,6 +2,10 @@
 XDD Release ChangeLog
 -----------------------
 
+xdd-7.0.0 RC12
+=============
+* XDD: Add AIX support
+
 xdd-7.0.0 RC11
 =============
 * XDDCP: Destination logs are written to the home dir if permissions don't
