@@ -88,7 +88,7 @@ xdd_io_for_aix(ptds_t *p) {
         pclk_t                  end_time;                       // Used for calculating elapsed times of ops
 
 	/* Perform the seek */
-        lseek(p->fd, (off_t)p->my_current_byte_location, SEEK_SET);
+        lseek64(p->fd, (off_t)p->my_current_byte_location, SEEK_SET);
 
         /* Do the deed .... */
         if (p->seekhdr.seeks[p->my_current_op].operation == SO_OP_WRITE) {  // Write Operation

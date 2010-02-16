@@ -1447,27 +1447,36 @@ xdd_open_target(ptds_t *p) {
 	pclk_now(&p->open_start_time); // Record the starting time of the open
 
 	/* open the target */
+#if (LINUX)
 	if (p->rwratio == 0.0) {
 		if (p->target_options & TO_SGIO) {
-#if (LINUX)
 			fd = open(target_name,flags|O_RDWR, 0777); /* Must open RDWR for SGIO */
 			xdd_sg_set_reserved_size(p,fd);
 			xdd_sg_get_version(p,fd);
-#endif // LINUX SGIO open stuff
 		} else fd = open(target_name,flags|O_WRONLY, 0666); /* write only */
 	} else if (p->rwratio == 1.0) { /* read only */
 		flags &= ~O_CREAT;
 		if (p->target_options & TO_SGIO) {
-#if (LINUX)
 			fd = open(target_name,flags|O_RDWR, 0777); /* Must open RDWR for SGIO  */
 			xdd_sg_set_reserved_size(p,fd);
 			xdd_sg_get_version(p,fd);
-#endif // LINUX SGIO open stuff
 		} else fd = open(target_name,flags|O_RDONLY, 0777); /* Read only */
 	} else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
 		flags &= ~O_CREAT;
 		fd = open(target_name,flags|O_RDWR, 0666);
 	}
+        // End of LINUX open stuff
+#else // Generic 64-bit UNIX open stuff - for Solaris, AIX, FREEBSD, and MacOSX
+	if (p->rwratio == 0.0) {
+		fd = open64(target_name,flags|O_WRONLY, 0666); /* write only */
+	} else if (p->rwratio == 1.0) { /* read only */
+		flags &= ~O_CREAT;
+		fd = open64(target_name,flags|O_RDONLY, 0777); /* Read only */
+	} else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
+		flags &= ~O_CREAT;
+		fd = open64(target_name,flags|O_RDWR, 0666);
+	}
+#endif // End of Generic 64-bit UNIX open stuff
 
 	pclk_now(&p->open_end_time); // Record the ending time of the open
 
@@ -1496,7 +1505,7 @@ xdd_open_target(ptds_t *p) {
 		perror("reason");
 		return(-1);
 	}
-#if (IRIX || SOLARIS )
+#if (IRIX || SOLARIS || AIX )
 	/* setup for DIRECTIO & perform sanity checks */
 	if (p->target_options & TO_DIO) {
 			/* make sure it is a regular file, otherwise fail */
