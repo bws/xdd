@@ -41,6 +41,14 @@ function print_usage() {
 }
 
 #
+# Handle trapped signals
+#
+function handle_signal_common() {
+    perform_local_cleanup
+    echo "INFO:  Transfer cancelled by user."
+}
+
+#
 # Check preconditions for the host
 #
 function check_host_preconditions() {
@@ -329,6 +337,16 @@ EOF
         fi
     fi
 }
+
+#
+# Install necessary signal handlers
+#
+# Note: We still need to pass the signal thru for Posix compliance.  See
+#  http://www.cons.org/cracauer/sigint.html
+#
+trap 'handle_signal_common; trap 2; kill -2 $$' 2 
+trap 'handle_signal_common; trap 3; kill -3 $$' 3 
+trap 'handle_signal_common; trap 15; kill -15 $$' 15
 
 #
 # Main

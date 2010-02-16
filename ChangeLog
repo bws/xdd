@@ -5,6 +5,7 @@ XDD Release ChangeLog
 xdd-7.0.0 RC12
 =============
 * XDD: Add AIX support
+* XDDCP: Proper support for SIGINT, SIGQUIT, and SIGTERM (i.e. Ctrl-C support)
 
 xdd-7.0.0 RC11
 =============
