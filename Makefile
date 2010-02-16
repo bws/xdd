@@ -80,8 +80,8 @@ CFLAGS =	-DXDD_VERSION=$(XDDVERSION) -DSOLARIS -g
 LIBRARIES =	-lsocket -lnsl -lpthread  -lxnet -lposix4 -v 
 endif
 ifeq '$(OS)' 'AIX'
-CC =            xlc
-CFLAGS =        -DXDD_VERSION=$(XDDVERSION) -DAIX -g -q64 -qcpluscmt
+CC =            xlc_r
+CFLAGS =        -DXDD_VERSION=$(XDDVERSION) -DAIX -D_THREAD_SAFE -g -q64 -qcpluscmt -qthreaded
 LIBRARIES =     -lnsl -lpthread  -lxnet -v
 endif
 
