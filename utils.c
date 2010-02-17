@@ -33,60 +33,56 @@
  * functions when xdd is started.
  */
 #include "xdd.h"
-
 /*----------------------------------------------------------------------------*/
-/* The arguments pass in are the same argc and argv from main();
+char *
+xdd_getnexttoken(char *tp) {
+	char *cp;
+	cp = tp;
+	while ((*cp != TAB) && (*cp != SPACE)) cp++;
+	while ((*cp == TAB) || (*cp == SPACE)) cp++;
+	return(cp);
+} /* end of xdd_getnexttoken() */
+/*----------------------------------------------------------------------------*/
+/* xdd_random_int() - returns a random integer
  */
-int32_t
-xdd_initialization(int32_t argc,char *argv[]) 
-{
-	pclk_t tt; 
+int
+xdd_random_int(void) {
+#ifdef  LINUX
 
 
-	// Initialize the Global Data Structure
-	xdd_init_globals(argv[0]);
-
-	// Parse the input arguments 
-	xgp->argc = argc; // remember the original arg count
-	xgp->argv = argv; // remember the original argv 
-	xdd_parse(argc,argv);
-
-	// Init output format header
-	if (xgp->global_options & GO_ENDTOEND) 
-		xdd_results_format_id_add("+E2ESRTIME+E2EIOTIME+E2EPERCENTSRTIME ");
-
-	// Optimize runtime priorities and all that 
-	xdd_schedule_options();
-
-	// initialize the signal handlers 
-	xdd_init_signals();
-
-	// Init all the necessary barriers 
-	xdd_init_all_barriers();
-
-#if WIN32
-	/* Init the ts serializer mutex to compensate for a Windows bug */
-	xgp->ts_serializer_mutex_name = "ts_serializer_mutex";
-	ts_serializer_init(&xgp->ts_serializer_mutex, xgp->ts_serializer_mutex_name);
-#endif
-
-	/* initialize the clocks */
-	pclk_initialize(&tt);
-	if (tt == PCLK_BAD) {
-			fprintf(xgp->errout, "%s: Cannot initialize the picosecond clock\n",xgp->progname);
-			fflush(xgp->errout);
-			xdd_destroy_all_barriers();
-			return(-1);
+	if (xgp->random_initialized == 0) {
+		initstate(72058, xgp->random_init_state, 256);
+		xgp->random_initialized = 1;
 	}
-	pclk_now(&xgp->base_time);
-
-	// Init the Global Clock 
-	xdd_init_global_clock(&xgp->ActualLocalStartTime);
-	// display configuration information about this run 
-	xdd_config_info();
-
-	return(0);
-} // End of initialization()
+#endif
+#ifdef WIN32
+	return(rand());
+#else
+	return(random());
+#endif
+} /* end of xdd_random_int() */
+/*----------------------------------------------------------------------------*/
+/* xdd_random_float() - returns a random floating point number in double.
+ */
+double
+xdd_random_float(void) {
+	double rm;
+	double recip;
+	double rval;
+#ifdef WIN32
+	return((double)(1.0 / RAND_MAX) * rand());
+#elif LINUX
+	rm = RAND_MAX;
+#else
+	rm = 2^31-1;
+#endif
+	recip = 1.0 / rm;
+	rval = random();
+	rval = recip * rval;
+	if (rval > 1.0)
+		rval = 1.0/rval;
+	return(rval);
+} /* end of xdd_random_float() */
  
 /*
  * Local variables:

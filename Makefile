@@ -9,10 +9,16 @@ XDD_VERSION = $(OS).$(VERSION).$(DATESTAMP).Build.$(BUILD)
 XDDVERSION = \"$(XDD_VERSION)\"
 OBJECTS =	access_pattern.o \
 		barrier.o \
+		datapatterns.o \
+		debug.o \
 		end_to_end.o \
+		global_clock.o \
+		global_data.o \
 		global_time.o \
 		heartbeat.o \
+		info_display.o \
 		initialization.o \
+		io_buffers.o \
 		io_loop.o \
 		io_loop_after_io_operation.o \
 		io_loop_after_loop.o  \
@@ -22,17 +28,24 @@ OBJECTS =	access_pattern.o \
 		io_thread.o \
 		io_thread_cleanup.o \
 		io_thread_init.o \
+		memory.o \
 		parse.o \
 		parse_func.o \
 		parse_table.o \
 		pclk.o \
+		processor.o \
+		ptds.o \
 		read_after_write.o \
 		restart.o \
 		results_display.o \
 		results_manager.o \
+		schedule.o \
 		sg.o \
+		signals.o \
+		target.o \
 		ticker.o \
 		timestamp.o \
+		utils.o \
 		verify.o \
 		xdd.o 
 

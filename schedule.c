@@ -33,60 +33,43 @@
  * functions when xdd is started.
  */
 #include "xdd.h"
-
 /*----------------------------------------------------------------------------*/
-/* The arguments pass in are the same argc and argv from main();
+/* xdd_schedule_options() - do the appropriate scheduling operations to 
+ *   maximize performance of this program.
  */
-int32_t
-xdd_initialization(int32_t argc,char *argv[]) 
-{
-	pclk_t tt; 
+void
+xdd_schedule_options(void) {
+	int32_t status;  /* status of a system call */
+	struct sched_param param; /* for the scheduler */
 
-
-	// Initialize the Global Data Structure
-	xdd_init_globals(argv[0]);
-
-	// Parse the input arguments 
-	xgp->argc = argc; // remember the original arg count
-	xgp->argv = argv; // remember the original argv 
-	xdd_parse(argc,argv);
-
-	// Init output format header
-	if (xgp->global_options & GO_ENDTOEND) 
-		xdd_results_format_id_add("+E2ESRTIME+E2EIOTIME+E2EPERCENTSRTIME ");
-
-	// Optimize runtime priorities and all that 
-	xdd_schedule_options();
-
-	// initialize the signal handlers 
-	xdd_init_signals();
-
-	// Init all the necessary barriers 
-	xdd_init_all_barriers();
-
-#if WIN32
-	/* Init the ts serializer mutex to compensate for a Windows bug */
-	xgp->ts_serializer_mutex_name = "ts_serializer_mutex";
-	ts_serializer_init(&xgp->ts_serializer_mutex, xgp->ts_serializer_mutex_name);
-#endif
-
-	/* initialize the clocks */
-	pclk_initialize(&tt);
-	if (tt == PCLK_BAD) {
-			fprintf(xgp->errout, "%s: Cannot initialize the picosecond clock\n",xgp->progname);
-			fflush(xgp->errout);
-			xdd_destroy_all_barriers();
-			return(-1);
+	if (xgp->global_options & GO_NOPROCLOCK) 
+                return;
+#if !(OSX)
+#if (IRIX || SOLARIS || AIX || LINUX || FREEBSD)
+	if (getuid() != 0)
+		fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to lock processes\n",xgp->progname);
+#endif 
+	/* lock ourselves into memory for the duration */
+	status = mlockall(MCL_CURRENT | MCL_FUTURE);
+	if (status < 0) {
+		fprintf(xgp->errout,"%s: xdd_schedule_options: cannot lock process into memory\n",xgp->progname);
+		perror("Reason");
 	}
-	pclk_now(&xgp->base_time);
-
-	// Init the Global Clock 
-	xdd_init_global_clock(&xgp->ActualLocalStartTime);
-	// display configuration information about this run 
-	xdd_config_info();
-
-	return(0);
-} // End of initialization()
+	if (xgp->global_options & GO_MAXPRI) {
+#if (IRIX || SOLARIS || AIX || LINUX || FREEBSD)
+		if (getuid() != 0) 
+			fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to max priority\n",xgp->progname);
+#endif
+		/* reset the priority to max max max */
+		param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+		status = sched_setscheduler(0,SCHED_FIFO,&param);
+		if (status == -1) {
+			fprintf(xgp->errout,"%s: xdd_schedule_options: cannot reschedule priority\n",xgp->progname);
+			perror("Reason");
+		}
+	}
+#endif // if not OSX
+} /* end of xdd_schedule_options() */
  
 /*
  * Local variables:

@@ -135,7 +135,7 @@ xdd_io_thread_init(ptds_t *p) {
 		return(FAILED);
 	}
 	p->rwbuf_save = p->rwbuf; 
-	xdd_pattern_buffer(p); // Put the correct data pattern in the buffer
+	xdd_datapattern_buffer_init(p); // Put the correct data pattern in the buffer
 
 	if (p->mem_align != getpagesize()) 
 		p->rwbuf +=  p->mem_align;

@@ -178,6 +178,7 @@ struct xdd_globals {
 	int32_t      			number_of_iothreads;    /* number of threads spawned for all targets */
 	char         			*id;                    /* ID string pointer */
 	int32_t      			runtime;                /* Length of time to run all targets, all passes */
+	pclk_t       			base_time;     			/* The time that xdd was started - set during initialization */
 	pclk_t       			estimated_end_time;     /* The time at which this run (all passes) should end */
 	int32_t      			number_of_processors;   /* Number of processors */
 	char         			random_init_state[256]; /* Random number generator state initalizer array */ 
@@ -229,8 +230,8 @@ struct xdd_globals {
 	/* Target Specific variables */
 	ptds_t		*ptdsp[MAX_TARGETS];					/* Pointers to the active PTDSs - Per Target Data Structures */
 	results_t	*target_average_resultsp[MAX_TARGETS];/* Results area for the "target" which is a composite of all its qthreads */
-#if (LINUX)
-	rlim_t	rlimit;			/* This is for the stack size limit */
+#ifdef LINUX
+	rlim_t	rlimit;
 #endif
 }; // End of Definition of the xdd_globals data structure
 
@@ -253,6 +254,7 @@ int      xdd_check_option(char *op);
 void     xdd_combine_results(results_t *from, results_t *to);
 void     xdd_config_info(void);
 int32_t  xdd_cpu_count(void);
+void     xdd_datapattern_buffer_init(ptds_t *p);
 int32_t  xdd_deskew(void);
 void     xdd_destroy_all_barriers(void);
 void     xdd_destroy_barrier(struct xdd_barrier *bp);
@@ -271,6 +273,7 @@ void     xdd_init_ptds(ptds_t *p, int32_t n);
 void     xdd_init_results(results_t *results);
 void     xdd_init_seek_list(ptds_t *p);
 void     xdd_init_signals(void);
+int32_t	 xdd_initialization(int32_t argc,char *argv[]);
 int32_t  xdd_io_loop(ptds_t *p);
 int32_t	 xdd_io_loop_after_io_operation(ptds_t *p);
 int32_t  xdd_io_loop_after_loop(ptds_t *p);
@@ -331,6 +334,7 @@ void     xdd_set_timelimit(void);
 void     xdd_show_ptds(ptds_t *p);
 void     xdd_system_info(FILE *out);
 void     xdd_target_info(FILE *out, ptds_t *p);
+int32_t  xdd_target_start();
 void     xdd_ts_cleanup(struct tthdr *ttp);
 void     xdd_ts_overhead(struct tthdr *ttp);
 void     xdd_ts_reports(ptds_t *p);

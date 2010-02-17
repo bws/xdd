@@ -376,11 +376,6 @@ xdd_load_seek_list(ptds_t *p) {
 		tp = xdd_getnexttoken(tp);
 		/* Check for comment line */
 		if (*tp == COMMENT) continue;
-		/* Check for Directive line */
-		if (*tp == DIRECTIVE) {
-			xdd_process_directive(tp);
-			continue;
-		}
 		/* Must be a seek line */
 		sscanf(line,"%d %llu %d %c %llu %llu", 
 			&ordinal,

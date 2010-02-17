@@ -90,7 +90,7 @@ struct ptds {
 	pthread_t  			thread;   			// Handle for this thread 
 	int32_t   			my_target_number;	// My target number 
 	int32_t   			my_qthread_number;	// My queue number within this target 
-	int32_t   			mythreadnum; 		// My thread number relative to the total number of threads
+	int32_t   			mythreadnum; 	// My thread number relative to the total number of threads
 	int32_t   			mythreadid;  		// My system thread ID (like a process ID) 
 	int32_t   			mypid;   			// My process ID 
 	int32_t   			total_threads; 		// Total number of threads -> target threads + QThreads 

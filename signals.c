@@ -33,67 +33,26 @@
  * functions when xdd is started.
  */
 #include "xdd.h"
+/*----------------------------------------------------------------------------*/
+/* xdd_sigint() - Routine that gets called when an Interrupt occurs. This will
+ * call the appropriate routines to remove all the barriers and semaphores so
+ * that we shut down gracefully.
+ */
+void
+xdd_sigint(int n) {
+	fprintf(xgp->errout,"Program canceled - destroying all barriers...");
+	fflush(xgp->errout);
+	xgp->canceled = 1;
+	xdd_destroy_all_barriers();
+	fprintf(xgp->errout,"done. Exiting\n");
+	fflush(xgp->errout);
+} /* end of xdd_sigint() */
 
 /*----------------------------------------------------------------------------*/
-/* The arguments pass in are the same argc and argv from main();
+/* xdd_init_signals() - Initialize all the signal handlers
  */
-int32_t
-xdd_initialization(int32_t argc,char *argv[]) 
-{
-	pclk_t tt; 
+void
+xdd_init_signals(void) {
+	signal(SIGINT, xdd_sigint);
+} /* end of xdd_init_signals() */
 
-
-	// Initialize the Global Data Structure
-	xdd_init_globals(argv[0]);
-
-	// Parse the input arguments 
-	xgp->argc = argc; // remember the original arg count
-	xgp->argv = argv; // remember the original argv 
-	xdd_parse(argc,argv);
-
-	// Init output format header
-	if (xgp->global_options & GO_ENDTOEND) 
-		xdd_results_format_id_add("+E2ESRTIME+E2EIOTIME+E2EPERCENTSRTIME ");
-
-	// Optimize runtime priorities and all that 
-	xdd_schedule_options();
-
-	// initialize the signal handlers 
-	xdd_init_signals();
-
-	// Init all the necessary barriers 
-	xdd_init_all_barriers();
-
-#if WIN32
-	/* Init the ts serializer mutex to compensate for a Windows bug */
-	xgp->ts_serializer_mutex_name = "ts_serializer_mutex";
-	ts_serializer_init(&xgp->ts_serializer_mutex, xgp->ts_serializer_mutex_name);
-#endif
-
-	/* initialize the clocks */
-	pclk_initialize(&tt);
-	if (tt == PCLK_BAD) {
-			fprintf(xgp->errout, "%s: Cannot initialize the picosecond clock\n",xgp->progname);
-			fflush(xgp->errout);
-			xdd_destroy_all_barriers();
-			return(-1);
-	}
-	pclk_now(&xgp->base_time);
-
-	// Init the Global Clock 
-	xdd_init_global_clock(&xgp->ActualLocalStartTime);
-	// display configuration information about this run 
-	xdd_config_info();
-
-	return(0);
-} // End of initialization()
- 
-/*
- * Local variables:
- *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
- * End:
- *
- * vim: ts=8 sts=8 sw=8 noexpandtab
- */
