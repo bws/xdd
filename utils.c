@@ -29,8 +29,8 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 /*
- * This file contains the subroutines that perform various initialization 
- * functions when xdd is started.
+ * This file contains a variety of utility functions used by any of the other 
+ * functions within xdd.
  */
 #include "xdd.h"
 /*----------------------------------------------------------------------------*/

@@ -29,8 +29,8 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 /*
- * This file contains the subroutines that perform various initialization 
- * functions when xdd is started.
+ * This file contains the signal handler and the routine that initializes
+ * the signal hanler call.
  */
 #include "xdd.h"
 /*----------------------------------------------------------------------------*/

@@ -29,8 +29,8 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 /*
- * This file contains the subroutines that perform various initialization 
- * functions when xdd is started.
+ * This file contains the subroutines that figure out how many CPUs are on a
+ * system and how to assign those processors to specific Target or QThreads.
  */
 #include "xdd.h"
 /*----------------------------------------------------------------------------*/

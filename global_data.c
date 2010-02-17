@@ -28,10 +28,6 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-/*
- * This file contains the subroutines that perform various initialization 
- * functions when xdd is started.
- */
 #include "xdd.h"
 /*----------------------------------------------------------------------------*/
 /* xdd_init_globals() - Initialize a xdd global variables  

@@ -30,7 +30,7 @@
  */
 /*
  * This file contains the subroutines that perform various initialization 
- * functions when xdd is started.
+ * functions with respect to memory such as locking and unlocking pages.
  */
 #include "xdd.h"
 

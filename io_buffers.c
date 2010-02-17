@@ -29,8 +29,8 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 /*
- * This file contains the subroutines that perform various initialization 
- * functions when xdd is started.
+ * This file contains the subroutines that allocate and initialize the io buffers
+ * used by the QThreads.
  */
 #include "xdd.h"
 /*----------------------------------------------------------------------------*/
