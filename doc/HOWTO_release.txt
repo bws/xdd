@@ -29,9 +29,10 @@ continue cutting the release.
 
 5.  Tag the code.
 	> git commit -a	
-	> git tag xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE]
+	> git tag -a xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE]
 
 6.  Push everything back up to the durmstrang repository:
+	> git push
 	> git push --tags
 
 7.  At this point, the release is ready.  It can be retrieved by anyone with 
