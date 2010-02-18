@@ -1,0 +1,10 @@
+Build Instructions
+--
+
+On Linux:
+> make
+
+On AIX (requires the xlc_r compiler):
+> gmake
+
+No other platforms currently supported.

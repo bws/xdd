@@ -1,122 +1,157 @@
 # XDD Makefile
+
+#
+# Configuration
+#
 SHELL 	=	/bin/sh
-OS 		= 	$(shell uname)
+OS 	= 	$(shell uname)
+
+#
+# Version information
+#
 DATESTAMP =	$(shell date +%m%d%y )
 BUILD 	=	$(shell date +%H%M )
 PROJECT =	xdd
 VERSION =	7.0.0.rc12
 XDD_VERSION = $(OS).$(VERSION).$(DATESTAMP).Build.$(BUILD)
 XDDVERSION = \"$(XDD_VERSION)\"
-OBJECTS =	access_pattern.o \
-		barrier.o \
-		datapatterns.o \
-		debug.o \
-		end_to_end.o \
-		global_clock.o \
-		global_data.o \
-		global_time.o \
-		heartbeat.o \
-		info_display.o \
-		initialization.o \
-		io_buffers.o \
-		io_loop.o \
-		io_loop_after_io_operation.o \
-		io_loop_after_loop.o  \
-		io_loop_before_io_operation.o \
-		io_loop_before_loop.o \
-		io_loop_perform_io_operation.o \
-		io_thread.o \
-		io_thread_cleanup.o \
-		io_thread_init.o \
-		memory.o \
-		parse.o \
-		parse_func.o \
-		parse_table.o \
-		pclk.o \
-		processor.o \
-		ptds.o \
-		read_after_write.o \
-		restart.o \
-		results_display.o \
-		results_manager.o \
-		schedule.o \
-		sg.o \
-		signals.o \
-		target.o \
-		ticker.o \
-		timestamp.o \
-		utils.o \
-		verify.o \
-		xdd.o 
 
-HEADERS = 	access_pattern.h \
-		barrier.h \
-		end_to_end.h \
-		datapatterns.h \
-		misc.h \
-		parse.h \
-		pclk.h \
-		ptds.h \
-		read_after_write.h \
-		restart.h \
-		results.h \
-		sg.h \
-		sg_err.h \
-		sg_include.h \
-		ticker.h \
-		timestamp.h \
-		xdd.h \
-		xdd_common.h \
-		xdd_version.h
+#
+# Source locations
+#
+HDR_DIR = src
+SRC_DIR = src
 
-TSOBJECTS =	timeserver.o pclk.o ticker.o
-GTOBJECTS =     gettime.o global_time.o pclk.o ticker.o
+#
+# Source files
+#
+XDD_SOURCE = $(SRC_DIR)/access_pattern.c \
+	$(SRC_DIR)/barrier.c \
+	$(SRC_DIR)/datapatterns.c \
+	$(SRC_DIR)/debug.c \
+	$(SRC_DIR)/end_to_end.c \
+	$(SRC_DIR)/global_clock.c \
+	$(SRC_DIR)/global_data.c \
+	$(SRC_DIR)/global_time.c \
+	$(SRC_DIR)/heartbeat.c \
+	$(SRC_DIR)/info_display.c \
+	$(SRC_DIR)/initialization.c \
+	$(SRC_DIR)/io_buffers.c \
+	$(SRC_DIR)/io_loop.c \
+	$(SRC_DIR)/io_loop_after_io_operation.c \
+	$(SRC_DIR)/io_loop_after_loop.c  \
+	$(SRC_DIR)/io_loop_before_io_operation.c \
+	$(SRC_DIR)/io_loop_before_loop.c \
+	$(SRC_DIR)/io_loop_perform_io_operation.c \
+	$(SRC_DIR)/io_thread.c \
+	$(SRC_DIR)/io_thread_cleanup.c \
+	$(SRC_DIR)/io_thread_init.c \
+	$(SRC_DIR)/memory.c \
+	$(SRC_DIR)/parse.c \
+	$(SRC_DIR)/parse_func.c \
+	$(SRC_DIR)/parse_table.c \
+	$(SRC_DIR)/pclk.c \
+	$(SRC_DIR)/processor.c \
+	$(SRC_DIR)/ptds.c \
+	$(SRC_DIR)/read_after_write.c \
+	$(SRC_DIR)/restart.c \
+	$(SRC_DIR)/results_display.c \
+	$(SRC_DIR)/results_manager.c \
+	$(SRC_DIR)/schedule.c \
+	$(SRC_DIR)/sg.c \
+	$(SRC_DIR)/signals.c \
+	$(SRC_DIR)/target.c \
+	$(SRC_DIR)/ticker.c \
+	$(SRC_DIR)/timestamp.c \
+	$(SRC_DIR)/utils.c \
+	$(SRC_DIR)/verify.c \
+	$(SRC_DIR)/xdd.c 
 
-CFLAGS =	-DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -g
+XDD_HEADERS = $(HDR_DIR)/access_pattern.h \
+	$(HDR_DIR)/barrier.h \
+	$(HDR_DIR)/end_to_end.h \
+	$(HDR_DIR)/datapatterns.h \
+	$(HDR_DIR)/misc.h \
+	$(HDR_DIR)/parse.h \
+	$(HDR_DIR)/pclk.h \
+	$(HDR_DIR)/ptds.h \
+	$(HDR_DIR)/read_after_write.h \
+	$(HDR_DIR)/restart.h \
+	$(HDR_DIR)/results.h \
+	$(HDR_DIR)/sg.h \
+	$(HDR_DIR)/sg_err.h \
+	$(HDR_DIR)/sg_include.h \
+	$(HDR_DIR)/ticker.h \
+	$(HDR_DIR)/timestamp.h \
+	$(HDR_DIR)/xdd.h \
+	$(HDR_DIR)/xdd_common.h \
+	$(HDR_DIR)/xdd_version.h
+
+#
+# Objects
+#
+XDD_OBJECTS = $(patsubst %.c, %.o, $(filter %.c, $(XDD_SOURCE)))
+TS_OBJECTS = $(SRC_DIR)/timeserver.o $(SRC_DIR)/pclk.o $(SRC_DIR)/ticker.o
+GT_OBJECTS = $(SRC_DIR)/gettime.o \
+	$(SRC_DIR)/global_time.o \
+	$(SRC_DIR)/pclk.o \
+	$(SRC_DIR)/ticker.o
+
+#
+# Default build settings
+#
 CC = 		gcc
+INCLUDES = -I$(SRC_DIR)
 LIBRARIES =	-lpthread
+CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -g
 
+#
+# Platform specific build settings
+#
 $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
-CFLAGS =	-DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -fno-strict-aliasing -Wall
+CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -fno-strict-aliasing -Wall
 endif
 ifeq '$(OS)' 'Darwin' 
-CFLAGS =	-DXDD_VERSION=$(XDDVERSION) -DOSX -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
+CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DOSX -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
 OS = 		OSX
 endif
 ifeq '$(OS)' 'FreeBSD' 
-CFLAGS =	-DXDD_VERSION=$(XDDVERSION) -DFREEBSD -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
+CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DFREEBSD -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
 endif
 ifeq '$(OS)' 'Solaris' 
 CC = 		cc
-CFLAGS =	-DXDD_VERSION=$(XDDVERSION) -DSOLARIS -g
+CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DSOLARIS -g
 LIBRARIES =	-lsocket -lnsl -lpthread  -lxnet -lposix4 -v 
 endif
 ifeq '$(OS)' 'AIX'
 CC =            xlc_r
-CFLAGS =        -DXDD_VERSION=$(XDDVERSION) -DAIX -D_THREAD_SAFE -g -q64 -qcpluscmt -qthreaded
-LIBRARIES =     -lnsl -lpthread  -lxnet -v
+CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DAIX -D_THREAD_SAFE -g -q64 -qcpluscmt -qthreaded
+LIBRARIES = -lnsl -lpthread  -lxnet -v
 endif
 
+#
+# Build rules
+#
 all:	xdd timeserver gettime
 
-xdd: 		$(OBJECTS)
-	$(CC)  -o xdd $(CFLAGS) $(OBJECTS) $(LIBRARIES)
-	mv -f xdd bin/xdd.$(OS)
+xdd: $(XDD_OBJECTS)
+	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
+	mv -f $@ bin/xdd.$(OS)
 	rm -f bin/xdd
-	ln bin/xdd.$(OS) bin/xdd
+	ln -s bin/xdd.$(OS) bin/xdd
 
-timeserver:	$(TSOBJECTS) 
-	$(CC)  -o timeserver $(CFLAGS) $(TSOBJECTS) $(LIBRARIES)
+timeserver: $(TS_OBJECTS) 
+	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f timeserver bin/timeserver.$(OS)
 	rm -f bin/timeserver
-	ln bin/timeserver.$(OS) bin/timeserver
+	ln -s bin/timeserver.$(OS) bin/timeserver
 
-gettime:	$(GTOBJECTS) 
-	$(CC)  -o gettime $(CFLAGS) $(GTOBJECTS) $(LIBRARIES)
+gettime: $(GT_OBJECTS) 
+	$(CC)  -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f gettime bin/gettime.$(OS)
 	rm -f bin/gettime
-	ln bin/gettime.$(OS) bin/gettime
+	ln -s bin/gettime.$(OS) bin/gettime
 
 baseversion:
 	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > xdd_base_version.h
@@ -132,7 +167,7 @@ tarball:
 
 oclean:
 	$(info Cleaning the $(OS) OBJECT files )
-	rm -f $(OBJECTS) $(TSOBJECTS) $(GTOBJECTS)
+	rm -f $(XDD_OBJECTS) $(TS_OBJECTS) $(GT_OBJECTS)
 
 clean: oclean
 	$(info Cleaning the $(OS) executable files )
@@ -162,4 +197,7 @@ doc:
 	doxygen doc/Doxyfile
 	cd doc/doxygen/latex && make pdf
 
-.PHONY: doc
+#
+# Make meta-directives
+#
+.PHONY: all clean doc fastinstall install oclean tarball

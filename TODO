@@ -1,0 +1,13 @@
+TODO file for XDD
+
+// General
+* Add confidence data dump
+* Add serial thread scheduling I/O scheme
+
+// xddcp
+* Third-part transfers
+* Multi-host transfers
+* Check preconditions for all constituent utilities
+* Use utilities available on all SystemV-type OS
+* Incorporate seconds into log timestamps
+* Indicate interface used for transfer
