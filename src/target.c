@@ -34,6 +34,61 @@
  */
 #include "xdd.h"
 
+/* xdd_target_start() - Will start all the target threads and qthreads.
+ * The basic idea here is that there are N targets and each target can have X instances ( or queue threads as they are referred to)
+ * The "ptds" array contains pointers to the main ptds's for the primary targets.
+ * Each target then has a pointer to a linked-list of ptds's that constitute the targets that are used to implement the queue depth.
+ * The thread creation process is serialized such that when a thread is created, it will perform its initialization tasks and then
+ * enter the "serialization" barrier. Upon entering this barrier, the *while* loop that creates these threads will be released
+ * to create the next thread. In the meantime, the thread that just finished its initialization will enter the main thread barrier 
+ * waiting for all threads to become initialized before they are all released. Make sense? I didn't think so.
+ */
+int32_t
+xdd_target_start() {
+	int32_t		target_number;	// Target number to work on
+	int32_t		status;			// Status of a subroutine call
+	ptds_t		*p;				// pointer to the PTS for this QThread
+	int32_t		q;				// The qthread number
+
+
+	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
+		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+		q = 0;
+		while (p) { /* create a thread for each ptds for this target - the queue depth */
+			/* Create the new thread */
+			p->run_start_time = xgp->base_time;
+			status = pthread_create(&p->thread, NULL, xdd_io_thread, p);
+			if (status) {
+				fprintf(xgp->errout,"%s: Error creating thread %d",
+					xgp->progname, 
+					target_number);
+				fflush(xgp->errout);
+				perror("Reason");
+				xdd_destroy_all_barriers();
+				return(-1);
+			}
+			p->my_target_number = target_number;
+			p->my_qthread_number = q;
+			p->total_threads = xgp->number_of_iothreads;
+			/* Wait for the previous thread to complete initialization and then create the next one */
+			xdd_barrier(&xgp->serializer_barrier[p->mythreadnum%2]);
+			// If the previous target *open* fails, then everything needs to stop right now.
+			if (xgp->abort_io == 1) { 
+				fprintf(xgp->errout,"%s: xdd_main: xdd thread %d aborting due to previous initialization failure\n",
+					xgp->progname,
+					p->my_target_number);
+				fflush(xgp->errout);
+				xdd_destroy_all_barriers();
+				return(-1);
+			}
+			q++;
+			p = p->nextp; /* get next ptds in the queue for this target */
+		}
+
+	} /* end of FOR loop that starts all procs */
+	return(0);
+} // End of xdd_tartet_start()
+
 /*----------------------------------------------------------------------------*/
 /* xdd_open_target() - open the target device and do all necessary 
  * sanity checks.  If the open fails or the target cannot be used  
