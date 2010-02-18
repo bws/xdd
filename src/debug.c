@@ -43,7 +43,7 @@ xdd_show_ptds(ptds_t *p) {
 		fprintf(stderr,"********* Start of PTDS for target my_target_number=%d **********\n",p->my_target_number);
 		//p->my_qthread_number = 0;
 		fprintf(stderr,"mypid=%d\n",p->mypid);
-		//p->mythreadid = 0; // This is set later by the actual thread 
+		fprintf(stderr,"mythreadid=%d\n",p->mythreadid);
 		//p->thread_complete = 0; // set upon creation
 		//p->nextp = 0; // set upon creation, used when other qthreads are created
 		//p->pm1 = 0; // set upon creation
