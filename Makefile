@@ -139,19 +139,19 @@ xdd: $(XDD_OBJECTS)
 	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f $@ bin/xdd.$(OS)
 	rm -f bin/xdd
-	ln -s bin/xdd.$(OS) bin/xdd
+	ln -s xdd.$(OS) bin/xdd
 
 timeserver: $(TS_OBJECTS) 
 	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f timeserver bin/timeserver.$(OS)
 	rm -f bin/timeserver
-	ln -s bin/timeserver.$(OS) bin/timeserver
+	ln -s timeserver.$(OS) bin/timeserver
 
 gettime: $(GT_OBJECTS) 
 	$(CC)  -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f gettime bin/gettime.$(OS)
 	rm -f bin/gettime
-	ln -s bin/gettime.$(OS) bin/gettime
+	ln -s gettime.$(OS) bin/gettime
 
 baseversion:
 	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > xdd_base_version.h
