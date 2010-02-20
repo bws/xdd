@@ -96,15 +96,7 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 		p->stop_trigger_target = -1; /* The number of the target to send the stop trigger to */
 		p->run_status = 1;   /* This is the status of this thread 0=not started, 1=running */
 		p->trigger_types = 0;
-		p->ls_master = -1; /* The default master number  */
-		p->ls_slave  = -1; /* The default slave number */
-		p->ls_interval_type  = 0; /* The default interval type */
-		p->ls_interval_value  = 0; /* The default interval value  */
-		p->ls_interval_units  = "not defined"; /* The default interval units  */
-		p->ls_task_type  = 0; /* The default task type */
-		p->ls_task_value  = 0; /* The default task value  */
-		p->ls_task_units  = "not defined"; /* The default task units  */
-		p->ls_task_counter = 0; /* the default task counter */
+		p->lockstepp = 0; /* The default address of the lockstep structure */
 		/* Init the seeklist header fields */
 		p->seekhdr.seek_options = 0;
 		p->seekhdr.seek_range = DEFAULT_RANGE;

@@ -317,18 +317,22 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	} else fprintf(out, "\t\tTimestamping, disabled\n");
 	fflush(out);
 	fprintf(out,"\t\tDelete file, %s", (p->target_options & TO_DELETEFILE)?"enabled\n":"disabled\n");
+
+	// Display Lockstep Info
 	if (p->my_qthread_number == 0) {
-		if (p->ls_master >= 0) {
-			mp = xgp->ptdsp[p->ls_master];
-			fprintf(out,"\t\tMaster Target, %d\n", p->ls_master);
-			fprintf(out,"\t\tMaster Interval value and type, %lld,%s\n", (long long)mp->ls_interval_value, mp->ls_interval_units);
-		}
-		if (p->ls_slave >= 0) {
-			sp = xgp->ptdsp[p->ls_slave];
-			fprintf(out,"\t\tSlave Target, %d\n", p->ls_slave);
-			fprintf(out,"\t\tSlave Task value and type, %lld,%s\n", (long long)sp->ls_task_value,sp->ls_task_units);
-			fprintf(out,"\t\tSlave initial condition, %s\n",(sp->ls_ms_state & LS_SLAVE_RUN_IMMEDIATELY)?"Run":"Wait");
-			fprintf(out,"\t\tSlave termination, %s\n",(sp->ls_ms_state & LS_SLAVE_COMPLETE)?"Complete":"Abort");
+		if (p->lockstepp) {
+			if (p->lockstepp->ls_master >= 0) {
+				mp = xgp->ptdsp[p->lockstepp->ls_master];
+				fprintf(out,"\t\tMaster Target, %d\n", p->lockstepp->ls_master);
+				fprintf(out,"\t\tMaster Interval value and type, %lld,%s\n", (long long)mp->lockstepp->ls_interval_value, mp->lockstepp->ls_interval_units);
+			}
+			if (p->lockstepp->ls_slave >= 0) {
+				sp = xgp->ptdsp[p->lockstepp->ls_slave];
+				fprintf(out,"\t\tSlave Target, %d\n", p->lockstepp->ls_slave);
+				fprintf(out,"\t\tSlave Task value and type, %lld,%s\n", (long long)sp->lockstepp->ls_task_value,sp->lockstepp->ls_task_units);
+				fprintf(out,"\t\tSlave initial condition, %s\n",(sp->lockstepp->ls_ms_state & LS_SLAVE_RUN_IMMEDIATELY)?"Run":"Wait");
+				fprintf(out,"\t\tSlave termination, %s\n",(sp->lockstepp->ls_ms_state & LS_SLAVE_COMPLETE)?"Complete":"Abort");
+			}
 		}
 	}
 
@@ -391,6 +395,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 			}	
 		}
 	}
+	fprintf(out,"End of info------------------------------\n");
 	fprintf(out, "\n");
 	fflush(out);
 } /* end of xdd_target_info() */

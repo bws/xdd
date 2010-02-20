@@ -135,47 +135,6 @@ xdd_start_delay_before_io_loop(ptds_t *p) {
 
 
 /*----------------------------------------------------------------------------*/
-/* xdd_lockstep_before_io_loop() - This subroutine initializes the variables that
- * are used by the end-to-end option
- */
-void // Lock Step Processing
-xdd_lockstep_before_io_loop(ptds_t *p) {
-
-
-	p->ls_slave_loop_counter = 0;
-	if (p->ls_slave >= 0) { /* I am a master */
-		p->ls_interval_base_value = 0;
-		if (p->ls_interval_type & LS_INTERVAL_TIME) {
-			p->ls_interval_base_value = p->my_pass_start_time;
-		}
-		if (p->ls_interval_type & LS_INTERVAL_OP) {
-			p->ls_interval_base_value = 0;
-		}
-		if (p->ls_interval_type & LS_INTERVAL_PERCENT) {
-			p->ls_interval_base_value = 1; 
-		}
-		if (p->ls_interval_type & LS_INTERVAL_BYTES) {
-			p->ls_interval_base_value = 0;
-		}
-	} else { /* I am a slave */
-		p->ls_task_base_value = 0;
-		if (p->ls_task_type & LS_TASK_TIME) {
-			p->ls_task_base_value = p->my_pass_start_time;
-		}
-		if (p->ls_task_type & LS_TASK_OP) {
-			p->ls_task_base_value = 0;
-		}
-		if (p->ls_task_type & LS_TASK_PERCENT) {
-			p->ls_task_base_value = 1; 
-		}
-		if (p->ls_task_type & LS_TASK_BYTES) {
-			p->ls_task_base_value = 0;
-		}
-	}
-
-} // xdd_lockstep_before_io_loop()
-
-/*----------------------------------------------------------------------------*/
 /* xdd_raw_before_io_loop() - This subroutine initializes the variables that
  * are used by the read_after_write option
  */

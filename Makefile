@@ -46,6 +46,7 @@ XDD_SOURCE = $(SRC_DIR)/access_pattern.c \
 	$(SRC_DIR)/io_thread.c \
 	$(SRC_DIR)/io_thread_cleanup.c \
 	$(SRC_DIR)/io_thread_init.c \
+	$(SRC_DIR)/lockstep.c \
 	$(SRC_DIR)/memory.c \
 	$(SRC_DIR)/parse.c \
 	$(SRC_DIR)/parse_func.c \
@@ -71,6 +72,7 @@ XDD_HEADERS = $(HDR_DIR)/access_pattern.h \
 	$(HDR_DIR)/barrier.h \
 	$(HDR_DIR)/end_to_end.h \
 	$(HDR_DIR)/datapatterns.h \
+	$(HDR_DIR)/lockstep.h \
 	$(HDR_DIR)/misc.h \
 	$(HDR_DIR)/parse.h \
 	$(HDR_DIR)/pclk.h \

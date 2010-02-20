@@ -308,53 +308,6 @@ struct ptds {
 	int32_t				Start_Trigger_Barrier_index;// The index for the Start Trigger Barrier 
 
     // -------------------------------------------------------------------
-	// The following variables are used to implement the lockstep options 
-	pthread_mutex_t ls_mutex;  				// This is the lock-step mutex used by this target 
-	int32_t       ls_task_counter; 			// This is the number of times that the master has requested this 
-					  						// slave to perform a task. 
-					  						// Each time the master needs this slave to perform a task this counter is
-					  						// incremented by 1.
-					  						// Each time this slave completes a task, this counter is decremented by 1.
-					  						// Access to this counter is protected by the ls_mutex. 
-#define LS_INTERVAL_TIME  	0x00000001 		// Task type of "time" 
-#define LS_INTERVAL_OP		0x00000002 		// Task type of "op" 
-#define LS_INTERVAL_PERCENT	0x00000004 		// Task type of "percent" 
-#define LS_INTERVAL_BYTES	0x00000008 		// Task type of "bytes" 
-	uint32_t		ls_interval_type; 		// Flags used by the lock-step master 
-	char			*ls_interval_units; 	// ASCII readable units for the interval value 
-	int64_t			ls_interval_value; 		// This is the value of the interval on which the lock step occurs 
-	uint64_t		ls_interval_base_value;	// This is the base value to which the interval value is compared to 
-#define LS_TASK_TIME		0x00000001 		// Task type of "time" 
-#define LS_TASK_OP			0x00000002 		// Task type of "op" 
-#define LS_TASK_PERCENT		0x00000004 		// Task type of "percent" 
-#define LS_TASK_BYTES		0x00000008 		// Task type of "bytes" 
-	uint32_t		ls_task_type; 			// Flags used by the lock-step master 
-	char			*ls_task_units; 		// ASCII readable units for the task value 
-	int64_t			ls_task_value; 			// Depending on the task type (time, ops, or bytes) this variable will be
-									 		// set to the appropriate number of seconds, ops, or bytes to run/execute/transfer
-									 		// per "task".
-	uint64_t		ls_task_base_value;		// This is the base value to which the task value is compared to 
-#define LS_SLAVE_WAITING	0x00000001 		// The slave is waiting for the master to enter the ls_barrier 
-#define LS_SLAVE_RUN_IMMEDIATELY 0x00000002	// The slave should start running immediately 
-#define LS_SLAVE_COMPLETE	0x00000004 		// The slave should complete all operations after this I/O 
-#define LS_SLAVE_STOP		0x00000008 		// The slave should abort after this I/O 
-#define LS_SLAVE_FINISHED	0x00000010 		// The slave is finished 
-#define LS_MASTER_FINISHED	0x00000020 		// The master has completed its pass 
-#define LS_MASTER_WAITING	0x00000040 		// The master is waiting at the barrier 
-	uint32_t		ls_ms_state;			// This is the state of the master and slave at any given time. 
-											// If this is set to SLAVE_WAITING
-									 		// then the slave has entered the ls_barrier and is waiting for the master to enter
-									 		// so that it can continue. This is checked by the master so that it will enter only
-									 		// if the slave is there waiting. This prevents the master from being blocked when
-									 		// doing overlapped-lock-step operations.
-	int32_t			ls_master;  			// The target number that is the master if this target is a slave 
-	int32_t			ls_slave;  				// The target number that is the slave if this target is the master 
-	int32_t			ls_slave_loop_counter;	// Keeps track of the number of times through the I/O loop *
-	xdd_barrier_t 	Lock_Step_Barrier[2]; 	// Lock Step Barrier for non-overlapped lock stepping 
-	int32_t			Lock_Step_Barrier_Master_Index; // The index for the Lock Step Barrier 
-	int32_t			Lock_Step_Barrier_Slave_Index; // The index for the Lock Step Barrier 
-    // ------------------ End of the LockStep stuff --------------------------------------------------
-    // -------------------------------------------------------------------
 	// The following "e2e_" members are for the End to End ( aka -e2e ) option
 	// The Target Option Flag will have either TO_E2E_DESTINATION or TO_E2E_SOURCE set to indicate
 	// which side of the E2E operation this target will act as.
@@ -427,11 +380,13 @@ struct ptds {
 	int64_t				raw_data_ready; 		// The amount of data that is ready to be read in an RAW op 
 	int64_t				raw_data_length; 		// The amount of data that is ready to be read for this operation 
 	// ------------------ End of the ReadAfterWrite stuff --------------------------------------
+	struct lockstep		*lockstepp;				// pointer to the lockstep structure used by the lockstep option
 	struct restart		*restartp;				// pointer to the restart structure used by the restart monitor
 	struct ptds			*pm1;					// ptds minus  1 - used for report print queueing - don't ask 
 };
 typedef struct ptds ptds_t;
 
+#include "lockstep.h"
 /*
  * Local variables:
  *  indent-tabs-mode: t

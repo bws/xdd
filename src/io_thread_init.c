@@ -44,7 +44,6 @@ xdd_io_thread_init(ptds_t *p) {
 	pclk_t  TimeDelta; /* The difference between now and the Actual Local Start Time */
 	uint32_t sleepseconds; /* Number of seconds to sleep while waiting for the global time to start */
 	int32_t  status;
-	char errmsg[256];
 #ifdef WIN32
 	LPVOID lpMsgBuf; /* Used for the error messages */
 	HANDLE tmphandle;
@@ -124,6 +123,8 @@ xdd_io_thread_init(ptds_t *p) {
 		return(FAILED);
 	}
 	xdd_init_seek_list(p);
+
+
 	/* allocate a buffer and re-align it if necessary */
 	p->rwbuf = xdd_init_io_buffers(p);
 	if (p->rwbuf == NULL) { /* error allocating memory for I/O buffer */
@@ -135,10 +136,13 @@ xdd_io_thread_init(ptds_t *p) {
 		return(FAILED);
 	}
 	p->rwbuf_save = p->rwbuf; 
-	xdd_datapattern_buffer_init(p); // Put the correct data pattern in the buffer
+
+	// Put the correct data pattern in the buffer
+	xdd_datapattern_buffer_init(p); 
 
 	if (p->mem_align != getpagesize()) 
 		p->rwbuf +=  p->mem_align;
+
 	/* set up the timestamp table */
 	xdd_ts_setup(p);
 	/* set up for the big loop */
@@ -165,34 +169,10 @@ xdd_io_thread_init(ptds_t *p) {
 	}
 
 	/* This section will initialize the slave side of the lock step mutex and barriers */
-	if (p->ls_master >= 0) { /* This means that this target has a master and therefore must be a slave */
-		/* init the task counter mutex and the lock step barrier */
-		status = pthread_mutex_init(&p->ls_mutex, 0);
-		if (status) {
-			sprintf(errmsg,"%s: io_thread_init:Error initializing lock step slave target %d task counter mutex",
-				xgp->progname,p->my_target_number);
-			perror(errmsg);
-			fprintf(xgp->errout,"%s: io_thread_init: Aborting I/O for target %d due to lockstep mutex allocation failure\n",
-				xgp->progname,p->my_target_number);
-			fflush(xgp->errout);
-			xgp->abort_io = 1;
-			/* Enter the serializer barrier so that the next thread can start */
-			xdd_barrier(&xgp->serializer_barrier[p->mythreadnum%2]);
-			return(FAILED);
-		}
-		for (i=0; i<=1; i++) {
-				sprintf(p->Lock_Step_Barrier[i].name,"LockStep_T%d_%d",p->ls_master,p->my_target_number);
-				xdd_init_barrier(&p->Lock_Step_Barrier[i], 2, p->Lock_Step_Barrier[i].name);
-		}
-		p->Lock_Step_Barrier_Slave_Index = 0;
-		p->Lock_Step_Barrier_Master_Index = 0;
-	} else { /* Make sure these are uninitialized */
-		for (i=0; i<=1; i++) {
-				p->Lock_Step_Barrier[i].initialized  = FALSE;
-		}
-		p->Lock_Step_Barrier_Slave_Index = 0;
-		p->Lock_Step_Barrier_Master_Index = 0;
-	}
+	status = xdd_lockstep_init(p);
+	if (status != SUCCESS)
+		return(status);
+	
 	/* Check to see if we will be waiting for a start trigger. 
 	 * If so, then init the start trigger barrier.
 	 */
