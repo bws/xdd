@@ -277,7 +277,7 @@ xdd_sg_set_reserved_size(ptds_t *p, int fd) {
 	reserved_size = (p->block_size*p->reqsize);
 	status = ioctl(fd, SG_SET_RESERVED_SIZE, &reserved_size);
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_open_target: SG_SET_RESERVED_SIZE error - request for %d bytes denied",
+		fprintf(xgp->errout,"%s: xdd_sg_set_reserved_size: SG_SET_RESERVED_SIZE error - request for %d bytes denied",
 			xgp->progname, 
 			(p->block_size*p->reqsize));
 	}
@@ -294,7 +294,7 @@ xdd_sg_get_version(ptds_t *p, int fd) {
 
 	status = ioctl(fd, SG_GET_VERSION_NUM, &version);
 	if ((status < 0) || (version < 30000)) {
-		fprintf(xgp->errout, "%s: xdd_open_target: sg driver prior to 3.x.y - specifically %d\n",
+		fprintf(xgp->errout, "%s: xdd_sg_get_reserved_size: sg driver prior to 3.x.y - specifically %d\n",
 			xgp->progname,
 			version);
 	}
