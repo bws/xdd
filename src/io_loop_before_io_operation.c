@@ -157,8 +157,8 @@ xdd_dio_before_io_operation(ptds_t *p) {
 	p->target_options &= ~TO_DIO;
 	close(p->fd);
 	p->fd = 0;
-	p->fd = xdd_open_target(p);
-	if ((unsigned int)p->fd == -1) { /* error openning target */
+	status = xdd_target_open(p);
+	if (status != 0 ) { /* error openning target */
 		fprintf(xgp->errout,"%s: xdd_dio_before_io_operation: ERROR: Reopen of target %d <%s> failed\n",xgp->progname,p->my_target_number,p->target);
 		fflush(xgp->errout);
 		xgp->abort_io = 1;

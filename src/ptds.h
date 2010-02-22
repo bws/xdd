@@ -101,6 +101,7 @@ struct ptds {
 #else
 	int32_t   			fd;    				// File Descriptor for the target device/file 
 #endif
+	int32_t				target_open_flags;	// Flags used during open processing of a target
 	unsigned char 		*rwbuf;   		// The re-aligned I/O buffers 
 	int32_t				rwbuf_shmid; 		// Shared Memeory ID for rwbuf 
 	unsigned char 		*rwbuf_save; 		// The original I/O buffers 
@@ -383,6 +384,11 @@ struct ptds {
 	struct lockstep		*lockstepp;				// pointer to the lockstep structure used by the lockstep option
 	struct restart		*restartp;				// pointer to the restart structure used by the restart monitor
 	struct ptds			*pm1;					// ptds minus  1 - used for report print queueing - don't ask 
+#if (LINUX)
+	struct stat			statbuf;				// Target File Stat buffer used by xdd_target_open()
+#elif (AIX || SOLARIS)
+	struct stat64		statbuf;				// Target File Stat buffer used by xdd_target_open()
+#endif
 };
 typedef struct ptds ptds_t;
 

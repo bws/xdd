@@ -157,8 +157,8 @@ xdd_io_thread(void *pin) {
 				unlink(p->target);
 #endif
 			/* open the old/new/recreated target file */
-			p->fd = xdd_open_target(p);
-			if ((unsigned int)p->fd == -1) { /* error openning target */
+			status = xdd_target_open(p);
+			if (status != 0) { /* error openning target */
 				fprintf(xgp->errout,"%s: xdd_io_thread: Aborting I/O for target %d due to open failure\n",xgp->progname,p->my_target_number);
 				fflush(xgp->errout);
 				xgp->abort_io = 1;

@@ -87,8 +87,8 @@ xdd_io_thread_init(ptds_t *p) {
 		xdd_processor(p);
 
 	/* open the target device */
-	p->fd = xdd_open_target(p);
-	if ((unsigned int)p->fd == -1) { /* error openning target */
+	status = xdd_target_open(p);
+	if (status != 0) { /* error openning target */
 		fprintf(xgp->errout,"%s: io_thread_init: Aborting I/O for target %d due to open failure\n",xgp->progname,p->my_target_number);
 		fflush(xgp->errout);
 		xgp->abort_io = 1;

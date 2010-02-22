@@ -301,11 +301,7 @@ int32_t  xdd_linux_cpu_count(void);
 int32_t  xdd_load_seek_list(ptds_t *p);
 void     xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 void     xdd_memory_usage_info(FILE *out);
-#ifdef WIN32
-HANDLE   xdd_open_target(ptds_t *p);
-#else
-int32_t  xdd_open_target(ptds_t *p);
-#endif
+int32_t  xdd_target_open(ptds_t *p);
 void     xdd_options_info(FILE *out);
 void     xdd_pattern_buffer(ptds_t *p);
 void     xdd_parse(int32_t argc, char *argv[]);
