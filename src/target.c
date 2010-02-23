@@ -250,10 +250,10 @@ xdd_target_open_for_aix(ptds_t *p) {
 	if (p->rwratio == 0.0) {
 		p->fd = open64(p->target_name,p->target_open_flags|O_WRONLY, 0666); /* write only */
 	} else if (p->rwratio == 1.0) { /* read only */
-		flags &= ~O_CREAT;
+		p->target_open_flags &= ~O_CREAT;
 		p->fd = open64(p->target_name,p->target_open_flags|O_RDONLY, 0777); /* Read only */
 	} else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
-		flags &= ~O_CREAT;
+		p->target_open_flags &= ~O_CREAT;
 		p->fd = open64(p->target_name,p->target_open_flags|O_RDWR, 0666);
 	}
 
