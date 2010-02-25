@@ -3,9 +3,9 @@
 #
 # Autoconf provided values
 #
-XDD_DIR := /home/bws/sandbox/xdd
-BUILD_DIR := /home/bws/sandbox/xdd
-INSTALL_DIR := 
+XDD_DIR := @CONFIG_PROJECT_DIR@
+BUILD_DIR := @CONFIG_BUILD_DIR@
+INSTALL_DIR := @prefix@
 
 #
 # Configuration
