@@ -60,9 +60,6 @@ AC_CHECK_HEADER([fcntl.h],
 AC_CHECK_HEADER([unistd.h], 
                 [], 
                 AC_MSG_ERROR(Must include headers for unistd.h))
-AC_CHECK_HEADER([syscall.h], 
-                [], 
-                AC_MSG_ERROR(Must include headers for syscall.h))
 AC_CHECK_HEADER([sys/types.h], 
                 [], 
                 AC_MSG_ERROR(Must include headers for sys/types.h))
