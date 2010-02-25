@@ -19,11 +19,10 @@ AC_SUBST(CONFIG_BUILD_DIR)
 AC_SUBST(CONFIG_PROJECT_DIR)
 
 dnl
-dnl Check for programs (needs check for install)
+dnl Check for programs
 dnl
 AC_PROG_CC
 AC_LANG_C
-
 
 dnl 
 dnl Check for Standard C headers
@@ -72,7 +71,6 @@ dnl
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl
 AC_TYPE_SIZE_T
-AC_TYPE_SSIZE_T
 
 dnl
 dnl Checks for library functions.
@@ -82,12 +80,12 @@ AC_CHECK_FUNCS([memset])
 dnl
 dnl Sets the compilation options
 dnl
-CONFIG_CXXFLAGS="-g -Wno-unused -Wall -Werror -ansi -femit-class-debug-always"
-CONFIG_UNSAFE_CXXFLAGS="-g" 
+CONFIG_CFLAGS="-g -Wno-unused -Wall -Werror -ansi -femit-class-debug-always"
+CONFIG_UNSAFE_CFLAGS="-g" 
 CONFIG_LDFLAGS="-g"
 
-AC_SUBST(CONFIG_CXXFLAGS, "$CONFIG_CFLAGS")
-AC_SUBST(CONFIG_UNSAFE_CXXFLAGS, "$CONFIG_UNSAFE_CFLAGS")
+AC_SUBST(CONFIG_CFLAGS, "$CONFIG_CFLAGS")
+AC_SUBST(CONFIG_UNSAFE_CFLAGS, "$CONFIG_UNSAFE_CFLAGS")
 AC_SUBST(CONFIG_LDFLAGS, "$CONFIG_LDFLAGS")
 
 dnl
