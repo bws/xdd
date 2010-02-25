@@ -204,7 +204,7 @@ fastinstall: all
 
 fullinstall:
 	$(INSTALL) -d $(INSTALL_DIR)/bin
-	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/binxdd.$(OS)
+	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd.$(OS)
 	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver.$(OS)
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver
