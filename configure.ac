@@ -19,11 +19,10 @@ AC_SUBST(CONFIG_BUILD_DIR)
 AC_SUBST(CONFIG_PROJECT_DIR)
 
 dnl
-dnl Check for programs (needs check for install)
+dnl Check for programs
 dnl
 AC_PROG_CC
 AC_LANG_C
-
 
 dnl 
 dnl Check for Standard C headers

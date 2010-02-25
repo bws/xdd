@@ -12,7 +12,7 @@ INSTALL_DIR :=
 #
 SHELL 	=	/bin/sh
 OS 	= 	$(shell uname)
-INSTALL = /usr/bin/install
+INSTALL = $(XDD_DIR)/contrib/install-sh
 #
 # Version information
 #
