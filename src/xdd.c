@@ -53,8 +53,6 @@ main(int32_t argc,char *argv[]) {
 		exit(1);
 	}
 
-	// Start up all the necessary threads 
-
 	// Start the target threads and associated qthreads
 	status = xdd_target_start();
 	if (status < 0) {

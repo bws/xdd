@@ -40,6 +40,7 @@
 #include <sys/time.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <semaphore.h>
 #include <sys/shm.h>
 #include <sys/times.h>
 #include <sys/prctl.h>

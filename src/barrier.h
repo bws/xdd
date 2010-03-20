@@ -31,19 +31,23 @@
 
 /** These barriers are used for thread synchronization */
 struct xdd_barrier {
-	struct xdd_barrier *prev; /**< Previous barrier in the chain */
-	struct xdd_barrier *next; /**< Next barrier in chain */
-	int32_t  initialized; /**< TRUE means this barrier has been initialized */
-	char  name[256]; /**< Undocumented */
-	int32_t  counter; /**< counter variable */
-	int32_t  threads; /**< number of threads participating */
-	int32_t  semid_base; /**< Semaphore ID base */
+	struct xdd_barrier 	*prev; 			// Previous barrier in the chain 
+	struct xdd_barrier 	*next; 			// Next barrier in chain 
+	int32_t				initialized; 	// Indicates that this semaphore has been initialized
+	char				name[256]; 		// This is the ASCII name of the barrier
+	int32_t				counter; 		// Couter used to keep track of how many threads have entered the barrier
+	int32_t				threads; 		/// The number of threads that need to enter this barrier before openning
 #ifdef WIN32
-	HANDLE  semid;  /**< id for this sempahore */
+	HANDLE				sem;  			// The semaphore Object
 #else
-	int32_t  semid;  /**< id for this semaphore */
+#ifdef SYSV_SEMAPHORES
+	int32_t				sem;			// SystemV Semaphore ID
+	int32_t				semid_base; 	// The unique base name of this SysV semaphore
+#else
+	pthread_barrier_t	pbar;			// The PThreads Barrier 
 #endif
-	pthread_mutex_t mutex;  /**< locking mutex */
+#endif
+	pthread_mutex_t 	mutex;  		// Locking Mutex for access to the semaphore chain
 };
 typedef struct xdd_barrier xdd_barrier_t;
 
