@@ -39,12 +39,12 @@
 int32_t
 xdd_init_all_barriers(void) {
 	int32_t status;
-	char errmsg[512];
 	
 	status = pthread_mutex_init(&xgp->xdd_init_barrier_mutex, 0);
 	if (status) {
-		sprintf(errmsg,"%s: xdd_init_all_barriers: Error initializing xgp->xdd_init_barrier_mutex, status=%d", xgp->progname, status);
-		perror(errmsg);
+		fprintf(xgp->errout,"%s: xdd_init_all_barriers: ERROR initializing xgp->xdd_init_barrier_mutex, status=%d", 
+			xgp->progname, status);
+		perror("Reason");
 		return(-1);
 	}
 	xgp->barrier_chain = (NULL);
@@ -83,7 +83,6 @@ void
 xdd_destroy_all_barriers(void) {
 	int32_t status;
 	int32_t i;
-	char errmsg[512];
 	xdd_barrier_t *bp;
 
 
@@ -102,8 +101,8 @@ xdd_destroy_all_barriers(void) {
 	}
 	status = pthread_mutex_destroy(&xgp->xdd_init_barrier_mutex);
 	if (status) {
-		sprintf(errmsg,"%s: xdd_destroy_all_barriers: Error destroying xgp->xdd_init_barrier_mutex, status=%d", xgp->progname, status);
-		perror(errmsg);
+		fprintf(xgp->errout,"%s: xdd_destroy_all_barriers: Error destroying xgp->xdd_init_barrier_mutex, status=%d", xgp->progname, status);
+		perror("Reason");
 	}
 } /* end of xdd_destroy_all_barriers() */
 
@@ -166,8 +165,11 @@ xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
 } // End of xdd_init_barrier() SysV 
 
 /*----------------------------------------------------------------------------*/
-// This subroutine uses SystemV named semaphores to implement barriers
-//
+/* xdd_barrier() - This is the actual barrier subroutine. 
+ * The caller will block in this subroutine until all required threads enter
+ * this subroutine <barrier> at which time they will all be released.
+ * THIS SUBROUTINE IMPLEMENTS BARRIERS USING SYSTEMV SEMAPHORES
+ */
 int32_t
 xdd_barrier(struct xdd_barrier *bp) {
 	struct 	sembuf 		sb; 				// Semaphore operation buffer 
@@ -253,9 +255,9 @@ xdd_destroy_barrier(struct xdd_barrier *bp) {
 
 #else // Use POSIX pthread_barriers by default
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
-// This section uses POSIX unnamed semaphores to implement barriers
+// This section uses POSIX pthread_barrier to implement barriers
 /*----------------------------------------------------------------------------*/
-/* xdd_init_barrier() - Will initialize the specified semaphore
+/* xdd_init_barrier() - Will initialize the specified pthread_barrier
  */
 int32_t
 xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
@@ -298,10 +300,14 @@ xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
 } // End of xdd_init_barrier() POSIX
 
 /*----------------------------------------------------------------------------*/
-//
+/* xdd_barrier() - This is the actual barrier subroutine. 
+ * The caller will block in this subroutine until all required threads enter
+ * this subroutine <barrier> at which time they will all be released.
+ * THIS SUBROUTINE IMPLEMENTS BARRIERS USING PTHREAD_BARRIERS
+ */
 int32_t
 xdd_barrier(struct xdd_barrier *bp) {
-	int32_t 			status;  			// Status of the semop system call 
+	int32_t 			status;  			// Status of the pthread_barrier system call 
 
 
 	/* "threads" is the number of participating threads */
@@ -309,7 +315,7 @@ xdd_barrier(struct xdd_barrier *bp) {
 
 	status = pthread_barrier_wait(&bp->pbar);
 	if ((status != 0) && (status != PTHREAD_BARRIER_SERIAL_THREAD)) {
-			fprintf(xgp->errout,"%s: ERROR: xdd_barrier<pthread_barriers>: pthread_barrier_wait<blocking> failed: Barrier %s, status is %d, errno is %d\n", 
+			fprintf(xgp->errout,"%s: ERROR: xdd_barrier<pthread_barriers>: pthread_barrier_wait failed: Barrier %s, status is %d, errno is %d\n", 
 				xgp->progname, bp->name, status, errno);
 			perror("Reason");
 			return(-1);
@@ -347,5 +353,5 @@ xdd_destroy_barrier(struct xdd_barrier *bp) {
 	bp->counter = -1;
 	bp->name[0]= 0;
 } /* end of xdd_destroy_barrier() */
-// End of POSIX Semaphore code
+// End of POSIX pthread_barrier code
 #endif
