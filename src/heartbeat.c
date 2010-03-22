@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -107,11 +107,19 @@ xdd_heartbeat(void *junk) {
 
 			if (elapsed != 0.0) 
 				bw = (total_bytes_xferred/elapsed)/FLOAT_MILLION;
-			else bw = -1.0;
-			fprintf(stderr,"[%c] %06lld/%06.2f + ",
+			else
+				bw = -1.0;
+
+                        if (1 == xgp->heartbeat_simple)
+				fprintf(stderr,"[%c] %06lld/%06.2f + ",
 					activity_indicators[activity_index],
 					(long long)total_ops_issued, 
 					bw);
+			else
+				fprintf(stderr,"[%c] %06.2f%% complete",
+					activity_indicators[activity_index],
+					(double)total_ops_issued/p->target_ops);
+				
 			if (activity_index == 4)
 				activity_index = prior_activity_index;
 
@@ -121,3 +129,13 @@ xdd_heartbeat(void *junk) {
 		else activity_index++;
 	}
 } /* end of xdd_heartbeat() */
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 8
+ *  c-basic-offset: 8
+ * End:
+ *
+ * vim: ts=8 sts=8 sw=8 noexpandtab
+ */

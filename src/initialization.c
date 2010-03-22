@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:

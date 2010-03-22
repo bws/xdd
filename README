@@ -1,10 +1,16 @@
-Build Instructions
+Build Instructions for Linux and AIX (currently, no other platforms supported).
 --
 
 On Linux:
+> ./configure
 > make
+> make install
 
 On AIX (requires the xlc_r compiler):
+> ./configure
 > gmake
+> gmake install
 
-No other platforms currently supported.
+By default, XDD and supporting scripts are installed in /opt/xdd, in order
+to change the installation path, use --prefix=<new path> during the configure
+step.

@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -170,8 +170,9 @@ xdd_func_t  xdd_func[] = {
     {"heartbeat", "hb",
             xddfunc_heartbeat,  
             1,  
-            "  -heartbeat #\n",  
-            {"    Will print out running counters every # seconds \n", 
+            "  -heartbeat # [simple]\n",  
+            {"    Will print out heartbeat information every # seconds \n\
+                  If simple is specified, only the percent completed is shown \n", 
             0,0,0,0},
 			0},
     {"help", "h",

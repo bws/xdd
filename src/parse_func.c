@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -942,21 +942,41 @@ xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 {
 	int heartbeat;
 
- 
 	if (argc <= 1) {
 		fprintf(stderr,"%s: Error: No value specified for heartbeat\n", xgp->progname);
 		return(-1);
 	}
+	if (argc > 3) {
+		fprintf(stderr,"%s: Error: Heartbeat accepts at most 2 arguments\n", xgp->progname);
+		return(-1);
+	}
 
+	/* Determine the heartbeat options */
 	if (flags & XDD_PARSE_PHASE2) {
+		/* Determine the heartbeat interval */
 		heartbeat = atoi(argv[1]);
 		if (heartbeat <= 0) {
 			fprintf(stderr,"%s: Error: Heartbeat value of '%d' cannot be negative\n", xgp->progname, heartbeat);
 			return(-1);
 		}
 		xgp->heartbeat = heartbeat;
+
+		/* Enable simple heartbeats if needed */
+		xgp->heartbeat_simple = 0;
+		if (argc == 3)
+		{
+			if (0 == strcmp("simple", argv[2]))
+			{
+				xgp->heartbeat_simple = 1;
+			}
+			else
+			{
+				fprintf(stderr,"%s: Error: Heartbeat modifier '%s' not supported\n", xgp->progname, argv[2]);
+				return(-1);				
+			}
+		}
 	}
-    return(2);
+	return(2);
 }
 /*----------------------------------------------------------------------------*/
 int
@@ -1989,24 +2009,24 @@ xddfunc_randomize(int32_t argc, char *argv[], uint32_t flags)
     if (args < 0) return(-1);
 
     // At this point the "target_number" is valid
-	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(target_number, argv[0]);
-		if (p == NULL) return(-1);
+    if (target_number >= 0) { /* Set this option value for a specific target */
+	    p = xdd_get_ptdsp(target_number, argv[0]);
+	    if (p == NULL) return(-1);
 
-		p->target_options |= TO_PASS_RANDOMIZE;
-        return(args+1);
+	    p->target_options |= TO_PASS_RANDOMIZE;
+	    return(args+1);
     } else { // Put this option into all PTDSs 
-		if (flags & XDD_PARSE_PHASE2) {
-			p = xgp->ptdsp[0];
-			i = 0;
-			while (p) {
-				p->target_options |= TO_PASS_RANDOMIZE;
-				i++;
-				p = xgp->ptdsp[i];
-			}
-		}
-		return(1);
-	}
+	    if (flags & XDD_PARSE_PHASE2) {
+		    p = xgp->ptdsp[0];
+		    i = 0;
+		    while (p) {
+			    p->target_options |= TO_PASS_RANDOMIZE;
+			    i++;
+			    p = xgp->ptdsp[i];
+		    }
+	    }
+	    return(1);
+    }
 }
 /*----------------------------------------------------------------------------*/
 // Specify the read-after-write options for either the reader or the writer

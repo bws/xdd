@@ -182,7 +182,7 @@ function init_local_transfer() {
         -bytes ${totalBytes} -reqsize ${reqsize} ${sourceQD} \
         -e2e issource -e2e dest ${remoteHost} -e2e port ${e2ePort} \
         ${sourceDIO} ${sourceRestart} ${sourceOutput} \
-        -heartbeat ${XDDCP_DEFAULT_HEARTBEAT_SECS}
+        -heartbeat ${XDDCP_DEFAULT_HEARTBEAT_SECS} simple
 
     # Check transfer completion status
     transfer_rc=$?

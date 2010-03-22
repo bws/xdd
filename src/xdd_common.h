@@ -171,6 +171,7 @@ struct xdd_globals {
 	FILE         			*csvoutput;             /* Comma Separated Values output file */
 	FILE         			*combined_output;       /* Combined output file */
 	uint32_t     			heartbeat;              /* seconds between heartbeats */
+	int32_t                         heartbeat_simple;       /* boolean indicating whether simple heartbeats are enabled */
 	uint32_t     			restart_frequency;      /* seconds between restart monitor checks */
 	int32_t      			syncio;                 /* the number of I/Os to perform btw syncs */
 	uint64_t     			target_offset;          /* offset value */
