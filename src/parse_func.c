@@ -941,6 +941,8 @@ int
 xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 {
 	int heartbeat;
+	char* str;
+	int num_args = 1;
 
 	if (argc <= 1) {
 		fprintf(stderr,"%s: Error: No value specified for heartbeat\n", xgp->progname);
@@ -960,12 +962,15 @@ xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 			return(-1);
 		}
 		xgp->heartbeat = heartbeat;
-
+		num_args++;
+		
 		/* Enable simple heartbeats if needed */
-		xgp->heartbeat_simple = 0;
+		fprintf(stderr, "BWS Argc: %d\n", argc);
 		if (argc == 3)
 		{
-			if (0 == strcmp("simple", argv[2]))
+			str = argv[2];
+			fprintf(stderr, "BWS modifier string is %s \n", str);
+			if (0 == strcmp("simple", str))
 			{
 				xgp->heartbeat_simple = 1;
 			}
@@ -974,9 +979,10 @@ xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 				fprintf(stderr,"%s: Error: Heartbeat modifier '%s' not supported\n", xgp->progname, argv[2]);
 				return(-1);				
 			}
+			num_args++;
 		}
 	}
-	return(2);
+	return num_args;
 }
 /*----------------------------------------------------------------------------*/
 int

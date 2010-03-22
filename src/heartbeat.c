@@ -76,7 +76,11 @@ xdd_heartbeat(void *junk) {
 		if (xgp->heartbeat_holdoff == 2) 
 			return(0);
 		fprintf(stderr,"\r");
-		fprintf(stderr,"Pass %04d Op/AvgRate ",xgp->ptdsp[0]->my_current_pass_number);
+		if (0 == xgp->heartbeat_simple)
+			fprintf(stderr,"Pass %04d Op/AvgRate ",xgp->ptdsp[0]->my_current_pass_number);
+		else
+			fprintf(stderr,"Pass %04d ",xgp->ptdsp[0]->my_current_pass_number);
+			
 		for (i = 0; i < xgp->number_of_targets; i++) {
 			total_bytes_xferred = 0;
 			earliest_start_time = PCLK_MAX;
@@ -110,13 +114,13 @@ xdd_heartbeat(void *junk) {
 			else
 				bw = -1.0;
 
-                        if (1 == xgp->heartbeat_simple)
+                        if (0 == xgp->heartbeat_simple)
 				fprintf(stderr,"[%c] %06lld/%06.2f + ",
 					activity_indicators[activity_index],
 					(long long)total_ops_issued, 
 					bw);
 			else
-				fprintf(stderr,"[%c] %06.2f%% complete",
+				fprintf(stderr,"[%c] %4.2f%% complete",
 					activity_indicators[activity_index],
 					(double)total_ops_issued/p->target_ops);
 				
