@@ -73,6 +73,39 @@ dnl
 AC_TYPE_SIZE_T
 
 dnl
+dnl Check if XFS support should be enabled
+dnl
+xfs_header_support="no"
+AC_CHECK_HEADER([xfs/xfs.h],
+                [xfs_header_support="yes"],
+                [xfs_header_support="no"])
+
+xfs_lib_support="yes"
+#AC_SEARCH_LIBS([xfsctl], [handle], xfs_lib_support=yes)
+
+dnl By default, try to add XFS support, only show errors if user requests XFS
+xfs_enabled="yes"
+xfs_override="no"
+AC_ARG_ENABLE([xfs],
+              [  --enable-xfs            Enable XFS preallocation support],
+              [xfs_override="$enableval"
+               xfs_enabled="$enableval"], [])
+
+echo $xfs_enabled $xfs_override
+if test "x$xfs_override" = "xyes" ; then
+    if test "x$xfs_header_support" = "xno" ; then
+        AC_MSG_FAILURE("XFS headers not found.")
+    elif test "x$xfs_lib_support" = "xno" ; then
+        AC_MSG_ERROR("XFS libraries not found.")
+    fi
+    AC_SUBST(CONFIG_XFS_ENABLED, "-DXFS_ENABLED")
+elif test "x$xfs_enabled" = "xyes" ; then
+    if test $xfs_header_support = yes -a $xfs_lib_support = yes ; then
+        AC_SUBST(CONFIG_XFS_ENABLED, "-DXFS_ENABLED")
+    fi
+fi
+
+dnl
 dnl Checks for library functions.
 dnl
 AC_CHECK_FUNCS([memset])

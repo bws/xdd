@@ -35,6 +35,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/magic.h>
 #include <sys/types.h>
 #include <unistd.h> /* UNIX Only */
 #include <sys/time.h>
@@ -53,6 +54,7 @@
 #include <sys/stat.h>
 #include <sys/unistd.h>
 #include <sys/utsname.h>
+#include <sys/vfs.h>
 #include <string.h>
 #include <syscall.h>
 /* for the global clock stuff */
@@ -84,6 +86,11 @@ void xdd_sg_set_reserved_size(ptds_t *p, int fd);
 void xdd_sg_get_version(ptds_t *p, int fd);
 
 extern int h_errno; // For socket calls
+
+#ifdef XFS_ENABLED
+#include <xfs/xfs.h>
+#include <xfs/xfs_fs.h>
+#endif
 
 /*
  * Local variables:

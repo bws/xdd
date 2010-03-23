@@ -640,6 +640,7 @@ LIBOBJS
 CONFIG_LDFLAGS
 CONFIG_UNSAFE_CFLAGS
 CONFIG_CFLAGS
+CONFIG_XFS_ENABLED
 EGREP
 GREP
 CPP
@@ -692,6 +693,7 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+enable_xfs
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1318,6 +1320,12 @@ if test -n "$ac_init_help"; then
      short | recursive ) echo "Configuration of XDD 7.0.0.0:";;
    esac
   cat <<\_ACEOF
+
+Optional Features:
+  --disable-option-checking  ignore unrecognized --enable/--with options
+  --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
+  --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+  --enable-xfs            Enable XFS preallocation support
 
 Some influential environment variables:
   CC          C compiler command
@@ -4949,6 +4957,178 @@ _ACEOF
 
 fi
 
+
+xfs_header_support="no"
+if test "${ac_cv_header_xfs_xfs_h+set}" = set; then
+  { $as_echo "$as_me:$LINENO: checking for xfs/xfs.h" >&5
+$as_echo_n "checking for xfs/xfs.h... " >&6; }
+if test "${ac_cv_header_xfs_xfs_h+set}" = set; then
+  $as_echo_n "(cached) " >&6
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_header_xfs_xfs_h" >&5
+$as_echo "$ac_cv_header_xfs_xfs_h" >&6; }
+else
+  # Is the header compilable?
+{ $as_echo "$as_me:$LINENO: checking xfs/xfs.h usability" >&5
+$as_echo_n "checking xfs/xfs.h usability... " >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+$ac_includes_default
+#include <xfs/xfs.h>
+_ACEOF
+rm -f conftest.$ac_objext
+if { (ac_try="$ac_compile"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_compile") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } && {
+	 test -z "$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       } && test -s conftest.$ac_objext; then
+  ac_header_compiler=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+	ac_header_compiler=no
+fi
+
+rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
+{ $as_echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
+$as_echo "$ac_header_compiler" >&6; }
+
+# Is the header present?
+{ $as_echo "$as_me:$LINENO: checking xfs/xfs.h presence" >&5
+$as_echo_n "checking xfs/xfs.h presence... " >&6; }
+cat >conftest.$ac_ext <<_ACEOF
+/* confdefs.h.  */
+_ACEOF
+cat confdefs.h >>conftest.$ac_ext
+cat >>conftest.$ac_ext <<_ACEOF
+/* end confdefs.h.  */
+#include <xfs/xfs.h>
+_ACEOF
+if { (ac_try="$ac_cpp conftest.$ac_ext"
+case "(($ac_try" in
+  *\"* | *\`* | *\\*) ac_try_echo=\$ac_try;;
+  *) ac_try_echo=$ac_try;;
+esac
+eval ac_try_echo="\"\$as_me:$LINENO: $ac_try_echo\""
+$as_echo "$ac_try_echo") >&5
+  (eval "$ac_cpp conftest.$ac_ext") 2>conftest.er1
+  ac_status=$?
+  grep -v '^ *+' conftest.er1 >conftest.err
+  rm -f conftest.er1
+  cat conftest.err >&5
+  $as_echo "$as_me:$LINENO: \$? = $ac_status" >&5
+  (exit $ac_status); } >/dev/null && {
+	 test -z "$ac_c_preproc_warn_flag$ac_c_werror_flag" ||
+	 test ! -s conftest.err
+       }; then
+  ac_header_preproc=yes
+else
+  $as_echo "$as_me: failed program was:" >&5
+sed 's/^/| /' conftest.$ac_ext >&5
+
+  ac_header_preproc=no
+fi
+
+rm -f conftest.err conftest.$ac_ext
+{ $as_echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
+$as_echo "$ac_header_preproc" >&6; }
+
+# So?  What about this header?
+case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
+  yes:no: )
+    { $as_echo "$as_me:$LINENO: WARNING: xfs/xfs.h: accepted by the compiler, rejected by the preprocessor!" >&5
+$as_echo "$as_me: WARNING: xfs/xfs.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: xfs/xfs.h: proceeding with the compiler's result" >&5
+$as_echo "$as_me: WARNING: xfs/xfs.h: proceeding with the compiler's result" >&2;}
+    ac_header_preproc=yes
+    ;;
+  no:yes:* )
+    { $as_echo "$as_me:$LINENO: WARNING: xfs/xfs.h: present but cannot be compiled" >&5
+$as_echo "$as_me: WARNING: xfs/xfs.h: present but cannot be compiled" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: xfs/xfs.h:     check for missing prerequisite headers?" >&5
+$as_echo "$as_me: WARNING: xfs/xfs.h:     check for missing prerequisite headers?" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: xfs/xfs.h: see the Autoconf documentation" >&5
+$as_echo "$as_me: WARNING: xfs/xfs.h: see the Autoconf documentation" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: xfs/xfs.h:     section \"Present But Cannot Be Compiled\"" >&5
+$as_echo "$as_me: WARNING: xfs/xfs.h:     section \"Present But Cannot Be Compiled\"" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: xfs/xfs.h: proceeding with the preprocessor's result" >&5
+$as_echo "$as_me: WARNING: xfs/xfs.h: proceeding with the preprocessor's result" >&2;}
+    { $as_echo "$as_me:$LINENO: WARNING: xfs/xfs.h: in the future, the compiler will take precedence" >&5
+$as_echo "$as_me: WARNING: xfs/xfs.h: in the future, the compiler will take precedence" >&2;}
+
+    ;;
+esac
+{ $as_echo "$as_me:$LINENO: checking for xfs/xfs.h" >&5
+$as_echo_n "checking for xfs/xfs.h... " >&6; }
+if test "${ac_cv_header_xfs_xfs_h+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_cv_header_xfs_xfs_h=$ac_header_preproc
+fi
+{ $as_echo "$as_me:$LINENO: result: $ac_cv_header_xfs_xfs_h" >&5
+$as_echo "$ac_cv_header_xfs_xfs_h" >&6; }
+
+fi
+if test "x$ac_cv_header_xfs_xfs_h" = x""yes; then
+  xfs_header_support=yes
+else
+  xfs_header_support=no
+fi
+
+
+
+xfs_lib_support="yes"
+#AC_SEARCH_LIBS([xfsctl], [handle], xfs_lib_support=yes)
+
+xfs_enabled="yes"
+xfs_override="no"
+# Check whether --enable-xfs was given.
+if test "${enable_xfs+set}" = set; then
+  enableval=$enable_xfs; xfs_override="$enableval"
+               xfs_enabled="$enableval"
+fi
+
+
+echo $xfs_enabled $xfs_override
+if test "x$xfs_override" = "xyes" ; then
+    if test "x$xfs_header_support" = "xno" ; then
+        { { $as_echo "$as_me:$LINENO: error: in \`$ac_pwd':" >&5
+$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
+{ { $as_echo "$as_me:$LINENO: error: \"XFS headers not found.\"
+See \`config.log' for more details." >&5
+$as_echo "$as_me: error: \"XFS headers not found.\"
+See \`config.log' for more details." >&2;}
+   { (exit 1); exit 1; }; }; }
+    elif test "x$xfs_lib_support" = "xno" ; then
+        { { $as_echo "$as_me:$LINENO: error: \"XFS libraries not found.\"" >&5
+$as_echo "$as_me: error: \"XFS libraries not found.\"" >&2;}
+   { (exit 1); exit 1; }; }
+    fi
+    CONFIG_XFS_ENABLED="-DXFS_ENABLED"
+
+elif test "x$xfs_enabled" = "xyes" ; then
+    if test $xfs_header_support = yes -a $xfs_lib_support = yes ; then
+        CONFIG_XFS_ENABLED="-DXFS_ENABLED"
+
+    fi
+fi
 
 
 for ac_func in memset
