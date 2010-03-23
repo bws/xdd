@@ -954,7 +954,7 @@ xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 	}
 
 	/* Determine the heartbeat options */
-	if (flags & XDD_PARSE_PHASE2) {
+	//if (flags & XDD_PARSE_PHASE2) {
 		/* Determine the heartbeat interval */
 		heartbeat = atoi(argv[1]);
 		if (heartbeat <= 0) {
@@ -981,7 +981,7 @@ xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 			}
 			num_args++;
 		}
-	}
+		//}
 	return num_args;
 }
 /*----------------------------------------------------------------------------*/

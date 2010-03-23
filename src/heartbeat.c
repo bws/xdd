@@ -122,7 +122,7 @@ xdd_heartbeat(void *junk) {
 			else
 				fprintf(stderr,"[%c] %4.2f%% complete",
 					activity_indicators[activity_index],
-					(double)total_ops_issued/p->target_ops);
+					(double)total_ops_issued/p->target_ops * 100.0);
 				
 			if (activity_index == 4)
 				activity_index = prior_activity_index;
