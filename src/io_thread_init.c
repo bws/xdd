@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -97,6 +97,19 @@ xdd_io_thread_init(ptds_t *p) {
 		return(FAILED);
 	}
 
+        /* Perform preallocation if needed */
+        if (p->preallocate > 0) {
+            status = xdd_target_preallocate(p, p->fd);
+            if (0 != status) {
+		fprintf(xgp->errout,"%s: io_thread_init: File system preallocation not supported for target %d\n",xgp->progname,p->my_target_number);
+		fflush(xgp->errout);
+		//xgp->abort_io = 1;
+		/* Enter the serializer barrier so that the next thread can start */
+		//xdd_barrier(&xgp->serializer_barrier[p->mythreadnum%2]);
+		//return(FAILED);
+            }
+        }
+        
 	/* set up the seek list */
 	p->seekhdr.seek_total_ops = p->target_ops;
 	p->seekhdr.seeks = (seek_t *)calloc((int32_t)p->seekhdr.seek_total_ops,sizeof(seek_t));
@@ -242,3 +255,12 @@ xdd_io_thread_init(ptds_t *p) {
     return(SUCCESS);
 } // end of xdd_io_thread_init()
  
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 8
+ *  c-basic-offset: 8
+ * End:
+ *
+ * vim: ts=8 sts=8 sw=8 noexpandtab
+ */

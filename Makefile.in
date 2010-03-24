@@ -191,7 +191,7 @@ clean: oclean
 		a.out 
 	rm -rf doc/doxygen
 
-install: clean all fullinstall
+install: fullinstall
 
 fastinstall: all
 	rm -f /sbin/xdd.$(OS) /sbin/xdd

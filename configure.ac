@@ -80,6 +80,12 @@ AC_CHECK_HEADER([xfs/xfs.h],
                 [xfs_header_support="yes"],
                 [xfs_header_support="no"])
 
+dnl if test "x$xfs_header_support" = "xyes" ; then
+dnl     AC_CHECK_HEADER([xfs/xfs_fs.h],
+dnl                     [xfs_header_support="yes"],
+dnl                     [xfs_header_support="no"])
+dnl fi
+
 xfs_lib_support="yes"
 #AC_SEARCH_LIBS([xfsctl], [handle], xfs_lib_support=yes)
 
@@ -91,7 +97,7 @@ AC_ARG_ENABLE([xfs],
               [xfs_override="$enableval"
                xfs_enabled="$enableval"], [])
 
-echo $xfs_enabled $xfs_override
+dnl echo $xfs_enabled $xfs_override
 if test "x$xfs_override" = "xyes" ; then
     if test "x$xfs_header_support" = "xno" ; then
         AC_MSG_FAILURE("XFS headers not found.")

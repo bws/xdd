@@ -57,10 +57,10 @@ xdd_target_preallocate_for_linux(ptds_t *p, int fd) {
 	// Only support clean preallocate on XFS
 	int xfs_super_magic = 0x58465342;
 	if (xfs_super_magic == sfs.f_fsid.__val[1]) {
-		struct flock64 flock = {0};
+		xfs_flock64_t flock = {0};
 		flock.l_whence = SEEK_SET;
 		flock.l_start = 0;
-		flock.l_len = (uint64_t)(p->preallocate * p->block_size);
+		flock.l_len = (uint64_t)(p->preallocate);
 		rc = fcntl(fd, XFS_IOC_RESVSP64, &flock);
 		if (0 != rc)
 		{

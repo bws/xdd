@@ -1846,23 +1846,23 @@ xddfunc_percentcpu(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_preallocate(int32_t argc, char *argv[], uint32_t flags)
 { 
-    int args, i; 
-    int target_number;
-    ptds_t *p;
-	int32_t preallocate;
+	int args, i; 
+	int target_number;
+	ptds_t *p;
+	uint64_t preallocate;
 
-    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
-    if (args < 0) return(-1);
-
+	args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+	if (args < 0) return(-1);
+	
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
-
-	preallocate = atoi(argv[args+1]);
+	
+	preallocate = (uint64_t)atoll(argv[args+1]);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
-
+		
 		p->preallocate = preallocate;
 		return(args+2);
 	} else { // Put this option into all PTDSs 

@@ -5087,10 +5087,11 @@ $as_echo "$ac_cv_header_xfs_xfs_h" >&6; }
 
 fi
 if test "x$ac_cv_header_xfs_xfs_h" = x""yes; then
-  xfs_header_support=yes
+  xfs_header_support="yes"
 else
-  xfs_header_support=no
+  xfs_header_support="no"
 fi
+
 
 
 
@@ -5106,7 +5107,6 @@ if test "${enable_xfs+set}" = set; then
 fi
 
 
-echo $xfs_enabled $xfs_override
 if test "x$xfs_override" = "xyes" ; then
     if test "x$xfs_header_support" = "xno" ; then
         { { $as_echo "$as_me:$LINENO: error: in \`$ac_pwd':" >&5

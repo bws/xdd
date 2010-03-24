@@ -193,7 +193,7 @@ struct ptds {
 	uint64_t			qthread_bytes_to_xfer_per_pass;	// Number of bytes to xfer per pass for this qthread
 	int32_t				block_size;  				// Size of a block in bytes for this target 
 	int32_t				queue_depth; 				// Command queue depth for each target 
-	int32_t				preallocate; 				// File preallocation value 
+	uint64_t			preallocate; 				// File preallocation value 
 	int32_t				mem_align;   				// Memory read/write buffer alignment value in bytes 
 	uint64_t			target_options; 			// I/O Options specific to each target 
 	int64_t				last_committed_op;		// Operation number of last r/w operation relative to zero
