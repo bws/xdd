@@ -36,10 +36,15 @@
 
 #if  LINUX
 /*----------------------------------------------------------------------------*/
-/* xdd_target_preallocate_for_linux() - Preallocate routine for linux
+/* xdd_target_preallocate() - Preallocate routine for linux
+ * This subroutine will check to see if the file system supports the Reserve Space
+ * control call.
+ * Return value of 0 is good.
+ * Return value of 1 more more is bad.
+ *
  */
 int32_t
-xdd_target_preallocate_for_linux(ptds_t *p, int fd) {
+xdd_target_preallocate_for_os(ptds_t *p, int fd) {
 
 	int rc;
 	struct statfs sfs = {0};
@@ -71,9 +76,47 @@ xdd_target_preallocate_for_linux(ptds_t *p, int fd) {
 	}
 	return status;
 
-} // End of xdd_target_open_for_unix()
-#endif 
+} // End of Linux xdd_target_preallocate()
 
+#elif AIX
+
+/*----------------------------------------------------------------------------*/
+/* xdd_target_preallocate() - Preallocate routine for AIX
+ */
+int32_t
+xdd_target_preallocate_for_os(ptds_t *p, int fd) {
+
+	fprintf(xgp->errout,
+		"%s: ERROR: xdd_target_preallocate: Target %d name %s: Preallocation is not supported on AIX\n",
+		xgp->progname,
+		p->my_target_number,
+		p->target_name);
+		fflush(xgp->errout);
+	return(-1);
+	
+} // End of AIX xdd_target_preallocate()
+
+#else 
+
+/*----------------------------------------------------------------------------*/
+/* xdd_target_preallocate() - The default Preallocate routine for all other OS
+ */
+int32_t
+xdd_target_preallocate_for_os(ptds_t *p, int fd) {
+
+	fprintf(xgp->errout,
+		"%s: ERROR: xdd_target_preallocate: Target %d name %s: Preallocation is not supported on this OS\n",
+		xgp->progname,
+		p->my_target_number,
+		p->target_name);
+		fflush(xgp->errout);
+	return(-1);
+	
+} // End of default xdd_target_preallocate()
+ 
+#endif
+
+/*----------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------*/
 /* xdd_target_preallocate() - attempt to preallocate space for the transfer.
  * If data already exists in the file, don't mess it up.
@@ -81,30 +124,21 @@ xdd_target_preallocate_for_linux(ptds_t *p, int fd) {
 int32_t
 xdd_target_preallocate(ptds_t *p, int fd) {
 	int32_t		status;		// Status of the preallocate call
-#if LINUX 
-	status = xdd_target_preallocate_for_linux(p, fd);
-#else
-	status = -1;
-#endif
+
+
+	status = xdd_target_preallocate_for_os(p, fd);
 
 	// Check the status of the preallocate operation to see if it worked
-	if (-1 == status) {
-		fprintf(xgp->errout,
-			"%s (%d): xdd_target_preallocate: Preallocate is only supported on Linux platforms %s\n",
-				xgp->progname,
-				p->my_target_number,
-				p->target_name);
-			fflush(xgp->errout);
-			perror("reason");
+	if (-1 == status)  // Preallocation not supported
 			return(-1);
-	}
-	if (0 == status) {
-            fprintf(xgp->errout,"%s (%d): xdd_target_preallocate: Unable to preallocate space: %s\n",
+
+	if (0 != status) {
+            fprintf(xgp->errout,"%s: xdd_target_preallocate: ERROR: Unable to preallocate space for target %d name %s\n",
 				xgp->progname,
 				p->my_target_number,
 				p->target_name);
 			fflush(xgp->errout);
-			perror("reason");
+			perror("Reason");
 			return(-1);
 	}
 	return(0);
