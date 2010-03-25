@@ -89,7 +89,10 @@ xdd_io_thread_init(ptds_t *p) {
 	/* open the target device */
 	status = xdd_target_open(p);
 	if (status != 0) { /* error openning target */
-		fprintf(xgp->errout,"%s: io_thread_init: Aborting I/O for target %d due to open failure\n",xgp->progname,p->my_target_number);
+		fprintf(xgp->errout,"%s: io_thread_init: ERROR: Aborting I/O for target %d name '%s' due to open failure\n",
+			xgp->progname,
+			p->my_target_number,
+			p->target_name);
 		fflush(xgp->errout);
 		xgp->abort_io = 1;
 		/* Enter the serializer barrier so that the next thread can start */
@@ -97,18 +100,19 @@ xdd_io_thread_init(ptds_t *p) {
 		return(FAILED);
 	}
 
-        /* Perform preallocation if needed */
-        if (p->preallocate > 0) {
-            status = xdd_target_preallocate(p, p->fd);
-            if (0 != status) {
-		fprintf(xgp->errout,"%s: io_thread_init: File system preallocation not supported for target %d\n",xgp->progname,p->my_target_number);
-		fflush(xgp->errout);
-		//xgp->abort_io = 1;
-		/* Enter the serializer barrier so that the next thread can start */
-		//xdd_barrier(&xgp->serializer_barrier[p->mythreadnum%2]);
-		//return(FAILED);
-            }
-        }
+	/* Perform preallocation if needed */
+	if ((p->preallocate > 0) && (p->my_qthread_number == 0)) {
+		// Only QThread 0 can do the preallocation because we only want to do it once - not for every QThread
+		status = xdd_target_preallocate(p);
+		if (status) {
+			fprintf(xgp->errout,"%s: io_thread_init: WARNING: Preallocation of %lld bytes failed for Target %d name '%s'- continuing anyway...\n",
+				xgp->progname,
+				(long long int)p->preallocate,
+				p->my_target_number,
+				p->target_name);
+			fflush(xgp->errout);
+		}
+	}
         
 	/* set up the seek list */
 	p->seekhdr.seek_total_ops = p->target_ops;

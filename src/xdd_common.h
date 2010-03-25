@@ -46,7 +46,6 @@
 #define FAILED 0
 #define MAX_TARGETS 8192
 #define MAX_TARGET_NAME_LENGTH 2048
-#define XFS
 #define MAXSEM 1
 
 /* program defines */
@@ -302,8 +301,8 @@ int32_t  xdd_linux_cpu_count(void);
 int32_t  xdd_load_seek_list(ptds_t *p);
 void     xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 void     xdd_memory_usage_info(FILE *out);
-int32_t  xdd_target_preallocate(ptds_t *p, int fd);
-int32_t  xdd_target_preallocate_for_os(ptds_t *p, int fd);
+int32_t  xdd_target_preallocate(ptds_t *p);
+int32_t  xdd_target_preallocate_for_os(ptds_t *p);
 int32_t  xdd_target_open(ptds_t *p);
 void     xdd_options_info(FILE *out);
 void     xdd_pattern_buffer(ptds_t *p);

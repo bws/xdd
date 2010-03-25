@@ -89,6 +89,7 @@ extern int h_errno; // For socket calls
 
 #ifdef XFS_ENABLED
 #include <xfs/xfs.h>
+#include <xfs/libxfs.h>
 #endif
 
 /*

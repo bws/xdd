@@ -1843,13 +1843,16 @@ xddfunc_percentcpu(int32_t argc, char *argv[], uint32_t flags)
     }
 }
 /*----------------------------------------------------------------------------*/
+// Specify the number of bytes to preallocate for a target file that is 
+// being created. This option is only valid when used on operating systems
+// and file systems that support teh Reserve Space file operation.
 int
 xddfunc_preallocate(int32_t argc, char *argv[], uint32_t flags)
 { 
-	int args, i; 
-	int target_number;
-	ptds_t *p;
-	uint64_t preallocate;
+	int 		args, i; 
+	int 		target_number;
+	ptds_t 		*p;
+	int64_t 	preallocate;
 
 	args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
 	if (args < 0) return(-1);
@@ -1857,7 +1860,11 @@ xddfunc_preallocate(int32_t argc, char *argv[], uint32_t flags)
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
 	
-	preallocate = (uint64_t)atoll(argv[args+1]);
+	preallocate = (int64_t)atoll(argv[args+1]);
+	if (preallocate <= 0) {
+		fprintf(stderr,"%s: Error: Preallocate value of '%lld' is not valid - it must be greater than or equal to zero\n", xgp->progname, (long long int)preallocate);
+		return(-1);
+	}
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);

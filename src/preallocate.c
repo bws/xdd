@@ -44,37 +44,53 @@
  *
  */
 int32_t
-xdd_target_preallocate_for_os(ptds_t *p, int fd) {
-
-	int rc;
-	struct statfs sfs = {0};
-	int32_t status = 0;
+xdd_target_preallocate_for_os(ptds_t *p) {
+	int32_t 		status;		// Status of various system calls
+	struct statfs 	sfs;		// File System Information struct
+	xfs_flock64_t 	xfs_flock;		// Used to pass preallocation information to xfsctl()
 	
+
+#ifdef XFS_ENABLED
 	// Determine the file system type
-	rc = fstatfs(fd, &sfs);
-	if (0 != rc)
-	{
-		// FS Check failed
-		status++;
-		return status;
+	status = fstatfs(p->fd, &sfs);
+	if (0 != status) {
+		fprintf(xgp->errout, 
+			"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: cannot get file system information via statfs\n",
+			xgp->progname,
+			p->my_target_number,
+			p->target_name);
+		perror("Reason");
+		fflush(xgp->errout);
+		return(1);
 	}
 	
-	// Only support clean preallocate on XFS
-	int xfs_super_magic = 0x58465342;
-	if (xfs_super_magic == sfs.f_fsid.__val[1]) {
-		xfs_flock64_t flock = {0};
-		flock.l_whence = SEEK_SET;
-		flock.l_start = 0;
-		flock.l_len = (uint64_t)(p->preallocate);
-		rc = fcntl(fd, XFS_IOC_RESVSP64, &flock);
-		if (0 != rc)
-		{
-			// Preallocate failed
-			status++;
-			return status;
+	// Support preallocate on XFS 
+	if (XFS_SUPER_MAGIC == sfs.f_type) {
+		xfs_flock.l_whence = 0; 			// Specifies allocation to start at the beginning of the file
+		xfs_flock.l_start = 0;				// This parameter is not used
+		xfs_flock.l_len = p->preallocate; 	// The number of bytes to preallocate
+		status = xfsctl(p->target_name,p->fd, XFS_IOC_RESVSP64, &xfs_flock);
+		if (status) { // Preallocate failed?
+			fprintf(xgp->errout, 
+				"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: xfsctl call for preallocation failed\n",
+				xgp->progname,
+				p->my_target_number,
+				p->target_name);
+			perror("Reason");
+			fflush(xgp->errout);
+			return(1);
 		}
 	}
-	return status;
+	// Everything must have worked :)
+	return(0); 
+#else // XFS is not ENABLED
+	fprintf(xgp->errout,
+		"%s: xdd_target_preallocate_for_os<LINUX>: ERROR: This program was not compiled with XFS_ENABLED - no preallocation possible\n",
+		xgp->progname);
+	fflush(xgp->errout);
+	return(-1);
+#endif // XFS_ENABLED
+
 
 } // End of Linux xdd_target_preallocate()
 
@@ -84,14 +100,14 @@ xdd_target_preallocate_for_os(ptds_t *p, int fd) {
 /* xdd_target_preallocate() - Preallocate routine for AIX
  */
 int32_t
-xdd_target_preallocate_for_os(ptds_t *p, int fd) {
+xdd_target_preallocate_for_os(ptds_t *p) {
 
 	fprintf(xgp->errout,
-		"%s: ERROR: xdd_target_preallocate: Target %d name %s: Preallocation is not supported on AIX\n",
+		"%s: xdd_target_preallocate_for_os<AIX>: ERROR: Target %d name %s: Preallocation is not supported on AIX\n",
 		xgp->progname,
 		p->my_target_number,
 		p->target_name);
-		fflush(xgp->errout);
+	fflush(xgp->errout);
 	return(-1);
 	
 } // End of AIX xdd_target_preallocate()
@@ -102,14 +118,14 @@ xdd_target_preallocate_for_os(ptds_t *p, int fd) {
 /* xdd_target_preallocate() - The default Preallocate routine for all other OS
  */
 int32_t
-xdd_target_preallocate_for_os(ptds_t *p, int fd) {
+xdd_target_preallocate_for_os(ptds_t *p) {
 
 	fprintf(xgp->errout,
-		"%s: ERROR: xdd_target_preallocate: Target %d name %s: Preallocation is not supported on this OS\n",
+		"%s: xdd_target_preallocate_for_os: ERROR: Target %d name %s: Preallocation is not supported on this OS\n",
 		xgp->progname,
 		p->my_target_number,
 		p->target_name);
-		fflush(xgp->errout);
+	fflush(xgp->errout);
 	return(-1);
 	
 } // End of default xdd_target_preallocate()
@@ -117,29 +133,33 @@ xdd_target_preallocate_for_os(ptds_t *p, int fd) {
 #endif
 
 /*----------------------------------------------------------------------------*/
+// OS-independent code
 /*----------------------------------------------------------------------------*/
 /* xdd_target_preallocate() - attempt to preallocate space for the transfer.
  * If data already exists in the file, don't mess it up.
+ * Upon sucessful preallocation this routine will return a 0.
+ * Otherwise -1 is returned to indicate an error.
  */
 int32_t
-xdd_target_preallocate(ptds_t *p, int fd) {
+xdd_target_preallocate(ptds_t *p){
 	int32_t		status;		// Status of the preallocate call
 
 
-	status = xdd_target_preallocate_for_os(p, fd);
+	status = xdd_target_preallocate_for_os(p);
 
 	// Check the status of the preallocate operation to see if it worked
 	if (-1 == status)  // Preallocation not supported
-			return(-1);
+		return(-1);
 
-	if (0 != status) {
-            fprintf(xgp->errout,"%s: xdd_target_preallocate: ERROR: Unable to preallocate space for target %d name %s\n",
-				xgp->progname,
-				p->my_target_number,
-				p->target_name);
-			fflush(xgp->errout);
-			perror("Reason");
-			return(-1);
+	// Status should be 0 if everything worked otherwise there was a problem
+	if (status) {
+ 		fprintf(xgp->errout,"%s: xdd_target_preallocate: ERROR: Unable to preallocate space for target %d name %s\n",
+			xgp->progname,
+			p->my_target_number,
+			p->target_name);
+		perror("Reason");
+		fflush(xgp->errout);
+		return(-1);
 	}
 	return(0);
 

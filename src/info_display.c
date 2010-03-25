@@ -306,7 +306,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		fprintf(out," enabled for %s verification.\n", (p->target_options & TO_VERIFY_LOCATION)?"Location":"Content");
 	else fprintf(out," disabled.\n");
 	fprintf(out,"\t\tDirect I/O, %s", (p->target_options & TO_DIO)?"enabled\n":"disabled\n");
-	fprintf(out, "\t\tPreallocation, %lld\n",p->preallocate);
+	fprintf(out, "\t\tPreallocation, %lld\n",(long long int)p->preallocate);
 	fprintf(out, "\t\tQueue Depth, %d\n",p->queue_depth);
 	/* Timestamp options */
 	if (p->ts_options & TS_ON) {
