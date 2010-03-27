@@ -144,6 +144,7 @@ struct xdd_globals {
 /* Global variables relevant to all threads */
 	uint64_t     			global_options;         /* I/O Options valid for all targets */
 	volatile     int32_t 	canceled;       		/* Normally set to 0. Set to 1 by xdd_sigint when an interrupt occurs */
+	struct		sigaction	sa;						/* The sigaction structure used by the signal handler */
 	char         			id_firsttime;           /* ID first time through flag */
 	volatile     int32_t 	run_ring;       		/* The alarm that goes off when the total run time has been exceeded */
 	volatile     int32_t 	run_complete;   		/* Set to a 1 to indicate that all passes have completed */
@@ -233,6 +234,7 @@ struct xdd_globals {
 #ifdef LINUX
 	rlim_t	rlimit;
 #endif
+	
 }; // End of Definition of the xdd_globals data structure
 
 typedef struct xdd_globals xdd_globals_t;
@@ -272,7 +274,7 @@ void     xdd_init_new_ptds(ptds_t *p, int32_t n);
 void     xdd_init_ptds(ptds_t *p, int32_t n);
 void     xdd_init_results(results_t *results);
 void     xdd_init_seek_list(ptds_t *p);
-void     xdd_init_signals(void);
+int32_t  xdd_init_signals(void);
 int32_t	 xdd_initialization(int32_t argc,char *argv[]);
 int32_t  xdd_io_loop(ptds_t *p);
 int32_t	 xdd_io_loop_after_io_operation(ptds_t *p);

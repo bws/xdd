@@ -34,25 +34,75 @@
  */
 #include "xdd.h"
 /*----------------------------------------------------------------------------*/
-/* xdd_sigint() - Routine that gets called when an Interrupt occurs. This will
- * call the appropriate routines to remove all the barriers and semaphores so
- * that we shut down gracefully.
+/* xdd_sig_handler() - Routine that gets called when a signal gets caught. 
+ * This will call the appropriate routines to shut down gracefully.
  */
 void
-xdd_sigint(int n) {
-	fprintf(xgp->errout,"Program canceled - destroying all barriers...");
+xdd_sig_handler(int signum, siginfo_t *sip, void *ucp) {
+	ucontext_t	*up;		// Pointer to the ucontext structure
+
+	up = (ucontext_t *)ucp;
+	
+	fprintf(xgp->errout,"\n%s: xdd_sig_handler: Received signal %d: ", xgp->progname, signum);
+	switch (signum) {
+		case SIGINT:
+			fprintf(xgp->errout,"SIGINT: Interrupt from keyboard\n");
+			break;
+		case SIGQUIT:
+			fprintf(xgp->errout,"SIGQUIT: Quit from keyboard\n");
+			break;
+		case SIGABRT:
+			fprintf(xgp->errout,"SIGABRT: Abort\n");
+			break;
+		case SIGILL:
+			fprintf(xgp->errout,"SIGILL: Illegal Instruction\n");
+			break;
+		case SIGFPE:
+			fprintf(xgp->errout,"SIGFPE: Floating Point Exception\n");
+			break;
+		case SIGSEGV:
+			fprintf(xgp->errout,"SIGSEGV: Segmentation Violation\n");
+			break;
+		case SIGTERM:
+			fprintf(xgp->errout,"SIGTERm: Termination\n");
+			break;
+		case SIGBUS:
+			fprintf(xgp->errout,"SIGBUS: Bus Error\n");
+			break;
+		default:
+			fprintf(xgp->errout,"Unknown Signal\n");
+			break;
+	}
 	fflush(xgp->errout);
 	xgp->canceled = 1;
-	xdd_destroy_all_barriers();
-	fprintf(xgp->errout,"done. Exiting\n");
-	fflush(xgp->errout);
-} /* end of xdd_sigint() */
+} /* end of xdd_sig_handler() */
 
 /*----------------------------------------------------------------------------*/
 /* xdd_init_signals() - Initialize all the signal handlers
  */
-void
+int32_t
 xdd_init_signals(void) {
-	signal(SIGINT, xdd_sigint);
+	int		status;			// status of the sigaction() system call
+
+
+	xgp->sa.sa_sigaction = xdd_sig_handler;			// Pointer to the signal handler
+ 	sigemptyset( &xgp->sa.sa_mask );				// The "empty set" - don't mask any signals
+	xgp->sa.sa_flags = SA_SIGINFO; 					// This indicates that the signal handler will get a pointer to a siginfo structure indicating what happened
+	status 	= sigaction(SIGINT,  &xgp->sa, NULL);	// Interrupt from keyboard - ctrl-c
+	status += sigaction(SIGQUIT, &xgp->sa, NULL);	// Quit from keyboard 
+	status += sigaction(SIGABRT, &xgp->sa, NULL);	// Abort signal from abort(3)
+	status += sigaction(SIGILL,  &xgp->sa, NULL);	// Illegal instruction
+	status += sigaction(SIGFPE,  &xgp->sa, NULL);	// floatingpoint exception
+	status += sigaction(SIGSEGV, &xgp->sa, NULL);	// Segmentaion violation 
+	status += sigaction(SIGTERM, &xgp->sa, NULL);	// Termination
+	status += sigaction(SIGBUS,  &xgp->sa, NULL);	// Bus error - bad memory access
+
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_init_signals: ERROR initializing signal handler(s)\n",xgp->progname);
+		perror("Reason");
+		return(-1);
+	}
+	return(0);
+
 } /* end of xdd_init_signals() */
 

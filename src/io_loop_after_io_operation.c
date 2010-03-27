@@ -205,7 +205,7 @@ xdd_loopcheck_after_io_operation(ptds_t *p) {
 			p->my_pass_end_time = p->my_current_op_end_time;
 			xgp->run_ring = 1;
 	}
-	if (p->my_pass_ring || xgp->run_ring || p->my_error_break || xgp->deskew_ring) 
+	if (p->my_pass_ring || xgp->run_ring || p->my_error_break || xgp->deskew_ring || xgp->canceled) 
 		return(1);
 
 	return(0);

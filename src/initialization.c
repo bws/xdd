@@ -40,6 +40,7 @@
 int32_t
 xdd_initialization(int32_t argc,char *argv[]) 
 {
+	int				status;			// Status of various subroutine calls
 	pclk_t tt; 
 
 
@@ -59,7 +60,13 @@ xdd_initialization(int32_t argc,char *argv[])
 	xdd_schedule_options();
 
 	// initialize the signal handlers 
-	xdd_init_signals();
+	status = xdd_init_signals();
+	if (status) {
+		fprintf(xgp->errout, "%s: xdd_initialization: Initialization failed\n",xgp->progname);
+		fflush(xgp->errout);
+		xdd_destroy_all_barriers();
+		return(-1);
+	}
 
 	// Init all the necessary barriers 
 	xdd_init_all_barriers();

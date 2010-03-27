@@ -55,7 +55,7 @@ xdd_io_loop(ptds_t *p) {
 
 		// Check I/O operation completion
 		status = xdd_io_loop_after_io_operation(p);
-		if (status == 1) break;
+		if (status) break;
 
 	}
 
