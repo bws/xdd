@@ -54,23 +54,11 @@ xdd_sig_handler(int signum, siginfo_t *sip, void *ucp) {
 		case SIGABRT:
 			fprintf(xgp->errout,"SIGABRT: Abort\n");
 			break;
-		case SIGILL:
-			fprintf(xgp->errout,"SIGILL: Illegal Instruction\n");
-			break;
-		case SIGFPE:
-			fprintf(xgp->errout,"SIGFPE: Floating Point Exception\n");
-			break;
-		case SIGSEGV:
-			fprintf(xgp->errout,"SIGSEGV: Segmentation Violation\n");
-			break;
 		case SIGTERM:
 			fprintf(xgp->errout,"SIGTERm: Termination\n");
 			break;
-		case SIGBUS:
-			fprintf(xgp->errout,"SIGBUS: Bus Error\n");
-			break;
 		default:
-			fprintf(xgp->errout,"Unknown Signal\n");
+			fprintf(xgp->errout,"Unknown Signal - terminating\n");
 			break;
 	}
 	fflush(xgp->errout);
@@ -91,11 +79,7 @@ xdd_init_signals(void) {
 	status 	= sigaction(SIGINT,  &xgp->sa, NULL);	// Interrupt from keyboard - ctrl-c
 	status += sigaction(SIGQUIT, &xgp->sa, NULL);	// Quit from keyboard 
 	status += sigaction(SIGABRT, &xgp->sa, NULL);	// Abort signal from abort(3)
-	status += sigaction(SIGILL,  &xgp->sa, NULL);	// Illegal instruction
-	status += sigaction(SIGFPE,  &xgp->sa, NULL);	// floatingpoint exception
-	status += sigaction(SIGSEGV, &xgp->sa, NULL);	// Segmentaion violation 
 	status += sigaction(SIGTERM, &xgp->sa, NULL);	// Termination
-	status += sigaction(SIGBUS,  &xgp->sa, NULL);	// Bus error - bad memory access
 
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_init_signals: ERROR initializing signal handler(s)\n",xgp->progname);
