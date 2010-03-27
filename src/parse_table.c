@@ -170,10 +170,19 @@ xdd_func_t  xdd_func[] = {
     {"heartbeat", "hb",
             xddfunc_heartbeat,  
             1,  
-            "  -heartbeat # [simple]\n",  
+            "  -heartbeat # | ops | bytes | kbytes | mbytes | gbytes | percent | bw | iops | et\n",  
             {"    Will print out heartbeat information every # seconds \n\
-                  If simple is specified, only the percent completed is shown \n", 
-            0,0,0,0},
+ 			     'operations' | 'ops' - current number of operations complete \n\
+                 'bytes' | 'b' -  current bytes transfered \n\
+                 'kbytes' | 'kb' - current Kilo Bytes transfered \n\
+                 'mbytes' | 'mb' - current Mega Bytes transfered \n\
+                 'gbytes' | 'gb' - current Giga Bytes transfered \n\
+                 'percent' | 'pct' - percent complete\n\
+                 'bandwidth' | 'bw' -  aggregate bandiwdth\n\
+                 'iops' - aggregate I/O operations per second\n\
+                 'et' | 'etc' | 'eta' - estimated time to completion\n",
+			 "Specifying -heartbeat multiple times will add these to the heartbeat output string FOR EACH TARGET\n",
+            0,0,0},
 			0},
     {"help", "h",
             xddfunc_help,  

@@ -185,6 +185,28 @@ xdd_options_info(FILE *out) {
 	fprintf(out, "Target Offset, %lld\n",(long long)xgp->target_offset);
 	fprintf(out, "I/O Synchronization, %d\n", xgp->syncio);
 	fprintf(out, "Total run-time limit in seconds, %d\n", xgp->runtime);
+	// Print the heartbeat time and display options
+	fprintf(out, "Heartbeat %d ", xgp->heartbeat);
+	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
+		fprintf(out,"/Ops");
+	if (xgp->global_options & GO_HB_BYTES)  // display Current number of BYTES transferred 
+		fprintf(out,"/Bytes");
+	if (xgp->global_options & GO_HB_KBYTES)  // display Current number of KILOBYTES transferred 
+		fprintf(out,"/KBytes");
+	if (xgp->global_options & GO_HB_MBYTES)  // display Current number of MEGABYTES transferred 
+		fprintf(out,"/MBytes");
+	if (xgp->global_options & GO_HB_GBYTES)  // display Current number of GIGABYTES transferred 
+		fprintf(out,"/GBytes");
+	if (xgp->global_options & GO_HB_BANDWIDTH)  // display Current Aggregate BANDWIDTH 
+		fprintf(out,"/Bandwidth");
+	if (xgp->global_options & GO_HB_IOPS)  // display Current Aggregate IOPS 
+		fprintf(out,"/IOPS");
+	if (xgp->global_options & GO_HB_PERCENT)  // display Percent Complete 
+		fprintf(out,"/PercentComplete");
+	if (xgp->global_options & GO_HB_ET)  // display Estimated Time to Completion
+		fprintf(out,"/EstimateTimeLeft");
+	fprintf(out,"\n");
+
 	fprintf(out, "Output file name, %s\n",xgp->output_filename);
 	fprintf(out, "CSV output file name, %s\n",xgp->csvoutput_filename);
 	fprintf(out, "Error output file name, %s\n",xgp->errout_filename);

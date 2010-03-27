@@ -886,8 +886,7 @@ xddfunc_errout(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_extended_stats(int32_t argc, char *argv[], uint32_t flags)
 {
-	if (flags & XDD_PARSE_PHASE2) 
-		xgp->global_options |= GO_EXTENDED_STATS;
+	xgp->global_options |= GO_EXTENDED_STATS;
     return(1);
 }
 /*----------------------------------------------------------------------------*/
@@ -937,53 +936,100 @@ xddfunc_fullhelp(int32_t argc, char *argv[], uint32_t flags)
     return(-1);
 }
 /*----------------------------------------------------------------------------*/
+/*  The -heartbeat option accepts one argument that is any of the following:
+ *      - A positive integer that indicates the number of seconds between beats
+ *      - The word "operations" or "ops" to display the current number of operations complete
+ *      - The word "bytes" to display the current number of bytes transfered 
+ *      - The word "kbytes" or "kb" to display the current number of Kilo Bytes transfered 
+ *      - The word "mbytes" or "mb" to display the current number of Mega Bytes transfered 
+ *      - The word "gbytes" or "gb" to display the current number of Giga Bytes transfered 
+ *      - The word "percent" or "pct" to display the %complete along with 
+ *      - The word "bandwidth" or "bw" to display the aggregate bandiwdth
+ *      - The word "iops" to display the aggregate I/O operations per second
+ *      - The word "et" or "etc" or "eta" to display the estimated time to completion
+ * Specifying -heartbeat multiple times will add these to the heartbeat output string FOR EACH TARGET
+ */
 int
 xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 {
-	int heartbeat;
-	char* str;
-	int num_args = 1;
+	char		*sp;	// String pointer
+	int			c1,c2;	// A single character
+	char		*cp;	// A single Character pointer
+	int			len;	// Length of the option string
+	int			i;		// Counter
+	int			digits;	// if set to 1 then string contains only numerical digits
 
-	if (argc <= 1) {
-		fprintf(stderr,"%s: Error: No value specified for heartbeat\n", xgp->progname);
-		return(-1);
-	}
-	if (argc > 3) {
-		fprintf(stderr,"%s: Error: Heartbeat accepts at most 2 arguments\n", xgp->progname);
-		return(-1);
+
+	if (argc < 1) {
+		fprintf(xgp->errout,"%s: ERROR: not enough arguments specified for the option '-heartbeat'\n",xgp->progname);
+		return(0);
 	}
 
-	/* Determine the heartbeat options */
-	//if (flags & XDD_PARSE_PHASE2) {
-		/* Determine the heartbeat interval */
-		heartbeat = atoi(argv[1]);
-		if (heartbeat <= 0) {
-			fprintf(stderr,"%s: Error: Heartbeat value of '%d' cannot be negative\n", xgp->progname, heartbeat);
+	// The zeroth argument in argv[] is the option name: "-heartbeat"
+	// The first argument in argv[] is the heartbeat option string
+	// Check to see that there is an option string
+	sp = argv[1];
+	len = strlen(sp);
+	if (len <= 0) {
+		fprintf(xgp->errout,"%s: WARNING: The option for '-heartbeat' is zero length\n",xgp->progname);
+		return(1);
+	}
+	
+	// Convert the "option" string to lower case for consistency
+	digits = 0;
+	cp = sp;
+	for (i = 0; i < len; i++) {
+		c1 = *cp;
+		c2 = tolower(c1);
+		*cp = c2;
+		digits = isdigit(c2); // If this is ever a non-digit then digits will be set to 0
+		cp++;
+	}
+		
+	if (digits) { // The heartbeat option is "number of seconds"
+		xgp->heartbeat = atoi(sp);
+		if (xgp->heartbeat <= 0) { // This should not happen but let's check just to be certain
+			fprintf(stderr,"%s: Error: Heartbeat value of '%d' cannot be negative\n", xgp->progname, xgp->heartbeat);
 			return(-1);
 		}
-		xgp->heartbeat = heartbeat;
-		num_args++;
-		
-		/* Enable simple heartbeats if needed */
-		fprintf(stderr, "BWS Argc: %d\n", argc);
-		if (argc == 3)
-		{
-			str = argv[2];
-			fprintf(stderr, "BWS modifier string is %s \n", str);
-			if (0 == strcmp("simple", str))
-			{
-				xgp->heartbeat_simple = 1;
-			}
-			else
-			{
-				fprintf(stderr,"%s: Error: Heartbeat modifier '%s' not supported\n", xgp->progname, argv[2]);
-				return(-1);				
-			}
-			num_args++;
-		}
-		//}
-	return num_args;
-}
+		return(2);
+	}
+
+	// Otherwise check to see if it is any of the recognized words
+	if ((strcmp(sp, "operations") == 0) || (strcmp(sp, "ops") == 0)) { // Report OPERATIONS 
+			xgp->global_options |= GO_HB_OPS;
+			return(2);
+	} else if ((strcmp(sp, "bytes") == 0) || (strcmp(sp, "b") == 0)) { // Report Bytes 
+			xgp->global_options |= GO_HB_BYTES;
+			return(2);
+	} else if ((strcmp(sp, "kbytes") == 0) || (strcmp(sp, "kb") == 0)) { // Report KiloBytes 
+			xgp->global_options |= GO_HB_KBYTES;
+			return(2);
+	} else if ((strcmp(sp, "mbytes") == 0) || (strcmp(sp, "mb") == 0)) { // Report MegaBytes 
+			xgp->global_options |= GO_HB_MBYTES;
+			return(2);
+	} else if ((strcmp(sp, "gbytes") == 0) || (strcmp(sp, "gb") == 0)) { // Report GigaBytes 
+			xgp->global_options |= GO_HB_GBYTES;
+			return(2);
+	} else if ((strcmp(sp, "percent") == 0) || (strcmp(sp, "pct") == 0)) { // Report Percent complete
+			xgp->global_options |= GO_HB_PERCENT;
+			return(2);
+	} else if ((strcmp(sp, "bandwidth") == 0) || (strcmp(sp, "bw") == 0)) { // Report Aggregate Bandwidth
+			xgp->global_options |= GO_HB_BANDWIDTH;
+			return(2);
+	} else if ((strcmp(sp, "iops") == 0) || (strcmp(sp, "IOPS") == 0)) { // Report IOPS
+			xgp->global_options |= GO_HB_IOPS;
+			return(2);
+	} else if ((strcmp(sp, "etc") == 0) || (strcmp(sp, "eta")) || (strcmp(sp, "et") == 0)) { // Report Estimated time to completion
+			xgp->global_options |= GO_HB_ET;
+			return(2);
+	} 
+	// Not a recognizable option
+	fprintf(stderr,"%s: ERROR: Unknown option specified for the heartbeat: '%s'\n", xgp->progname, sp);
+	return(-1);
+
+} // End of xddfunc_heartbeat()
+
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_help(int32_t argc, char *argv[], uint32_t flags)
