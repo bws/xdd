@@ -6,7 +6,7 @@
 XDD_DIR := @CONFIG_PROJECT_DIR@
 BUILD_DIR := @CONFIG_BUILD_DIR@
 INSTALL_DIR := @prefix@
-XFS_ENABLED_DEF := @CONFIG_XFS_ENABLED@
+XFS_ENABLED_DEF := @CONFIG_XFS_ENABLED@ @CONFIG_XFS_PACKAGE@
 
 #
 # Configuration
@@ -212,7 +212,6 @@ fullinstall:
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver
 	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime.$(OS)
 	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime
-	$(INSTALL) -c -m 755 contrib/qipcrm $(INSTALL_DIR)/bin/qipcrm
 	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
 
 doc:

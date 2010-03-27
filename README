@@ -14,3 +14,22 @@ On AIX (requires the xlc_r compiler):
 By default, XDD and supporting scripts are installed in /opt/xdd, in order
 to change the installation path, use --prefix=<new path> during the configure
 step.
+
+XFS pre-allocation support
+--
+File preallocation on end-to-end transfers currently only works for the XFS
+file system.  This is mainly because the posix_fallocate call is supported
+inconsistently in Linux, and so we are making the direct fctl call in the
+case of XFS file systems.  We attempt to enable preallocate on XFS if we can
+find the correct headers in the default places.  But if the headers are not
+easily locatable then we do not enable XFS preallocation support.  The
+configure script controls xfs preallocation with with an explicit enable/disable
+flag.  To guarantee that XFS preallocation is enable, use the following:
+
+> ./configure --enable-xfs
+
+To disable XFS preallocation, use the following instead:
+
+> ./configure --disable-xfs
+
+The defaults have been tested on Fedora 12, Scientific Linux, and Suse only.

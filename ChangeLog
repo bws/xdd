@@ -2,6 +2,14 @@
 XDD Release ChangeLog
 -----------------------
 
+xdd-7.0.0 RC13
+==============
+* XDD: Add preallocate support for XFS file writes
+* XDD: Switch from System V semaphores to phtread barriers
+* XDD: Heartbeat changes
+* XDDCP: Change request size from 16MiB to 32MiB
+* XDDCP: Enable preallocate on transfers
+
 xdd-7.0.0 RC12
 =============
 * XDD: Add AIX support

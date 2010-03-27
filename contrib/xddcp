@@ -11,7 +11,7 @@
 
 # XDD Configurable global settings
 XDDCP_DEFAULT_E2E_PORT=40010
-XDDCP_DEFAULT_XFER_SIZE=16777216
+XDDCP_DEFAULT_XFER_SIZE=33554432
 XDDCP_DEFAULT_QUEUE_DEPTH=4
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
@@ -37,7 +37,8 @@ function print_usage() {
     echo " -s		- Use direct I/O on the source end"
     echo " -t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
     #echo "-Y		- Force SSH to create psueo-terminal tty"
-    echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
+    #echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
+    echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
 }
 
 #
@@ -60,11 +61,11 @@ function check_host_preconditions() {
     local resumeFlag=$4
 
     # Check for qipcrm script
-    which qipcrm > /dev/null 2> /dev/null
-    if [ $? -eq 1 ]; then
-	echo "ERROR: qipcrm executable was not found.  Please make sure it is in your PATH."
-	exit 10
-    fi
+    #which qipcrm > /dev/null 2> /dev/null
+    #if [ $? -eq 1 ]; then
+#	echo "ERROR: qipcrm executable was not found.  Please make sure it is in your PATH."
+#	exit 10
+    #fi
 
     # Check for xdd.Linux binary
     which xdd.Linux >/dev/null 2> /dev/null
@@ -123,7 +124,7 @@ function check_source_file_preconditions() {
 # Perform local cleanup operations
 #
 function perform_local_cleanup() {
-    qipcrm ${USER} > /dev/null
+    #qipcrm ${USER} > /dev/null
     pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
 }
 
@@ -235,7 +236,7 @@ if [ ! -z "$xddpid" ]; then
 fi
 
 # Cleanup leaked system resources
-qipcrm \${USER} &>/dev/null
+#qipcrm \${USER} &>/dev/null
 
 # If the filename uses a relative path, path complement it
 path_char=\$(dirname $destFile |cut -c 1)
@@ -280,7 +281,7 @@ if [ 1 == $resumeFlag ]; then
     most_recent_restart_cookie=\$(ls \${destinationDir}/xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.*.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
-       destinationRestart="-restart file \${restart_logfile} -restart enable"
+       destinationRestart="-restart file \${restart_logfile} -restart enable -preallocate ${totalBytes}"
     else
        destinationRestart="-restart file \${restart_logfile} -restart enable \$(cat \$most_recent_restart_cookie)"
     fi
