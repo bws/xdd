@@ -139,6 +139,17 @@
 #define GO_ENDTOEND				0x0000000000008000ULL  /* End to End operation - be sure to add the headers for the results display */
 #define GO_EXTENDED_STATS		0x0000000000010000ULL  /* Calculate Extended stats on each operation */
 #define GO_DRYRUN				0x0000000000020000ULL  /* Indicates a dry run */
+#define GO_AVAILABLE1			0x0000000000040000ULL  /* AVAILABLE */
+#define GO_AVAILABLE2			0x0000000000080000ULL  /* AVAILABLE */
+#define GO_HB_OPS				0x0000000000100000ULL  /* Heartbeat option - display Current number of OPS performed */
+#define GO_HB_BYTES				0x0000000000200000ULL  /* Heartbeat option - display Current number of BYTES transferred */
+#define GO_HB_KBYTES			0x0000000000400000ULL  /* Heartbeat option - display Current number of KILOBYTES transferred */
+#define GO_HB_MBYTES			0x0000000000800000ULL  /* Heartbeat option - display Current number of MEGABYTES transferred */
+#define GO_HB_GBYTES			0x0000000001000000ULL  /* Heartbeat option - display Current number of GIGABYTES transferred */
+#define GO_HB_BANDWIDTH			0x0000000002000000ULL  /* Heartbeat option - display Current Aggregate BANDWIDTH */
+#define GO_HB_IOPS	 			0x0000000004000000ULL  /* Heartbeat option - display Current Aggregate IOPS */
+#define GO_HB_PERCENT	 		0x0000000008000000ULL  /* Heartbeat option - display Percent Complete */
+#define GO_HB_ET		 		0x0000000010000000ULL  /* Heartbeat option - display Estimated Time to Completion*/
 
 struct xdd_globals {
 /* Global variables relevant to all threads */
@@ -265,6 +276,8 @@ char     *xdd_getnexttoken(char *tp);
 ptds_t   *xdd_get_ptdsp(int32_t target_number, char *op);
 restart_t   *xdd_get_restartp(ptds_t *p);
 void     *xdd_heartbeat(void*);
+void     xdd_heartbeat_legend(void);
+void     xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed);
 int32_t  xdd_init_all_barriers(void);
 int32_t  xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name);
 void     xdd_init_global_clock(pclk_t *pclkp); 

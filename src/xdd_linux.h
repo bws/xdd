@@ -37,7 +37,8 @@
 #include <fcntl.h>
 #include <linux/magic.h>
 #include <sys/types.h>
-#include <unistd.h> /* UNIX Only */
+#include <unistd.h> 
+#include <ctype.h>
 #include <sys/time.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
