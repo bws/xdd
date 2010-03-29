@@ -37,6 +37,26 @@
  *    - Environment
  */
 #include "xdd.h"
+
+/*----------------------------------------------------------------------------*/
+/* xdd_display_kmgt() - Display the given quantity in either KBytes, MBytes, GBytes, or TBytes.
+ */
+void
+xdd_display_kmgt(FILE *out, long long int n, int block_size) {
+
+	if (n <= 0) {
+		fprintf(out," 0\n");
+		return;
+	}
+	fprintf(out, "\n\t\t\t%lld, %d-byte Blocks", (long long int)(n), block_size);
+	fprintf(out, "\n\t\t\t%15lld,     Bytes", (long long int)(n));
+	fprintf(out, "\n\t\t\t%19.3f, KBytes", (double)(n/FLOAT_KILOBYTE));
+	fprintf(out, "\n\t\t\t%19.3f, MBytes", (double)(n/FLOAT_MEGABYTE));
+	fprintf(out, "\n\t\t\t%19.3f, GBytes", (double)(n/FLOAT_GIGABYTE));
+	fprintf(out, "\n\t\t\t%19.3f, TBytes\n", (double)(n/FLOAT_TERABYTE));
+
+} // End of xdd_display_kmgt()
+
 /*----------------------------------------------------------------------------*/
 /* xdd_system_info() - Display information about the system this program
  * is being run on. This includes hardware, software, and environmental info.
@@ -254,44 +274,29 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	fprintf(out,"\t\tPass seek randomization, %s", (p->target_options & TO_PASS_RANDOMIZE)?"enabled\n":"disabled\n");
 	fprintf(out,"\t\tFile write synchronization, %s", (p->target_options & TO_SYNCWRITE)?"enabled\n":"disabled\n");
 	fprintf(out, "\t\tBlocksize in bytes, %d\n", p->block_size);
-	fprintf(out,"\t\tRequest size, %d, blocks, %d, bytes\n",p->reqsize,p->reqsize*p->block_size);
+	fprintf(out,"\t\tRequest size, %d, %d-byte blocks, %d, bytes\n",p->reqsize,p->block_size,p->reqsize*p->block_size);
 	fprintf(out, "\t\tNumber of Operations, %lld, of, %lld, target ops for all qthreads\n", (long long)p->qthread_ops, (long long)p->target_ops);
-	fprintf(out, "\t\tStart offset, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes \n",
-		(long long)p->start_offset, 
-		(long long)p->start_offset*p->block_size,
-		(double)((p->start_offset*p->block_size)/FLOAT_KILOBYTE),
-		(double)((p->start_offset*p->block_size)/FLOAT_MEGABYTE),
-		(double)((p->start_offset*p->block_size)/FLOAT_GIGABYTE),
-		(double)((p->start_offset*p->block_size)/FLOAT_TERABYTE));
-	fprintf(out, "\t\tTotal data transfer for this target, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n", 
-		(long long)p->target_bytes_to_xfer_per_pass/p->block_size,
-		(long long)p->target_bytes_to_xfer_per_pass,
-		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
-		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
-		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_GIGABYTE),
-		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_TERABYTE));
-	fprintf(out, "\t\tTotal data transfer for this QTHREAD, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n", 
-		(long long)p->qthread_bytes_to_xfer_per_pass/p->block_size,
-		(long long)p->qthread_bytes_to_xfer_per_pass,
-		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
-		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
-		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_GIGABYTE),
-		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_TERABYTE));
-	fprintf(out, "\t\tPass Offset, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n", 
-		(long long)p->pass_offset, 
-		(long long)p->pass_offset*p->block_size,
-		(double)((p->pass_offset*p->block_size)/FLOAT_KILOBYTE),
-		(double)((p->pass_offset*p->block_size)/FLOAT_MEGABYTE),
-		(double)((p->pass_offset*p->block_size)/FLOAT_GIGABYTE),
-		(double)((p->pass_offset*p->block_size)/FLOAT_TERABYTE));
+
+	// Total Data Transfer for this TARGET
+	fprintf(out, "\t\tTotal data transfer for this TARGET, ");
+	xdd_display_kmgt(out, p->target_bytes_to_xfer_per_pass, p->block_size);
+
+	// Total Data Transfer for this QThread
+	fprintf(out, "\t\tTotal data transfer for this QTHREAD,  ");
+	xdd_display_kmgt(out, p->qthread_bytes_to_xfer_per_pass, p->block_size);
+
+	// Start Offset
+	fprintf(out, "\t\tStart offset,  ");
+	xdd_display_kmgt(out, p->start_offset*p->block_size, p->block_size);
+
+	// Pass Offset
+	fprintf(out, "\t\tPass offset,  ");
+	xdd_display_kmgt(out, p->pass_offset*p->block_size, p->block_size);
+
+	// Seek Range
 	if (p->seekhdr.seek_range > 0) {
-		fprintf(out, "\t\tSeek range, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n",
-			(long long)p->seekhdr.seek_range,
-			(long long)p->seekhdr.seek_range*p->block_size,
-			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_KILOBYTE ),
-			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_MEGABYTE ),
-			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_GIGABYTE ),
-			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_TERABYTE ));
+		fprintf(out, "\t\tSeek Range,  ");
+		xdd_display_kmgt(out, p->seekhdr.seek_range*p->block_size, p->block_size);
 	}
 	fprintf(out, "\t\tSeek pattern, %s\n", p->seekhdr.seek_pattern);
 	fprintf(out, "\t\tFlushwrite interval, %lld\n", (long long)p->flushwrite);
