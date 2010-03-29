@@ -4,6 +4,7 @@ XDD Release ChangeLog
 
 xdd-7.0.0 RC13
 ==============
+* XDD: Build system modified
 * XDD: Add preallocate support for XFS file writes
 * XDD: Switch from System V semaphores to phtread barriers
 * XDD: Heartbeat changes

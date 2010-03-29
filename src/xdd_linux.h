@@ -35,7 +35,6 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <linux/magic.h>
 #include <sys/types.h>
 #include <unistd.h> 
 #include <ctype.h>
@@ -90,12 +89,17 @@ extern int h_errno; // For socket calls
 
 #if XFS_ENABLED && XFSPROGS_DEVEL
 #include <xfs/xfs.h>
-#define XFS_SUPER_MAGIC 0x58465342
 #elif XFS_ENABLED && LIBXFS_DEVEL
 #include <xfs/xfs.h>
 #include <xfs/libxfs.h>
 #elif XFS_ENABLED
 #error "ERROR: XFS Support is enabled, but the header support is not valid."
+#endif
+
+#if LINUX_MAGIC_ENABLED
+#include <linux/magic.h>
+#else
+#define XFS_SUPER_MAGIC 0x58465342
 #endif
 
 /*

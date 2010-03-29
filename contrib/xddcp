@@ -281,7 +281,7 @@ if [ 1 == $resumeFlag ]; then
     most_recent_restart_cookie=\$(ls \${destinationDir}/xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.*.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
-       destinationRestart="-restart file \${restart_logfile} -restart enable -preallocate ${totalBytes}"
+       destinationRestart="-restart file \${restart_logfile} -restart enable"
     else
        destinationRestart="-restart file \${restart_logfile} -restart enable \$(cat \$most_recent_restart_cookie)"
     fi
@@ -307,6 +307,7 @@ xdd.Linux -targets 1 \${destinationFile} -op write -minall \
     -bytes ${totalBytes} -reqsize $reqsize ${destinationQD} \
     -e2e isdestination -e2e dest ${remoteHost} -e2e port ${e2ePort} \
     ${destinationDIO} \${destinationRestart} \
+    -preallocate ${totalBytes} \
     -verbose &> \${destinationLog} &
 
 # Send the restart offset back to the source side via an exit code

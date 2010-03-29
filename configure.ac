@@ -82,10 +82,19 @@ AC_CHECK_HEADER([xfs/xfs.h],
                 [xfs_header_support="no"])
 if test "x$xfs_header_support" = "xyes" ; then
     AC_CHECK_HEADER([xfs/libxfs.h],
-		    [XFS_PACKAGE="LIBXFS_DEVEL"],
+		    [xfs_package="LIBXFS_DEVEL"],
                     [])
 fi
 
+xfs_magic_support="no"
+if test "x$xfs_header_support" = "xyes" ; then
+    AC_CHECK_HEADER([linux/magic.h],
+                    [AC_CHECK_DECL(XFS_SUPER_MAGIC,
+                                   [xfs_magic_support="yes"], [], [],
+				   [[#include <linux/magic.h>]])],
+                    [])
+    
+fi
 dnl if test "x$xfs_header_support" = "xyes" ; then
 dnl     AC_CHECK_HEADER([xfs/xfs_fs.h],
 dnl                     [xfs_header_support="yes"],
@@ -117,6 +126,22 @@ elif test "x$xfs_enabled" = "xyes" ; then
         AC_SUBST(CONFIG_XFS_ENABLED, "-DXFS_ENABLED")
         AC_SUBST(CONFIG_XFS_PACKAGE, "-D$xfs_package")
     fi
+fi
+
+dnl
+dnl Check for Linux Magic numbers
+dnl
+xfs_magic_support="no"
+if test "x$xfs_header_support" = "xyes" ; then
+    AC_CHECK_HEADER([linux/magic.h],
+                    [AC_CHECK_DECL(XFS_SUPER_MAGIC,
+                                   [xfs_magic_support="yes"], [], [],
+                                   [[#include <linux/magic.h>]])],
+                    [])
+
+fi
+if test "x$magic_header_support" = "xyes" ; then
+    AC_SUBST(CONFIG_LINUX_MAGIC, "-DMAGIC_XFS_SUPPORT")
 fi
 
 dnl

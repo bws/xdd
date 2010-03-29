@@ -200,7 +200,7 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 			d = (double)((double)ops / (double)p->target_ops) * 100.0;
 		else
 			d = -1.0;
-		fprintf(stderr,"/%04.1f%%",d);
+		fprintf(stderr," %4.2f%%",d);
 	}
 	if (xgp->global_options & GO_HB_ET) {  // display Estimated Time to Completion
 		if (p->pass_complete) 

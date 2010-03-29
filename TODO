@@ -3,6 +3,7 @@ TODO file for XDD
 // General
 * Add confidence data dump
 * Add serial thread scheduling I/O scheme
+* Fix heartbeat percent to display correct percent during a restart
 
 // xddcp
 * Third-part transfers
