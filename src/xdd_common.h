@@ -150,6 +150,7 @@
 #define GO_HB_IOPS	 			0x0000000004000000ULL  /* Heartbeat option - display Current Aggregate IOPS */
 #define GO_HB_PERCENT	 		0x0000000008000000ULL  /* Heartbeat option - display Percent Complete */
 #define GO_HB_ET		 		0x0000000010000000ULL  /* Heartbeat option - display Estimated Time to Completion*/
+#define GO_HB_IGNORE_RESTART	0x0000000020000000ULL  /* Heartbeat option - Ignore the restart adjustments */
 
 struct xdd_globals {
 /* Global variables relevant to all threads */

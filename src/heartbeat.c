@@ -135,6 +135,7 @@ xdd_heartbeat(void *junk) {
  */
 void
 xdd_heartbeat_legend(void) {
+
 	fprintf(stderr,"Pass %04d ",xgp->ptdsp[0]->my_current_pass_number);
 	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
 		fprintf(stderr,"/OPS");
@@ -163,22 +164,66 @@ xdd_heartbeat_legend(void) {
  *    - Number of bytes transfered by this target
  *    - Number of ops completed by this target
  *    - Elapsed time in seconds used by this target
+ *
+ * There is a case when this target is in the middle of a restart operation 
+ * in which case the Percent_Complete should represent the percentage of the
+ * entire copy operation that has completed - not just the percentage of the
+ * current restart operation that is in progress. 
+ * For example, when copying a 10GB file, if the copy was stopped after 
+ * the first 3GB had transferred and then restarted at this point (+3GB), 
+ * the restarted XDD operation will only need to copy 7GBytes of data.
+ * Hence, when XDD starts, the heartbeat should report that it is already 30%
+ * complete and start counting from there. If the "-heartbeat ignorerestart" 
+ * option is specified then heartbeat will report that it is 0% complete
+ * at the beginning of a restart. 
+ * The number of bytes transferred and ops completed will  also be adjusted 
+ * according to the restart operation and whether or not the "ignorerestart"
+ * was specified. 
+ * The number of "target_ops" during a resume_copy operation is just the 
+ * number of ops required to transfer the remaining data. In order to 
+ * correctly calculate the percent complete we need to know the total ops
+ * completed for all the data for the entire copy operation. The total
+ * data for the copy operation is the start offset (in bytes) plus the
+ * amount of data for this instance of XDD. The target ops to move that amount
+ * of data is (total_data)/(iosize). 
+ * The Estimated Time to Completion is *not* adjusted and should be an 
+ * accurate representation of when the current XDD copy operation will complete. 
+ * Similarly, IOPS and Bandwidth are also not affected by the restart status. 
  */
 void
 xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 	double	d;
+	int64_t	adjusted_bytes;
+	int64_t	adjusted_ops;
+	int64_t	adjusted_target_ops;
 
 
+	adjusted_bytes = bytes;
+	adjusted_ops = ops;
+	adjusted_target_ops = p->target_ops;
+	// Check to see if we are in a "restart" operation and make appropriate adjustments
+	if (p->restartp) {
+		if ((p->restartp->flags & RESTART_FLAG_RESUME_COPY) &&
+			!(xgp->global_options & GO_HB_IGNORE_RESTART)) { // We were not asked to ignore the restart adjustments
+			// Adjust the number of bytes completed so far - add in the start offset
+			adjusted_bytes = bytes + (p->start_offset * p->block_size);
+			// Adjust the number of ops completed so far
+			adjusted_ops = adjusted_bytes / p->iosize;
+			// Adjust the number of target_ops needed to complete the entire copy
+			adjusted_target_ops = (p->target_bytes_to_xfer_per_pass + (p->start_offset*p->block_size))/p->iosize; 
+		} // End of making adjustments for a restart operation
+	}
 	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
-		fprintf(stderr,"/%010lldops",(long long int)ops);
+		fprintf(stderr,"/%010lldops",(long long int)adjusted_ops);
 	if (xgp->global_options & GO_HB_BYTES)  // display Current number of BYTES transferred 
-		fprintf(stderr,"/%015lldb",(long long int)bytes);
+		fprintf(stderr,"/%015lldb",(long long int)adjusted_bytes);
 	if (xgp->global_options & GO_HB_KBYTES)  // display Current number of KILOBYTES transferred 
-		fprintf(stderr,"/%013.1fk",(double)((double)bytes / 1024.0) );
+		fprintf(stderr,"/%013.1fk",(double)((double)adjusted_bytes / 1024.0) );
 	if (xgp->global_options & GO_HB_MBYTES)  // display Current number of MEGABYTES transferred 
-		fprintf(stderr,"/%010.1fm",(double)((double)bytes / (1024.0*1024.0)) );
+		fprintf(stderr,"/%010.1fm",(double)((double)adjusted_bytes / (1024.0*1024.0)) );
 	if (xgp->global_options & GO_HB_GBYTES)  // display Current number of GIGABYTES transferred 
-		fprintf(stderr,"/%07.1fg",(double)((double)bytes / (1024.0*1024.0*1024.0)) );
+		fprintf(stderr,"/%07.1fg",(double)((double)adjusted_bytes / (1024.0*1024.0*1024.0)) );
+	// Bandwidth is calculated on unadjusted bytes regardless of whether or not we are doing a restart
 	if (xgp->global_options & GO_HB_BANDWIDTH) {  // display Current Aggregate BANDWIDTH 
 		if (elapsed != 0.0) {
 			d = (bytes/elapsed)/FLOAT_MILLION;
@@ -187,6 +232,7 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 		}
 		fprintf(stderr,"/%06.2fmbps",d);
 	}
+	// IOPS is calculated on unadjusted ops regardless of whether or not we are doing a restart
 	if (xgp->global_options & GO_HB_IOPS){  // display Current Aggregate IOPS 
 		if (elapsed != 0.0) {
 			d = ((double)ops)/elapsed;
@@ -195,13 +241,16 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 		}
 		fprintf(stderr,"/%06.2fiops",d);
 	}
+
+	// Percent complete is based on "adjusted bytes" 
 	if (xgp->global_options & GO_HB_PERCENT) {  // display Percent Complete 
 		if (p->target_ops > 0) 
-			d = (double)((double)ops / (double)p->target_ops) * 100.0;
+			d = (double)((double)adjusted_ops / (double)adjusted_target_ops) * 100.0;
 		else
 			d = -1.0;
-		fprintf(stderr," %4.2f%%",d);
+		fprintf(stderr,"/%4.2f%%",d);
 	}
+	// Estimated time is based on "unadjusted bytes" otherwise the ETC would be skewed
 	if (xgp->global_options & GO_HB_ET) {  // display Estimated Time to Completion
 		if (p->pass_complete) 
 			d = 0.0;

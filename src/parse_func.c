@@ -1020,8 +1020,11 @@ xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 	} else if ((strcmp(sp, "iops") == 0) || (strcmp(sp, "IOPS") == 0)) { // Report IOPS
 			xgp->global_options |= GO_HB_IOPS;
 			return(2);
-	} else if ((strcmp(sp, "etc") == 0) || (strcmp(sp, "eta")) || (strcmp(sp, "et") == 0)) { // Report Estimated time to completion
+	} else if ((strcmp(sp, "etc") == 0) || (strcmp(sp, "eta") == 0) || (strcmp(sp, "et") == 0)) { // Report Estimated time to completion
 			xgp->global_options |= GO_HB_ET;
+			return(2);
+	} else if ((strcmp(sp, "ignorerestart") == 0) || (strcmp(sp, "ir") == 0) || (strcmp(sp, "ignore") == 0)) { // Ignore the restart adjustments
+			xgp->global_options |= GO_HB_IGNORE_RESTART;
 			return(2);
 	} 
 	// Not a recognizable option

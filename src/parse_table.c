@@ -170,7 +170,7 @@ xdd_func_t  xdd_func[] = {
     {"heartbeat", "hb",
             xddfunc_heartbeat,  
             1,  
-            "  -heartbeat # | ops | bytes | kbytes | mbytes | gbytes | percent | bw | iops | et\n",  
+            "  -heartbeat # | ops | bytes | kbytes | mbytes | gbytes | percent | bw | iops | et | ignorerestart\n",  
             {"    Will print out heartbeat information every # seconds \n\
  			     'operations' | 'ops' - current number of operations complete \n\
                  'bytes' | 'b' -  current bytes transfered \n\
@@ -180,7 +180,8 @@ xdd_func_t  xdd_func[] = {
                  'percent' | 'pct' - percent complete\n\
                  'bandwidth' | 'bw' -  aggregate bandiwdth\n\
                  'iops' - aggregate I/O operations per second\n\
-                 'et' | 'etc' | 'eta' - estimated time to completion\n",
+                 'et' | 'etc' | 'eta' - estimated time to completion\n\
+                 'ignorerestart' | 'ir' - ignore the fact that a restart is in process\n",
 			 "Specifying -heartbeat multiple times will add these to the heartbeat output string FOR EACH TARGET\n",
             0,0,0},
 			0},
