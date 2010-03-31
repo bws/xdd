@@ -47,10 +47,10 @@ int32_t
 xdd_target_preallocate_for_os(ptds_t *p) {
 	int32_t 		status;		// Status of various system calls
 	struct statfs 	sfs;		// File System Information struct
-	xfs_flock64_t 	xfs_flock;		// Used to pass preallocation information to xfsctl()
 	
 
 #ifdef XFS_ENABLED
+	xfs_flock64_t 	xfs_flock;		// Used to pass preallocation information to xfsctl()
 	// Determine the file system type
 	status = fstatfs(p->fd, &sfs);
 	if (0 != status) {
