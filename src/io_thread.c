@@ -110,16 +110,21 @@ xdd_io_thread(void *pin) {
 		xdd_barrier(&xgp->results_display_barrier[p->results_display_barrier_index]);
 		p->results_display_barrier_index ^= 1; /* toggle the barrier index */
 
+		if (xgp->canceled) // Check to see if we got canceled 
+			break;
+
 		/* Check to see if the run time has been exceeded - if so, then exit this loop.
 		 * Otherwise, if there was a run time specified and we have not reached that run time
 		 * and this is the last pass, then add one to the pass count so that we keep going.
 		 */
-		if (xgp->runtime > 0) {
-			if (xgp->run_ring || xgp->canceled) // Check to see if either the runtime alarm went off or we got canceled 
+		if ((xgp->runtime > 0) && (xgp->run_ring)) // Check to see if the runtime alarm went off 
 				break; /* Time to leave */
-			else if (p->my_current_pass_number == xgp->passes) /* Otherwise if we just finished the last pass, we need to keep going */
+		
+		// If this is a run that just goes on and on for a specific period of time then keep incrementing the pass count til the runtime expires
+		if ((xgp->runtime > 0) && 
+			(p->my_current_pass_number == xgp->passes)) /* Otherwise if we just finished the last pass, we need to keep going */
 				xgp->passes++;
-		}
+
 		/* Insert a delay of "pass_delay" seconds if requested */
 		if (xgp->pass_delay > 0)
 			sleep(xgp->pass_delay);
