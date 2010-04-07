@@ -2,6 +2,13 @@
 XDD Release ChangeLog
 -----------------------
 
+xdd-7.0.0 RC14
+==============
+* XDD: Fixed bug so --disable-xfs builds properly
+* XDD: Improved cancel ability
+* XDD: Preallocation now occurs in 4GB chunks
+* XDDCP: 10 second sleep between remote and local xdd invokes
+
 xdd-7.0.0 RC13
 ==============
 * XDD: Build system modified
