@@ -20,7 +20,7 @@ INSTALL = $(XDD_DIR)/contrib/install-sh
 DATESTAMP =	$(shell date +%m%d%y )
 BUILD 	=	$(shell date +%H%M )
 PROJECT =	xdd
-VERSION =	7.0.0.rc13
+VERSION =	7.0.0.rc14
 XDD_VERSION = $(OS).$(VERSION).$(DATESTAMP).Build.$(BUILD)
 XDDVERSION = \"$(XDD_VERSION)\"
 
@@ -165,7 +165,7 @@ gettime: $(GT_OBJECTS)
 	ln -s gettime.$(OS) bin/gettime
 
 baseversion:
-	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > xdd_base_version.h
+	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > src/xdd_base_version.h
 
 dist:	clean baseversion tarball
 		echo "Base Version $(XDDVERSION) Source Only"
