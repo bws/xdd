@@ -65,7 +65,7 @@ EOF
 	) 2> /dev/null
 }
 function make_csv {
-	echo "run,threads,filesize,src_seconds,src_mbps,dst_seconds,dst_mbps" > $csv_file
+	echo "timestamp,threads,filesize,src_seconds,src_mbps,dst_seconds,dst_mbps" > $csv_file
 	parse_src_logs | cut -d , -f 2,3,8,10,11 > tmpsrc.csv
 	parse_dst_logs | cut -d , -f 3,10,11 > tmpdst.csv
 	join -t , -1 2 -2 1 tmpsrc.csv tmpdst.csv >> $csv_file
@@ -104,7 +104,7 @@ echo "---------------------------------------------------------------------"
 # main loop
 echo "Entering main loop... "
 for i in `seq 1 $runs`; do
-	($xddcp $options -i $i -t $threads -S $source_logs -D $destination_logs \
+	($xddcp $options -t $threads -S $source_logs -D $destination_logs \
 		$source_file $destination:$destination_file $file_size) &> /dev/null
 	echo "Run $i completed `date`."
 done

@@ -15,7 +15,7 @@ XDDCP_DEFAULT_XFER_SIZE=33554432
 XDDCP_DEFAULT_QUEUE_DEPTH=4
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
-XDDCP_DEFAULT_TIMESTAMP="$(date -u +'%Y-%m-%d-%H%M')-GMT"
+XDDCP_DEFAULT_TIMESTAMP="$(date -u +'%Y-%m-%d-%H%M%S')-GMT"
 XDDCP_DEFAULT_NETWORK_SLEEP_SECS=10
 
 #
@@ -144,9 +144,8 @@ function init_local_transfer() {
     local e2ePort=$5
     local sourceDIOFlag=$6
     local resumeFlag=$7
-    local runnum=$8
-    local sourcelogdir=$9
-    local resumeOffset=${10}
+    local sourcelogdir=$8
+    local resumeOffset=$9
 
     # Construct XDD transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
@@ -172,9 +171,6 @@ function init_local_transfer() {
     local sourceBase=$(basename ${sourceFile})
     local sourceQD="-queuedepth ${queuedepth}"
     local sourceLog="xdd.$(hostname).${sourceBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
-    if [ ${runnum} -ge 0 ]; then
-	    sourceLog="$(basename $sourceLog .log).$runnum.log"
-    fi
     if [ 1 -eq $sourceDIOFlag ]; then
         local sourceDIO="-dio"
     fi
@@ -217,8 +213,7 @@ function init_remote_transfer() {
     local e2ePort="$7"
     local destDIOFlag="$8"
     local resumeFlag="$9"
-    local runnum=${10}
-    local destinationlogdir=${11}
+    local destinationlogdir=${10}
 
     # Construct transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
@@ -231,9 +226,6 @@ function init_remote_transfer() {
     local destinationBase=$(basename $destFile)
     local destinationDirname=$(dirname $destFile)
     local destinationLog="xdd.${remoteHost}.${destinationBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
-    if [ ${runnum} -ge 0 ]; then
-	destinationLog="$(basename $destinationLog .log).$runnum.log"
-    fi
     local destinationQD="-queuedepth ${queueDepth}"
     if [ 1 -eq $destDIOFlag ]; then
         local destinationDIO="-dio"
@@ -390,18 +382,16 @@ fileListFlag=0
 sourceDIOFlag=0
 queuedepth=$XDDCP_DEFAULT_QUEUE_DEPTH
 sshoption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
-runnum=-1
 sourcelogdir="."
 destinationlogdir="."
 
-while getopts ":adD:Fhi:p:sS:t:Y" option; do
+while getopts ":adD:Fhp:sS:t:Y" option; do
     case $option in
         a) resumeFlag=1;;
 	d) destinationDIOFlag=1;;
 	D) destinationlogdir=$OPTARG;;
         F) fileListFlag=1;;
 	h) print_usage; exit 0;;
-	i) runnum=$OPTARG;;
         p) e2eport=$OPTARG;;
 	s) sourceDIOFlag=1;;
 	S) sourcelogdir=$OPTARG;;
@@ -473,7 +463,7 @@ for sourceFile in ${sourceFileList}; do
     fi
 
     # Initialize the remote transfer (note $resumeOffset is set as a side effect of init_remote_transfer
-    init_remote_transfer ${HDestinIP} ${sshoption} ${sourceFile} ${destFile} ${totalbytes} ${queuedepth} ${e2eport} ${destinationDIOFlag} ${resumeFlag} ${runnum} ${destinationlogdir}
+    init_remote_transfer ${HDestinIP} ${sshoption} ${sourceFile} ${destFile} ${totalbytes} ${queuedepth} ${e2eport} ${destinationDIOFlag} ${resumeFlag} ${destinationlogdir}
     if [ 1 -eq "${resumeFlag}" ]; then
         if [ -z "${resumeOffset}" ]; then
             echo "ERROR: Restart offset could not be determined."
@@ -485,7 +475,7 @@ for sourceFile in ${sourceFileList}; do
     sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
 
     # Initialize the local-side transfer (note $resumeOffset is set as a side effect of init_remote_transfer)
-    init_local_transfer ${HDestinIP} ${sourceFile} ${totalbytes} ${queuedepth} ${e2eport} ${sourceDIOFlag} ${resumeFlag} ${runnum} ${sourcelogdir} ${resumeOffset}
+    init_local_transfer ${HDestinIP} ${sourceFile} ${totalbytes} ${queuedepth} ${e2eport} ${sourceDIOFlag} ${resumeFlag} ${sourcelogdir} ${resumeOffset}
 
 done
 
