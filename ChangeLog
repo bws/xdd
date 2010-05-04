@@ -8,6 +8,9 @@ xdd-7.0.0 RC14
 * XDD: Improved cancel ability
 * XDD: Preallocation now occurs in 4GB chunks
 * XDDCP: 10 second sleep between remote and local xdd invokes
+* XDDCP: Added options to specify source & dest log directories
+* Included script 'tests/scripts/test_xddcp1.sh' to test multiple runs
+  of XDDCP and record the reported performance in a .csv file.
 
 xdd-7.0.0 RC13
 ==============

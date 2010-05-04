@@ -15,7 +15,7 @@ XDDCP_DEFAULT_XFER_SIZE=33554432
 XDDCP_DEFAULT_QUEUE_DEPTH=4
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
-XDDCP_DEFAULT_TIMESTAMP="$(date -u +'%Y-%m-%d-%H%M')-GMT"
+XDDCP_DEFAULT_TIMESTAMP="$(date -u +'%Y-%m-%d-%H%M%S')-GMT"
 XDDCP_DEFAULT_NETWORK_SLEEP_SECS=10
 
 #
@@ -32,10 +32,12 @@ function print_usage() {
     echo "OPTIONS: "
     echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
     echo " -d		- Use direct I/O on the destination end"
+    echo " -D log_dir	- Directory for the destination log files"
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo " -s		- Use direct I/O on the source end"
+    echo " -S log_dir	- Directory for the source log files"
     echo " -t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
     #echo "-Y		- Force SSH to create psueo-terminal tty"
     #echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
@@ -142,7 +144,8 @@ function init_local_transfer() {
     local e2ePort=$5
     local sourceDIOFlag=$6
     local resumeFlag=$7
-    local resumeOffset=$8
+    local sourcelogdir=$8
+    local resumeOffset=$9
 
     # Construct XDD transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
@@ -173,9 +176,9 @@ function init_local_transfer() {
     fi
 
     # Determine if output can be sent to log file
-    local sourceOutput="-output ${sourceLog}"
-    if [ ! -w "./" ]; then
-        echo "WARNING:  Cannot create log file: ./$sourceLog, logging output to stdout"
+    local sourceOutput="-output ${sourcelogdir}/${sourceLog}"
+    if [ ! -w "${sourcelogdir}/" ]; then
+        echo "WARNING:  Cannot create log file: $sourcelogdir/$sourceLog, logging output to stdout"
         sourceOutput=""
     fi
 
@@ -210,6 +213,7 @@ function init_remote_transfer() {
     local e2ePort="$7"
     local destDIOFlag="$8"
     local resumeFlag="$9"
+    local destinationlogdir=${10}
 
     # Construct transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
@@ -241,17 +245,24 @@ fi
 
 # If the filename uses a relative path, path complement it
 path_char=\$(dirname $destFile |cut -c 1)
+destinationLogDir="${destinationlogdir}"
 #echo "First path char: \$path_char"
 if [ "." == \$path_char ]; then
     default_dir=\$(pwd)
     destinationDir="\${default_dir}/${destinationDirname}"
     destinationFile="\${default_dir}/${destFile}"
-    destinationLog="\${default_dir}/${destinationLog}"
+    if [ \${destinationLogDir} == "." ]; then
+	destinationLogDir="\${default_dir}"
+    fi
 else
     destinationDir="${destinationDirname}"
     destinationFile="${destFile}"
-    destinationLog="\${destinationDir}/${destinationLog}"
+    if [ \${destinationLogDir} == "." ]; then
+	destinationLogDir="\${destinationDir}"
+    fi
 fi
+destinationLog="\${destinationLogDir}/${destinationLog}"
+
 #echo "Path complemented filename is \$destinationFile"
 #echo "Path complemented logfile is \$destinationLog"
 
@@ -270,8 +281,8 @@ fi
 # Perform restart if neccesary
 if [ 1 == $resumeFlag ]; then
     # Ensure sufficient permissions exist to create restart cookie
-    if [ ! -w \$destinationDir ]; then
-        echo "Restart option requires write access to: \$destinationDir"
+    if [ ! -w \${destinationDir} ]; then
+        echo "Restart option requires write access to: \${destinationDir}"
         exit -1
     fi
 
@@ -289,10 +300,10 @@ if [ 1 == $resumeFlag ]; then
 fi
 
 # If insufficient permissions for the log exist, direct /dev/null
-if [ ! -w \$destinationDir -a -e \$destinationLog -a ! -w \$destinationLog ]; then
+if [ ! -w \$destinationLogDir -a -e \$destinationLog -a ! -w \$destinationLog ]; then
     echo "Logfile already exists and is not writable: \$destinationLog"
     exit -1
-elif [ ! -w \$destinationDir -a ! -w \$destinationLog ]; then
+elif [ ! -w \$destinationLogDir -a ! -w \$destinationLog ]; then
     homeDirLog="./${destinationLog}"
     if [ ! -w "./" ]; then
         echo "Could not create log file as \$destinationLog or as \$homeDirLog"
@@ -371,15 +382,19 @@ fileListFlag=0
 sourceDIOFlag=0
 queuedepth=$XDDCP_DEFAULT_QUEUE_DEPTH
 sshoption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
+sourcelogdir="."
+destinationlogdir="."
 
-while getopts ":adFhp:st:Y" option; do
+while getopts ":adD:Fhp:sS:t:Y" option; do
     case $option in
         a) resumeFlag=1;;
 	d) destinationDIOFlag=1;;
+	D) destinationlogdir=$OPTARG;;
         F) fileListFlag=1;;
 	h) print_usage; exit 0;;
         p) e2eport=$OPTARG;;
 	s) sourceDIOFlag=1;;
+	S) sourcelogdir=$OPTARG;;
 	t) queuedepth=$OPTARG;;
         Y) sshoption="-tt";;
         \?) echo "ERROR:  Invalid option specified: -$OPTARG"; exit 1;;
@@ -448,7 +463,7 @@ for sourceFile in ${sourceFileList}; do
     fi
 
     # Initialize the remote transfer (note $resumeOffset is set as a side effect of init_remote_transfer
-    init_remote_transfer ${HDestinIP} ${sshoption} ${sourceFile} ${destFile} ${totalbytes} ${queuedepth} ${e2eport} ${destinationDIOFlag} ${resumeFlag} 
+    init_remote_transfer ${HDestinIP} ${sshoption} ${sourceFile} ${destFile} ${totalbytes} ${queuedepth} ${e2eport} ${destinationDIOFlag} ${resumeFlag} ${destinationlogdir}
     if [ 1 -eq "${resumeFlag}" ]; then
         if [ -z "${resumeOffset}" ]; then
             echo "ERROR: Restart offset could not be determined."
@@ -460,7 +475,7 @@ for sourceFile in ${sourceFileList}; do
     sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
 
     # Initialize the local-side transfer (note $resumeOffset is set as a side effect of init_remote_transfer)
-    init_local_transfer ${HDestinIP} ${sourceFile} ${totalbytes} ${queuedepth} ${e2eport} ${sourceDIOFlag} ${resumeFlag} ${resumeOffset}
+    init_local_transfer ${HDestinIP} ${sourceFile} ${totalbytes} ${queuedepth} ${e2eport} ${sourceDIOFlag} ${resumeFlag} ${sourcelogdir} ${resumeOffset}
 
 done
 
