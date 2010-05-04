@@ -2,7 +2,7 @@
 #
 # Acceptance test for XDD.
 #
-# Check file truncation at destination
+# Check file truncation at destination using xddcp
 #
 
 # Parameters

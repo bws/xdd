@@ -1,0 +1,142 @@
+#! /bin/sh -x
+
+
+
+# SCENARIO 13 – RANDOM I/O ON MULTIPLE FILES
+# 13.01 OBJECTIVE
+# To perform both completely random read operations with variable record sizes and to perform a backwards read operation with a random record size and skip increment to multiple files. Reads might access some of the same data from different I/O requests. I/O is not atomic for a file. HPCS vendors are free to use asynchronous I/O and direct I/O.
+# 13.02 DESCRIPTION
+# N-processes to N-files, where N is tens (10s) of thousands, and all files are in a single directory. Each file created should be at least ten (10) times larger than both the memory of the participating processors and the storage cache. The method on how each file is written is not specified. Each of the files is to be written sequentially and read randomly. Random I/O operations are not expected to completely read the file, but the count of the number of random I/O operations and the amount of data read is to be tracked. I/O request sizes after the initial file is written are to be a random value between 512 bytes (or 4096 bytes, if that is the default sector size) and 65536 bytes, with one of the test’s sector aligned and the other test’s non-sector aligned for the two (2) cases of random read and reading backwards.
+#  1. Create file system, mount, and tune.
+#  2. Allocate 50% of the machine’s memory with integer values and write these values to disk. This step need not be timed.
+#  3. Write the file using any method
+#  4. Barrier all processes.
+#  5. Start time counter and byte counter.
+#  6. Perform one hundred thousand (100000) sector aligned random reads between 512 bytes and 65536 bytes on each of the files with N-processes to N-files.
+#  7. Output the time for the one hundred thousand (100000) reads and the number of bytes transferred.
+#  8. Perform one hundred thousand (100000) non-sector aligned random reads between 512 bytes and 65536 bytes on each of the files with N-processes to N-files.
+#  9. Output the time for the one hundred thousand (100000) reads and the number of bytes transferred.
+# 10. Perform sector aligned reads on each file, reading backwards with reads of a random size between 512 bytes and 65536 bytes skipping between each of the read requests a sector aligned random skip increment between 8192 bytes and 524288 bytes with N-processes to N-files.
+# 11. Output the time for the backwards reads and the number of bytes transferred.
+# 12. Perform non-sector aligned reads on each file, reading backwards with reads of a random size between 512 bytes and 65536 bytes skipping between each of the
+# read requests a non-sector aligned random skip increment between 8192 bytes and 524288 bytes with N-processes to N-files. 
+# 13.  Output the time for the backwards reads and the number of bytes transferred.
+# 13.03 EXPECTED RESULTS
+# The output should provide the amount of data read and the time to read the data. It is hoped that the HPCS vendor will run the tests on at least three (3) different hardware configurations to understand the scalability of this random I/O test. It is important to understand the performance as a percentage of hardware performance in terms of the number of random I/O operations that are available from the storage system and that random I/O scales in performance with the addition of more storage hardware.
+
+#PBS -q batch
+#PBS -A stf006
+#PBS -N batch
+#PBS -j oe
+#PBS -l walltime=0:20:00,nodes=8:ppn=1
+
+LAUNCH_CMD="mpirun -np 1 "
+XDD=xdd.Linux
+Hostname=`uname -n`
+echo $Hostname
+data_file=Scenario__1_file
+log_file=Scenario__1.$Hostname.log
+ntargets=1
+MAX_OSTs=144
+
+data_dir=/lustre/widow1/scratch/${USER}/xdd/testfiles
+rm -f ${data_dir}/${data_file}*
+######################################################
+# Make all files stripe 1, each on unique OST
+######################################################
+date
+itarget=0
+while expr $itarget "-" $ntargets
+do
+lfs setstripe -s 1m -c 1 -i $itarget ${data_dir}/${data_file}.${itarget}
+itarget=`expr $itarget + 1`
+itarget=`expr $itarget % MAX_OSTs`
+done
+date
+
+if [ true ]
+then
+#####################################################################
+#Constants
+#####################################################################
+let "MB  = 1024 * 1024"
+let "GB  = $1MB * 1024"
+let "TB  = $1GB * 1024"
+#####################################################################
+#Constants - test parameters
+#queuedepth = number of I/O threads
+#filesize = npasswr * bytesperpass
+#####################################################################
+let "queuedepth   =  1" 
+let "npasswr      = 10"
+let "bytesperpass = ${GB}"
+
+##########################
+# Gosh, debugging, too!!!
+# and deskewing (dicey)
+##########################
+DEBUG="-debug"
+DEBUG=""
+##########################
+# To use Direct IO, or not
+# Don't work on /dev/XXXX
+##########################
+useDIO="-dio"
+useDIO=""
+
+SAVEPWD=${PWD}
+
+#####################################################################
+#numreqs is total number of requests of size blocksizeXreqsize=XFER 
+#npasswr = number of passes for gene(write only) and genr(read only)
+######################################################
+######################################################
+# Read 10TB file at source  & destination sites
+# Do it in 10 passes, 1TB/pass, note performance diffs
+######################################################
+XFERS="16777216"
+for xfer in `echo $XFERS`
+do
+
+let "numreqs      = $bytesperpass / $xfer"
+let "blocksize    = 4096"
+let "reqsize      = $xfer / $blocksize"
+let "passoff      = $bytesperpass / $blocksize"
+
+#################################################
+# Write ONLY: to-file
+test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".write-file.xfs"
+#################################################
+itarget=0
+while expr $itarget "-" $ntargets
+do
+
+datapattern=" -datapattern random  "
+${LAUNCH_CMD} ${XDD} -targets 1 ${data_file}.$itarget -targetdir ${data_dir} -passoffset $passoff -minall -numreqs $numreqs  -reqsize $reqsize -blocksize $blocksize -passes $npasswr -verbose -queuedepth $queuedepth -op write $datapattern ${useDIO}         ${DEBUG}  &> ${test}.${log_file}.$itarget &
+
+itarget=`expr $itarget + 1`
+itarget=`expr $itarget % MAX_OSTs`
+
+done
+wait
+
+
+#################################################
+# Read ONLY: from-file
+test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".read-file.xfs"
+#################################################
+itarget=0
+while expr $itarget "-" $ntargets
+do
+${LAUNCH_CMD} ${XDD} -targets 1 ${data_file}.$itarget -targetdir ${data_dir} -passoffset $passoff -minall -numreqs $numreqs  -reqsize $reqsize -blocksize $blocksize -passes $npasswr -verbose -queuedepth $queuedepth -op read    ${useDIO} ${DEBUG}  &> ${test}.${log_file}.$itarget &
+
+itarget=`expr $itarget + 1`
+itarget=`expr $itarget % MAX_OSTs`
+
+done
+wait
+
+done #xfer
+fi
+
+echo "Tests finished"
