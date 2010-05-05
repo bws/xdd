@@ -4,45 +4,45 @@
 # SCENARIO 4 - EXTREME FILE CREATION
 ############################################################################################################################
 # 4.01 OBJECTIVE
-## The objective of this Scenario is scaling the method of creating a large number of files in a single file system. 
-## HPCS Mission Partner requirements are for at least thirty-two thousand (32,000) open/creates per second in a single file system with cache coherent shared memory.
-## HPCS vendors are requested to show scaling performance for this test by running it three (3) times varying the run time for each file creation run. 
+#  The objective of this Scenario is scaling the method of creating a large number of files in a single file system. 
+#  HPCS Mission Partner requirements are for at least thirty-two thousand (32,000) open/creates per second in a single file system with cache coherent shared memory.
+#  HPCS vendors are requested to show scaling performance for this test by running it three (3) times varying the run time for each file creation run. 
 # **AMBIGUITY**: Assuming here that varying the run time is accomplished by varying the number of files. 
-## After the completion of each of these three (3) file creation runs, HPCS vendors are asked to execute a full file system check and report the time to complete this check.
+#  After the completion of each of these three (3) file creation runs, HPCS vendors are asked to execute a full file system check and report the time to complete this check.
 # 4.02 DESCRIPTION
-## Vendors are to open/create files ranging in random sizes from 1 KB-64 KB while measuring the rate of open/creates per second. 
-## The goal is at least thirty-two thousand (32,000) open/creates per second. 
-## Files may be created in different directories with file counts per directory to range from ten thousand (10,000) to one hundred thousand (100,000) files per directory. 
+#  Vendors are to open/create files ranging in random sizes from 1 KB-64 KB while measuring the rate of open/creates per second. 
+#  The goal is at least thirty-two thousand (32,000) open/creates per second. 
+#  Files may be created in different directories with file counts per directory to range from ten thousand (10,000) to one hundred thousand (100,000) files per directory. 
 # **AMBIGUITY**: "file may be created in different directories", BUT don't have to be during the same test. So set up (3) runs, (1)=10,000 files, (2)=20,000, (3)=40,000, (4)=80,000, etc
-## Vendors should consider using different configurations to provide information on scaling performance of the storage system, file system, operating system, 
-## and other significant factors in the datapath (e.g., metadata servers). 
-## Scaling performance is an important part of this test, therefore HPCS vendors are asked to provide at least three (3) data points showing scaling performance in the creation of the files, 
-## and to report at least the following information for each data point:
-## 1. Number of files in the file systems
-## 2. Number of directories created
-## 3. Time the test ran
-## 4. Average number of files per directory
-## 5. Average file size
-## 6. Storage topology information such as:
-###  a. Number and type of storage controllers
-###  b. Storage network configuration
-###  c. Number and type of disk drives
-## 7. Total data space for the file system and configuration of the storage
-## 8. Total metadata for the file system and configuration of the storage (if the file system separates data and metadata)
+#  Vendors should consider using different configurations to provide information on scaling performance of the storage system, file system, operating system, 
+#  and other significant factors in the datapath (e.g., metadata servers). 
+#  Scaling performance is an important part of this test, therefore HPCS vendors are asked to provide at least three (3) data points showing scaling performance in the creation of the files, 
+#  and to report at least the following information for each data point:
+#  1. Number of files in the file systems
+#  2. Number of directories created
+#  3. Time the test ran
+#  4. Average number of files per directory
+#  5. Average file size
+#  6. Storage topology information such as:
+#    a. Number and type of storage controllers
+#    b. Storage network configuration
+#    c. Number and type of disk drives
+#  7. Total data space for the file system and configuration of the storage
+#  8. Total metadata for the file system and configuration of the storage (if the file system separates data and metadata)
 # Method for running the Scenario:
-## 1. Create a file system, mount, and tune.
-## 2. Allocate a large number of small memory buffers in sizes ranging from 1 KB to 64 KB, allocating at least one-half of the memory of the machine.
-## 3. Start time counter.
-## 4. Begin using these buffers to write/create files with the goal to write/create thirty-two thousand (32,000) files per second.
-## 5. Stop time counter and determine file creation count.
-## 6. Start time counter.
-## 7. Time fsck of the file system.
-## 8. Stop time counter.
-## 9. Repeat tests at least three (3) times allowing the creation run time to vary.
+#  1. Create a file system, mount, and tune.
+#  2. Allocate a large number of small memory buffers in sizes ranging from 1 KB to 64 KB, allocating at least one-half of the memory of the machine.
+#  3. Start time counter.
+#  4. Begin using these buffers to write/create files with the goal to write/create thirty-two thousand (32,000) files per second.
+#  5. Stop time counter and determine file creation count.
+#  6. Start time counter.
+#  7. Time fsck of the file system.
+#  8. Stop time counter.
+#  9. Repeat tests at least three (3) times allowing the creation run time to vary.
 # 4.03 EXPECTED RESULTS
-## HPCS vendors should provide information on the scalability of increasing the amount of time this Scenario is run and the number of files created per second. 
-## At least three (3) data points should be provided, for example one (1), five (5), and ten (10) minute file creation runs.
-## HPCS vendors are asked to execute a full file system check for each run and report the time to complete the full file system check.
+#  HPCS vendors should provide information on the scalability of increasing the amount of time this Scenario is run and the number of files created per second. 
+#  At least three (3) data points should be provided, for example one (1), five (5), and ten (10) minute file creation runs.
+#  HPCS vendors are asked to execute a full file system check for each run and report the time to complete the full file system check.
 ############################################################################################################################
 
 #PBS -q batch
@@ -50,7 +50,7 @@
 #PBS -N S04
 #PBS -j oe
 #PBS -o ./results_Extreme_File_Creation.$PBS_JOBID
-#PBS -l walltime=0:10:00,size=48
+#PBS -l walltime=0:10:00,size=1536
 
 cd $PBS_O_WORKDIR
 EXECUTABLE="./mdtest"
@@ -58,31 +58,33 @@ EXECUTABLE="./mdtest"
 ##############################################################################
 ########## Change parameters below as needed #################################
 ########## Note: task == process            ##################################
-NODES=4                      # Number of Nodes
-TPN=1                        # Tasks per Node
-FPT=4                        # Files per task
-ITERS=2                      # Number of times to run test
-VERB=" -v  "                 # Verbose mode "-v -v"
-let "PROCS = $NODES * $TPN"  # Number of Tasks
-let "PROCSbeg=          1"   # Beginning number of tasks to test
-let "PROCSend= $PROCS - 1"   # Ending number of tasks to test
-let "PROCStep= $PROCS / 3"   # Step number of tasks
+NODES=128                       # Number of Nodes
+TPN=8                           # Tasks per Node
+FPT=128                         # Files per task
+ITERS=1                         # Number of times to run test
+VERB="     "                    # Verbose mode "-v -v"
+let "PROCS   = $NODES * $TPN"   # Number of Tasks
+let "PROCSbeg=          $TPN"   # Beginning number of tasks to test
+let "PROCSend= $PROCS       "   # Ending number of tasks to test
+let "PROCStep= $PROCS / 4"      # Step number of tasks
 DATA_DIR="/lustre/widow1/scratch/${USER}/mdtests/testfiles" # Test file directory ...must exist
-LAUNCH_CMD="aprun -n $PROCS -N $TPN"
-PRE_CREATE=true              # If true, create 0-length files as specified below accross OSTs
+PRE_CREATE=0                 # If true, create 0-length files as specified below accross OSTs
 ############# Should not have to change stuff below this line #################
 
-if [ "$PRE_CREATE" ]
+iprocs=$PROCSbeg
+while [ "$iprocs" -le "$PROCSend" ]
+do
+
+###########################################################################################
+# create 0 length files,  stripe 1, round robin files accross MAX_OSTs OSTs. tune to suit.
+###########################################################################################
+if [ "$PRE_CREATE" == "1" ]
 then
-###########################################################################
-# create 0 length files,  stripe 1, round robin files accross MAX_OSTs OSTs
-# tune to suit.
-###########################################################################
 DATA_FILE="mdtest"
 date
 iost=0
 iproc=0
-while [ "$iproc" -lt "$PROCS" ]
+while [ "$iproc" -lt "$iprocs" ]
 do
 ifile=0
 while [ "$ifile" -lt "$FPT" ]
@@ -93,19 +95,37 @@ ifile=`expr $ifile + 1`
 done
 iproc=`expr $iproc + 1`
 done
+let "$ifiles = $iprocs * $FPT"
+echo "PRE-CREATED $ifiles 0-len files"
 fi
 
-
 date
-# File create, random sizes between 1-64KB, concurrent stat tests, files only, no directories, $FPT files per task/process, no task offset
-${LAUNCH_CMD} $EXECUTABLE -d ${DATA_DIR} -n $FPT -i $ITERS  -F -w 1024 -W 65536 -k -R -f $PROCSbeg -l  $PROCSend +  -s $PROCStep $VERB
+##############################################################################################
+## mdtest does these steps. 
+## Instead of running for a set time and counting files, time creates for set number of files
+## 2. Allocate a large number of small memory buffers in sizes ranging from 1 KB to 64 KB, 
+##    allocating at least one-half of the memory of the machine.
+## 3. Start time counter.
+## 4. Begin using these buffers to write/create files with the goal to write/create thirty-two thousand (32,000) files per second.
+## 5. Stop time counter and determine file creation count.
+##############################################################################################
+# File create, random sizes between 1-64KB, concurrent random stat tests, files only, no directories, $FPT files per task/process
+aprun -n ${iprocs} -N $TPN $EXECUTABLE -d ${DATA_DIR} -n $FPT -i $ITERS  -F -w 1024 -W 65536  -R 0    $VERB
 
+#######################################
+## Skip this for now, until we know why,
+## Unless we can do it in parallel.
+## 6. Start time counter.
+## 7. Time fsck of the file system.
+## 8. Stop time counter.
+#######################################
+#date
+#lfs getstripe ${DATA_DIR}/*
 date
-lfs getstripe ${DATA_DIR}/*
-# File meta data tests, files,  directories, no task offset
-#aprun -n $PROCS -N $TPN $EXECUTABLE  -d $TEST_DIR_LOC -n $FPT -i $ITERS       -N 0  -f $PROCSbeg -l  $PROCSend +  -s $PROCStep  $VERB
+#fsck ${DATA_DIR}/*
+date
 
-# File meta data tests, files,  directories, random task offset
-#aprun -n $PROCS -N $TPN $EXECUTABLE  -d $TEST_DIR_LOC -n $FPT -i $ITERS       -R 0   -f $PROCSbeg -l  $PROCSend +  -s $PROCStep  $VERB
-
-echo "Finished File Meta tests"
+let "ifiles = $iprocs * $FPT"
+echo "Finished test with $iprocs processes, $ifiles files"
+let "iprocs = $iprocs + $PROCStep - $PROCSbeg"
+done

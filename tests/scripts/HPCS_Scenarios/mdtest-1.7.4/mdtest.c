@@ -81,11 +81,10 @@ int throttle = 1;
 int items = 0;
 int collective_creates = 0;
 int * write_bytes = NULL;
-char * write_buffer = NULL;
 char ** write_buffers = NULL;
+int stat_random = 0;
 int write_bytes_min = 0;
 int write_bytes_max = 0;
-int wb_index;
 int sync_file = 0;
 MPI_Comm testcomm;
 table_t * summary_table;
@@ -309,7 +308,7 @@ void directory_test(int iteration, int ntasks) {
 }
 
 void file_test(int iteration, int ntasks) {
-    int i, j, fd, size;
+    int i, j, fd, size, rndx;
     struct stat buf;
     char file[MAX_LEN];
     double t[4] = {0};
@@ -354,10 +353,10 @@ void file_test(int iteration, int ntasks) {
                 }
             }
             if (write_bytes_min > 0) {
-                                                       wb_index = 0;
-                if (write_bytes_max > write_bytes_min) wb_index=random()*items/RAND_MAX;
-                if (verbose) printf("rank %03d, writing write_bytes[%d]=%d to %s\n",rank,wb_index,write_bytes[i],file);
-                if (write(fd, &write_buffers[wb_index][0], write_bytes[i]) != write_bytes[i])
+                                                       rndx = 0;
+                if (write_bytes_max > write_bytes_min) rndx = random()*items/RAND_MAX;
+                if (verbose) printf("rank %03d, writing write_bytes[%d]=%d to %s\n",rank,rndx,write_bytes[rndx],file);
+                if (write(fd, &write_buffers[rndx][0], write_bytes[rndx]) != write_bytes[rndx])
                     FAIL("unable to write file");
             }
             if (sync_file && fsync(fd) == -1) {
@@ -376,7 +375,9 @@ void file_test(int iteration, int ntasks) {
             }
         }
         for (i = 0; i < items; i++) {
-            sprintf(file, "%s%d", stat_name, i);
+                              rndx = i;
+            if (stat_random)  rndx = random()*items/RAND_MAX; /* randomize accross items - files */
+            sprintf(file, "%s%d", stat_name, rndx);
             if (stat(file, &buf) == -1) {
                 FAIL("unable to stat file");
             }
@@ -668,7 +669,6 @@ int main(int argc, char **argv) {
     int stride = 1;
     int nstride = 0; /* neighbor stride */
     int iterations = 1;
-    int stat_random = 0;
     long int nstride_stat;
 
     /* Check for -h parameter before MPI_Init so the mdtest binary can be
@@ -847,7 +847,7 @@ int main(int argc, char **argv) {
                 if (!shared_file) {
                     sprintf(mk_name, "mdtest.%d.", (rank+(0*nstride))%i);
                                      nstride_stat=nstride;
-                    if (stat_random) nstride_stat=random();
+                    if (stat_random) nstride_stat=random(); /* randomize across ranks */
                     sprintf(stat_name, "mdtest.%d.", (rank+(1*nstride_stat))%i);
                     sprintf(rm_name, "mdtest.%d.", (rank+(2*nstride))%i);
                     if (verbose) printf("rank %03d, nstride_stat = %ld, creat()ing %s, stat()ing %s, unlink()ing %s\n", rank, nstride_stat, mk_name, stat_name, rm_name);
