@@ -43,7 +43,6 @@ TPN=4                                    # Tasks per Node
 FPT=64                                   # Files per task
 ITERS=1                                  # Number of times to run test
 VERB="     "                             # Verbose mode "-v -v"
-DATA_DIR="/lustre/scr144/${USER}/mdtests/testfiles" # Test file directory ...must exist
 PRE_CREATE=0                             # If true, create 0-length files as specified below accross OSTs
 tests="1000"                           # specify target number of files to create in each directory 
 dir_list="09 01 04 03 02 06 05 07 08 00" # list of dir names
@@ -134,11 +133,21 @@ aprun -n 1 -N 1 $EXECUTABLE -d . -n $mfiles -i $ITERS  -F -L file_list_random -B
 
 #date
 #lfs getstripe ${DATA_DIR}/*
-# File meta data tests, files,  directories, no task offset
-#aprun -n $PROCS -N $TPN $EXECUTABLE  -d $TEST_DIR_LOC -n $FPT -i $ITERS       -N 0  -f $PROCSbeg -l  $PROCSend  -s $PROCStep  $VERB
 
-# File meta data tests, files,  directories, random task offset
-#aprun -n $PROCS -N $TPN $EXECUTABLE  -d $TEST_DIR_LOC -n $FPT -i $ITERS       -R 0   -f $PROCSbeg -l  $PROCSend  -s $PROCStep  $VERB
+##########################################################################################################
+##     remove files in parallel
+##########################################################################################################
+# File create, random sizes between 1-64KB, concurrent random stat tests, files only, no directories, $FPT files per task/process
+for dir in $dir_list
+do
+#lfs getstripe ${dir}/*
+aprun -n ${nprocs} -N $TPN $EXECUTABLE -d ${dir} -n $FPT -i $ITERS  -F -w 1024 -W 65536  -R 0 -r   $VERB &
+done
+wait
+for dir in $dir_list
+do
+rmdir ${dir}
+done
 
 echo "Finished test with on $nodes nodes, $nprocs processes, $nfiles files"
 done
