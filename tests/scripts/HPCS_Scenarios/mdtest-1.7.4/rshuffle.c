@@ -70,12 +70,19 @@ int main(int argc, char **argv) {
   i = lcount;
   while ( i > 1) {
   i = i - 1;
-  j = i*random()/(RAND_MAX+1);
+  j = i*random()/RAND_MAX;
+  printf ("swaping %d with %d\n",i,j);
   strncpy(linetmp     , &lines[i][0] ,MAX_LINE_LEN); /* tmp=i */
   strncpy(&lines[i][0], &lines[j][0] ,MAX_LINE_LEN); /* i=j   */
   strncpy(&lines[j][0],  linetmp     ,MAX_LINE_LEN); /* j=tmp */
 }
+  /* print to stdout */
+  for (i=0; i< lcount; i++ ) {
+   printf("%s",&lines[i][0]);
+  }
 
+
+}
 /*
 A sample implementation of Sattolo's algorithm in Python is:
 
