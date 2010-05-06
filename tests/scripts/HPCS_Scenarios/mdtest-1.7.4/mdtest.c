@@ -48,12 +48,19 @@
 #define MAX_LEN 1024
 #define RELEASE_VERS "1.7.3"
 #define TEST_DIR "#test-dir"
-#define MAX_PATH_LEN 32
+#define MAX_PATH_LEN 64
 
 typedef struct
 {
     double entry[6];
 } table_t;
+
+void stripnl(char *str) {
+  while(strlen(str) && ( (str[strlen(str) - 1] == 13) ||
+       ( str[strlen(str) - 1] == 10 ))) {
+    str[strlen(str) - 1] = 0;
+  }
+}
 
 int rank;
 int size;
@@ -389,6 +396,7 @@ void file_test(int iteration, int ntasks) {
             if (stat_random)  rndx = random()*items/RAND_MAX; /* randomize accross items - files */
             sprintf(file, "%s%d", stat_name, rndx);
             if ( read_files > 0 ) strcpy(file,&files[i][0]);
+            if ( verbose ) printf("rank %03d, about to stat file %s\n",rank, file);
             if (stat(file, &buf) == -1) {
                 FAIL("unable to stat file");
             }
@@ -443,13 +451,13 @@ void file_test(int iteration, int ntasks) {
             MPI_Comm_size(testcomm, &size);
             if ( !files_exist ) summary_table[iteration].entry[3] = items*size/(t[1] - t[0]);
             summary_table[iteration].entry[4] = items*size/(t[2] - t[1]);
-            summary_table[iteration].entry[5] = items*size/(t[3] - t[2]);
+            if (!keep_files) summary_table[iteration].entry[5] = items*size/(t[3] - t[2]);
             if (verbose) {
                 if (!files_exist) printf("   File creation     : %10.3f sec, %10.3f ops/sec\n",
                        t[1] - t[0], summary_table[iteration].entry[3]);
                 printf("   File stat         : %10.3f sec, %10.3f ops/sec\n",
                        t[2] - t[1], summary_table[iteration].entry[4]);
-                printf("   File removal      : %10.3f sec, %10.3f ops/sec\n",
+                if (!keep_files) printf("   File removal      : %10.3f sec, %10.3f ops/sec\n",
                        t[3] - t[2], summary_table[iteration].entry[5]);
                 fflush(stdout);
             }
@@ -528,6 +536,7 @@ void summarize_results(int iterations) {
     } else {
         stop = 6;
     }
+    if ( keep_files ) stop = 5; /* skip file creates */
 
     /* special case: if no directory or file tests, skip all */
     if (!dirs_only && !files_only) {
@@ -818,6 +827,7 @@ int main(int argc, char **argv) {
              if ( fgets(&files[i][0], MAX_PATH_LEN, infile) == NULL ) {
                FAIL("Hit EOF on fileOfiles before reading requested # of files");
              }
+             stripnl(&files[i][0]); /* strip nl */
         }
      }
 
