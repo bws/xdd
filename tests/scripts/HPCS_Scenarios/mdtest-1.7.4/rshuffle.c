@@ -18,7 +18,7 @@ void stripnl(char *str) {
 }
  
 int main(int argc, char **argv) {
-  int MAX_LINE_LEN = 256;
+  int MAX_LINE_LEN = 32;
   FILE *infile;
   char **lines;
   char *linetmp;
@@ -58,8 +58,7 @@ int main(int argc, char **argv) {
   while( fgets(&lines[lcount][0], MAX_LINE_LEN, infile) != NULL ) {
     /* Get each line from the infile */
     lcount++;
-    /* print the line number and data */
-    printf("Line %d: %s", lcount, &lines[lcount-1][0]);  
+    /* allocate the next one */
     lines[lcount]  = (char *)malloc(MAX_LINE_LEN * sizeof(char));
   }
  
@@ -71,7 +70,6 @@ int main(int argc, char **argv) {
   while ( i > 1) {
   i = i - 1;
   j = i*random()/RAND_MAX;
-  printf ("swaping %d with %d\n",i,j);
   strncpy(linetmp     , &lines[i][0] ,MAX_LINE_LEN); /* tmp=i */
   strncpy(&lines[i][0], &lines[j][0] ,MAX_LINE_LEN); /* i=j   */
   strncpy(&lines[j][0],  linetmp     ,MAX_LINE_LEN); /* j=tmp */

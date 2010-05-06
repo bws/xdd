@@ -48,6 +48,7 @@
 #define MAX_LEN 1024
 #define RELEASE_VERS "1.7.3"
 #define TEST_DIR "#test-dir"
+#define MAX_PATH_LEN 32
 
 typedef struct
 {
@@ -68,6 +69,11 @@ char unique_chdir_dir[MAX_LEN];
 char unique_stat_dir[MAX_LEN];
 char unique_rm_dir[MAX_LEN];
 char unique_rm_uni_dir[MAX_LEN];
+char fileOfiles[MAX_LEN];
+char **files = NULL;
+int files_exist = 0;
+int read_files = 0;
+int start_file = 0;
 int shared_file = 0;
 int remove_only = 0;
 int keep_files = 0;
@@ -315,6 +321,7 @@ void file_test(int iteration, int ntasks) {
 
     if (!remove_only) {
         MPI_Barrier(testcomm);
+        if ( !files_exist ) {
         t[0] = MPI_Wtime();
         if (unique_dir_per_task) {
             unique_dir_access(MK_UNI_DIR);
@@ -328,6 +335,7 @@ void file_test(int iteration, int ntasks) {
                 for (j = 0; j < ntasks; j++) {
                     for (i = 0; i < items; i++) {
                         sprintf(file, "mdtest.%d.%d", j, i);
+                        if ( read_files > 0 ) strcpy(file,&files[i][0]);
                         if ((fd = creat(file, FILEMODE)) == -1) {
                             FAIL("unable to create file");
                         }
@@ -342,6 +350,7 @@ void file_test(int iteration, int ntasks) {
     
         for (i = 0; i < items; i++) {
             sprintf(file, "%s%d", mk_name, i);
+            if ( read_files > 0 ) strcpy(file,&files[i][0]);
             if (collective_creates) {
                 if ((fd = open(file, O_RDWR)) == -1) {
                     FAIL("unable to open file");
@@ -366,6 +375,7 @@ void file_test(int iteration, int ntasks) {
                 FAIL("unable to close file");
             }
         }
+      }
         MPI_Barrier(testcomm);
         t[1] = MPI_Wtime();
         if (unique_dir_per_task) {
@@ -378,6 +388,7 @@ void file_test(int iteration, int ntasks) {
                               rndx = i;
             if (stat_random)  rndx = random()*items/RAND_MAX; /* randomize accross items - files */
             sprintf(file, "%s%d", stat_name, rndx);
+            if ( read_files > 0 ) strcpy(file,&files[i][0]);
             if (stat(file, &buf) == -1) {
                 FAIL("unable to stat file");
             }
@@ -390,13 +401,14 @@ void file_test(int iteration, int ntasks) {
                 offset_timers(t, 2);
             }
         }
-    }
+    } /* if (!remove_only) */
     if (!keep_files) {
     if (collective_creates) {
         if (rank == 0) {
             for (j = 0; j < ntasks; j++) {
                 for (i = 0; i < items; i++) {
                     sprintf(file, "mdtest.%d.%d", j, i);
+                    if ( read_files > 0 ) strcpy(file,&files[i][0]);
                     if ((unlink(file) == -1) && (!remove_only)) {
                         FAIL("unable to unlink file");
                     }
@@ -406,6 +418,7 @@ void file_test(int iteration, int ntasks) {
     } else {
         for (i = 0; i < items; i++) {
             sprintf(file, "%s%d", rm_name, i);
+            if ( read_files > 0 ) strcpy(file,&files[i][0]);
             if (verbose) printf("rank %03d, removing: %s\n", rank, file);
             if (!(shared_file && rank != 0)) {
                 if ((unlink(file) == -1) && (!remove_only)) {
@@ -428,11 +441,11 @@ void file_test(int iteration, int ntasks) {
     
         if (rank == 0) {
             MPI_Comm_size(testcomm, &size);
-            summary_table[iteration].entry[3] = items*size/(t[1] - t[0]);
+            if ( !files_exist ) summary_table[iteration].entry[3] = items*size/(t[1] - t[0]);
             summary_table[iteration].entry[4] = items*size/(t[2] - t[1]);
             summary_table[iteration].entry[5] = items*size/(t[3] - t[2]);
             if (verbose) {
-                printf("   File creation     : %10.3f sec, %10.3f ops/sec\n",
+                if (!files_exist) printf("   File creation     : %10.3f sec, %10.3f ops/sec\n",
                        t[1] - t[0], summary_table[iteration].entry[3]);
                 printf("   File stat         : %10.3f sec, %10.3f ops/sec\n",
                        t[2] - t[1], summary_table[iteration].entry[4]);
@@ -448,7 +461,7 @@ void print_help() {
     char * opts[] = {
 "Usage: mdtest [-h] [-f first] [-i iterations] [-l last] [-s stride] [-n #]",
 "              [-p seconds] [-d testdir] [-r] [-t] [-u] [-v] [-D] [-F] [-N #]",
-"              [-S] [-V #] [-R] [-w # [[-W #]] [-k]",
+"              [-S] [-V #] [-R] [-w # [[-W #]] [-k] [-L file_of_files [-B #]] [-E}",
 "\t-h: prints this help message",
 "\t-c: collective creates: task 0 does all creates",
 "\t-d: the directory in which the tests will run",
@@ -467,6 +480,9 @@ void print_help() {
 "\t-W: maximum # of bytes (random sizes in range -w to -W) to write to each file after it is created",
 "\t-D: perform test on directories only (no files)",
 "\t-F: perform test on files only (no directories)",
+"\t-L: perform test on files read from file of files",
+"\t-B: start file index in file of files",
+"\t-E: files exist, don't create or write",
 "\t-N: stride # between neighbor tasks for file/dir stat (local=0)",
 "\t-R: random stride # between neighbor tasks for file/dir stat (local=0)",
 "\t-S: shared file access (file only, no directories)",
@@ -504,6 +520,7 @@ void summarize_results(int iterations) {
     } else {
         start = 0;
     }
+    if ( files_exist ) start = 4; /* skip file creates */
 
     /* if directories only access, skip entries 3-5 (the file tests) */
     if (dirs_only && !files_only) {
@@ -670,6 +687,7 @@ int main(int argc, char **argv) {
     int nstride = 0; /* neighbor stride */
     int iterations = 1;
     long int nstride_stat;
+    FILE *infile;
 
     /* Check for -h parameter before MPI_Init so the mdtest binary can be
        called directly, without, for instance, mpirun. */
@@ -694,7 +712,7 @@ int main(int argc, char **argv) {
 
     /* Parse command line options */
     while (1) {
-        c = getopt(argc, argv, "cd:Df:Fhi:l:n:N:p:rks:StuvV:w:yR:W:");
+        c = getopt(argc, argv, "cd:Df:Fhi:l:n:N:p:rks:StuvV:w:yR:W:L:B:E");
         if (c == -1) {
             break;
         }
@@ -746,6 +764,12 @@ int main(int argc, char **argv) {
                 write_bytes_max = atoi(optarg); srandom(rank);  break;
             case 'y':
                 sync_file = 1;                break;
+            case 'L':
+                strcpy(fileOfiles, optarg);  read_files = 1; break;
+            case 'B':
+                start_file = atoi(optarg);    break;
+            case 'E':
+                files_exist = 1;              break;
         }
     }
 
@@ -772,6 +796,30 @@ int main(int argc, char **argv) {
         if (verbose) printf("rank %03d allocated buffer #%d, size=%d\n",rank,i,write_bytes[i]);
        }
     }
+
+    /* fileOfiles option */
+     if ( read_files > 0 ) {
+      /* Open the file.  If NULL is returned there was an error */
+        if((infile = fopen(fileOfiles, "r")) == NULL) {
+          FAIL("Error Opening File.");
+        }
+
+       files = (char **)malloc(items * sizeof(char *));
+        for (i = 0; i < items; i++) {
+           files[i]  = (char *)malloc(MAX_PATH_LEN * sizeof(char));
+        }
+        /* skip to first file to read */
+        for (i = 0; i < start_file; i++) {
+          if ( fgets(&files[0][0], MAX_PATH_LEN, infile) == NULL ) {
+            FAIL("Hit EOF on fileOfiles before finding start_file");
+          }
+        }
+        for (i = 0; i < items; i++) {
+             if ( fgets(&files[i][0], MAX_PATH_LEN, infile) == NULL ) {
+               FAIL("Hit EOF on fileOfiles before reading requested # of files");
+             }
+        }
+     }
 
     /* create directory path to work in */
     strcpy(testdir, testdirpath);
