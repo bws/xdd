@@ -826,11 +826,11 @@ int main(int argc, char **argv) {
         MPI_Comm_create(MPI_COMM_WORLD, testgroup, &testcomm);
         if (rank == 0) {
             if (files_only && dirs_only) {
-                printf("\n%d tasks, %d files/directories, %s base\n", i, i * items, mk_name);
+                printf("\n%d tasks, %d files/directories\n", i, i * items);
             } else if (files_only) {
-                printf("\n%d tasks, %d files, %s base\n", i, i * items, mk_name);
+                printf("\n%d tasks, %d files\n", i, i * items);
             } else if (dirs_only) {
-                printf("\n%d tasks, %d directories, %s base\n", i, i * items, unique_mk_dir);
+                printf("\n%d tasks, %d directories\n", i, i * items);
             }
         }
         if (rank == 0 && verbose) {

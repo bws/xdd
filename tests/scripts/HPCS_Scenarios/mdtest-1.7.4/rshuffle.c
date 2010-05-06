@@ -21,8 +21,9 @@ int main(int argc, char **argv) {
   int MAX_LINE_LEN = 256;
   FILE *infile;
   char **lines;
+  char *linetmp;
   char fname[256];
-  int lcount, c;
+  int lcount, c, i, j;
   int maxlines = 100000; /* default */
  
   /* Read in the filename */
@@ -63,9 +64,25 @@ int main(int argc, char **argv) {
   }
  
   fclose(infile);  /* Close the file */
+
+  /* Random shuffle by Sattolo */ 
+  linetmp = (char *)malloc(MAX_LINE_LEN * sizeof(char));
+  i = lcount;
+  while ( i > 1) {
+  i = i - 1;
+  j = i*random()/(RAND_MAX+1);
+  strncpy(linetmp     , &lines[i][0] ,MAX_LINE_LEN); /* tmp=i */
+  strncpy(&lines[i][0], &lines[j][0] ,MAX_LINE_LEN); /* i=j   */
+  strncpy(&lines[j][0],  linetmp     ,MAX_LINE_LEN); /* j=tmp */
 }
 
-/*  i = len(items)
+/*
+A sample implementation of Sattolo's algorithm in Python is:
+
+from random import randrange
+ 
+def sattoloCycle(items):
+    i = len(items)
     while i > 1:
         i = i - 1
         j = randrange(i)  # 0 <= j <= i-1
