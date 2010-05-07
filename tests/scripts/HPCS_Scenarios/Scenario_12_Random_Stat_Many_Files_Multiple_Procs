@@ -1,36 +1,37 @@
 #! /bin/sh 
 
 ############################################################################################################################
-# SCENARIO 11 - RANDOM STAT() ON FILES - ONE (1) PROCESS
+# SCENARIO 12 - RANDOM STAT() ON FILES -MULTIPLE PROCESSES
 ############################################################################################################################
-# 11.01 OBJECTIVE
-## To understand the file system performance of a random readdir() or stat() call with a large number of files in a large number of directories with one (1) process.
-# 11.02 DESCRIPTION
-## One (1) process performing a random readdir() or stat() with ten (10) million files located in ten (10) directories with one (1) million files per directory.
-# Method for running the Scenario:
-## 1. Create file system, mount, and tune.
-## 2. Randomly make ten (10) directories. 
-## 3. Randomly create in parallel one (1) million files in each of the ten (10) directories using at least one hundred (100) creation threads or processes.
-## 4. Unmount file system.
-## 5. Mount file system.
-## 6. Start time counter.
-## 7. Serial random walk using readdir() or stat() of all the files in each of the directories in a random order using only one (1) thread or process (this is the cold cache test).
-## 8. Stop time counter.
-## 9. Start time counter.
-## 10. Serial random walk using readdir() or stat() of all the files in each of the directories in a random order using only one (1) thread or process (this is the warm cache test).
-## 11. Stop time counter.
-## 12. Repeat steps 4-11 at least three (3) times.
-## 11.03 EXPECTED RESULTS
-## No measurement is required but the performance numbers should be reported along with the test setup 
-## and at least three (3) runs using cold cache and three (3) runs using warm cache. 
-## The variance in reported performance should be low especially for the warm cache results.
+# 12.01 OBJECTIVE
+#  To understand the file system performance of a random readdir() or stat() call with a large number of files in a large number of directories with multiple processes.
+# 12.02 DESCRIPTION
+#  Multiple processes performing a random readdir() or stat() with ten (10) million files in ten (10) directories with one (1) million files per directory.
+#  It is suggested that a progression of processes in powers of two (2), from two (2) to five hundred twelve (512), be used.
+#  Method for running the Scenario:
+#   1. Create file system, mount, and tune.
+#   2. Randomly make ten (10) directories.
+#   3. Randomly create in parallel one (1) million files in each of the ten (10) directories using at least one hundred (100) creation threads or processes.
+#   4. Unmount file system.
+#   5. Mount file system.
+#   6. Start time counter.
+#   7. Parallel tree walk using readdir() or stat() walking in order for each of the directories using two (2) walking threads or processes (this is the cold cache test).
+#   8. Stop time counter.
+#   9. Start time counter.
+#   10. Parallel tree walk using readdir() or stat() walking in order for each of the directories using two (2) walking threads or processes (this is the warm cache test).
+#   11. Stop time counter.
+#  12. Repeat steps 4-11 for parallel processes doing this random action from in powers of two (2) from four (4) to five hundred twelve (512) threads or processes.
+# 12.03 EXPECTED RESULTS
+#  No measurement is required but the performance numbers should be reported along with the test setup and 
+#  at least three (3) runs using cold cache and three (3) runs using warm cache for each of the thread or process counts. 
+#  The variance in reported performance should be low especially for the warm cache results.
 ############################################################################################################################
 
 #PBS -q batch
 #PBS -A stf006
-#PBS -N S04
+#PBS -N S12
 #PBS -j oe
-#PBS -o ./results_Scenario_11_Random_Stat_Many_Files_One_Proc.$PBS_JOBID
+#PBS -o ./results_Scenario_12_Random_Stat_Many_Files_Multple_Procs.$PBS_JOBID
 #PBS -l walltime=0:20:00,size=160
 
 cd $PBS_O_WORKDIR
@@ -128,21 +129,27 @@ date
 ## 8. Stop time counter.
 ##########################################################################################################
 let "mfiles = $mfiles * $dircount"
-# single process stat() of all files on randomly shuffled file of $mfiles files...dont remove files 
+# multiple process stat() of all files on randomly shuffled file of $mfiles files...dont remove files 
+for iprocs in "2 4 8 16 32 64 128 256 512"
+do
+echo "Started tests on $dircount directories. Per directory resources: $iprocs processes, $mfiles files"
 date
-aprun -n 1 -N 1 $EXECUTABLE -d . -n $mfiles -i $ITERS  -F -L file_list_random -B 0 -E -k   $VERB 
+aprun -n $iprocs -N 1 $EXECUTABLE -d . -n $mfiles -i $ITERS  -F -L file_list_random -B 0 -E -k   $VERB 
 ##########################################################################################################
 ##   This is the warm cache case
 ##########################################################################################################
 date
-aprun -n 1 -N 1 $EXECUTABLE -d . -n $mfiles -i $ITERS  -F -L file_list_random -B 0 -E -k   $VERB 
+aprun -n $iprocs -N $TPN $EXECUTABLE -d . -n $mfiles -i $ITERS  -F -L file_list_random -B 0 -E -k   $VERB 
+
+echo "Finished tests on $dircount directories. Per directory resources: $iprocs processes, $mfiles files"
+done
 
 #date
 #lfs getstripe ${DATA_DIR}/*
 
-##########################################################################################################
+#####################################################################################################
 ##     remove files in parallel
-##########################################################################################################
+######################################################################################################
 for dir in $dir_list
 do
 aprun -n ${nprocs} -N $TPN $EXECUTABLE -d ${dir} -n $FPT -i $ITERS  -F -w 1024 -W 65536  -R 0 -r   $VERB &
@@ -153,5 +160,4 @@ do
 rmdir ${dir}
 done
 
-echo "Finished tests with on $nodes nodes, $nprocs processes, $dircount directories, $mfiles files total"
 done
