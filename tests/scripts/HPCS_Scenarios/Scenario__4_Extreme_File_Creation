@@ -50,7 +50,7 @@
 #PBS -N S04
 #PBS -j oe
 #PBS -o ./results_Extreme_File_Creation.$PBS_JOBID
-#PBS -l walltime=0:10:00,size=1536
+#PBS -l walltime=0:20:00,size=1568
 
 cd $PBS_O_WORKDIR
 EXECUTABLE="./mdtest"
@@ -58,22 +58,22 @@ EXECUTABLE="./mdtest"
 ##############################################################################
 ########## Change parameters below as needed #################################
 ########## Note: task == process            ##################################
-NODES=128                       # Number of Nodes
-TPN=8                           # Tasks per Node
-FPT=128                         # Files per task
+TPN=4                           # Tasks per Node
+FPT=64                         # Files per task
 ITERS=1                         # Number of times to run test
 VERB="     "                    # Verbose mode "-v -v"
-let "PROCS   = $NODES * $TPN"   # Number of Tasks
-let "PROCSbeg=          $TPN"   # Beginning number of tasks to test
-let "PROCSend= $PROCS       "   # Ending number of tasks to test
-let "PROCStep= $PROCS / 4"      # Step number of tasks
-DATA_DIR="/lustre/widow1/scratch/${USER}/mdtests/testfiles" # Test file directory ...must exist
+DATA_DIR="/lustre/scr144/${USER}/mdtests/testfiles" # Test file directory ...must exist
 PRE_CREATE=0                 # If true, create 0-length files as specified below accross OSTs
+tests="10000 25000 50000 100000" # specify target number of files to create on each test 
 ############# Should not have to change stuff below this line #################
 
-iprocs=$PROCSbeg
-while [ "$iprocs" -le "$PROCSend" ]
+for nfiles in $tests
 do
+let "nprocs = $nfiles / $FPT"
+let "nodes  = $nprocs / $TPN + 1" # round up to nearest # nodes
+let "nprocs = $nodes  * $TPN"     # actual # procs
+let "mfiles = $nprocs * $FPT"     # actual # files
+echo "Starting test with on $nodes nodes, $nprocs processes, $mfiles files"
 
 ###########################################################################################
 # create 0 length files,  stripe 1, round robin files accross MAX_OSTs OSTs. tune to suit.
@@ -84,7 +84,7 @@ DATA_FILE="mdtest"
 date
 iost=0
 iproc=0
-while [ "$iproc" -lt "$iprocs" ]
+while [ "$iproc" -lt "$nprocs" ]
 do
 ifile=0
 while [ "$ifile" -lt "$FPT" ]
@@ -95,8 +95,8 @@ ifile=`expr $ifile + 1`
 done
 iproc=`expr $iproc + 1`
 done
-let "$ifiles = $iprocs * $FPT"
-echo "PRE-CREATED $ifiles 0-len files"
+let "$ifile = $nprocs * $FPT"
+echo "PRE-CREATED $ifile 0-len files"
 fi
 
 date
@@ -110,7 +110,7 @@ date
 ## 5. Stop time counter and determine file creation count.
 ##############################################################################################
 # File create, random sizes between 1-64KB, concurrent random stat tests, files only, no directories, $FPT files per task/process
-aprun -n ${iprocs} -N $TPN $EXECUTABLE -d ${DATA_DIR} -n $FPT -i $ITERS  -F -w 1024 -W 65536  -R 0    $VERB
+aprun -n ${nprocs} -N $TPN $EXECUTABLE -d ${DATA_DIR} -n $FPT -i $ITERS  -F -w 1024 -W 65536  -R 0    $VERB
 
 #######################################
 ## Skip this for now, until we know why,
@@ -125,7 +125,5 @@ date
 #fsck ${DATA_DIR}/*
 date
 
-let "ifiles = $iprocs * $FPT"
-echo "Finished test with $iprocs processes, $ifiles files"
-let "iprocs = $iprocs + $PROCStep - $PROCSbeg"
+echo "Finished test with on $nodes nodes, $nprocs processes, $nfiles files"
 done

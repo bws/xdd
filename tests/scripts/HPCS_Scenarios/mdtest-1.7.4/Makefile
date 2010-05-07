@@ -27,13 +27,13 @@ OS=$(shell uname)
 
 CC = $(CC.$(OS))
 
-all: mdtest rshuffle
+all: mdtest rshuffled
 
 mdtest: mdtest.c
 	$(CC) -g -o mdtest mdtest.c -lm
 
 
-rshuffle: rshuffle.c
-	$(CC) -g -o rshuffle rshuffle.c -lm
+rshuffled: rshuffled.c
+	$(CC) -g -o rshuffled rshuffled.c -lm
 clean:
-	rm -f mdtest mdtest.o rshuffle rshuffle.o
+	rm -f mdtest mdtest.o rshuffled rshuffled.o

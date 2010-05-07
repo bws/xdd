@@ -31,7 +31,7 @@
 #PBS -N S04
 #PBS -j oe
 #PBS -o ./results_Scenario_11_Random_Stat_Many_Files_One_Proc.$PBS_JOBID
-#PBS -l walltime=0:10:00,size=164
+#PBS -l walltime=0:20:00,size=160
 
 cd $PBS_O_WORKDIR
 EXECUTABLE="./mdtest"
@@ -60,10 +60,12 @@ echo "Starting test with on $nodes nodes, $nprocs processes, $mfiles files per d
 ## 2. Randomly make ten (10) directories. 
 ##         How are directories made randomly??? Humor the spec writers...
 ##########################################################################################################
+let "dircount = 0"
 for dir in $dir_list
 do
 rm -fr ${dir}
 mkdir  ${dir}
+let "dircount = dircount + 1"
 ###########################################################################################
 # create 0 length files,  stripe 1, round robin files accross MAX_OSTs OSTs. tune to suit.
 ###########################################################################################
@@ -102,18 +104,10 @@ wait
 
 ###########################################
 # done with file creation. build ordered list
-###########################################
-let "dircount = 0"
-rm -f file_list
-touch file_list
-for dir in $dir_list
-do
-ls -1 ${dir}/* >> file_list
-let "dircount = dircount + 1"
-done
 # Randomly shuffle ordered list
-let "mfiles = $mfiles * $dircount"
-./rshuffle -f file_list -n  $mfiles > file_list_random
+###########################################
+date
+./rshuffled $dir_list > file_list_random
 ##########################################################################################################
 ##   This is the cold cache case
 ## 6. Start time counter.
@@ -122,6 +116,7 @@ let "mfiles = $mfiles * $dircount"
 ##    OK, the spec said one (1) process!!!!!
 ## 8. Stop time counter.
 ##########################################################################################################
+let "mfiles = $mfiles * $dircount"
 # single process stat() of all files on randomly shuffled file of $mfiles files...dont remove files 
 date
 aprun -n 1 -N 1 $EXECUTABLE -d . -n $mfiles -i $ITERS  -F -L file_list_random -B 0 -E -k   $VERB 
@@ -149,5 +144,5 @@ do
 rmdir ${dir}
 done
 
-echo "Finished test with on $nodes nodes, $nprocs processes, $nfiles files"
+echo "Starting test with on $nodes nodes, $nprocs processes, $dircount directories, $mfiles files total"
 done
