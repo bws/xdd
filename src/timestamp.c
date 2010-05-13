@@ -67,16 +67,16 @@ xdd_ts_overhead(struct tthdr *ttp) {
  */
 void
 xdd_ts_setup(ptds_t *p) {
-	pclk_t cycleval; /* resolution of the clock in picoseconds per ticl */
-	time_t t;  /* Time */
-	int64_t tt_entries; /* number of entries inthe time stamp table */
-	int32_t tt_bytes; /* size of time stamp table in bytes */
-#ifdef WIN32
-	LPVOID lpMsgBuf; /* Used for the error messages */
-#endif
+	pclk_t		cycleval; /* resolution of the clock in picoseconds per ticl */
+	time_t 		t;  /* Time */
+	int64_t 	tt_entries; /* number of entries inthe time stamp table */
+	int32_t 	tt_bytes; /* size of time stamp table in bytes */
+
+
 	/* check to make sure we really need to do this */
 	if (!(p->ts_options & TS_ON) && !(xgp->global_options & GO_DESKEW))
 		return;
+
 	/* If DESKEW is TRUE but the TS option was not requested, then do a DESKEW ts setup */
 	if ((xgp->global_options & GO_DESKEW) && !(p->ts_options & TS_ON)) {
 		p->ts_options |= (TS_ON | TS_ALL | TS_ONESHOT | TS_SUPPRESS_OUTPUT);
@@ -88,12 +88,11 @@ xdd_ts_setup(ptds_t *p) {
 		p->ts_trigtime *= TRILLION;
 		p->ts_trigtime += xgp->ActualLocalStartTime;
 	}
-	/* calculate size of the time stamp table and malloc it */
+
+	/* Calculate size of the time stamp table and malloc it */
 	if (xgp->global_options & GO_DESKEW) { /* This is a case where the target has time stamping already enabled as well as deskew */
 		/* Make sure the ts table is large enough for the deskew operation */
-		if (p->target_ops < p->total_threads) /* not big enough - make it BIGGER */
-			tt_entries = xgp->passes * p->total_threads;
-		else tt_entries = xgp->passes * p->target_ops; /* calculate the size */
+		tt_entries = xgp->passes * p->target_ops; /* calculate the size */
 	} else {
 		tt_entries = p->ts_size; 
 		if (tt_entries < (xgp->passes * p->target_ops)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
@@ -108,31 +107,16 @@ xdd_ts_setup(ptds_t *p) {
 	}
 	/* calculate the total size in bytes of the time stamp table */
 	tt_bytes = (int)((sizeof(struct tthdr)) + (tt_entries * sizeof(struct tte)));
-#if (IRIX || SOLARIS || AIX || OSX)
+#if (LINUX || SOLARIS || AIX || OSX)
 	p->ttp = (struct tthdr *)valloc(tt_bytes);
 #else
 	p->ttp = (struct tthdr *)malloc(tt_bytes);
 #endif
 	if (p->ttp == 0) {
-fprintf(xgp->errout,"%s: cannot allocate %d bytes of memory for timestamp table for target %d\n",
-			xgp->progname,tt_bytes,p->my_target_number);
+		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp table\n",
+			xgp->progname,p->my_target_number, tt_bytes);
 		fflush(xgp->errout);
-#ifdef WIN32 
-		FormatMessage( 
-			FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-			FORMAT_MESSAGE_FROM_SYSTEM | 
-			FORMAT_MESSAGE_IGNORE_INSERTS,
-			NULL,
-			GetLastError(),
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
-			(LPTSTR) &lpMsgBuf,
-			0,
-			NULL);
-		fprintf(xgp->errout,"Reason:%s",lpMsgBuf);
-		fflush(xgp->errout);
-#else 
 		perror("Reason");
-#endif
 		p->ts_options &= ~TS_ON;
 		return;
 	}
@@ -167,7 +151,7 @@ fprintf(xgp->errout,"%s: cannot allocate %d bytes of memory for timestamp table 
 	p->ttp->tt_bytes = tt_bytes;
 	p->ttp->tte_indx = 0;
 	p->ttp->delta = xgp->gts_delta;
-	p->timestamps = 0;
+	p->ts_current_entry = 0;
 	return;
 } /* end of xdd_ts_setup() */
 /*----------------------------------------------------------------------------*/
@@ -177,7 +161,7 @@ void
 xdd_ts_write(ptds_t *p) {
 	int32_t i;   /* working variable */
 	int32_t ttfd;   /* file descriptor for the timestamp file */
-	int32_t newsize;  /* new size of the time stamp table */
+	int64_t newsize;  /* new size of the time stamp table */
 	tthdr_t *ttp;   /* pointer to the time stamp table header */
 	char tsfilename[1024]; /* name of the timestamp file */
 
@@ -200,8 +184,8 @@ xdd_ts_write(ptds_t *p) {
 		fflush(xgp->errout);
 		perror("reason");
 	}
-	fprintf(xgp->output,"Timestamp table written to %s - %d entries, %d bytes\n",
-		tsfilename, ttp->numents, newsize);
+	fprintf(xgp->output,"Timestamp table written to %s - %lld entries, %lld bytes\n",
+		tsfilename, (long long)ttp->numents, (long long)newsize);
 	close(ttfd);
 } /* end of xdd_ts_write() */
 /*----------------------------------------------------------------------------*/
@@ -229,7 +213,6 @@ xdd_ts_reports(ptds_t *p) {
 	int64_t  hi_dist, lo_dist; /* high and low distances traveled */
 	int64_t  total_distance; /* Sum of all distances seeked */
 	int64_t  *distance; /* distance between two successive operations */
-	uint64_t block_location; /* current block location */
 	int64_t  mean_distance; /* average distance */
 	int64_t  mean_iotime; /* average iotime */
 	int64_t  start_ts; /* starting timestamp to print*/
@@ -255,16 +238,13 @@ xdd_ts_reports(ptds_t *p) {
 	int64_t  indx; /* Current TS index */
 	tthdr_t  *ttp;  /* pointer to the time stamp table header */
 	char  *opc;  /* pointer to the operation string */
-#ifdef WIN32
-	LPVOID lpMsgBuf;
-#endif
 #ifdef WIN32 /* This is required to circumvent the problem of mulitple streams to multiple files */
 	/* We need to wait for the previous thread to finish writing its ts report and close the output stream before we can continue */
 	WaitForSingleObject(p->ts_serializer_mutex,INFINITE);
 #endif
 	if(p->ts_options & TS_SUPPRESS_OUTPUT)
 		return;
-	if ((p->pass_complete == 0) && (p->run_complete == 0)) {
+	if (p->pass_complete == 0) {
 		fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d thread %d has not yet completed! Results beyond this point are unpredicatable!\n",
 						xgp->progname, p->my_target_number, p->my_qthread_number);
 		fflush(xgp->errout);
@@ -300,23 +280,7 @@ xdd_ts_reports(ptds_t *p) {
 			fprintf(xgp->errout,"%s: cannot allocate memory for temporary buffers to analyze timestamp info\n",
 				xgp->progname);
 			fflush(xgp->errout);
-#ifdef WIN32 
-			FormatMessage( 
-				FORMAT_MESSAGE_ALLOCATE_BUFFER | 
-				FORMAT_MESSAGE_FROM_SYSTEM | 
-				FORMAT_MESSAGE_IGNORE_INSERTS,
-				NULL,
-				GetLastError(),
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), // Default language
-				(LPTSTR) &lpMsgBuf,
-				0,
-				NULL);
-			fprintf(xgp->errout,"Reason:%s",lpMsgBuf);
-			fflush(xgp->errout);
-			ReleaseMutex(p->ts_serializer_mutex);
-#else 
 			perror("Reason");
-#endif
 			return;
 		}
 		if (p->ts_options & TS_DETAILED) { /* Generate the detailed and summary report */
@@ -328,12 +292,12 @@ xdd_ts_reports(ptds_t *p) {
 					(long long)indx);
 			}
 
-	fprintf(p->tsfp,"Start of DETAILED Time Stamp Report, Number of entries, %d, Picoseconds per clock tick, %lld, delta, %lld\n",
-		ttp->numents,
+	fprintf(p->tsfp,"Start of DETAILED Time Stamp Report, Number of entries, %lld, Picoseconds per clock tick, %lld, delta, %lld\n",
+		(long long)ttp->numents,
 		(long long)ttp->res,
 		(long long)ttp->delta);
 
-	fprintf(p->tsfp,"Target, RWV Op, Pass, OP Number, Block Location, Distance, StartTS, EndTS, IO_Time_ms, Relative_ms, Delta_us, Loop_ms, Inst MB/sec\n");
+	fprintf(p->tsfp,"Target, RWV Op, Pass, OP Number, Byte Location, Distance, StartTS, EndTS, IO_Time_ms, Relative_ms, Delta_us, Loop_ms, Inst MB/sec\n");
 	fflush(p->tsfp);
 		}
 		/* Scan the time stamp table and calculate the numbers */
@@ -341,15 +305,9 @@ xdd_ts_reports(ptds_t *p) {
 		hi_dist = 0;
 		hi_time = 0;
 		hi_dead = 0;
-#if (WIN32)
-		lo_dist = 1000000000000;
-		lo_time = 1000000000000;
-		lo_dead = 1000000000000;
-#else
 		lo_dist = 1000000000000LL;
 		lo_time = 1000000000000LL;
 		lo_dead = 1000000000000LL;
-#endif
 		total_distance = 0;
 		total_time = 0;
 		total_dead = 0;
@@ -367,24 +325,21 @@ xdd_ts_reports(ptds_t *p) {
 					ttp->blocksize = p->block_size;
 				}
 				if (ttp->tte[i].byte_location  > ttp->tte[i-1].byte_location) {
-					distance[i] = ((ttp->tte[i].byte_location - 
+					distance[i] = (ttp->tte[i].byte_location - 
 						(ttp->tte[i-1].byte_location + 
-						(ttp->reqsize))) / 
-						ttp->blocksize);
+						(ttp->reqsize)));
 				} else {
-					distance[i] = ((ttp->tte[i-1].byte_location - 
+					distance[i] = (ttp->tte[i-1].byte_location - 
 						(ttp->tte[i].byte_location + 
-						(ttp->reqsize))) / 
-						ttp->blocksize);
+						(ttp->reqsize)));
 				}
 				dead_time[i] = ttp->tte[i].start - ttp->tte[i-1].end;
 				loop_time = ttp->tte[i].end - ttp->tte[i-1].end;
 			}
-			block_location = ttp->tte[i].byte_location/ttp->blocksize; /* normalize the location in blocksized-units */
 			io_time[i] = ttp->tte[i].end - ttp->tte[i].start;
 			relative_time = ttp->tte[i].start - ttp->tte[0].start;
 			if (i > 0) {
-				if (ttp->tte[i].pass > ttp->tte[i-1].pass) {
+				if (ttp->tte[i].pass_number > ttp->tte[i-1].pass_number) {
 					fprintf(p->tsfp,"\n");
 				}
 			} else { 
@@ -409,18 +364,19 @@ xdd_ts_reports(ptds_t *p) {
 			if (p->ts_options & TS_DETAILED) { /* Print the detailed report */
 				start_ts = ttp->tte[i].start + ttp->delta;
 				end_ts = ttp->tte[i].end + ttp->delta;
-				switch (ttp->tte[i].rwvop) {
+				switch (ttp->tte[i].op_type) {
 					case SO_OP_WRITE: opc="w"; break;
 					case SO_OP_WRITE_VERIFY: opc="v"; break;
+					case SO_OP_NOOP: opc="n"; break;
 					default: opc="r"; break;
 				}
 
-	fprintf(p->tsfp,"%d,%s,%d,%d,%lld,%lld,%llu,%llu,%15.5f,%15.5f,%15.5f,%15.5f,%12.3f\n",
-				p->my_target_number, 
+	fprintf(p->tsfp,"%d,%s,%d,%lld,%lld,%lld,%llu,%llu,%15.5f,%15.5f,%15.5f,%15.5f,%12.3f\n",
+				ttp->tte[i].qthread_number, 
 				opc,
-				ttp->tte[i].pass, 
-				ttp->tte[i].opnumber, 
-				(long long)block_location, 
+				ttp->tte[i].pass_number, 
+				(long long)ttp->tte[i].op_number, 
+				(long long)ttp->tte[i].byte_location, 
 				(long long)distance[i],  
 				(unsigned long long)start_ts,  
 				(unsigned long long)end_ts, 

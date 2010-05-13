@@ -256,9 +256,9 @@ unsigned char cspat[] =  { 0xbc,0x95,0xb5,0xb5, 0xbc,0x95,0xb5,0xb5, 0xbc,0x95,0
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

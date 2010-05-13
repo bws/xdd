@@ -31,15 +31,18 @@
 #include "xdd.h"
 
 //******************************************************************************
-// Before I/O Loop
+// Things the Target Thread has to do before a Pass is started
 //******************************************************************************
 /*----------------------------------------------------------------------------*/
-/* xdd_timer_calibration_before_io_loop() - This subroutine will check the 
+/* xdd_timer_calibration_before_pass() - This subroutine will check the 
  * resolution of the timer on the system and display information about it if 
  * requested.
+ * 
+ * This subroutine is called within the context of a Target Thread.
+ *
  */
 void
-xdd_timer_calibration_before_io_loop(void) {
+xdd_timer_calibration_before_pass(void) {
 	pclk_t	t1,t2,t3;
 #ifdef WIN32 
         int32_t i;
@@ -88,14 +91,17 @@ fprintf(xgp->output,"XDD Timer Calibration Info: Requested sleep time in nanosec
 		}
 #endif
 	}
-} // End of xdd_timer_calibration_before_io_loop()
+} // End of xdd_timer_calibration_before_pass()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_start_delay_before_io_loop() - This subroutine will sleep for the period 
+/* xdd_start_delay_before_pass() - This subroutine will sleep for the period 
  * of time specified by the -startdelay option.  
+ * 
+ * This subroutine is called within the context of a Target Thread.
+ *
  */
 void
-xdd_start_delay_before_io_loop(ptds_t *p) {
+xdd_start_delay_before_pass(ptds_t *p) {
 	int32_t 	sleep_time_dw;
 	int		status;
 	uint64_t 	tmp;	// Temp 
@@ -131,15 +137,18 @@ xdd_start_delay_before_io_loop(ptds_t *p) {
 		status = nanosleep(&req, &rem);
 	} 
 #endif
-} // End of xdd_start_delay_before_io_loop()
+} // End of xdd_start_delay_before_pass()
 
 
 /*----------------------------------------------------------------------------*/
-/* xdd_raw_before_io_loop() - This subroutine initializes the variables that
+/* xdd_raw_before_pass() - This subroutine initializes the variables that
  * are used by the read_after_write option
+ * 
+ * This subroutine is called within the context of a Target Thread.
+ *
  */
 void
-xdd_raw_before_io_loop(ptds_t *p) {
+xdd_raw_before_pass(ptds_t *p) {
 
 	if ((p->target_options & TO_READAFTERWRITE) == 0)
 		return;
@@ -154,14 +163,17 @@ xdd_raw_before_io_loop(ptds_t *p) {
 	p->raw_data_ready = 0;
 	p->raw_data_length = 0;
 
-} // End of xdd_raw_before_io_loop()
+} // End of xdd_raw_before_pass()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_e2e_before_io_loop() - This subroutine initializes the variables that
+/* xdd_e2e_before_pass() - This subroutine initializes the variables that
  * are used by the end-to-end option
+ * 
+ * This subroutine is called within the context of a Target Thread.
+ *
  */
 void
-xdd_e2e_before_io_loop(ptds_t *p) {
+xdd_e2e_before_pass(ptds_t *p) {
 
 	if ((p->target_options & TO_ENDTOEND) == 0)
 		return;
@@ -169,55 +181,22 @@ xdd_e2e_before_io_loop(ptds_t *p) {
 	// Initialize the read-after-write variables
 	p->e2e_msg_sent = 0;
 	p->e2e_msg_recv = 0;
-	p->e2e_msg_last_sequence = 0;
+	p->e2e_msg_sequence_number = 0;
 	p->e2e_prev_loc = 0;
 	p->e2e_prev_len = 0;
-	p->e2e_data_ready = 0;
 	p->e2e_data_length = 0;
 	p->e2e_sr_time = 0;
 
-} // End of xdd_e2e_before_io_loop()
+} // End of xdd_e2e_before_pass()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_io_loop_before_loop() - This subroutine will do all the stuff needed to 
- * be done before entering the inner-most loop that does all the I/O operations
- * that constitute a "pass".
- * Return values: 0 is good
- *                1 is bad
+/* xdd_init_ptds_before_pass() - Reset variables to known state
+ * 
+ * This subroutine is called within the context of a Target Thread.
+ *
  */
-int32_t
-xdd_io_loop_before_loop(ptds_t *p) {
-
-	// Timer Calibration and Information
-	xdd_timer_calibration_before_io_loop();
-
-	// Process Start Delay
-	xdd_start_delay_before_io_loop(p);
-
-	// Lock Step Processing
-	xdd_lockstep_before_io_loop(p);
-
-	// Read-After_Write setup
-	xdd_raw_before_io_loop(p);
-
-	// End-to-End setup
-	xdd_e2e_before_io_loop(p);
-
-	/* Initialize counters, barriers, clocks, ...etc */
-	p->syncio_barrier_index = 0;
-	p->iosize = p->reqsize * p->block_size;
-
-	/* Get the starting time stamp */
-	if (p->my_current_pass_number == 1) {
-		pclk_now(&p->first_pass_start_time);
-		p->my_pass_start_time = p->first_pass_start_time;
-		// Get the current CPU user and system times 
-		times(&p->my_starting_cpu_times_this_run);
-		memcpy(&p->my_starting_cpu_times_this_pass,&p->my_starting_cpu_times_this_run, sizeof(struct tms));
-	} else { 
-		pclk_now(&p->my_pass_start_time);
-		times(&p->my_starting_cpu_times_this_pass);
-	}
+void 
+xdd_init_ptds_before_pass(ptds_t *p) {
 
 	// Init all the pass-related variables to 0
 	p->my_elapsed_pass_time = 0;
@@ -229,6 +208,7 @@ xdd_io_loop_before_loop(ptds_t *p) {
 	p->my_accumulated_pattern_fill_time = 0;
 	p->my_accumulated_flush_time = 0;
 	//
+	p->my_current_op_number = 0; 		// The current operation number init to 0
 	p->my_current_op_count = 0; 		// The number of read+write operations that have completed so far
 	p->my_current_read_op_count = 0;	// The number of read operations that have completed so far 
 	p->my_current_write_op_count = 0;	// The number of write operations that have completed so far 
@@ -236,15 +216,11 @@ xdd_io_loop_before_loop(ptds_t *p) {
 	p->my_current_bytes_read = 0;		// Total number of bytes read to far (from storage device, not network)
 	p->my_current_bytes_written = 0;	// Total number of bytes written to far (to storage device, not network)
 	p->my_current_byte_location = 0; 	// Current byte location for this I/O operation 
-	p->my_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
-	p->my_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
+	p->my_current_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
+	p->my_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
 	p->my_error_break = 0; 			// This is set after an I/O Operation if the op failed in some way
 	p->my_current_error_count = 0;		// The number of I/O errors for this qthread
-	p->my_current_state = CURRENT_STATE_IO;	// State of this thread at any given time (see Current State definitions below)
-	// State Definitions for "my_current_state"
-#define	CURRENT_STATE_IO		0x0000000000000001	// Currently waiting for an I/O operation to complete
-#define	CURRENT_STATE_BTW		0x0000000000000002	// Currently between I/O operations
-#define	CURRENT_STATE_BARRIER	0x0000000000000004	// Currently stuck in a barrier
+	p->my_current_state = 0;		// State of this thread at any given time (see Current State definitions below)
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS
 	p->my_longest_op_time = 0;			// Longest op time that occured during this pass
@@ -259,8 +235,69 @@ xdd_io_loop_before_loop(ptds_t *p) {
 	p->my_shortest_read_op_number = 0; 	// Number of the read operation where the shortest op time occured during this pass
 	p->my_shortest_write_op_time = PCLK_MAX;// Shortest write op time that occured during this pass
 	p->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
-	return(0);
 
-} // End of xdd_io_loop_before_loop()
-
+} // End of xdd_init_ptds_before_pass()
  
+/*----------------------------------------------------------------------------*/
+/* xdd_target_ttd_before_pass() - This subroutine is called by target_pass()
+ * inside the Target Thread and will do all the things to do (ttd)  
+ * before entering the inner-most loop that does all the I/O operations
+ * that constitute a "pass".
+ * Return values: 0 is good
+ *                1 is bad
+ */
+int32_t
+xdd_target_ttd_before_pass(ptds_t *p) {
+	ptds_t	*qp;	// Pointer to a QThread PTDS
+
+
+	// Timer Calibration and Information
+	xdd_timer_calibration_before_pass();
+
+	// Process Start Delay
+	xdd_start_delay_before_pass(p);
+
+	// Lock Step Processing
+	xdd_lockstep_before_pass(p);
+
+	// Read-After_Write setup
+	xdd_raw_before_pass(p);
+
+	// End-to-End setup
+	xdd_e2e_before_pass(p);
+
+	/* Initialize counters, barriers, clocks, ...etc */
+	p->iosize = p->reqsize * p->block_size;
+
+	/* Get the starting time stamp */
+	if (p->my_current_pass_number == 1) {
+		pclk_now(&p->first_pass_start_time);
+		p->my_pass_start_time = p->first_pass_start_time;
+		// Get the current CPU user and system times 
+		times(&p->my_starting_cpu_times_this_run);
+		memcpy(&p->my_starting_cpu_times_this_pass,&p->my_starting_cpu_times_this_run, sizeof(struct tms));
+	} else { 
+		pclk_now(&p->my_pass_start_time);
+		times(&p->my_starting_cpu_times_this_pass);
+	}
+	xdd_init_ptds_before_pass(p);
+
+	qp = p->next_qp;
+	while (qp) { 
+		if (p->my_current_pass_number == 1) {
+			qp->first_pass_start_time = p->first_pass_start_time;
+			qp->my_pass_start_time = qp->first_pass_start_time;
+			// Get the current CPU user and system times 
+			times(&qp->my_starting_cpu_times_this_run);
+			memcpy(&qp->my_starting_cpu_times_this_pass,&qp->my_starting_cpu_times_this_run, sizeof(struct tms));
+		} else { 
+			qp->my_pass_start_time = p->my_pass_start_time;
+			times(&qp->my_starting_cpu_times_this_pass);
+		}
+		xdd_init_ptds_before_pass(qp);
+		qp = qp->next_qp;
+	}
+
+	return(0);
+		
+} // End of xdd_target_ttd_before_pass()

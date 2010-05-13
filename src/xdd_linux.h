@@ -36,10 +36,12 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
-#include <unistd.h> /* UNIX Only */
+#include <unistd.h> 
+#include <ctype.h>
 #include <sys/time.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <semaphore.h>
 #include <sys/shm.h>
 #include <sys/times.h>
 #include <sys/prctl.h>
@@ -52,6 +54,7 @@
 #include <sys/stat.h>
 #include <sys/unistd.h>
 #include <sys/utsname.h>
+#include <sys/vfs.h>
 #include <string.h>
 #include <syscall.h>
 /* for the global clock stuff */
@@ -84,12 +87,27 @@ void xdd_sg_get_version(ptds_t *p, int fd);
 
 extern int h_errno; // For socket calls
 
+#if XFS_ENABLED && XFSPROGS_DEVEL
+#include <xfs/xfs.h>
+#elif XFS_ENABLED && LIBXFS_DEVEL
+#include <xfs/xfs.h>
+#include <xfs/libxfs.h>
+#elif XFS_ENABLED
+#error "ERROR: XFS Support is enabled, but the header support is not valid."
+#endif
+
+#if LINUX_MAGIC_ENABLED
+#include <linux/magic.h>
+#else
+#define XFS_SUPER_MAGIC 0x58465342
+#endif
+
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

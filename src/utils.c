@@ -43,6 +43,46 @@ xdd_getnexttoken(char *tp) {
 	return(cp);
 } /* end of xdd_getnexttoken() */
 /*----------------------------------------------------------------------------*/
+// Given a pointer to a string, this routine will place a NULL character at the
+// end of each non-white-space group of characters (aka tokens) and return
+// the total number of tokens found. All other white space is left alone
+int
+xdd_tokenize(char *cp) {
+	int		tokens;		// Current number of tokens
+	int		len;		// Length of the line 
+	int		tokenlen;	// length of a token
+	char	*tp;		// Pointer to the start of a token
+
+	len = strlen(cp);
+	if (len < 1) 
+		return(0);
+
+	tokens = 0;
+	while (len > 0) {
+		tokenlen = 0;
+		// Skip past any leading white space 
+		while ((*cp == TAB) || (*cp == SPACE)) {
+			len--;
+			cp++;
+		}
+		// Now that we are at the start of the token, skip over the token
+		tp = cp;
+		while ((*cp != TAB) && (*cp != SPACE) && (*cp != '\0') && (*cp != '\n')) {
+			len--;
+			cp++;
+			tokenlen++;
+		}
+		// Now we are at the end of the token so put a null character there and continue
+		*cp = '\0';
+		tokens++;
+		len--;
+		cp++;
+	}
+
+	return(tokens);
+} /* end of xdd_tokenize() */
+
+/*----------------------------------------------------------------------------*/
 /* xdd_random_int() - returns a random integer
  */
 int
@@ -87,9 +127,9 @@ xdd_random_float(void) {
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

@@ -703,7 +703,6 @@ xdd_results_format_id_add( char *sp ) {
 	int		new_length;
 
 
-fprintf(stderr,"adding %s to format string\n",sp);
 	length_format_string = strlen(xgp->format_string);
 	length_added_string = strlen(sp);
 

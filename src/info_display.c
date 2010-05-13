@@ -37,6 +37,26 @@
  *    - Environment
  */
 #include "xdd.h"
+
+/*----------------------------------------------------------------------------*/
+/* xdd_display_kmgt() - Display the given quantity in either KBytes, MBytes, GBytes, or TBytes.
+ */
+void
+xdd_display_kmgt(FILE *out, long long int n, int block_size) {
+
+	if (n <= 0) {
+		fprintf(out," 0\n");
+		return;
+	}
+	fprintf(out, "\n\t\t\t%lld, %d-byte Blocks", (long long int)(n), block_size);
+	fprintf(out, "\n\t\t\t%15lld,     Bytes", (long long int)(n));
+	fprintf(out, "\n\t\t\t%19.3f, KBytes", (double)(n/FLOAT_KILOBYTE));
+	fprintf(out, "\n\t\t\t%19.3f, MBytes", (double)(n/FLOAT_MEGABYTE));
+	fprintf(out, "\n\t\t\t%19.3f, GBytes", (double)(n/FLOAT_GIGABYTE));
+	fprintf(out, "\n\t\t\t%19.3f, TBytes\n", (double)(n/FLOAT_TERABYTE));
+
+} // End of xdd_display_kmgt()
+
 /*----------------------------------------------------------------------------*/
 /* xdd_system_info() - Display information about the system this program
  * is being run on. This includes hardware, software, and environmental info.
@@ -185,6 +205,28 @@ xdd_options_info(FILE *out) {
 	fprintf(out, "Target Offset, %lld\n",(long long)xgp->target_offset);
 	fprintf(out, "I/O Synchronization, %d\n", xgp->syncio);
 	fprintf(out, "Total run-time limit in seconds, %d\n", xgp->runtime);
+	// Print the heartbeat time and display options
+	fprintf(out, "Heartbeat %d ", xgp->heartbeat);
+	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
+		fprintf(out,"/Ops");
+	if (xgp->global_options & GO_HB_BYTES)  // display Current number of BYTES transferred 
+		fprintf(out,"/Bytes");
+	if (xgp->global_options & GO_HB_KBYTES)  // display Current number of KILOBYTES transferred 
+		fprintf(out,"/KBytes");
+	if (xgp->global_options & GO_HB_MBYTES)  // display Current number of MEGABYTES transferred 
+		fprintf(out,"/MBytes");
+	if (xgp->global_options & GO_HB_GBYTES)  // display Current number of GIGABYTES transferred 
+		fprintf(out,"/GBytes");
+	if (xgp->global_options & GO_HB_BANDWIDTH)  // display Current Aggregate BANDWIDTH 
+		fprintf(out,"/Bandwidth");
+	if (xgp->global_options & GO_HB_IOPS)  // display Current Aggregate IOPS 
+		fprintf(out,"/IOPS");
+	if (xgp->global_options & GO_HB_PERCENT)  // display Percent Complete 
+		fprintf(out,"/PercentComplete");
+	if (xgp->global_options & GO_HB_ET)  // display Estimated Time to Completion
+		fprintf(out,"/EstimateTimeLeft");
+	fprintf(out,"\n");
+
 	fprintf(out, "Output file name, %s\n",xgp->output_filename);
 	fprintf(out, "CSV output file name, %s\n",xgp->csvoutput_filename);
 	fprintf(out, "Error output file name, %s\n",xgp->errout_filename);
@@ -218,10 +260,11 @@ xdd_target_info(FILE *out, ptds_t *p) {
     if (!(p->target_options & TO_QTHREAD_INFO) && (p->my_qthread_number > 0))
         return;
 
-	fprintf(out,"\tTarget[%d] Q[%d], %s\n",p->my_target_number, p->my_qthread_number, p->target);
-	fprintf(out,"\t\tTarget directory, %s\n",(strlen(p->targetdir)==0)?"\"./\"":p->targetdir);
-	fprintf(out,"\t\tProcess ID, %d\n",p->mypid);
-	fprintf(out,"\t\tThread ID, %d\n",p->mythreadid);
+	fprintf(out,"\tTarget number, %d\n",p->my_target_number);
+	fprintf(out,"\tFully qualified target pathname, '%s'\n",p->target_full_pathname);
+	fprintf(out,"\t\tTarget directory, %s\n",(strlen(p->target_directory)==0)?"\"./\"":p->target_directory);
+	fprintf(out,"\t\tProcess ID, %d\n",p->my_pid);
+	fprintf(out,"\t\tThread ID, %d\n",p->my_thread_id);
     if (p->processor == -1) 
 		    fprintf(out,"\t\tProcessor, all/any\n");
 	else fprintf(out,"\t\tProcessor, %d\n",p->processor);
@@ -232,44 +275,25 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	fprintf(out,"\t\tPass seek randomization, %s", (p->target_options & TO_PASS_RANDOMIZE)?"enabled\n":"disabled\n");
 	fprintf(out,"\t\tFile write synchronization, %s", (p->target_options & TO_SYNCWRITE)?"enabled\n":"disabled\n");
 	fprintf(out, "\t\tBlocksize in bytes, %d\n", p->block_size);
-	fprintf(out,"\t\tRequest size, %d, blocks, %d, bytes\n",p->reqsize,p->reqsize*p->block_size);
-	fprintf(out, "\t\tNumber of Operations, %lld, of, %lld, target ops for all qthreads\n", (long long)p->qthread_ops, (long long)p->target_ops);
-	fprintf(out, "\t\tStart offset, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes \n",
-		(long long)p->start_offset, 
-		(long long)p->start_offset*p->block_size,
-		(double)((p->start_offset*p->block_size)/FLOAT_KILOBYTE),
-		(double)((p->start_offset*p->block_size)/FLOAT_MEGABYTE),
-		(double)((p->start_offset*p->block_size)/FLOAT_GIGABYTE),
-		(double)((p->start_offset*p->block_size)/FLOAT_TERABYTE));
-	fprintf(out, "\t\tTotal data transfer for this target, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n", 
-		(long long)p->target_bytes_to_xfer_per_pass/p->block_size,
-		(long long)p->target_bytes_to_xfer_per_pass,
-		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
-		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
-		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_GIGABYTE),
-		(double)(p->target_bytes_to_xfer_per_pass/FLOAT_TERABYTE));
-	fprintf(out, "\t\tTotal data transfer for this QTHREAD, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n", 
-		(long long)p->qthread_bytes_to_xfer_per_pass/p->block_size,
-		(long long)p->qthread_bytes_to_xfer_per_pass,
-		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_KILOBYTE),
-		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_MEGABYTE),
-		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_GIGABYTE),
-		(double)(p->qthread_bytes_to_xfer_per_pass/FLOAT_TERABYTE));
-	fprintf(out, "\t\tPass Offset, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n", 
-		(long long)p->pass_offset, 
-		(long long)p->pass_offset*p->block_size,
-		(double)((p->pass_offset*p->block_size)/FLOAT_KILOBYTE),
-		(double)((p->pass_offset*p->block_size)/FLOAT_MEGABYTE),
-		(double)((p->pass_offset*p->block_size)/FLOAT_GIGABYTE),
-		(double)((p->pass_offset*p->block_size)/FLOAT_TERABYTE));
+	fprintf(out,"\t\tRequest size, %d, %d-byte blocks, %d, bytes\n",p->reqsize,p->block_size,p->reqsize*p->block_size);
+	fprintf(out, "\t\tNumber of Operations, %lld\n", (long long int)p->target_ops);
+
+	// Total Data Transfer for this TARGET
+	fprintf(out, "\t\tTotal data transfer for this TARGET, ");
+	xdd_display_kmgt(out, p->target_bytes_to_xfer_per_pass, p->block_size);
+
+	// Start Offset
+	fprintf(out, "\t\tStart offset,  ");
+	xdd_display_kmgt(out, p->start_offset*p->block_size, p->block_size);
+
+	// Pass Offset
+	fprintf(out, "\t\tPass offset,  ");
+	xdd_display_kmgt(out, p->pass_offset*p->block_size, p->block_size);
+
+	// Seek Range
 	if (p->seekhdr.seek_range > 0) {
-		fprintf(out, "\t\tSeek range, \n\t\t\t%lld, blocks, \n\t\t\t%lld, bytes, \n\t\t\t%f, KBytes, \n\t\t\t%f, MBytes, \n\t\t\t%f, GBytes, \n\t\t\t%f, TBytes\n",
-			(long long)p->seekhdr.seek_range,
-			(long long)p->seekhdr.seek_range*p->block_size,
-			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_KILOBYTE ),
-			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_MEGABYTE ),
-			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_GIGABYTE ),
-			(double)( (p->seekhdr.seek_range*p->block_size) / FLOAT_TERABYTE ));
+		fprintf(out, "\t\tSeek Range,  ");
+		xdd_display_kmgt(out, p->seekhdr.seek_range*p->block_size, p->block_size);
 	}
 	fprintf(out, "\t\tSeek pattern, %s\n", p->seekhdr.seek_pattern);
 	fprintf(out, "\t\tFlushwrite interval, %lld\n", (long long)p->flushwrite);
@@ -306,7 +330,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		fprintf(out," enabled for %s verification.\n", (p->target_options & TO_VERIFY_LOCATION)?"Location":"Content");
 	else fprintf(out," disabled.\n");
 	fprintf(out,"\t\tDirect I/O, %s", (p->target_options & TO_DIO)?"enabled\n":"disabled\n");
-	fprintf(out, "\t\tPreallocation, %d\n",p->preallocate);
+	fprintf(out, "\t\tPreallocation, %lld\n",(long long int)p->preallocate);
 	fprintf(out, "\t\tQueue Depth, %d\n",p->queue_depth);
 	/* Timestamp options */
 	if (p->ts_options & TS_ON) {
@@ -362,7 +386,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 			p->restartp->source_host = p->e2e_src_hostname; 		// Name of the Source machine 
 			p->restartp->destination_host = p->e2e_dest_hostname; 	// Name of the Destination machine 
 			if (p->restartp->flags & RESTART_FLAG_ISSOURCE) { // This is the SOURCE sside of the biz
-				 p->restartp->source_filename = p->target_name; 		// The source_filename is the name of the file being copied on the source side
+				 p->restartp->source_filename = p->target_full_pathname; 		// The source_filename is the name of the file being copied on the source side
 				 p->restartp->destination_filename = NULL;		// The destination_filename is the name of the file being copied on the destination side
 				if (p->restartp->flags & RESTART_FLAG_RESUME_COPY) { // Indicate that this is the resumption of a previous copy from source file XXXXX
 						fprintf(out,"\t\tRESTART: RESUMING COPY: Source File, %s, on source host name, %s\n", 
@@ -371,7 +395,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 				}
 			} else { // This is the DESTINATION side of the biz
 				 p->restartp->source_filename = NULL; 		// The source_filename is the name of the file being copied on the source side
-				 p->restartp->destination_filename = p->target_name;		// The destination_filename is the name of the file being copied on the destination side
+				 p->restartp->destination_filename = p->target_full_pathname;		// The destination_filename is the name of the file being copied on the destination side
 				if (p->restartp->flags & RESTART_FLAG_RESUME_COPY) {  // Indicate that this is the resumption of a previous copy from source file XXXXX
 						fprintf(out,"\t\tRESTART: RESUMING COPY: Destination File, %s, on destination host name, %s\n", 
 								p->restartp->destination_filename,
@@ -395,8 +419,6 @@ xdd_target_info(FILE *out, ptds_t *p) {
 			}	
 		}
 	}
-	fprintf(out,"End of info------------------------------\n");
-	fprintf(out, "\n");
 	fflush(out);
 } /* end of xdd_target_info() */
 

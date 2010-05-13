@@ -111,8 +111,8 @@ xdd_processor(ptds_t *p) {
 		fprintf(xgp->output,"%s: INFORMATION: Assigned processor %d to pid %d threadid %d \n",
 			xgp->progname,
 			p->processor,
-			p->mypid,
-			p->mythreadid);
+			p->my_pid,
+			p->my_thread_id);
 	return;
 #elif (AIX)
 	int32_t status;

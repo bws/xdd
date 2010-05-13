@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -835,26 +835,6 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		}
 		xgp->global_options |= GO_ENDTOEND;
 		return(args_index+1);
-	} else if (strcmp(argv[args_index], "useUDP") == 0) { /* indicate that -e2e should use UDP instead of the default */
-		if (target_number >= 0) {
-			p = xdd_get_ptdsp(target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->target_options |= TO_ENDTOEND;
-			p->e2e_useUDP = 1;
-		} else {  /* set option for all targets */
-			if (flags & XDD_PARSE_PHASE2) {
-				p = xgp->ptdsp[0];
-				i = 0;
-				while (p) {
-					p->target_options |= TO_ENDTOEND;
-					p->e2e_useUDP = 1;
-					i++;
-					p = xgp->ptdsp[i];
-				}
-			}
-		}
-		xgp->global_options |= GO_ENDTOEND;
-		return(args_index+1);
 	} else {
 		fprintf(stderr,"%s: Invalid End-to-End option %s\n",xgp->progname, argv[args_index]);
 		return(0);
@@ -886,8 +866,7 @@ xddfunc_errout(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_extended_stats(int32_t argc, char *argv[], uint32_t flags)
 {
-	if (flags & XDD_PARSE_PHASE2) 
-		xgp->global_options |= GO_EXTENDED_STATS;
+	xgp->global_options |= GO_EXTENDED_STATS;
     return(1);
 }
 /*----------------------------------------------------------------------------*/
@@ -937,27 +916,103 @@ xddfunc_fullhelp(int32_t argc, char *argv[], uint32_t flags)
     return(-1);
 }
 /*----------------------------------------------------------------------------*/
+/*  The -heartbeat option accepts one argument that is any of the following:
+ *      - A positive integer that indicates the number of seconds between beats
+ *      - The word "operations" or "ops" to display the current number of operations complete
+ *      - The word "bytes" to display the current number of bytes transfered 
+ *      - The word "kbytes" or "kb" to display the current number of Kilo Bytes transfered 
+ *      - The word "mbytes" or "mb" to display the current number of Mega Bytes transfered 
+ *      - The word "gbytes" or "gb" to display the current number of Giga Bytes transfered 
+ *      - The word "percent" or "pct" to display the %complete along with 
+ *      - The word "bandwidth" or "bw" to display the aggregate bandiwdth
+ *      - The word "iops" to display the aggregate I/O operations per second
+ *      - The word "et" or "etc" or "eta" to display the estimated time to completion
+ * Specifying -heartbeat multiple times will add these to the heartbeat output string FOR EACH TARGET
+ */
 int
 xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 {
-	int heartbeat;
+	char		*sp;	// String pointer
+	int			c1,c2;	// A single character
+	char		*cp;	// A single Character pointer
+	int			len;	// Length of the option string
+	int			i;		// Counter
+	int			digits;	// if set to 1 then string contains only numerical digits
 
- 
-	if (argc <= 1) {
-		fprintf(stderr,"%s: Error: No value specified for heartbeat\n", xgp->progname);
-		return(-1);
+
+	if (argc < 1) {
+		fprintf(xgp->errout,"%s: ERROR: not enough arguments specified for the option '-heartbeat'\n",xgp->progname);
+		return(0);
 	}
 
-	if (flags & XDD_PARSE_PHASE2) {
-		heartbeat = atoi(argv[1]);
-		if (heartbeat <= 0) {
-			fprintf(stderr,"%s: Error: Heartbeat value of '%d' cannot be negative\n", xgp->progname, heartbeat);
+	// The zeroth argument in argv[] is the option name: "-heartbeat"
+	// The first argument in argv[] is the heartbeat option string
+	// Check to see that there is an option string
+	sp = argv[1];
+	len = strlen(sp);
+	if (len <= 0) {
+		fprintf(xgp->errout,"%s: WARNING: The option for '-heartbeat' is zero length\n",xgp->progname);
+		return(1);
+	}
+	
+	// Convert the "option" string to lower case for consistency
+	digits = 0;
+	cp = sp;
+	for (i = 0; i < len; i++) {
+		c1 = *cp;
+		c2 = tolower(c1);
+		*cp = c2;
+		digits = isdigit(c2); // If this is ever a non-digit then digits will be set to 0
+		cp++;
+	}
+		
+	if (digits) { // The heartbeat option is "number of seconds"
+		xgp->heartbeat = atoi(sp);
+		if (xgp->heartbeat <= 0) { // This should not happen but let's check just to be certain
+			fprintf(stderr,"%s: Error: Heartbeat value of '%d' cannot be negative\n", xgp->progname, xgp->heartbeat);
 			return(-1);
 		}
-		xgp->heartbeat = heartbeat;
+		return(2);
 	}
-    return(2);
-}
+
+	// Otherwise check to see if it is any of the recognized words
+	if ((strcmp(sp, "operations") == 0) || (strcmp(sp, "ops") == 0)) { // Report OPERATIONS 
+			xgp->global_options |= GO_HB_OPS;
+			return(2);
+	} else if ((strcmp(sp, "bytes") == 0) || (strcmp(sp, "b") == 0)) { // Report Bytes 
+			xgp->global_options |= GO_HB_BYTES;
+			return(2);
+	} else if ((strcmp(sp, "kbytes") == 0) || (strcmp(sp, "kb") == 0)) { // Report KiloBytes 
+			xgp->global_options |= GO_HB_KBYTES;
+			return(2);
+	} else if ((strcmp(sp, "mbytes") == 0) || (strcmp(sp, "mb") == 0)) { // Report MegaBytes 
+			xgp->global_options |= GO_HB_MBYTES;
+			return(2);
+	} else if ((strcmp(sp, "gbytes") == 0) || (strcmp(sp, "gb") == 0)) { // Report GigaBytes 
+			xgp->global_options |= GO_HB_GBYTES;
+			return(2);
+	} else if ((strcmp(sp, "percent") == 0) || (strcmp(sp, "pct") == 0)) { // Report Percent complete
+			xgp->global_options |= GO_HB_PERCENT;
+			return(2);
+	} else if ((strcmp(sp, "bandwidth") == 0) || (strcmp(sp, "bw") == 0)) { // Report Aggregate Bandwidth
+			xgp->global_options |= GO_HB_BANDWIDTH;
+			return(2);
+	} else if ((strcmp(sp, "iops") == 0) || (strcmp(sp, "IOPS") == 0)) { // Report IOPS
+			xgp->global_options |= GO_HB_IOPS;
+			return(2);
+	} else if ((strcmp(sp, "etc") == 0) || (strcmp(sp, "eta") == 0) || (strcmp(sp, "et") == 0)) { // Report Estimated time to completion
+			xgp->global_options |= GO_HB_ET;
+			return(2);
+	} else if ((strcmp(sp, "ignorerestart") == 0) || (strcmp(sp, "ir") == 0) || (strcmp(sp, "ignore") == 0)) { // Ignore the restart adjustments
+			xgp->global_options |= GO_HB_IGNORE_RESTART;
+			return(2);
+	} 
+	// Not a recognizable option
+	fprintf(stderr,"%s: ERROR: Unknown option specified for the heartbeat: '%s'\n", xgp->progname, sp);
+	return(-1);
+
+} // End of xddfunc_heartbeat()
+
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_help(int32_t argc, char *argv[], uint32_t flags)
@@ -1024,6 +1079,13 @@ xddfunc_id(int32_t argc, char *argv[], uint32_t flags)
 		}
 	}
 	return(2);	
+}
+/*----------------------------------------------------------------------------*/
+int
+xddfunc_interactive(int32_t argc, char *argv[], uint32_t flags)
+{
+	xgp->global_options |= GO_INTERACTIVE;
+    return(1);
 }
 /*----------------------------------------------------------------------------*/
 // Specify the number of KBytes to transfer per pass (1K=1024 bytes)
@@ -1505,6 +1567,40 @@ xddfunc_nomemlock(int32_t argc, char *argv[], uint32_t flags)
     return(1);
 }
 /*----------------------------------------------------------------------------*/
+// Reset the Use Previous Op Complete Semaphore flag in Target Options
+// Arguments: -nopocsem [target #]
+int
+xddfunc_nopocsem(int32_t argc, char *argv[], uint32_t flags)
+{
+    int args, i; 
+    int target_number;
+    ptds_t *p;
+
+
+    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+    // At this point the "target_number" is valid
+	if (target_number >= 0) { /* Request size for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL) return(-1);
+
+		p->target_options |= TO_NO_POC_SEMAPHORE;
+        return(args+1);
+    } else {// Put this option into all PTDSs 
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					p->target_options |= TO_NO_POC_SEMAPHORE;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+        return(1);
+	}
+}
+/*----------------------------------------------------------------------------*/
 // Set the no process lock flag
 int
 xddfunc_noproclock(int32_t argc, char *argv[], uint32_t flags)
@@ -1614,6 +1710,7 @@ xddfunc_operation(int32_t argc, char *argv[], uint32_t flags)
     int 	args, i; 
     int 	target_number;
     ptds_t 	*p;
+	char	*opname;
 	double 	rwratio;
 
     args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
@@ -1623,12 +1720,20 @@ xddfunc_operation(int32_t argc, char *argv[], uint32_t flags)
 		return(0);
 
 
-	if ((strcmp(argv[args+1], "write") == 0) || 
-		(strcmp(argv[args+1], "writeverify") == 0) || 
-		(strcmp(argv[args+1], "writev") == 0))
-		 rwratio = 0.0; /* all write operations */
-	else rwratio = 1.0; /* all read operations */
+	opname = (char *)argv[args+1];
 
+	if (strcmp(opname, "write") == 0) {
+		rwratio = 0.0; /* all write operations */
+	} else if (strcmp(opname, "read") == 0) {
+		rwratio = 1.0; /* all read operations */
+	} else if ((strcmp(opname, "noop") == 0) || (strcmp(opname, "nop") == 0)) {
+		rwratio = -1.0; /* all NOOP operations */
+	} else {
+		fprintf(xgp->errout,"%s: xddfunc_operation: ERROR: Operation '%s' is not valid. Acceptable operations are 'read', 'write', or 'noop'.\n",
+			xgp->progname,
+			opname);
+			return(0);
+	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
@@ -1817,26 +1922,33 @@ xddfunc_percentcpu(int32_t argc, char *argv[], uint32_t flags)
     }
 }
 /*----------------------------------------------------------------------------*/
+// Specify the number of bytes to preallocate for a target file that is 
+// being created. This option is only valid when used on operating systems
+// and file systems that support teh Reserve Space file operation.
 int
 xddfunc_preallocate(int32_t argc, char *argv[], uint32_t flags)
 { 
-    int args, i; 
-    int target_number;
-    ptds_t *p;
-	int32_t preallocate;
+	int 		args, i; 
+	int 		target_number;
+	ptds_t 		*p;
+	int64_t 	preallocate;
 
-    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
-    if (args < 0) return(-1);
-
+	args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+	if (args < 0) return(-1);
+	
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
-
-	preallocate = atoi(argv[args+1]);
+	
+	preallocate = (int64_t)atoll(argv[args+1]);
+	if (preallocate <= 0) {
+		fprintf(stderr,"%s: Error: Preallocate value of '%lld' is not valid - it must be greater than or equal to zero\n", xgp->progname, (long long int)preallocate);
+		return(-1);
+	}
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
-
+		
 		p->preallocate = preallocate;
 		return(args+2);
 	} else { // Put this option into all PTDSs 
@@ -1989,24 +2101,24 @@ xddfunc_randomize(int32_t argc, char *argv[], uint32_t flags)
     if (args < 0) return(-1);
 
     // At this point the "target_number" is valid
-	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(target_number, argv[0]);
-		if (p == NULL) return(-1);
+    if (target_number >= 0) { /* Set this option value for a specific target */
+	    p = xdd_get_ptdsp(target_number, argv[0]);
+	    if (p == NULL) return(-1);
 
-		p->target_options |= TO_PASS_RANDOMIZE;
-        return(args+1);
+	    p->target_options |= TO_PASS_RANDOMIZE;
+	    return(args+1);
     } else { // Put this option into all PTDSs 
-		if (flags & XDD_PARSE_PHASE2) {
-			p = xgp->ptdsp[0];
-			i = 0;
-			while (p) {
-				p->target_options |= TO_PASS_RANDOMIZE;
-				i++;
-				p = xgp->ptdsp[i];
-			}
-		}
-		return(1);
-	}
+	    if (flags & XDD_PARSE_PHASE2) {
+		    p = xgp->ptdsp[0];
+		    i = 0;
+		    while (p) {
+			    p->target_options |= TO_PASS_RANDOMIZE;
+			    i++;
+			    p = xgp->ptdsp[i];
+		    }
+	    }
+	    return(1);
+    }
 }
 /*----------------------------------------------------------------------------*/
 // Specify the read-after-write options for either the reader or the writer
@@ -2391,7 +2503,7 @@ xddfunc_restart(int32_t argc, char *argv[], uint32_t flags)
 } // End of xddfunc_restart()
 /*----------------------------------------------------------------------------*/
 // Set the retry count for each target. The retry count gets inherited by any
-// nsubsequent queue threads for the target.
+// nsubsequent QThreads for the target.
 int
 xddfunc_retry(int32_t argc, char *argv[], uint32_t flags)
 {
@@ -3006,10 +3118,10 @@ xddfunc_starttime(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_starttrigger(int32_t argc, char *argv[], uint32_t flags)
 {
-    int t1,t2;
-    double tmpf;
-    ptds_t *p1, *p2;
-    char *when;
+    int 		t1,t2;		// Target numbers
+    double 		tmpf;		// temp
+    ptds_t 		*p1, *p2;	// PTDS pointers for the two targets involved
+    char 		*when;		// The "When" to perform a trigger
 
 		  
 	if (argc < 5) { // Not enough arguments in this line
@@ -3199,7 +3311,7 @@ xddfunc_target(int32_t argc, char *argv[], uint32_t flags)
 		p = xdd_get_ptdsp(target_number, argv[0]); 
 		if (p == NULL) return(-1);
 	
-		p->target = argv[1];
+		p->target_basename = argv[1];
 		xgp->number_of_targets++; 
 	}
 	return(2);
@@ -3227,14 +3339,14 @@ xddfunc_targetdir(int32_t argc, char *argv[], uint32_t flags)
 	    p = xdd_get_ptdsp(target_number, argv[0]); 
 		if (p == NULL) return(-1);
 
-	    p->targetdir = argv[args+1];
+	    p->target_directory = argv[args+1];
         return(args+2);
     } else { /* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
 			p = xgp->ptdsp[0];
 			i = 0;
 			while (p) {
-				p->targetdir = argv[args+1];
+				p->target_directory = argv[args+1];
 				i++;
 				p = xgp->ptdsp[i];
 			}
@@ -3295,7 +3407,7 @@ xddfunc_targets(int32_t argc, char *argv[], uint32_t flags)
 				p = xdd_get_ptdsp(j, argv[0]);
 				if (p == NULL) return(-1);
 				
-				p->target = argv[2];
+				p->target_basename = argv[2];
 			} // end of FOR loop that places a single target name on each of the associated PTDSs
 		} else { // Set all target names to the appropriate name
 			i = 2; // start with the third argument  
@@ -3304,7 +3416,7 @@ xddfunc_targets(int32_t argc, char *argv[], uint32_t flags)
 				// Make sure the PTDS for this target exists - if it does not, the xdd_get_ptds() subroutine will create one
 				p = xdd_get_ptdsp(j, argv[0]);
 				if (p == NULL) return(-1);
-				p->target = argv[i];
+				p->target_basename = argv[i];
 				i++;
 			}
 		}
@@ -3868,6 +3980,13 @@ xddfunc_verify(int32_t argc, char *argv[], uint32_t flags)
 }
 /*----------------------------------------------------------------------------*/
 int
+xddfunc_unverbose(int32_t argc, char *argv[], uint32_t flags)
+{
+	xgp->global_options &= ~GO_VERBOSE;
+    return(1);
+}
+/*----------------------------------------------------------------------------*/
+int
 xddfunc_verbose(int32_t argc, char *argv[], uint32_t flags)
 {
 	xgp->global_options |= GO_VERBOSE;
@@ -3893,9 +4012,9 @@ xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags)
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

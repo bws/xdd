@@ -63,9 +63,11 @@ typedef enum { false = 0, true } bool;
 /* --------- */
 /* Constants */
 /* --------- */
+#define THOUSAND 1000LL /**< 10^3, as opposed to 2^10 */
 #define MILLION  1000000LL /**< 10^6, as opposed to 2^20 */
 #define BILLION  1000000000LL /**< 10^9, as opposed to 2^30 */
 #define TRILLION 1000000000000LL /**< 10^12, as opposed to 2^40 */
+#define FLOAT_THOUSAND 1000.0 /**< 10^3 as floating point */
 #define FLOAT_MILLION 1000000.0 /**< 10^6 as floating point */
 #define FLOAT_BILLION 1000000000.0 /**< 10^9 as floating point */
 #define FLOAT_TRILLION 1000000000000.0 /**< 10^12 as floating point */
@@ -164,9 +166,9 @@ typedef enum { false = 0, true } bool;
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

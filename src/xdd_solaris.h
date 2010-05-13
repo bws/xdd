@@ -85,3 +85,4 @@ typedef int  sd_t;  /* A socket descriptor */
 static bool  sockets_init(void);
 #include "ptds.h"
  
+int32_t xdd_target_open_for_solaris(ptds_t *p);

@@ -34,7 +34,7 @@
 #include "xdd.h"
 /* global variables */
 /* Input parameters passed into the program */
-static char  *progname; /* Program name from argv[0] */
+static char  *gettime_progname; /* Program name from argv[0] */
 /* information needed to access the Global Time Server */
 static in_addr_t gts_addr; /* Global Time Server IP address */
 static in_port_t gts_port; /* Global Time Server Port number */
@@ -86,7 +86,7 @@ gts_init_global_clock_network(char *hostname) {
 			break;
 		};
 		fprintf(stderr,"%s: Error initializing network connection\nReason: %s\n",
-			progname, reason);
+			gettime_progname, reason);
 		WSACleanup();
 		return(-1);
 	} 
@@ -94,7 +94,7 @@ gts_init_global_clock_network(char *hostname) {
 	if (LOBYTE(wsaData.wVersion) != 2 || HIBYTE(wsaData.wVersion) != 2) {
 		/* Couldn't find WinSock DLL version 2.2 or better */
 		fprintf(stderr,"%s: Error initializing network connection\nReason: Could not find version 2.2\n",
-			progname);
+			gettime_progname);
 		WSACleanup();
 		return(-1);
 	}
@@ -102,7 +102,7 @@ gts_init_global_clock_network(char *hostname) {
 	/* Network is initialized and running */
 	hostent = gethostbyname(hostname);
 	if (!hostent) {
-		fprintf(stderr,"%s: Error: Unable to identify host %s\n",progname,gts_hostname);
+		fprintf(stderr,"%s: Error: Unable to identify host %s\n",gettime_progname,gts_hostname);
 #ifdef WIN32
 		WSACleanup();
 #endif
@@ -123,7 +123,7 @@ gts_init_global_clock(void) {
 	if (gts_hostname) {
 		gts_addr = gts_init_global_clock_network(gts_hostname);
 		if (gts_addr == -1) { /* Problem with the network */
-			fprintf(stderr,"%s: Error initializing global clock - network malfunction\n",progname);
+			fprintf(stderr,"%s: Error initializing global clock - network malfunction\n",gettime_progname);
 			return(0);
 		}
 		clk_initialize(gts_addr, gts_port, bounce, &delta);
@@ -221,7 +221,7 @@ gts_parse_args(int32_t argc, char *argv[]) {
       		continue;
     	} else {
       		fprintf(stderr, "%s: Invalid option: %s (%d)\n",
-	      		progname, argv[i],i);
+	      		gettime_progname, argv[i],i);
      			exit(1);
     	}
 	} /* end of FOR statement that parses command line */
@@ -231,7 +231,7 @@ gts_parse_args(int32_t argc, char *argv[]) {
  */
 void
 gts_parse(int32_t argc, char *argv[]) {
-  	progname = argv[0];
+  	gettime_progname = argv[0];
 	gts_hostname = 0;
 	gts_addr = 0;
 	gts_port = DEFAULT_PORT;

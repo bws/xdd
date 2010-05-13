@@ -28,23 +28,19 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xdd_base_version.h"
-#if WIN32
-#include "xdd_win32.h"
-#elif LINUX
-#include "xdd_linux.h"
-#elif OSX
-#include "xdd_osx.h"
-#elif FREEBSD
-#include "xdd_freebsd.h"
-#elif SOLARIS
-#include "xdd_solaris.h"
-#elif AIX
-#include "xdd_aix.h"
-#elif IRIX
-#include "xdd_irix.h"
-#endif
 
-#include "xdd_common.h"
-#include "xdd_prototypes.h"
-#include "global_data.h"
+/* The format of the entries in the xdd interactive command function table */
+typedef int (*interactive_func_ptr)(int32_t tokens, char *cmd, uint32_t flags);
+
+#define XDD_EXT_HELP_LINES 5
+struct xdd_interactive_func {
+	char    *func_name;     /* name of the function */
+	char    *func_alt;      /* Alternate name of the function */
+    int     (*interactive_func_ptr)(int32_t tokens, char *cmd, uint32_t flags);      /* pointer to the function */
+    int     argc;           /* number of arguments */
+    char    *help;          /* help string */
+    char    *ext_help[XDD_EXT_HELP_LINES];   /* Extented help strings */
+	uint32_t flags;			/* Flags for various parsing functions */
+}; 
+typedef struct xdd_interactive_func xdd_interactive_func_t;
+

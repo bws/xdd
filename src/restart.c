@@ -107,12 +107,16 @@ xdd_restart_create_restart_file(restart_t *rp) {
 		xgp->progname,
 		rp->restart_filename);
 	return(0);
-}
+} // End of xdd_restart_create_restart_file()
+
 /*----------------------------------------------------------------------------*/
+// xdd_restart_write_restart_file() - Update the restart file with current info
+// 
 // This routine is called to write new information to an existing restart file 
 // during a copy operation - this is also referred to as a "checkpoint"
-// operation. Each time the write is performed to this file it is flushed to
-// the storage device. 
+// operation. 
+// Each time the write is performed to this file it is flushed to the storage device. 
+// 
 // 
 int
 xdd_restart_write_restart_file(restart_t *rp) {
@@ -134,8 +138,9 @@ xdd_restart_write_restart_file(restart_t *rp) {
 	// Flush the file for safe keeping
 	fflush(rp->fp);
 
-	return(SUCCESS);
-}
+	return(0);
+} // End of xdd_restart_write_restart_file()
+
 /*----------------------------------------------------------------------------*/
 // This routine is created when xdd starts a copy operation (aka xddcp).
 // This routine will run in the background and waits for various xdd I/O
@@ -161,37 +166,52 @@ xdd_restart_write_restart_file(restart_t *rp) {
 // 
 void *
 xdd_restart_monitor(void *junk) {
-	int		target_number;
-	ptds_t	*current_ptds;
-	ptds_t	*current_qthread;
-	int32_t low_qthread_number;
-	int32_t high_qthread_number;
-	uint64_t low_byte_offset;
-	uint64_t high_byte_offset;
-	uint64_t check_counter;
-	int64_t high_op_number, low_op_number;
+	int				target_number;			// Used as a counter
+	ptds_t			*current_ptds;			// The current Target Thread PTDS
+	uint64_t 		check_counter;			// The current number of times that we have checked on the progress of a copy
+	xdd_occupant_t	barrier_occupant;		// Used by the xdd_barrier() function to track who is inside a barrier
+	restart_t		*rp;
+	int				status;					// Status of mutex init/lock/unlock calls
+
+
+
 #ifdef DEBUG
 	uint64_t separation;
 #endif
 	
 
 	// Initialize stuff
-	fprintf(xgp->output,"%s: RESTART_MONITOR: Initializing...\n", xgp->progname);
+	if (xgp->global_options & GO_REALLYVERBOSE)
+		fprintf(xgp->output,"%s: xdd_restart_monitor: Initializing...\n", xgp->progname);
+
 	for (target_number=0; target_number < xgp->number_of_targets; target_number++) {
 		current_ptds = xgp->ptdsp[target_number];
+		rp = current_ptds->restartp;
+		status = pthread_mutex_init(&rp->restart_lock, 0);
+		if (status) {
+			fprintf(stderr,"%s: xdd_restart_monitor: ERROR initializing restart_lock for target %d, status=%d, errno=%d", 
+				xgp->progname, 
+				target_number, 
+				status, 
+				errno);
+			perror("Reason");
+			return(0);
+		}
 		if (current_ptds->target_options & TO_E2E_DESTINATION) {
-			xdd_restart_create_restart_file(current_ptds->restartp);
+			xdd_restart_create_restart_file(rp);
 		} else {
-			fprintf(xgp->output,"%s: RESTART_MONITOR: INFO: No restart file being created for target %d [ %s ] because this is not the destination side of an E2E operation.\n", 
+			fprintf(xgp->output,"%s: xdd_restart_monitor: INFO: No restart file being created for target %d [ %s ] because this is not the destination side of an E2E operation.\n", 
 				xgp->progname,
 				current_ptds->my_target_number,
-				current_ptds->target);
+				current_ptds->target_full_pathname);
 		}
 	}
-	fprintf(xgp->output,"%s: RESTART_MONITOR: Initialization complete.\n", xgp->progname);
+	if (xgp->global_options & GO_REALLYVERBOSE)
+		fprintf(xgp->output,"%s: xdd_restart_monitor: Initialization complete.\n", xgp->progname);
 
-	// Enter this barrier and wait for the restart monitor to initialize
-	xdd_barrier(&xgp->restart_initialization_barrier);
+	// Enter this barrier to release main indicating that restart has initialized
+	xdd_init_barrier_occupant(&barrier_occupant, "RESTART_MONITOR", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);
+	xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,0);
 
 	check_counter = 0;
 	// This is the loop that periodically checks all the targets/qthreads 
@@ -206,85 +226,47 @@ xdd_restart_monitor(void *junk) {
 			// If this target does not require restart monitoring then continue
 			if ( !(current_ptds->target_options & TO_RESTART_ENABLE) ) // if restart is NOT enabled for this target then continue
 				continue;
-			current_qthread = current_ptds;
-			// Check all qthreads on this target
-			high_byte_offset = 0;
-			high_op_number = 0;
-			low_byte_offset = current_qthread->last_committed_location;
-			low_op_number = current_qthread->last_committed_op;
-			low_qthread_number = high_qthread_number = current_qthread->my_qthread_number;
-			while (current_qthread) {
-#ifdef DEBUG
-				fprintf(stderr, "QThread %d last_committed_location is: %llu\n", current_qthread->my_qthread_number, (unsigned long long int)current_qthread->last_committed_location);
-#endif
-				if ((current_qthread->my_current_state & CURRENT_STATE_COMPLETE) && // if this target has completed all I/O AND the restart monitor has checked it the continue
-					(current_qthread->my_current_state & CURRENT_STATE_RESTART_COMPLETE)) {
-					current_qthread = current_qthread->nextp;
-					continue;
-				}
-
-				// At this point this qthread needs to be checked. If it had finished but had not been checked then set the flag saying it has now been checked
-				if (current_qthread->my_current_state & CURRENT_STATE_COMPLETE) // If this target has finished then mark the Restart Complete as well
-					current_qthread->my_current_state |= CURRENT_STATE_RESTART_COMPLETE;
-	
-				// If information has not changed since last time, just increment the montior count and continue
-                   //////tbd //////
-				// If information has changed then set the monitor count to 0, save the byte offset, and continue
-				if ( current_qthread->last_committed_location < low_byte_offset) {
-					low_byte_offset = current_qthread->last_committed_location; // the new low_byte_offset
-					low_qthread_number = current_qthread->my_qthread_number;
-					low_op_number = current_qthread->last_committed_op;
-				}
-				if ( current_qthread->last_committed_location > high_byte_offset) {
-					high_byte_offset = current_qthread->last_committed_location; // the new high_byte_offset
-					high_qthread_number = current_qthread->my_qthread_number;
-					high_op_number = current_qthread->last_committed_op;
-				}
-				current_qthread = current_qthread->nextp;
-			} // End of WHILE loop that looks at all qthreads for this target
-
-#ifdef DEBUG
-			fprintf(stderr, "\n>>>> Lowest  QThread %d last_committed_location is: %llu  operation# %lld <<<<\n", 
-				low_qthread_number, 
-				(unsigned long long int)low_byte_offset,
-				(long long int)low_op_number);
-			fprintf(stderr, ">>>> Highest QThread %d last_committed_location is: %llu  operation# %lld <<<<\n", 
-				high_qthread_number, 
-				(unsigned long long int)high_byte_offset,
-				(long long int)high_op_number);
-			separation = high_byte_offset - low_byte_offset;
-			fprintf(stderr, ">>>> Separation is %llu  bytes [ %llu KBytes, %llu MBytes, %llu GBytes] or %lld ops <<<<\n\n", 
-				(unsigned long long int)separation,
-				(unsigned long long int)(separation/1024),
-				(unsigned long long int)(separation/(1024*1024)),
-				(unsigned long long int)(separation/(1024*1024*1024)),
-				(long long int)(high_op_number - low_op_number));
-#endif
 			
-			// Now that we have all the information for this target's qthreads, generate the appropriate information
-			// and write it to the restart file and sync sync sync
-			current_ptds->restartp->last_committed_location = low_byte_offset;
-			current_ptds->restartp->low_byte_offset = low_byte_offset;
-			if (current_ptds->target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
-				xdd_restart_write_restart_file(current_ptds->restartp);
+			rp = current_ptds->restartp;
+			if (!rp) // Hmmm... no restart pointer..
+				continue;
+			pthread_mutex_lock(&rp->restart_lock);
+
+			if (rp->flags & RESTART_FLAG_SUCCESSFUL_COMPLETION) {
+				pthread_mutex_unlock(&rp->restart_lock);
+				continue;
+			} else {
+				// Put the "Last Committed Block" information in the restart structure...
+				rp->last_committed_location = current_ptds->last_committed_location;
+				rp->last_committed_length = current_ptds->last_committed_length;
+				rp->last_committed_op = current_ptds->last_committed_op;
+	
+				// ...and write it to the restart file and sync sync sync
+				if (current_ptds->target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
+					xdd_restart_write_restart_file(rp);
+
+			}
+			// UNLOCK the restart struct
+			pthread_mutex_unlock(&rp->restart_lock);
 
 		} // End of FOR loop that checks all targets 
-		// Done checking all targets
 
 		// If it is time to leave then leave - the qthread cleanup will take care of closing the restart files
-                if (xgp->abort_io | xgp->restart_terminate) 
-                    break;
+		if (xgp->abort | xgp->canceled) 
+			break;
 	} // End of FOREVER loop that checks stuff
+
 	fprintf(xgp->output,"%s: RESTART Monitor is exiting\n",xgp->progname);
 	return(0);
-}
+
+} // End of xdd_restart_monitor() thread
 
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

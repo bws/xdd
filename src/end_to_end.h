@@ -29,14 +29,23 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
-/** Results structure for write-after-read processes */
-struct xdd_e2e_msg {
-	uint32_t 	magic;  	/**< Magic number */
-	int32_t  	sendqnum;  	/**< sender's myqnum  */
-	int64_t  	sequence; 	/**< Sequence number */
-	pclk_t  	sendtime; 	/**< Time this packet was sent in global pico seconds */
-	pclk_t  	recvtime; 	/**< Time this packet was received in global pico seconds */
-	int64_t  	location; 	/**< Starting location in bytes for this operation */
-	int64_t  	length;  	/**< Length in bytes this operation */
+struct xdd_e2e_header {
+	uint32_t 	magic;  			/**< Magic number */
+	int32_t  	sendqnum;  			/**< Sender's QThread Number  */
+	int64_t  	sequence; 			/**< Sequence number */
+	pclk_t  	sendtime; 			/**< Time this packet was sent in global pico seconds */
+	pclk_t  	recvtime; 			/**< Time this packet was received in global pico seconds */
+	int64_t  	location; 			/**< Starting location in bytes for this operation relative to the beginning of the file*/
+	int64_t  	length;  			/**< Length of the user data in bytes this operation */
 };
-typedef struct xdd_e2e_msg xdd_e2e_msg_t;
+typedef struct xdd_e2e_header xdd_e2e_header_t;
+
+// Things used in the various end_to_end subroutines.
+#ifdef FD_SETSIZE
+#undef FD_SETSIZE
+#define FD_SETSIZE 128
+#endif
+
+#define MAXMIT_TCP     (1<<28)
+
+

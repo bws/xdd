@@ -80,7 +80,4 @@ typedef int  sd_t;  /* A socket descriptor */
 
 #include "ptds.h"
  
-int32_t xdd_sg_io(ptds_t *p, char rw);
-int32_t xdd_sg_read_capacity(ptds_t *p);
-void xdd_sg_set_reserved_size(ptds_t *p, int fd);
-void xdd_sg_get_version(ptds_t *p, int fd);
+int32_t xdd_target_open_for_aix(ptds_t *p);

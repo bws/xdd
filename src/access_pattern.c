@@ -79,7 +79,7 @@ xdd_init_seek_list(ptds_t *p) {
 	pclk_t  relative_time; /* Time in picosecond relative to the first operation */
 	int32_t  previous_percent_op; /* used to determine read/write operation */
 	int32_t  percent_op;  /* used to determine read/write operation */
-	int32_t  current_op;  /* Current operation - SO_OP_READ or SO_OP_WRITE */
+	int32_t  current_op;  /* Current operation - SO_OP_READ or SO_OP_WRITE or SO_OP_NOOP */
 	char  state[256];
 	seekhdr_t *sp;   /* pointer to the seek header */
 	/* If a throttle value has been specified, calculate the time that each operation should take */
@@ -166,17 +166,20 @@ xdd_init_seek_list(ptds_t *p) {
 			 * of read and write operations are used. 
 			 * The -rwratio option takes precedence over the -op option.
 			 */
-			percent_op = p->rwratio * rw_op_index;
-			if (percent_op > previous_percent_op) 
-				current_op = SO_OP_READ;
-			else current_op = SO_OP_WRITE;
-			previous_percent_op = percent_op;
-
-            /* Fill in the operation */
-			if (current_op == SO_OP_WRITE) { /* This is a WRITE operation */
-				sp->seeks[rw_index].operation = SO_OP_WRITE;
-			} else { /* This is a READ operation */
-				sp->seeks[rw_index].operation = SO_OP_READ;
+			if (p->rwratio == -1.0) { // No-op
+				sp->seeks[rw_index].operation = SO_OP_NOOP;
+			} else { // Normal read/write operations
+				percent_op = p->rwratio * rw_op_index;
+				if (percent_op > previous_percent_op) 
+					current_op = SO_OP_READ;
+				else current_op = SO_OP_WRITE;
+				previous_percent_op = percent_op;
+            	/* Fill in the operation */
+				if (current_op == SO_OP_WRITE) { /* This is a WRITE operation */
+					sp->seeks[rw_index].operation = SO_OP_WRITE;
+				} else { /* This is a READ operation */
+					sp->seeks[rw_index].operation = SO_OP_READ;
+				}
 			}
 
 			/* fill in the time that this operation is supposed to take place */
@@ -258,6 +261,8 @@ xdd_save_seek_list(ptds_t *p) {
 				opc = "r";
 			else if (sp->seeks[i].operation == SO_OP_WRITE)
 				opc = "w";
+			else if (sp->seeks[i].operation == SO_OP_NOOP)
+				opc = "n";
 			else opc = "u";
 			fprintf(tmp,"%010d %012llu %d %s %016llu %016llu\n",
 				i,
@@ -387,6 +392,8 @@ xdd_load_seek_list(ptds_t *p) {
 		sp->seeks[i].block_location = loc;
 		if ((rw == 'w') || (rw == 'W')) 
 			sp->seeks[i].operation = SO_OP_WRITE;
+		else if ((rw == 'n') || (rw == 'N')) 
+			sp->seeks[i].operation = SO_OP_NOOP; /* NOOP */
 		else sp->seeks[i].operation = SO_OP_READ; /* READ */
 		sp->seeks[i].reqsize = reqsz;
 		sp->seeks[i].time1 = t1;

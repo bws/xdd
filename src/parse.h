@@ -70,6 +70,7 @@ int xddfunc_fullhelp(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_help(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_id(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_interactive(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_kbytes(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_maxall(int32_t argc, char *argv[], uint32_t flags);
@@ -83,6 +84,7 @@ int xddfunc_minall(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_multipath(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_nobarrier(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_nomemlock(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_nopocsem(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_noproclock(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_numreqs(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_operationdelay(int32_t argc, char *argv[], uint32_t flags);
@@ -134,6 +136,7 @@ int xddfunc_timerinfo(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_timeserver(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags); 
 int xddfunc_verify(int32_t argc, char *argv[], uint32_t flags); 
+int xddfunc_unverbose(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_verbose(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_version(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags);
@@ -141,9 +144,9 @@ int xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags);
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

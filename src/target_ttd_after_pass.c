@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Brad Settlemyer, DoE/ORNL
+ *       Bradly Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -31,47 +31,48 @@
 #include "xdd.h"
 
 //******************************************************************************
-// I/O Loop
+// Things the Target Thread needs to do after a single pass 
 //******************************************************************************
+
 /*----------------------------------------------------------------------------*/
-/* xdd_io_loop() - The actual "inner" loop that does all the I/O operations 
+/* xdd_target_ttd_after_pass() - This subroutine will do all the stuff needed to 
+ * be done after the inner-most loop has done does all the I/O operations
+ * that constitute a "pass" or some portion of a pass if it terminated early.
  */
 int32_t
-xdd_io_loop(ptds_t *p) {
-	int32_t  status;		// Status of the last function call
+xdd_target_ttd_after_pass(ptds_t *p) {
+	int32_t  status;
+	ptds_t	*qp;
 
-	// Set up for I/O loop
-	status = xdd_io_loop_before_loop(p);
 
-	/* This is the main loop for a single pass */
-	for (p->my_current_op = 0; p->my_current_op < p->qthread_ops; p->my_current_op++) {
+	/* Get the ending time stamp */
+	pclk_now(&p->my_pass_end_time);
+	p->my_elapsed_pass_time = p->my_pass_end_time - p->my_pass_start_time;
 
-		// Set up for I/O operation
-		status = xdd_io_loop_before_io_operation(p);
-		if (status == FAILED) break;
+	/* Get the current CPU user and system times and the effective current wall clock time using pclk_now() */
+	times(&p->my_current_cpu_times);
 
-		// Issue the I/O operation
-		status = xdd_io_loop_perform_io_operation(p);
+	status = xdd_lockstep_after_pass(p);
 
-		// Check I/O operation completion
-		status = xdd_io_loop_after_io_operation(p);
-		if (status == 1) break;
-
+	// Loop through all the QThreads to put the Earliest Start Time and Latest End Time into this Target PTDS
+	qp = p->next_qp;
+	while (qp) {
+		if (qp->first_pass_start_time <= p->first_pass_start_time) 
+			p->first_pass_start_time = qp->first_pass_start_time;
+		if (qp->my_pass_start_time <= p->my_pass_start_time) 
+			p->my_pass_start_time = qp->my_pass_start_time;
+		if (qp->my_pass_end_time >= p->my_pass_end_time) 
+			p->my_pass_end_time = qp->my_pass_end_time;
+		qp = qp->next_qp;
+	}
+	if (p->target_options & TO_ENDTOEND) { 
+		// Average the Send/Receive Time 
+		p->e2e_sr_time /= p->queue_depth;
 	}
 
-	// Perform Completion functions for this pass
-	status = xdd_io_loop_after_loop(p);
+	if (status) return(1);
 
-	// Exit this routine
-	return(status);
-} // End of xdd_io_loop()
+	return(0);
+} // End of xdd_target_ttd_after_pass()
 
-/*
- * Local variables:
- *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
- * End:
- *
- * vim: ts=8 sts=8 sw=8 noexpandtab
- */
+ 

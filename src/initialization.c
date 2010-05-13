@@ -38,15 +38,20 @@
 /* The arguments pass in are the same argc and argv from main();
  */
 int32_t
-xdd_initialization(int32_t argc,char *argv[]) 
-{
+xdd_initialization(int32_t argc,char *argv[]) {
 	pclk_t tt; 
 
 
 	// Initialize the Global Data Structure
+	// See global_data.c
 	xdd_init_globals(argv[0]);
 
+	// Init the barrier chain before any barriers get initialized
+	// See barrier.c
+	xdd_init_barrier_chain();
+
 	// Parse the input arguments 
+	// See parse.c
 	xgp->argc = argc; // remember the original arg count
 	xgp->argv = argv; // remember the original argv 
 	xdd_parse(argc,argv);
@@ -56,13 +61,13 @@ xdd_initialization(int32_t argc,char *argv[])
 		xdd_results_format_id_add("+E2ESRTIME+E2EIOTIME+E2EPERCENTSRTIME ");
 
 	// Optimize runtime priorities and all that 
+	// See schedule.c
 	xdd_schedule_options();
 
 	// initialize the signal handlers 
-	xdd_init_signals();
+	// See signals.c
+	xdd_signal_init();
 
-	// Init all the necessary barriers 
-	xdd_init_all_barriers();
 
 #if WIN32
 	/* Init the ts serializer mutex to compensate for a Windows bug */
@@ -73,16 +78,19 @@ xdd_initialization(int32_t argc,char *argv[])
 	/* initialize the clocks */
 	pclk_initialize(&tt);
 	if (tt == PCLK_BAD) {
-			fprintf(xgp->errout, "%s: Cannot initialize the picosecond clock\n",xgp->progname);
-			fflush(xgp->errout);
-			xdd_destroy_all_barriers();
-			return(-1);
+		fprintf(xgp->errout, "%s: ERROR: Cannot initialize the picosecond clock\n",xgp->progname);
+		fflush(xgp->errout);
+		xdd_destroy_all_barriers();
+		return(-1);
 	}
 	pclk_now(&xgp->base_time);
 
 	// Init the Global Clock 
+	// See global_clock.c
 	xdd_init_global_clock(&xgp->ActualLocalStartTime);
+
 	// display configuration information about this run 
+	// See info_display.c
 	xdd_config_info();
 
 	return(0);
@@ -91,9 +99,9 @@ xdd_initialization(int32_t argc,char *argv[])
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

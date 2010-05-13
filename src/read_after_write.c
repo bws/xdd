@@ -50,8 +50,7 @@
  * printf()).
  */
 void
-xdd_raw_err(char const *fmt, ...)
-{
+xdd_raw_err(char const *fmt, ...) {
 #ifdef WIN32
 	LPVOID lpMsgBuf;
 #endif
@@ -79,8 +78,7 @@ xdd_raw_err(char const *fmt, ...)
  *
  */
 int32_t
-xdd_raw_setup_reader_socket(ptds_t *p)
-{
+xdd_raw_setup_reader_socket(ptds_t *p) {
 	/* Create the socket and set some options */
 	if ((p->raw_sd = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0) {
 		xdd_raw_err("error opening socket");
@@ -130,8 +128,7 @@ xdd_raw_setup_reader_socket(ptds_t *p)
  * present, and it worked, so I kept it that way.
  */
 int32_t
-xdd_raw_sockets_init(void)
-{
+xdd_raw_sockets_init(void) {
 #ifdef WIN32
 	WSADATA wsaData; /* Data structure used by WSAStartup */
 	int wsastatus; /* status returned by WSAStartup */
@@ -234,8 +231,7 @@ xdd_raw_reader_init(ptds_t *p) {
  *
  */
 int32_t
-xdd_raw_read_wait(ptds_t *p) 
-{
+xdd_raw_read_wait(ptds_t *p) {
 	int status; /* status of send/recv function calls */
 	int  bytes_received;
 	int  bytes_remaining;
@@ -320,8 +316,7 @@ xdd_raw_read_wait(ptds_t *p)
  *
  */
 int32_t
-xdd_raw_setup_writer_socket(ptds_t *p)
-{
+xdd_raw_setup_writer_socket(ptds_t *p) {
 	int  status; /* status of send/recv function calls */
 	char  optionvalue; /* used to set the socket option */
     /* Create the socket and set some options */    

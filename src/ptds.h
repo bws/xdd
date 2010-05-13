@@ -83,26 +83,31 @@
 #define TO_VERIFY_CONTENTS     0x0000004000000000ULL  // Verify the contents of the I/O buffer 
 #define TO_VERIFY_LOCATION     0x0000008000000000ULL  // Verify the location of the I/O buffer (first 8 bytes) 
 #define TO_RESTART_ENABLE      0x0000010000000000ULL  // Restart option enabled 
+#define TO_NO_POC_SEMAPHORE    0x0000020000000000ULL  // DO NOT use the Previous Op Complete (POC) Semaphore to sync QThreads
 
 // Per Thread Data Structure - one for each thread 
 struct ptds {
-	struct				ptds *nextp; 		// pointers to the next ptds in the queue 
-	pthread_t  			thread;   			// Handle for this thread 
+	struct ptds 		*target_ptds; 		// Pointer back to the Parent Target PTDS 
+	struct ptds 		*next_qp; 			// Pointer to the next QThread PTDS in the PTDS Substructure
+	pthread_t  			target_thread;		// Handle for this Target Thread 
+	pthread_t  			qthread;			// Handle for this QThread 
+	pthread_t  			issue_thread;		// Handle for this Target's Issue Thread 
+	pthread_t  			completion_thread;	// Handle for this Target's Completion Thread 
 	int32_t   			my_target_number;	// My target number 
 	int32_t   			my_qthread_number;	// My queue number within this target 
-	int32_t   			mythreadnum; 	// My thread number relative to the total number of threads
-	int32_t   			mythreadid;  		// My system thread ID (like a process ID) 
-	int32_t   			mypid;   			// My process ID 
+	int32_t   			my_thread_number; 	// My thread number relative to the total number of threads
+	int32_t   			my_thread_id;  		// My system thread ID (like a process ID) 
+	int32_t   			my_pid;   			// My process ID 
 	int32_t   			total_threads; 		// Total number of threads -> target threads + QThreads 
-	volatile int32_t   	run_complete; 		// 0 = thread has not completed yet, 1= completed this run
-	volatile int32_t   	pass_complete; 		// 0 = thread has not completed yet, 1= completed this pass
+	int32_t   			run_complete; 		// 0 = thread has not completed yet, 1= completed this run
+	int32_t   			pass_complete; 		// 0 = thread has not completed yet, 1= completed this pass
 #ifdef WIN32
 	HANDLE   			fd;    				// File HANDLE for the target device/file 
 #else
 	int32_t   			fd;    				// File Descriptor for the target device/file 
 #endif
 	int32_t				target_open_flags;	// Flags used during open processing of a target
-	unsigned char 		*rwbuf;   		// The re-aligned I/O buffers 
+	unsigned char 		*rwbuf;   			// The re-aligned I/O buffers 
 	int32_t				rwbuf_shmid; 		// Shared Memeory ID for rwbuf 
 	unsigned char 		*rwbuf_save; 		// The original I/O buffers 
 	tthdr_t				*ttp;   			// Pointers to the timestamp table 
@@ -115,8 +120,6 @@ struct ptds {
 	int64_t				filesize;  			// Size of target file in bytes 
 	int64_t				qthread_ops;  		// Total number of ops to perform per qthread 
 	int64_t				target_ops;  		// Total number of ops to perform on behalf of a "target"
-	int64_t				residual_ops;  		// Number of requests mod the queue depth 
-	int64_t				writer_total; 		// Total number of bytes written so far - used by read after write
 	seekhdr_t			seekhdr;  			// For all the seek information 
 	results_t			qthread_average_results;	// Averaged results for this qthread - accumulated over all passes
 	FILE				*tsfp;   			// Pointer to the time stamp output file 
@@ -124,6 +127,48 @@ struct ptds {
 	HANDLE				*ts_serializer_mutex; // needed to circumvent a Windows bug 
 	char				ts_serializer_mutex_name[256]; // needed to circumvent a Windows bug 
 #endif
+	// The Occupant Strcuture used by the barriers 
+	xdd_occupant_t		occupant;							// Used by the barriers to keep track of what is in a barrier at any given time
+	char				occupant_name[32];					// For a Target thread this is "TARGET####", for a QThread it is "TARGET####QTHREAD####"
+	xdd_barrier_t		*current_barrier;					// Pointer to the current barrier this PTDS is in at any given time or NULL if not in a barrier
+
+	// Target-specific variables
+	xdd_barrier_t		target_qthread_init_barrier;		// Where the Target Thread waits for the QThread to initialize
+
+	xdd_barrier_t		targetpass_qthread_passcomplete_barrier;// The barrier used to sync target_pass() with the last QThread I/O Operation
+
+	pthread_mutex_t 	counter_mutex;  					// Mutex for locking when updating counters
+
+	uint64_t			bytes_issued;						// The amount of data for all transfer requests that has been issued so far 
+	uint64_t			bytes_completed;					// The amount of data for all transfer requests that has been completed so far
+	uint64_t			bytes_remaining;					// Bytes remaining to be transferred 
+
+	// Target-specific semaphores and associated pointers
+	struct ptds			*next_qthread_to_use;				// This is used by the get_next_available_qthread() to implement strict ordering
+	sem_t				any_qthread_available;				// The xdd_get_next_available_qthread() routine waits on this for any QThread to become available
+	struct ptds			*last_qthread_assigned;				// This is the PTDS of the most recent QThread assigned a task 
+
+	// QThread-specific semaphores and associated pointers
+	sem_t				this_qthread_available;				// The xdd_get_next_available_qthread() routine waits on this for a specific QThread to become available
+	sem_t				qthread_task_complete;				// The QThread sets this when it has completed a task
+	struct ptds			*qthread_to_wait_for;				// Pointer to the QThread to wait for before starting I/O
+
+															// The QThread Wait Barrier is used just by the QThread and the issue_thread
+	xdd_barrier_t		qthread_targetpass_wait_barrier;	// The barrier where the QThread waits for target_pass() to release it with a task to perform
+
+// The task variables
+	char				task_request;						// Type of Task to perform
+#define TASK_REQ_IO			0x01							// Perform an IO Operation 
+#define TASK_REQ_E2E		0x02							// Perform an End-to-End IO Operation 
+#define TASK_REQ_REOPEN		0x03							// Re-Open the target device/file
+#define TASK_REQ_STOP		0x04							// Stop doing work and exit
+	char				task_op;							// Operation to perform
+	uint32_t			task_xfer_size;						// Number of bytes to transfer
+	uint64_t			task_byte_location;					// Offset into the file where this transfer starts
+	uint64_t			task_e2e_sequence_number;			// Sequence number of this task when part of an End-to-End operation
+	pclk_t				task_time_to_issue;					// Time to issue the I/O operation or 0 if not used
+
+
 	// command line option values 
 	int64_t				start_offset; 			// starting block offset value 
 	int64_t				pass_offset; 			// number of blocks to add to seek locations between passes 
@@ -136,30 +181,32 @@ struct ptds {
 	int32_t				reqsize;  				// number of *blocksize* byte blocks per operation for each target 
 	int32_t				retry_count;  			// number of retries to issue on an error 
 	int32_t				time_limit;  			// timelimit in seconds for each thread 
-	char				*targetdir;  			// The target directory for the target 
-	char				*target;  				// devices to perform operation on 
-	char				*target_name;  			// Fully qualified path name to the target device/file
-	char				targetext[32]; 			// The target extension number 
+	char				*target_directory; 		// The target directory for the target 
+	char				*target_basename; 		// Basename of the target/device
+	char				*target_full_pathname;	// Fully qualified path name to the target device/file
+	char				target_extension[32]; 	// The target extension number 
 	int32_t				processor;  			// Processor/target assignments 
 	pclk_t				start_delay; 			// number of picoseconds to delay the start  of this operation 
+    // ------------------ Throttle stuff --------------------------------------------------
+	// The following "throttle_" members are for the -throttle option
 	double				throttle;  				// Target Throttle assignments 
 	double				throttle_variance;  	// Throttle Average Bandwidth variance 
-#define PTDS_THROTTLE_OPS   0x00000001  	// Throttle type of OPS 
-#define PTDS_THROTTLE_BW    0x00000002  	// Throttle type of Bandwidth 
-#define PTDS_THROTTLE_ABW   0x00000004  	// Throttle type of Average Bandwidth 
-#define PTDS_THROTTLE_DELAY 0x00000008  	// Throttle type of a constant delay or time for each op 
 	uint32_t      		throttle_type; 			// Target Throttle type 
-    // ------------------ End of the Read-after-Write (RAW) stuff -------------------------------------
-	//
+#define PTDS_THROTTLE_OPS   0x00000001  		// Throttle type of OPS 
+#define PTDS_THROTTLE_BW    0x00000002  		// Throttle type of Bandwidth 
+#define PTDS_THROTTLE_ABW   0x00000004  		// Throttle type of Average Bandwidth 
+#define PTDS_THROTTLE_DELAY 0x00000008  		// Throttle type of a constant delay or time for each op 
+    //
+    // ------------------ TimeStamp stuff --------------------------------------------------
 	// The following "ts_" members are for the time stamping (-ts) option
-	int32_t				timestamps;  			// The number of times a time stamp was taken 
 	uint64_t			ts_options;  			// Time Stamping Options 
-	uint32_t			ts_size;  				// Time Stamping Size in number of entries 
+	int64_t				ts_current_entry; 		// Index into the Timestamp Table of the current entry
+	int64_t				ts_size;  				// Time Stamping Size in number of entries 
+	int64_t				ts_trigop;  			// Time Stamping trigger operation number 
 	pclk_t				ts_trigtime; 			// Time Stamping trigger time 
-	int32_t				ts_trigop;  			// Time Stamping trigger operation number 
-    // ------------------ End of the TimeStamp stuff --------------------------------------------------
 	//
-	// The following variables are used by the SCSI Generic I/O Routines
+    // ------------------ SGIO stuff --------------------------------------------------
+	// The following variables are used by the SCSI Generic I/O (SGIO) Routines
 	//
 #define SENSE_BUFF_LEN 64					// Number of bytes for the Sense buffer 
 	uint64_t			sg_from_block;			// Starting block location for this operation 
@@ -168,8 +215,8 @@ struct ptds {
     unsigned char 		sg_sense[SENSE_BUFF_LEN]; // The Sense Buffer  
 	uint32_t   			sg_num_sectors;			// Number of Sectors from Read Capacity command 
 	uint32_t   			sg_sector_size;			// Sector Size in bytes from Read Capacity command 
-    // ------------------ End of the SGIO stuff --------------------------------------------------
 	//
+    // ------------------ Datapattern stuff --------------------------------------------------
 	// Stuff related to the -datapattern option
 	//
 	unsigned char		*data_pattern; 				// Data pattern for write operations for each target - 
@@ -183,8 +230,8 @@ struct ptds {
 	unsigned char		*data_pattern_name; 		// Data pattern name which is an ASCII string  
 	int32_t				data_pattern_name_length;	// Length of the data pattern name string 
 	char				*data_pattern_filename; 	// Name of a file that contains a data pattern to use 
-    // ------------------ End of the DataPattern stuff --------------------------------------------------
 	//
+    // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
 	//
 	pclk_t				run_start_time; 			// This is time t0 of this run - set by xdd_main
@@ -193,7 +240,7 @@ struct ptds {
 	uint64_t			qthread_bytes_to_xfer_per_pass;	// Number of bytes to xfer per pass for this qthread
 	int32_t				block_size;  				// Size of a block in bytes for this target 
 	int32_t				queue_depth; 				// Command queue depth for each target 
-	int32_t				preallocate; 				// File preallocation value 
+	int64_t				preallocate; 				// File preallocation value 
 	int32_t				mem_align;   				// Memory read/write buffer alignment value in bytes 
 	uint64_t			target_options; 			// I/O Options specific to each target 
 	int64_t				last_committed_op;		// Operation number of last r/w operation relative to zero
@@ -201,16 +248,45 @@ struct ptds {
 	int32_t				last_committed_length;		// Number of bytes transferred to/from last_committed_location
 	//
     // Stuff UPDATED during each pass 
-	volatile int32_t	my_current_pass_number; 	// Current pass number 
-	volatile int32_t	syncio_barrier_index; 		// Used to determine which syncio barrier to use at any given time
-	volatile int32_t	thread_barrier_index; 		// Where threads wait for all other threads before starting a pass
-	volatile int32_t	results_pass_barrier_index; // Where threads wait for all other threads to complete a pass
-	volatile int32_t	results_display_barrier_index; // Where threads wait for the results_manager()to display results
-	volatile int32_t	results_run_barrier_index; 	// Where threads wait for all other threads at the completion of the run
+	int32_t				my_current_pass_number; 	// Current pass number 
+	int32_t				syncio_barrier_index; 		// Used to determine which syncio barrier to use at any given time
+	int32_t				results_pass_barrier_index; // Where a Target thread waits for all other Target threads to complete a pass
+	int32_t				results_display_barrier_index; // Where threads wait for the results_manager()to display results
+	int32_t				results_run_barrier_index; 	// Where threads wait for all other threads at the completion of the run
 	//
 	// Time stamps and timing information - RESET AT THE START OF EACH PASS (or Operation on some)
 	pclk_t				my_pass_start_time; 		// The time stamp that this pass started but before the first operation is issued
 	pclk_t				my_pass_end_time; 			// The time stamp that this pass ended 
+	struct	tms			my_starting_cpu_times_this_run;	// CPU times from times() at the start of this run
+	struct	tms			my_starting_cpu_times_this_pass;// CPU times from times() at the start of this pass
+	struct	tms			my_current_cpu_times;		// CPU times from times()
+	//
+	// Counters  - RESET AT THE START OF EACH PASS
+	int32_t				my_pass_ring;  				// What xdd hears when the time limit is exceeded for a single pass 
+	// Updated by xdd_issue() at at the start of a Task IO request to a QThread
+	int64_t				my_current_byte_location; 	// Current byte location for this I/O operation 
+	int32_t				my_current_io_size; 		// Size of the I/O to be performed
+	int32_t				my_error_break; 			// When set it indicates an error that will cause the xdd_issue() loop to stop
+	char				*my_current_op_str; 		// Pointer to an ASCII string of the I/O operation type - "READ", "WRITE", or "NOOP"
+	int32_t				my_current_op_type; 		// Current I/O operation type - OP_TYPE_READ or OP_TYPE_WRITE
+#define OP_TYPE_READ	0x01						// used with my_current_op_type, set by xdd_issue()
+#define OP_TYPE_WRITE	0x02						// used with my_current_op_type, set by xdd_issue()
+#define OP_TYPE_NOOP	0x03						// used with my_current_op_type, set by xdd_issue()
+	// Updated by the QThread upon completion of an I/O operation
+	int64_t				target_op_number;			// The operation number for the target that this I/O represents
+	int64_t				my_current_op_number;		// Current I/O operation number 
+	int64_t				my_current_op_count; 		// The number of read+write operations that have completed so far
+	int64_t				my_current_read_op_count;	// The number of read operations that have completed so far 
+	int64_t				my_current_write_op_count;	// The number of write operations that have completed so far 
+	int64_t				my_current_noop_op_count;	// The number of noops that have completed so far 
+	int64_t				my_current_bytes_xfered_this_op; // Total number of bytes transferred for the most recent completed I/O operation
+	int64_t				my_current_bytes_xfered;	// Total number of bytes transferred so far (to storage device, not network)
+	int64_t				my_current_bytes_read;		// Total number of bytes read so far (from storage device, not network)
+	int64_t				my_current_bytes_written;	// Total number of bytes written so far (to storage device, not network)
+	int64_t				my_current_bytes_noop;		// Total number of bytes processed by noops so far
+	int32_t				my_current_io_status; 		// I/O Status of the last I/O operation for this qthread
+	int32_t				my_current_io_errno; 		// The errno associated with the status of this I/O for this thread
+	int64_t				my_current_error_count;		// The number of I/O errors for this qthread
 	pclk_t				my_elapsed_pass_time; 		// Rime between the start and end of this pass
 	pclk_t				my_first_op_start_time;		// Time this qthread was able to issue its first operation for this pass
 	pclk_t				my_current_op_start_time; 	// Start time of the current op
@@ -219,65 +295,61 @@ struct ptds {
 	pclk_t				my_accumulated_op_time; 	// Accumulated time spent in I/O 
 	pclk_t				my_accumulated_read_op_time; // Accumulated time spent in read 
 	pclk_t				my_accumulated_write_op_time;// Accumulated time spent in write 
+	pclk_t				my_accumulated_noop_op_time;// Accumulated time spent in noops 
 	pclk_t				my_accumulated_pattern_fill_time; // Accumulated time spent in data pattern fill before all I/O operations 
 	pclk_t				my_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
-	struct	tms			my_starting_cpu_times_this_run;	// CPU times from times() at the start of this run
-	struct	tms			my_starting_cpu_times_this_pass;// CPU times from times() at the start of this pass
-	struct	tms			my_current_cpu_times;		// CPU times from times()
-	//
-	// Counters  - RESET AT THE START OF EACH PASS
-	volatile int32_t 	my_pass_ring;  				// What xdd hears when the time limit is exceeded for a single pass 
-	volatile int64_t	my_current_op; 				// Current I/O operation number 
-	volatile int64_t	my_current_op_count; 		// The number of read+write operations that have completed so far
-	volatile int64_t	my_current_read_op_count;	// The number of read operations that have completed so far 
-	volatile int64_t	my_current_write_op_count;	// The number of write operations that have completed so far 
-	volatile int64_t	my_current_bytes_xfered;	// Total number of bytes transferred to far (to storage device, not network)
-	volatile int64_t	my_current_bytes_read;		// Total number of bytes read to far (from storage device, not network)
-	volatile int64_t	my_current_bytes_written;	// Total number of bytes written to far (to storage device, not network)
-	volatile int64_t	my_current_byte_location; 	// Current byte location for this I/O operation 
-	volatile int32_t	my_io_status; 				// I/O Status of the last I/O operation for this qthread
-	volatile int32_t	my_io_errno; 				// The errno associated with the status of this I/O for this thread
-	volatile int32_t	my_error_break; 			// This is set after an I/O Operation if the op failed in some way
-	volatile int64_t	my_current_error_count;		// The number of I/O errors for this qthread
-	volatile int32_t	my_current_state;			// State of this thread at any given time (see Current State definitions below)
+	// Updated by the QThread at different times
+	int32_t				my_current_state;			// State of this thread at any given time (see Current State definitions below)
 	// State Definitions for "my_current_state"
-#define	CURRENT_STATE_IO				0x0000000000000001	// Currently waiting for an I/O operation to complete
-#define	CURRENT_STATE_BTW				0x0000000000000002	// Currently between I/O operations
-#define	CURRENT_STATE_BARRIER			0x0000000000000004	// Currently stuck in a barrier
-#define	CURRENT_STATE_COMPLETE			0x0000000000000008	// This target qthread has completed all I/O and is waiting for other to complete
-#define	CURRENT_STATE_RESTART_COMPLETE	0x0000000000000010	// This restart monitor has completed its check of this target after it finished
+#define	CURRENT_STATE_INIT								0x0000000000000001	// Initialization 
+#define	CURRENT_STATE_IO								0x0000000000000002	// Waiting for an I/O operation to complete
+#define	CURRENT_STATE_DEST_RECEIVE						0x0000000000000004	// Waiting to receive data - Destination side of an E2E operation
+#define	CURRENT_STATE_SRC_SEND							0x0000000000000008	// Waiting for "send" to send data - Source side of an E2E operation
+#define	CURRENT_STATE_BARRIER							0x0000000000000010	// Waiting inside a barrier
+#define	CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE			0x0000000000000020	// Indicates that this QThread is Available
+#define	CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE		0x0000000000000040	// Waiting on the "any qthread available" semaphore
+#define	CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE	0x0000000000000080	// Waiting on the "This QThread Available" semaphore
+#define	CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD		0x0000000000000100	// Waiting for the previous "QThread Task Complete" semaphore
+
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS 
 	// These values are only updated when the -extendedstats option is specified
 	pclk_t		my_longest_op_time; 			// Longest op time that occured during this pass
 	pclk_t		my_longest_read_op_time; 		// Longest read op time that occured during this pass
 	pclk_t		my_longest_write_op_time; 		// Longest write op time that occured during this pass
+	pclk_t		my_longest_noop_op_time; 		// Longest noop op time that occured during this pass
 	pclk_t		my_shortest_op_time; 			// Shortest op time that occurred during this pass
 	pclk_t		my_shortest_read_op_time; 		// Shortest read op time that occured during this pass
 	pclk_t		my_shortest_write_op_time; 		// Shortest write op time that occured during this pass
+	pclk_t		my_shortest_noop_op_time; 		// Shortest noop op time that occured during this pass
 
 	int64_t		my_longest_op_bytes; 			// Bytes xfered when the longest op time occured during this pass
 	int64_t	 	my_longest_read_op_bytes; 		// Bytes xfered when the longest read op time occured during this pass
 	int64_t 	my_longest_write_op_bytes; 		// Bytes xfered when the longest write op time occured during this pass
+	int64_t 	my_longest_noop_op_bytes; 		// Bytes xfered when the longest noop op time occured during this pass
 	int64_t 	my_shortest_op_bytes; 			// Bytes xfered when the shortest op time occured during this pass
 	int64_t 	my_shortest_read_op_bytes; 		// Bytes xfered when the shortest read op time occured during this pass
 	int64_t 	my_shortest_write_op_bytes;		// Bytes xfered when the shortest write op time occured during this pass
+	int64_t 	my_shortest_noop_op_bytes;		// Bytes xfered when the shortest noop op time occured during this pass
 
 	int64_t		my_longest_op_number; 			// Operation Number when the longest op time occured during this pass
 	int64_t	 	my_longest_read_op_number; 		// Operation Number when the longest read op time occured during this pass
 	int64_t 	my_longest_write_op_number; 	// Operation Number when the longest write op time occured during this pass
+	int64_t 	my_longest_noop_op_number; 		// Operation Number when the longest noop op time occured during this pass
 	int64_t 	my_shortest_op_number; 			// Operation Number when the shortest op time occured during this pass
 	int64_t 	my_shortest_read_op_number; 	// Operation Number when the shortest read op time occured during this pass
 	int64_t 	my_shortest_write_op_number;	// Operation Number when the shortest write op time occured during this pass
+	int64_t 	my_shortest_noop_op_number;		// Operation Number when the shortest noop op time occured during this pass
 
 	int32_t		my_longest_op_pass_number;		// Pass Number when the longest op time occured during this pass
 	int32_t		my_longest_read_op_pass_number;	// Pass Number when the longest read op time occured
 	int32_t		my_longest_write_op_pass_number;// Pass Number when the longest write op time occured 
+	int32_t		my_longest_noop_op_pass_number;	// Pass Number when the longest noop op time occured 
 	int32_t		my_shortest_op_pass_number;		// Pass Number when the shortest op time occured 
 	int32_t		my_shortest_read_op_pass_number;// Pass Number when the shortest read op time occured 
 	int32_t		my_shortest_write_op_pass_number;// Pass Number when the shortest write op time occured 
+	int32_t		my_shortest_noop_op_pass_number;// Pass Number when the shortest noop op time occured 
     // ------------------ End of the PASS-Related stuff --------------------------------------------------
-
 
 	// The following variables are used by the "-reopen" option
 	pclk_t        		open_start_time; 			// Time just before the open is issued for this target 
@@ -305,8 +377,7 @@ struct ptds {
 	int32_t				start_trigger_target;		// The number of the target to send the start trigger to 
 	int32_t				stop_trigger_target;		// The number of the target to send the stop trigger to 
 	uint32_t			run_status; 				// This is the status of this thread 0=not started, 1=running 
-	xdd_barrier_t		Start_Trigger_Barrier[2];	// Start Trigger Barrier 
-	int32_t				Start_Trigger_Barrier_index;// The index for the Start Trigger Barrier 
+	xdd_barrier_t		target_target_starttrigger_barrier;	// Start Trigger Barrier 
 
     // -------------------------------------------------------------------
 	// The following "e2e_" members are for the End to End ( aka -e2e ) option
@@ -331,18 +402,16 @@ struct ptds {
 	uint32_t			e2e_rnamelen; 			// the length of the source socket name 
 	int32_t				e2e_current_csd; 		// the current csd used by the select call on the destination side
 	int32_t				e2e_next_csd; 			// The next available csd to use 
-	int32_t				e2e_iosize;   			// number of bytes per End to End request 
-#define PTDS_E2E_MAGIC 		0x07201959 			// The magic number that should appear at the beginning of each message 
-#define PTDS_E2E_MAGIQ 		0x07201960 			// The magic number that should appear in a message signaling destination to quit 
-	xdd_e2e_msg_t 		e2e_msg;  				// The message sent in from the destination 
-	int64_t				e2e_msg_last_sequence;	// The last msg sequence number received 
+	int32_t				e2e_iosize;   			// Number of bytes per End to End request - size of data buffer plus size of E2E Header
+#define PTDS_E2E_MAGIC 	0x07201959 				// The magic number that should appear at the beginning of each message 
+#define PTDS_E2E_MAGIQ 	0x07201960 				// The magic number that should appear in a message signaling destination to quit 
+	xdd_e2e_header_t 	e2e_header;				// Header (actually a trailer) in the data packet of each message sent/received
+	int64_t				e2e_msg_sequence_number;// The Message Sequence Number of the most recent message sent or to be received
 	int32_t				e2e_msg_sent; 			// The number of messages sent 
 	int32_t				e2e_msg_recv; 			// The number of messages received 
-	int32_t				e2e_useUDP; 			// if <>0, use UDP instead of TCP from source to destination 
-	int32_t				e2e_timedout; 			// if <>0, indicates recvfrom timedout...move on to next pass 
 	int64_t				e2e_prev_loc; 			// The previous location from a e2e message from the source 
 	int64_t				e2e_prev_len; 			// The previous length from a e2e message from the source 
-	int64_t				e2e_data_ready; 		// The amount of data that is ready to be read in an e2e op 
+	int64_t				e2e_data_recvd; 		// The amount of data that is received each time we call xdd_e2e_dest_recv()
 	int64_t				e2e_data_length; 		// The amount of data that is ready to be read for this operation 
 	pclk_t				e2e_wait_1st_msg;		// Time in picosecs destination waited for 1st source data to arrive 
 	pclk_t				e2e_first_packet_received_this_pass;// Time that the first packet was received by the destination from the source
@@ -396,9 +465,9 @@ typedef struct ptds ptds_t;
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

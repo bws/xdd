@@ -32,6 +32,7 @@
 #define SO_OP_WRITE 'w'        /**< Write seek entry type */
 #define SO_OP_READ  'r'        /**< Read seek entry type */
 #define SO_OP_WRITE_VERIFY 'v' /**< Write-Verify seek entry type */
+#define SO_OP_NOOP  'n'        /**< NOOP seek entry type */
 
 /** A single seek entry */
 struct seek_entries {
@@ -73,9 +74,9 @@ typedef struct seekhdr seekhdr_t;
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

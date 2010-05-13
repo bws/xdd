@@ -35,16 +35,124 @@
 
 #include "xdd.h"
 
-void *xdd_results_dump(results_t *rp, char *dumptype);
+/*----------------------------------------------------------------------------*/
+// xdd_results_manager runs as a separate thread.
+// When started, this thread will initialize itself and enter the 
+// "results_barrier" and wait for all the other target qthreads to enter
+// the "results_barrier". 
+// When the other threads enter the "results_barrier", this thread will be
+// released and will gather results information from all the qthreads
+// and will display the appropriate information.
+// All of the target threads will have re-enterd the "results_barrier" 
+// waiting for the results_manager to process and display the results.
+// After the results have been processed and displayed, the results_manager
+// will re-enter the "results_barrier" and release all the qthreads to continue
+// with the next pass or termination. Re-entering the "results_barrier" will
+// cause the results_manager to fall through as well at which time it will
+// re-enter the primary waiting barrier.
+//
+void *
+xdd_results_manager(void *n) {
+	results_t	*tmprp;				// Pointer to the results struct in each qthread PTDS
+	int32_t		status;				// Status of the initialization subroutine
+	int			tmp_errno;			// Save the errno
+	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
+
+
+	tmprp = (results_t *)valloc(sizeof(results_t));
+	tmp_errno = errno;
+	if (tmprp == NULL) {
+			fprintf(xgp->errout, "%s: xdd_results_manager: ERROR: Cannot allocate memory for a temporary results structure!\n", xgp->progname);
+			errno = tmp_errno;  // Restore the errno
+			perror("xdd_results_manager: Reason");
+			return(0);
+	}
+
+	// Initialize the barriers and such
+	status = xdd_results_manager_init();
+	if (status < 0)  {
+		fprintf(stderr,"%s: xdd_results_manager: ERROR: Exiting due to previous initialization failure.\n",xgp->progname);
+		return(0);
+	}
+	
+	// Enter this barrier to release main indicating that results manager has initialized
+	xdd_init_barrier_occupant(&barrier_occupant, "RESULTS_MANAGER", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);
+	xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,0);
+
+	// This is the loop that runs continuously throughout the xdd run
+	while (1) {
+		// This barrier will release all the targets at the start of a pass so they all start at the same time
+		xdd_barrier(&xgp->results_targets_startpass_barrier,&barrier_occupant,1);
+
+		// At this point all the targets are running 
+
+		// While the targets are running, we enter this barrier to wait for them to all complete a single pass
+		xdd_barrier(&xgp->results_targets_endpass_barrier,&barrier_occupant,1);
+
+		if ( xgp->abort == 1) { // Something went wrong during thread initialization so let's just leave
+			xdd_process_run_results();
+			// Release all the Target Threads so that they can do their cleanup and exit
+			xdd_barrier(&xgp->results_targets_display_barrier,&barrier_occupant,1);
+			return(0);
+		}
+
+		// Display the header and units line if necessary
+		if (xgp->results_header_displayed == 0) {
+			xdd_results_header_display(tmprp);
+			xgp->results_header_displayed = 1;
+		}
+
+		// At this point all the target qthreads should have entered the results_display_barrier
+		// or the results_display_fnial_barrier and will wait for the pass or run results to be displayed
+
+		if (xgp->run_complete) {
+			xdd_process_run_results();
+			// Release all the Target Threads so that they can do their cleanup and exit
+			xdd_barrier(&xgp->results_targets_display_barrier,&barrier_occupant,1);
+			// Wait for all the Target Threads do their cleanup...
+			xdd_barrier(&xgp->results_targets_waitforcleanup_barrier,&barrier_occupant,1);
+			// Enter the FINAL barrier to tell XDD MAIN that everything is complete
+			xdd_barrier(&xgp->main_results_final_barrier,&barrier_occupant,0);
+			return(0);
+		} else { 
+			 xdd_process_pass_results();
+		}
+
+		xdd_barrier(&xgp->results_targets_display_barrier,&barrier_occupant,1);
+
+	} // End of main WHILE loop for the results_manager()
+	return(0);
+} // End of xdd_results_manager() 
+
+/*----------------------------------------------------------------------------*/
+// xdd_results_manager_init() - Initialize barriers for the results manager
+// Called by xdd_results_manager() 
+// Return value of 0 is good, return of something less than zero is bad
+//
+int32_t
+xdd_results_manager_init(void) {
+	int32_t	status;
+
+	status = xdd_init_barrier(&xgp->results_targets_display_barrier, xgp->number_of_targets+1, "results_targets_display_barrier");
+	status += xdd_init_barrier(&xgp->results_targets_startpass_barrier,xgp->number_of_targets+1, "results_targets_startpass_barrier");
+	status += xdd_init_barrier(&xgp->results_targets_endpass_barrier,xgp->number_of_targets+1, "results_targets_endpass_barrier");
+	status += xdd_init_barrier(&xgp->results_targets_waitforcleanup_barrier, xgp->number_of_targets+1, "results_targets_waitforcleanup_barrier");
+	
+	if (status < 0)  {
+		fprintf(stderr,"%s: xdd_results_manager_init: ERROR: Cannot init barriers.\n",xgp->progname);
+		return(status);
+	}
+	return(0);
+
+} // End of xdd_results_manager_init() 
 /*----------------------------------------------------------------------------*/
 // xdd_results_header_display() 
 // Display the header and units output lines
 // Called by xdd_results_manager() 
 //
 void *
-xdd_results_header_display(results_t *tmprp) 
-{
+xdd_results_header_display(results_t *tmprp) {
 	xgp->heartbeat_holdoff = 1;
 	tmprp->format_string = xgp->format_string;
 	tmprp->output = xgp->output;
@@ -67,6 +175,152 @@ xdd_results_header_display(results_t *tmprp)
 } // End of xdd_results_header_display()
 
 /*----------------------------------------------------------------------------*/
+// xdd_process_pass_results() 
+// Called by xdd_results_manager() 
+//
+void *
+xdd_process_pass_results(void) {
+	int			target_number;
+	ptds_t		*p;		// PTDS pointer of the Target PTDS
+	results_t	*tarp;	// Pointer to the Target Average results structure
+	results_t	*trp;	// Pointer to the Temporary Target Pass results
+	results_t	target_pass_results; // Temporary for target pass results
+
+	xgp->heartbeat_holdoff = 1;
+
+	trp = &target_pass_results;
+
+	// Next, display pass results for each Target
+	for (target_number=0; target_number<xgp->number_of_targets; target_number++) {
+		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+		// Init the Target Average Results struct
+		tarp = xgp->target_average_resultsp[target_number];
+		tarp->format_string = xgp->format_string;
+		tarp->what = "TARGET_AVERAGE";
+		if (p->my_current_pass_number == 1) {
+			tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
+			tarp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
+			tarp->shortest_op_time = (double)DOUBLE_MAX;
+			tarp->shortest_read_op_time = (double)DOUBLE_MAX;
+			tarp->shortest_write_op_time = (double)DOUBLE_MAX;
+		}
+		
+		// Init the Target Pass Results struct
+		trp = &target_pass_results;
+
+		// Get the results from this Target's PTDS and stuff them into a results struct for display
+		xdd_extract_pass_results(trp, p);
+
+		// Combine the pass results from this target with its AVERAGE results from all previous passes
+		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
+		xdd_combine_results(tarp, trp);
+
+		// Display the Pass Results for this target
+		trp->format_string = xgp->format_string;
+		trp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_PASS);
+		trp->what = "TARGET_PASS   ";
+		trp->output = xgp->output;
+		trp->delimiter = ' ';
+		if (xgp->global_options & GO_VERBOSE) {
+			xdd_results_display(trp);
+			if (xgp->csvoutput) { // Display to CSV file if requested
+				trp->output = xgp->csvoutput;
+				trp->delimiter = ',';
+				xdd_results_display(trp);
+			}
+		}
+			
+	} /* end of FOR loop that looks at all targets */
+
+	xgp->heartbeat_holdoff = 0;
+
+	return(0);
+} // End of xdd_process_pass_results() 
+
+/*----------------------------------------------------------------------------*/
+// xdd_process_run_results() 
+// Calculate results for each qthread
+// Called by xdd_results_manager() with a pointer to the qthread PTDS
+//
+void *
+xdd_process_run_results(void) {
+	int			target_number;	// Current target number
+	ptds_t		*p;		// PTDS pointer to a Target PTDS
+	results_t	*tarp;	// Pointer to the Target Average results structure
+	results_t	*crp;	// Pointer to the temporary combined run results
+	results_t	combined_results; // Temporary for target combined results
+
+
+	// At this point all the Target Threads are waiting for this routine
+	// to display the AVERAGE and COMBINED results for this run.
+
+	// Tell the heartbeat to stop
+	xgp->heartbeat_holdoff = 2; 
+
+	// Initialize the place where the COMBINED results are accumulated
+	crp = &combined_results; 
+	memset(crp, 0, sizeof(results_t));
+	crp->flags = (RESULTS_PASS_INFO | RESULTS_COMBINED);
+	crp->format_string = xgp->format_string;
+	crp->what = "COMBINED      ";
+	crp->earliest_start_time_this_run = (double)DOUBLE_MAX;
+	crp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
+	crp->shortest_op_time = (double)DOUBLE_MAX;
+	crp->shortest_read_op_time = (double)DOUBLE_MAX;
+	crp->shortest_write_op_time = (double)DOUBLE_MAX;
+
+	for (target_number=0; target_number<xgp->number_of_targets; target_number++) {
+		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+		tarp = xgp->target_average_resultsp[target_number];
+			
+		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
+		tarp->format_string = xgp->format_string;
+		tarp->what = "TARGET_AVERAGE";
+		tarp->output = xgp->output;
+		tarp->delimiter = ' ';
+		if (xgp->global_options & GO_VERBOSE) {
+			// Display the Target AVERAGE results if -verbose was specified
+			xdd_results_display(tarp);
+			if (xgp->csvoutput) { // Display to CSV file if requested
+				tarp->output = xgp->csvoutput;
+				tarp->delimiter = ',';
+				xdd_results_display(tarp);
+			}
+		}
+
+		// Combined this Target's results with the other Targets
+		xdd_combine_results(crp, tarp);
+
+	} // End of FOR loop that processes all targets for the run
+
+	// Now lets display the COMBINED results
+	crp->output = xgp->output;
+	crp->delimiter = ' ';
+	xdd_results_display(crp);
+	if (xgp->csvoutput) { // Display to CSV file if requested
+		crp->output = xgp->csvoutput;
+		crp->delimiter = ',';
+		xdd_results_display(crp);
+	}
+
+	// Process TimeStamp reports for the -ts option
+	for (target_number=0; target_number<xgp->number_of_targets; target_number++) { 
+		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+		/* Display and write the time stamping information if requested */
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+			if (p->ts_current_entry > p->ttp->tt_size) 
+				p->ttp->numents = p->ttp->tt_size;
+			else p->ttp->numents = p->ts_current_entry;
+			xdd_ts_reports(p);  /* generate reports if requested */
+			xdd_ts_write(p); 
+			xdd_ts_cleanup(p->ttp); /* call this to free the TS table in memory */
+		}
+	} // End of processing TimeStamp reports
+
+	return(0);
+} // End of xdd_process_run_results() 
+
+/*----------------------------------------------------------------------------*/
 // xdd_combine_results() 
 // Called by xdd_results_manager() to combine results from a qthread pass 
 // results struct into a target_average results struct (the "to" pointer)
@@ -78,15 +332,14 @@ xdd_results_header_display(results_t *tmprp)
 // that pass.
 //
 void 
-xdd_combine_results(results_t *to, results_t *from)
-{
+xdd_combine_results(results_t *to, results_t *from) {
 
 
 	// Fundamental Variables
 	to->format_string = from->format_string;		// Format String for the xdd_results_display_processor() 
 	if (to->flags & RESULTS_COMBINED) {				// For the COMBINED output...
 		to->my_target_number = xgp->number_of_targets; 	// This is the number of targets
-		to->my_qthread_number = xgp->number_of_iothreads;      // This is the number of qthreads
+		to->my_qthread_number = from->queue_depth; 	// This is the number of QThreads for this Target
 	} else {										// For a queue or target pass then...
 		to->my_target_number = from->my_target_number; 	// Target number of instance 
 		to->my_qthread_number = from->my_qthread_number;// QThread number of instance 
@@ -119,9 +372,9 @@ xdd_combine_results(results_t *to, results_t *from)
 	to->pass_start_lag_time += from->pass_start_lag_time;		// Lag time from start of pass to the start of the first operation 
 
 	if (to->flags & RESULTS_TARGET_PASS) {
-		if (to->earliest_start_time_this_pass > from->earliest_start_time_this_pass)
+		if (to->earliest_start_time_this_pass >= from->earliest_start_time_this_pass)
 			to->earliest_start_time_this_pass = from->earliest_start_time_this_pass;
-		if (to->latest_end_time_this_pass < from->latest_end_time_this_pass)
+		if (to->latest_end_time_this_pass <= from->latest_end_time_this_pass)
 			to->latest_end_time_this_pass = from->latest_end_time_this_pass;
 		to->elapsed_pass_time = (to->latest_end_time_this_pass - to->earliest_start_time_this_pass)/FLOAT_TRILLION;
 		to->accumulated_elapsed_time += to->elapsed_pass_time; 	// Accumulated elapsed time is "virtual" time since the qthreads run in parallel
@@ -140,18 +393,23 @@ xdd_combine_results(results_t *to, results_t *from)
 		to->user_time += from->user_time; 		// Amount of CPU time used by the application for this pass 
 		to->system_time += from->system_time;	// Amount of CPU time used by the system for this pass 
 		to->us_time += from->us_time; 			// Total CPU time used by this process: user+system time for this pass 
-		to->percent_user = (to->user_time / to->elapsed_pass_time) * 100.0;	// Percent of CPU time used by the application for this pass 
-		to->percent_system = (to->system_time / to->elapsed_pass_time) * 100.0;		// Percent of CPU time used by the system for this pass 
-		to->percent_cpu = (to->us_time / to->elapsed_pass_time) * 100.0; 	// Percent CPU time used by this process: user+system time for this pass 
-
+		if (to->elapsed_pass_time > 0.0) {
+			to->percent_user = (to->user_time / to->elapsed_pass_time) * 100.0;	// Percent of CPU time used by the application for this pass 
+			to->percent_system = (to->system_time / to->elapsed_pass_time) * 100.0;		// Percent of CPU time used by the system for this pass 
+			to->percent_cpu = (to->us_time / to->elapsed_pass_time) * 100.0; 	// Percent CPU time used by this process: user+system time for this pass 
+		} else { // Cannot calculate
+			to->percent_user = -1.0;
+			to->percent_system = -1.0;
+			to->percent_cpu = -1.0; 
+		}
 	} else if (to->flags & RESULTS_TARGET_AVG) {
-		if (to->earliest_start_time_this_pass > from->earliest_start_time_this_pass)
+		if (to->earliest_start_time_this_pass >= from->earliest_start_time_this_pass)
 			to->earliest_start_time_this_pass = from->earliest_start_time_this_pass;
 
 		if (from->pass_number == 1) 
 			to->earliest_start_time_this_run = to->earliest_start_time_this_pass; 
 
-		if (to->latest_end_time_this_pass < from->latest_end_time_this_pass)
+		if (to->latest_end_time_this_pass <= from->latest_end_time_this_pass)
 			to->latest_end_time_this_pass = from->latest_end_time_this_pass;
 
 		to->latest_end_time_this_run = to->latest_end_time_this_pass;
@@ -172,16 +430,24 @@ xdd_combine_results(results_t *to, results_t *from)
 		to->user_time += from->user_time; 		// Amount of CPU time used by the application for this pass 
 		to->system_time += from->system_time;	// Amount of CPU time used by the system for this pass 
 		to->us_time += from->us_time; 			// Total CPU time used by this process: user+system time for this pass 
-		to->percent_user = (to->user_time / to->elapsed_pass_time) * 100.0;	// Percent of CPU time used by the application for this pass 
-		to->percent_system = (to->system_time / to->elapsed_pass_time) * 100.0;		// Percent of CPU time used by the system for this pass 
-		to->percent_cpu = (to->us_time / to->elapsed_pass_time) * 100.0; 	// Percent CPU time used by this process: user+system time for this pass 
+		if (to->elapsed_pass_time > 0.0) {
+			to->percent_user = (to->user_time / to->elapsed_pass_time) * 100.0;	// Percent of CPU time used by the application for this pass 
+			to->percent_system = (to->system_time / to->elapsed_pass_time) * 100.0;		// Percent of CPU time used by the system for this pass 
+			to->percent_cpu = (to->us_time / to->elapsed_pass_time) * 100.0; 	// Percent CPU time used by this process: user+system time for this pass 
+		} else { // Cannot calculate
+			to->percent_user = -1.0;
+			to->percent_system = -1.0;
+			to->percent_cpu = -1.0; 
+		}
 
 	} else if (to->flags & RESULTS_COMBINED) {
-		if (to->earliest_start_time_this_run > from->earliest_start_time_this_run)
+		if (to->earliest_start_time_this_run >= from->earliest_start_time_this_run)
 			to->earliest_start_time_this_run = from->earliest_start_time_this_run;
-		if (to->latest_end_time_this_run < from->latest_end_time_this_run)
+		if (to->latest_end_time_this_run <= from->latest_end_time_this_run)
 			to->latest_end_time_this_run = from->latest_end_time_this_run;
-		to->elapsed_pass_time = (to->latest_end_time_this_run - to->earliest_start_time_this_run)/FLOAT_TRILLION;
+		if (to->latest_end_time_this_run <= to->earliest_start_time_this_run) 
+			to->elapsed_pass_time = -1.0;
+		else to->elapsed_pass_time = (to->latest_end_time_this_run - to->earliest_start_time_this_run)/FLOAT_TRILLION;
 		to->accumulated_elapsed_time += to->elapsed_pass_time; // Accumulated elapsed time is "virtual" time since the qthreads run in parallel
 		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N qthreads
 		to->latency = to->accumulated_latency/(from->my_target_number + 1); // This is the "average" latency or milliseconds per op for this target
@@ -198,9 +464,15 @@ xdd_combine_results(results_t *to, results_t *from)
 		to->user_time += from->user_time; 		// Amount of CPU time used by the application for this pass 
 		to->system_time += from->system_time;	// Amount of CPU time used by the system for this pass 
 		to->us_time += from->us_time; 			// Total CPU time used by this process: user+system time for this pass 
-		to->percent_user = (to->user_time / to->elapsed_pass_time) * 100.0;	// Percent of CPU time used by the application for this pass 
-		to->percent_system = (to->system_time / to->elapsed_pass_time) * 100.0;		// Percent of CPU time used by the system for this pass 
-		to->percent_cpu = (to->us_time / to->elapsed_pass_time) * 100.0; 	// Percent CPU time used by this process: user+system time for this pass 
+		if (to->elapsed_pass_time > 0.0) {
+			to->percent_user = (to->user_time / to->elapsed_pass_time) * 100.0;	// Percent of CPU time used by the application for this pass 
+			to->percent_system = (to->system_time / to->elapsed_pass_time) * 100.0;		// Percent of CPU time used by the system for this pass 
+			to->percent_cpu = (to->us_time / to->elapsed_pass_time) * 100.0; 	// Percent CPU time used by this process: user+system time for this pass 
+		} else { // Cannot calculate
+			to->percent_user = -1.0;	
+			to->percent_system = -1.0;
+			to->percent_cpu = -1.0; 
+		}
 
 	} else { // This is the QThread Cumulative Results
 		to->elapsed_pass_time += from->elapsed_pass_time; // Total time from start of pass to the end of the last operation 
@@ -219,9 +491,15 @@ xdd_combine_results(results_t *to, results_t *from)
 		to->user_time += from->user_time; 		// Amount of CPU time used by the application for this pass 
 		to->system_time += from->system_time;	// Amount of CPU time used by the system for this pass 
 		to->us_time += from->us_time; 			// Total CPU time used by this process: user+system time for this pass 
-		to->percent_user = (to->user_time / to->elapsed_pass_time) * 100.0;	// Percent of CPU time used by the application for this pass 
-		to->percent_system = (to->system_time / to->elapsed_pass_time) * 100.0;		// Percent of CPU time used by the system for this pass 
-		to->percent_cpu = (to->us_time / to->elapsed_pass_time) * 100.0; 	// Percent CPU time used by this process: user+system time for this pass 
+		if (to->elapsed_pass_time > 0.0) {
+			to->percent_user = (to->user_time / to->elapsed_pass_time) * 100.0;	// Percent of CPU time used by the application for this pass 
+			to->percent_system = (to->system_time / to->elapsed_pass_time) * 100.0;		// Percent of CPU time used by the system for this pass 
+			to->percent_cpu = (to->us_time / to->elapsed_pass_time) * 100.0; 	// Percent CPU time used by this process: user+system time for this pass 
+		} else { // Cannot calculate
+			to->percent_user = -1.0;
+			to->percent_system = -1.0;
+			to->percent_cpu = -1.0; 
+		}
 
 	}
 
@@ -379,13 +657,13 @@ xdd_combine_results(results_t *to, results_t *from)
 // to fill in and a pointer to the qthread PTDS that contains the raw data.
 //
 void *
-xdd_extract_pass_results(results_t *rp, ptds_t *p) 
-{
+xdd_extract_pass_results(results_t *rp, ptds_t *p) {
 
 	memset(rp, 0, sizeof(results_t));
+
+	// Basic parameters
 	rp->pass_number = p->my_current_pass_number;	// int32
 	rp->my_target_number = p->my_target_number;		// int32
-	rp->my_qthread_number = p->my_qthread_number;	// int32
 	rp->queue_depth = p->queue_depth;				// int32
 	rp->bytes_xfered = p->my_current_bytes_xfered;	// int64
 	rp->bytes_read = p->my_current_bytes_read;		// int64
@@ -396,6 +674,7 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p)
 	rp->error_count = p->my_current_error_count;	// int64
 	rp->reqsize = p->reqsize;						// int32
 
+	// Operation type
 	if (p->rwratio == 0.0) 
 		rp->optype = "write";
 	else if (p->rwratio == 1.0) 
@@ -408,10 +687,10 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p)
 	rp->accumulated_write_op_time = (double)((double)p->my_accumulated_write_op_time / FLOAT_TRILLION); // pico to seconds
 	rp->accumulated_pattern_fill_time = (double)((double)p->my_accumulated_pattern_fill_time / FLOAT_BILLION); // pico to milli
 	rp->accumulated_flush_time = (double)((double)p->my_accumulated_flush_time / FLOAT_BILLION); // pico to milli
-	rp->earliest_start_time_this_run = (double)p->first_pass_start_time; // picoseconds
-	rp->earliest_start_time_this_pass = (double)p->my_pass_start_time; // picoseconds
-	rp->latest_end_time_this_run = (double)p->my_pass_end_time; // picoseconds
-	rp->latest_end_time_this_pass = (double)p->my_pass_end_time; // picoseconds
+	rp->earliest_start_time_this_run = (double)(p->first_pass_start_time); // picoseconds
+	rp->earliest_start_time_this_pass = (double)(p->my_pass_start_time); // picoseconds
+	rp->latest_end_time_this_run = (double)(p->my_pass_end_time); // picoseconds
+	rp->latest_end_time_this_pass = (double)(p->my_pass_end_time); // picoseconds
 	rp->elapsed_pass_time = (double)((double)(p->my_pass_end_time - p->my_pass_start_time) / FLOAT_TRILLION); // pico to seconds
 	if (rp->elapsed_pass_time == 0.0) 
 		rp->elapsed_pass_time = -1.0; // This is done to prevent and divide-by-zero problems
@@ -422,15 +701,21 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p)
 	rp->xfer_size_blocks = p->iosize/p->block_size;	// blocks
 	rp->xfer_size_kbytes = p->iosize/1024;			// kbytes
 	rp->xfer_size_mbytes = p->iosize/(1024*1024);	// mbytes
+
+	// Bandwidth
 	rp->bandwidth = (double)(((double)rp->bytes_xfered / (double)rp->elapsed_pass_time) / FLOAT_MILLION);  // MB/sec
 	rp->read_bandwidth = (double)(((double)rp->bytes_read / (double)rp->elapsed_pass_time) / FLOAT_MILLION);  // MB/sec
 	rp->write_bandwidth = (double)(((double)rp->bytes_written / (double)rp->elapsed_pass_time) / FLOAT_MILLION);  // MB/sec
+
+	// IOPS and Latency
 	rp->iops = (double)((double)rp->op_count / (double)rp->elapsed_pass_time);  // OPs/sec
 	rp->read_iops = (double)(rp->read_op_count / (double)rp->elapsed_pass_time);  // OPs/sec
 	rp->write_iops = (double)(rp->write_op_count / (double)rp->elapsed_pass_time);  // OPs/sec
 	if (rp->iops == 0.0)
 		rp->latency = 0.0;
 	else rp->latency = (double)((1.0/rp->iops) * 1000.0);  // milliseconds
+
+	// Times
 	rp->user_time =   (double)(p->my_current_cpu_times.tms_utime  - p->my_starting_cpu_times_this_pass.tms_utime)/(double)(xgp->clock_tick); // Seconds
 	rp->system_time = (double)(p->my_current_cpu_times.tms_stime  - p->my_starting_cpu_times_this_pass.tms_stime)/(double)(xgp->clock_tick); // Seconds
 	rp->us_time = (double)(rp->user_time + rp->system_time); // MilliSeconds
@@ -443,12 +728,16 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p)
 		rp->percent_system = (double)(rp->system_time/rp->elapsed_pass_time) * 100.0; // Percent System Time
 		rp->percent_cpu = (rp->us_time / rp->elapsed_pass_time) * 100.0;
 	}
+
+	// E2E Times
 	rp->e2e_sr_time_this_pass = (double)p->e2e_sr_time/FLOAT_TRILLION; // E2E SendReceive Time in MicroSeconds
 	rp->e2e_io_time_this_pass = (double)rp->elapsed_pass_time; // E2E IO  Time in MicroSeconds
 	if (rp->e2e_io_time_this_pass == 0.0)
 		rp->e2e_sr_time_percent_this_pass = 0.0; // Percentage of IO Time spent in SendReceive
 	else rp->e2e_sr_time_percent_this_pass = (rp->e2e_sr_time_this_pass/rp->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
 	rp->e2e_wait_1st_msg = (double)p->e2e_wait_1st_msg/FLOAT_TRILLION; // MicroSeconds
+
+	// Extended Statistics
 	// The Hig/Low values are only updated when the -extendedstats option is specified
 	if (xgp->global_options & GO_EXTENDED_STATS) {
 		if (rp->shortest_op_time > 0.0) {
@@ -498,286 +787,12 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p)
 	}
 	return(0);
 } // End of xdd_extract_pass_results() 
-/*----------------------------------------------------------------------------*/
-// xdd_process_pass_results() 
-// Calculate results for each qthread
-// Called by xdd_results_manager() with a pointer to the qthread PTDS
-//
-void *
-xdd_process_pass_results(void) 
-{
-	int			i;
-	ptds_t		*p;		// PTDS pointer
-	results_t	*qarp;	// Pointer to the Qthread Average results structure
-	results_t	*tarp;	// Pointer to the Target Average results structure
-	results_t	*trp;	// Pointer to the Temporary Target Pass results
-	results_t	*qrp;	// Pointer to the temporary qthread pass results
-	results_t	qthread_pass_results; // Temporary qthread pass results
-	results_t	target_pass_results; // Temporary for target pass results
-
-	xgp->heartbeat_holdoff = 1;
-
-	qrp = &qthread_pass_results;
-	trp = &target_pass_results;
-
-	// Next, gather results from all target qthreads and display pass results
-	for (i=0; i<xgp->number_of_targets; i++) {
-		p = xgp->ptdsp[i]; /* Get the ptds for this target */
-		// Init the Target Average Results struct
-		tarp = xgp->target_average_resultsp[i];
-		tarp->format_string = xgp->format_string;
-		tarp->what = "TARGET_AVERAGE";
-		if (p->my_current_pass_number == 1) {
-			tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
-			tarp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
-			tarp->shortest_op_time = (double)DOUBLE_MAX;
-			tarp->shortest_read_op_time = (double)DOUBLE_MAX;
-			tarp->shortest_write_op_time = (double)DOUBLE_MAX;
-		}
-		
-		// Init the Target Pass Results struct
-		trp = &target_pass_results;
-		memset(trp, 0, sizeof(results_t));
-		trp->format_string = xgp->format_string;
-		trp->what = "TARGET_PASS   ";
-		trp->earliest_start_time_this_run = (double)DOUBLE_MAX;
-		trp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
-		trp->shortest_op_time = (double)DOUBLE_MAX;
-		trp->shortest_read_op_time = (double)DOUBLE_MAX;
-		trp->shortest_write_op_time = (double)DOUBLE_MAX;
-		trp->e2e_sr_time_this_pass = 0;
-		trp->e2e_io_time_this_pass = 0;
-		while (p) { /* Look at all the qthreads for this target */
-			qrp = &qthread_pass_results;
-
-			xdd_extract_pass_results(qrp, p);
-	
-			// Display the QThread pass results
-			qrp->flags = (RESULTS_PASS_INFO | RESULTS_QUEUE_PASS);
-			qrp->format_string = xgp->format_string;
-			qrp->what = "QUEUE_PASS    ";
-			qrp->output = xgp->output;
-			qrp->delimiter = ' ';
-			if (p->target_options & TO_QTHREAD_INFO) {
-				xdd_results_display(qrp);
-				if (xgp->csvoutput) { // Display to CSV file if requested
-					qrp->output = xgp->csvoutput;
-					qrp->delimiter = ',';
-					xdd_results_display(qrp);
-				}
-			}
-			
-			// Combine qthread results with prior QThread Average Results
-			qarp = &p->qthread_average_results;
-			qarp->format_string = xgp->format_string;
-			qarp->what = "QUEUE_AVERAGE";
-			xdd_combine_results(qarp, qrp);
-
-			// Combine qthread results for Target Average
-			trp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_PASS);
-			xdd_combine_results(trp, qrp);
-
-			// get ptds for the next qthread for this target 
-			p = p->nextp; 
-		} // Done with results for this target
-
-		// Combine the pass results from this target with its average results so far
-		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
-		xdd_combine_results(tarp, trp);
-
-		// At this point all the pass results from each qthread for this particular
-		// target have been squished into a single results structure for this target.
-		// Display the Pass Results for this target
-		trp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_PASS);
-		trp->what = "TARGET_PASS   ";
-		trp->output = xgp->output;
-		trp->delimiter = ' ';
-		if (xgp->global_options & GO_VERBOSE) {
-			xdd_results_display(trp);
-			if (xgp->csvoutput) { // Display to CSV file if requested
-				trp->output = xgp->csvoutput;
-				trp->delimiter = ',';
-				xdd_results_display(trp);
-			}
-		}
-			
-	} /* end of FOR loop that looks at all targets */
-
-	xgp->heartbeat_holdoff = 0;
-
-	return(0);
-} // End of xdd_process_pass_results() 
-
-/*----------------------------------------------------------------------------*/
-// xdd_process_run_results() 
-// Calculate results for each qthread
-// Called by xdd_results_manager() with a pointer to the qthread PTDS
-//
-void *
-xdd_process_run_results(void) 
-{
-	int			i;	
-	ptds_t		*p;		// PTDS pointer
-	ptds_t		*qp;	// PTDS pointer to a qthread ptds
-	results_t	*tarp;	// Pointer to the Target Average results structure
-	results_t	*crp;	// Pointer to the temporary combined run results
-	results_t	combined_results; // Temporary for target combined results
-
-
-	// Wait for the other threads to get here...
-	xdd_barrier(&xgp->results_run_barrier);
-
-	// At this point all the other threads are waiting for this routine
-	// to display the *average* results and combined results for this run.
-	xgp->heartbeat_holdoff = 2; // Tell the heartbeat to stop
-
-	crp = &combined_results; // A place to accumulate the combined results
-	memset(crp, 0, sizeof(results_t));
-	crp->flags = (RESULTS_PASS_INFO | RESULTS_COMBINED);
-	crp->format_string = xgp->format_string;
-	crp->what = "COMBINED      ";
-	crp->earliest_start_time_this_run = (double)DOUBLE_MAX;
-	crp->shortest_op_time = (double)DOUBLE_MAX;
-	crp->shortest_read_op_time = (double)DOUBLE_MAX;
-	crp->shortest_write_op_time = (double)DOUBLE_MAX;
-
-	for (i=0; i<xgp->number_of_targets; i++) {
-		p = xgp->ptdsp[i]; /* Get the ptds for this target */
-		tarp = xgp->target_average_resultsp[i];
-			
-		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
-		tarp->format_string = xgp->format_string;
-		tarp->what = "TARGET_AVERAGE";
-		tarp->output = xgp->output;
-		tarp->delimiter = ' ';
-		if (xgp->global_options & GO_VERBOSE) {
-			xdd_results_display(tarp);
-			if (xgp->csvoutput) { // Display to CSV file if requested
-				tarp->output = xgp->csvoutput;
-				tarp->delimiter = ',';
-				xdd_results_display(tarp);
-			}
-		}
-
-		xdd_combine_results(crp, tarp);
-
-	} // End of FOR loop that processes all targets for the run
-	crp->output = xgp->output;
-	crp->delimiter = ' ';
-	xdd_results_display(crp);
-	if (xgp->csvoutput) { // Display to CSV file if requested
-		crp->output = xgp->csvoutput;
-		crp->delimiter = ',';
-		xdd_results_display(crp);
-	}
-
-	for (i=0; i<xgp->number_of_targets; i++) { // Processing TimeStamp reports
-		p = xgp->ptdsp[i]; /* Get the ptds for this target */
-		qp = p;
-		while (qp) {
-			/* Display and write the time stamping information if requested */
-			if (qp->ts_options & (TS_ON | TS_TRIGGERED)) {
-				if (qp->timestamps > qp->ttp->tt_size) 
-					qp->ttp->numents = qp->ttp->tt_size;
-				else qp->ttp->numents = qp->timestamps;
-				if (qp->run_complete == 0) {
-					fprintf(xgp->errout,"%s: Houston, we have a problem... thread for Target %d Q %d is not complete and we are trying to dump the time stamp file!\n", 
-						xgp->progname, 
-						qp->my_target_number, 
-						qp->my_qthread_number);
-				}
-				xdd_ts_reports(qp);  /* generate reports if requested */
-				xdd_ts_write(qp); 
-				xdd_ts_cleanup(qp->ttp); /* call this to free the TS table in memory */
-			}
-			qp = qp->nextp;
-		}
-	} // End of processing TimeStamp reports
-	// Release all the other qthreads so that they can do their cleanup and exit
-	xdd_barrier(&xgp->results_display_final_barrier);
-	return(0);
-} // End of xdd_process_run_results() 
-
-/*----------------------------------------------------------------------------*/
-// xdd_results_manager runs as a separate thread.
-// When started, this thread will initialize itself and enter the 
-// "results_barrier" and wait for all the other target qthreads to enter
-// the "results_barrier". 
-// When the other threads enter the "results_barrier", this thread will be
-// released and will gather results information from all the qthreads
-// and will display the appropriate information.
-// All of the target threads will have re-enterd the "results_barrier" 
-// waiting for the results_manager to process and display the results.
-// After the results have been processed and displayed, the results_manager
-// will re-enter the "results_barrier" and release all the qthreads to continue
-// with the next pass or termination. Re-entering the "results_barrier" will
-// cause the results_manager to fall through as well at which time it will
-// re-enter the primary waiting barrier.
-//
-void *
-xdd_results_manager(void *n)
-{
-	//int32_t  	i;  							/* Random variables */
-	int32_t  	results_pass_barrier_index;		/* index for results pass barrier */
-	int32_t  	results_display_barrier_index;  /* index for results display barrier */
-	//ptds_t  	*p;   							/* Pointer to a qthread ptds */
-	//results_t	*rp;							// Pointer to the results struct in each qthread PTDS
-	results_t	*tmprp;							// Pointer to the results struct in each qthread PTDS
-
-
-	results_pass_barrier_index = 0;
-	results_display_barrier_index = 0;
-
-	tmprp = (results_t *)valloc(sizeof(results_t));
-	if (tmprp == NULL) {
-			fprintf(xgp->errout, "%s: results_manager: Error: Cannot allocate memory for a temp results structure!\n", xgp->progname);
-			perror("results_manager: Reason");
-			return(0);
-	}
-
-	// Enter this barrier and wait for the results monitor to initialize
-	xdd_barrier(&xgp->results_initialization_barrier);
-
-	// This is the loop that runs continuously throughout the xdd run
-	while (1) {
-		/* Enter the results barrier and wait for the target threads to get here */
-		xdd_barrier(&xgp->results_pass_barrier[results_pass_barrier_index]);
-		results_pass_barrier_index ^= 1; 
-
-		if ( xgp->abort_io == 1) { // Something went wrong during thread initialization so let's just leave
-			xdd_process_run_results();
-			return(0);
-		}
-
-		// Display the header and nuits line if necessary
-		if (xgp->results_header_displayed == 0) {
-			xdd_results_header_display(tmprp);
-			xgp->results_header_displayed = 1;
-		}
-
-		// At this point all the target qthreads should have entered the results_display_barrier
-		// or the results_display_fnial_barrier and will wait for the pass or run results to be displayed
-
-		if (xgp->run_complete) {
-			xdd_process_run_results();
-			return(0);
-		} else { 
-			 xdd_process_pass_results();
-		}
-
-		xdd_barrier(&xgp->results_display_barrier[results_display_barrier_index]);
-		results_display_barrier_index ^= 1; 
-
-	} // End of main WHILE loop for the results_manager()
-	return(0);
-}
 
 #ifdef ndef
 /*----------------------------------------------------------------------------*/
 // xdd_results_dump 
 void *
-xdd_results_dump(results_t *rp, char *dumptype)
-{
+xdd_results_dump(results_t *rp, char *dumptype) {
 
 	fprintf(xgp->output,"\n\n------------------------ Dumping %s -------------------------------\n\n", dumptype);
 	fprintf(xgp->output,"	flags = 0x%016x\n",(unsigned int)rp->flags);				// Flags that tell the display function what to display

@@ -35,13 +35,13 @@
 void
 xdd_init_globals(char *progname) {
 
-	xgp = (xdd_globals_t *)malloc(sizeof(struct xdd_globals));
+	xgp = (xdd_global_data_t *)malloc(sizeof(struct xdd_global_data));
 	if (xgp == 0) {
-		fprintf(stderr,"%s: Cannot allocate %d bytes of memory for global variables!\n",progname, (int)sizeof(struct xdd_globals));
+		fprintf(stderr,"%s: Cannot allocate %d bytes of memory for global variables!\n",progname, (int)sizeof(struct xdd_global_data));
 		perror("Reason");
 		exit(1);
 	}
-	memset(xgp,0,sizeof(struct xdd_globals));
+	memset(xgp,0,sizeof(struct xdd_global_data));
 
 	xgp->progname = progname;
 	// This is the default in order to avoid all the warning messages, overridden by selecting -maxall andor -proclock + -memlock
@@ -54,7 +54,6 @@ xdd_init_globals(char *progname) {
 	xgp->csvoutput = NULL;
 	xgp->combined_output_filename = ""; /* name of the combined output file */
 	xgp->combined_output = NULL;       /* Combined output file */
-	xgp->canceled = 0;       /* Normally set to 0. Set to 1 by xdd_sigint when an interrupt occurs */
 	xgp->id_firsttime = 1;
 	
 	/* Initialize the global variables */
@@ -80,15 +79,18 @@ xdd_init_globals(char *progname) {
 	xgp->heartbeat = 0;
 	xgp->restart_frequency = 0;
 	xgp->run_ring = 0;       /* The alarm that goes off when the total run time has been exceeded */
+	xgp->run_complete = 0; 
 	xgp->deskew_ring = 0;    /* The alarm that goes off when the the first thread finishes */
-	xgp->abort_io = 0;       /* abort the run due to some catastrophic failure */
+	xgp->abort = 0;       /* abort the run due to some catastrophic failure */
 	xgp->heartbeat = 0;              /* seconds between heartbeats */
 	xgp->number_of_iothreads = 0;    /* number of threads spawned for all targets */
 	xgp->runtime = 0;                /* Length of time to run all targets, all passes */
 	xgp->estimated_end_time = 0;     /* The time at which this run (all passes) should end */
 	xgp->number_of_processors = 0;   /* Number of processors */ 
 	xgp->random_initialized = 0;     /* Random number generator has not been initialized  */
+	xgp->e2e_TCP_Win = 10000000;	 /* e2e TCP Window Size */
 	xgp->ActualLocalStartTime = 0;   /* The time to start operations */
+	xgp->XDDMain_Thread = pthread_self();
 	xgp->heartbeat_holdoff = 0;  	/* used by results manager to suspend or cancel heartbeat displays */
 	xgp->format_string = DEFAULT_OUTPUT_FORMAT_STRING;
 

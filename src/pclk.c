@@ -36,8 +36,6 @@
 /* -------- */
 #include <stdio.h>
 #include "pclk.h" /* pclk_t, prototype compatibility */
-#include "ticker.h" /* Machine dependent ticker routines */
-#include "misc.h" /* bool, Assert() */
 /* --------------- */
 /* Private globals */
 /* --------------- */
@@ -62,9 +60,7 @@ private pclk_t     pclk_ticker_max = 0;    /* Max acceptable tick value */
  * the resolution of the clock (picoseconds per tick), or -1 on error.
  */
 void
-pclk_initialize(pclk_t *pclkp)
-{
-//fprintf(stderr,"pclk_init: size of pclk_t is %d bytes size of PCLK_BAD is %d \n",sizeof(pclk_t), sizeof(PCLK_BAD));
+pclk_initialize(pclk_t *pclkp) {
     if (pclk_initialized) {
         *((pclk_t *)pclkp) =  (pclk_t) pclk_tick_picos;
         return;
@@ -87,8 +83,7 @@ pclk_initialize(pclk_t *pclkp)
  * De-initialize the clock.
  */
 void
-pclk_shutdown(void)
-{
+pclk_shutdown(void) {
     if (pclk_initialized) {
 		ticker_close();
 		pclk_tick_picos = 0;
@@ -102,29 +97,13 @@ pclk_shutdown(void)
  *
  * Return the current value of the ticker, in picoseconds.
  * If initialization hasn't been performed, or if the ticker
- * value has overflowed its useful range, returns PCLK_BAD.
+ * value has overflowed its useful range, then the return value is undefined
  */
 void
-pclk_now(pclk_t *pclkp)
-{
+pclk_now(pclk_t *pclkp) {
     pclk_t  value;
 
-    if (! pclk_initialized) {
-        *pclkp = (pclk_t) PCLK_BAD;
-        return; /* Nothing works until initialized */
-    }
-
     ticker_read((tick_t *)&value);
-    if (value == (pclk_t) PCLK_BAD) {
-        *pclkp = (pclk_t) PCLK_BAD;
-        return; /* Something is wrong */
-    }
-
-    /* We could be more robust, but for now, we'll just err on overflow */
-    if (value > pclk_ticker_max) {
-        *pclkp = (pclk_t) PCLK_BAD;
-        return; /* Overflow */
-    }
     *pclkp = (pclk_t)(value * pclk_tick_picos);
     return;
 }

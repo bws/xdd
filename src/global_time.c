@@ -76,8 +76,7 @@
  * status.
  */
 void
-globtim_err(char const *fmt, ...)
-{
+globtim_err(char const *fmt, ...) {
 #ifdef WIN32
 	LPVOID lpMsgBuf;
 #endif

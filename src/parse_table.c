@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -170,9 +170,20 @@ xdd_func_t  xdd_func[] = {
     {"heartbeat", "hb",
             xddfunc_heartbeat,  
             1,  
-            "  -heartbeat #\n",  
-            {"    Will print out running counters every # seconds \n", 
-            0,0,0,0},
+            "  -heartbeat # | ops | bytes | kbytes | mbytes | gbytes | percent | bw | iops | et | ignorerestart\n",  
+            {"    Will print out heartbeat information every # seconds \n\
+ 			     'operations' | 'ops' - current number of operations complete \n\
+                 'bytes' | 'b' -  current bytes transfered \n\
+                 'kbytes' | 'kb' - current Kilo Bytes transfered \n\
+                 'mbytes' | 'mb' - current Mega Bytes transfered \n\
+                 'gbytes' | 'gb' - current Giga Bytes transfered \n\
+                 'percent' | 'pct' - percent complete\n\
+                 'bandwidth' | 'bw' -  aggregate bandiwdth\n\
+                 'iops' - aggregate I/O operations per second\n\
+                 'et' | 'etc' | 'eta' - estimated time to completion\n\
+                 'ignorerestart' | 'ir' - ignore the fact that a restart is in process\n",
+			 "Specifying -heartbeat multiple times will add these to the heartbeat output string FOR EACH TARGET\n",
+            0,0,0},
 			0},
     {"help", "h",
             xddfunc_help,  
@@ -186,6 +197,13 @@ xdd_func_t  xdd_func[] = {
             1,  
             "  -id \"string\" | commandline \n",  
             {"    Specifies an arbitrary ID string to place in the time stamp file and printed on stdout\n", 
+            0,0,0,0},
+			0},
+    {"interactive",   "inter",
+            xddfunc_interactive, 
+            1,  
+            "  -interactive\n",  
+            {"    Indicates that XDD should start up in Interactive Mode - targets will not start until the 'run' command is given.\n", 
             0,0,0,0},
 			0},
     {"bytes",  "b",
@@ -312,6 +330,13 @@ xdd_func_t  xdd_func[] = {
             {"    Will set not lock memory\n", 
             0,0,0,0},
 			0},
+    {"nopocsem", "nopoc",
+            xddfunc_nopocsem,     
+            1,  
+            "  -nopocsem [target <target#>]\n",  
+            {"    Will not use the Previous Op Complete Semaphore to synchronize QThreads for all targets or a specified target\n", 
+            0,0,0,0},
+			0},
     {"noproclock", "noplock",
             xddfunc_noproclock,     
             1,  
@@ -336,11 +361,10 @@ xdd_func_t  xdd_func[] = {
     {"operation", "op",
             xddfunc_operation,  
             1,  
-            "  -operation [target <target#>] read|write\n",   
-            {"   The operation is either 'read', 'write', -or- 'target # read' -or- 'target # write'\n", 
+            "  -operation [target <target#>] read|write|noop\n",   
+            {"   The operation is either 'read', 'write', 'noop' -or- 'target # read', 'target # write', or 'target # noop'\n", 
              "   The 'target # <op>' will cause the specified target to perform the specified operations\n",
-             "   The default is 'read' for all targets unless otherwise specified\n",
-             0,0},
+             0,0,0},
 			0},
     {"output", "o",
             xddfunc_output,     
@@ -392,8 +416,8 @@ xdd_func_t  xdd_func[] = {
     {"preallocate", "pa",
             xddfunc_preallocate,
             1,  
-            "  -preallocate [target <target#>] <#blocks>\n",  
-            {"    Will preallocate # blocksize blocks before writing a file.\n", 
+            "  -preallocate [target <target#>] <#bytes>\n",  
+            {"    Will preallocate # bytes before writing a file.\n", 
             0,0,0,0},
 			0},
     {"processlock", "plock",      
@@ -709,6 +733,13 @@ xdd_func_t  xdd_func[] = {
     Default is no time stamping.\n",
               0,0,0},
 			0},
+    {"unverbose", "unv",
+            xddfunc_unverbose,    
+            1,  
+            "  -unverbose\n",  
+            {"    Will turn off verbose mode \n", 
+            0,0,0,0},
+			XDD_FUNC_INVISIBLE},
     {"verbose", "verbose",
             xddfunc_verbose,    
             1,  
@@ -745,9 +776,9 @@ xdd_func_t  xdd_func[] = {
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

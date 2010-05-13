@@ -68,7 +68,7 @@ xdd_sg_io(ptds_t *p, char rw) {
 	// Set up the sg-specific variables in the PTDS
 	p->sg_blocksize = 512; // This is because sg uses a sector size block size
 	p->sg_from_block = (p->my_current_byte_location / p->sg_blocksize);
-	p->sg_blocks = p->actual_iosize / p->sg_blocksize;
+	p->sg_blocks = p->my_current_io_size / p->sg_blocksize;
 	
 	// Init the CDB
 	if (rw == 'w') 
@@ -124,9 +124,9 @@ xdd_sg_io(ptds_t *p, char rw) {
 			p->my_target_number,
 			p->my_qthread_number,
 			(rw == 'w')?"Write":"Read",
-			p->target,
+			p->target_full_pathname,
 			status,
-			(long long)p->my_current_op);
+			(long long)p->my_current_op_number);
 		fflush(xgp->errout);
 		return(status);
 	}
@@ -146,9 +146,9 @@ xdd_sg_io(ptds_t *p, char rw) {
 			p->my_target_number,
 			p->my_qthread_number,
 			(rw == 'w')?"Write":"Read",
-			p->target,
+			p->target_full_pathname,
 			status,
-			(long long)p->my_current_op,
+			(long long)p->my_current_op_number,
 			(unsigned long long)p->sg_from_block, 
 			p->sg_blocks);
 		fflush(xgp->errout);
@@ -162,9 +162,9 @@ xdd_sg_io(ptds_t *p, char rw) {
 					p->my_target_number,
 					p->my_qthread_number,
 					(rw == 'w')?"Write":"Read",
-					p->target,
+					p->target_full_pathname,
 					status,
-					(long long)p->my_current_op,
+					(long long)p->my_current_op_number,
 					(unsigned long long)p->sg_from_block, 
 					p->sg_blocks);
 				break;
@@ -177,7 +177,7 @@ xdd_sg_io(ptds_t *p, char rw) {
 							xgp->progname,
 							p->my_target_number,
 							p->my_qthread_number,
-							(long long)p->my_current_op,
+							(long long)p->my_current_op_number,
 							(unsigned long long)p->sg_from_block, 
 							p->sg_blocks);
 					}
@@ -187,9 +187,9 @@ xdd_sg_io(ptds_t *p, char rw) {
 					p->my_target_number,
 					p->my_qthread_number,
 					(rw == 'w')?"Write":"Read",
-					p->target,
+					p->target_full_pathname,
 					status,
-					(long long)p->my_current_op,
+					(long long)p->my_current_op_number,
 					(unsigned long long)p->sg_from_block, 
 					p->sg_blocks);
 				return(0);
@@ -243,8 +243,9 @@ xdd_sg_read_capacity(ptds_t *p) {
 			p->my_target_number,
 			p->my_qthread_number,
 			xgp->progname,
-			p->target,status,
-			(long long)p->my_current_op);
+			p->target_full_pathname,
+			status,
+			(long long)p->my_current_op_number);
 		fflush(xgp->errout);
 		perror("reason");
 		return(FAILED);

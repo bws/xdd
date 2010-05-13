@@ -52,7 +52,7 @@ xdd_init_io_buffers(ptds_t *p) {
 
 	/* allocate slightly larger buffer for meta data for end-to-end ops */
 	if ((p->target_options & TO_ENDTOEND)) 
-		p->e2e_iosize = p->iosize + sizeof(p->e2e_msg);
+		p->e2e_iosize = p->iosize + sizeof(p->e2e_header);
 	else	p->e2e_iosize = p->iosize;
 	/* Check to see if we want to use a shared memory segment and allocate it using shmget() and shmat().
 	 * NOTE: This is not supported by all operating systems. 
@@ -135,9 +135,9 @@ xdd_init_io_buffers(ptds_t *p) {
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

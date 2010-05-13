@@ -34,25 +34,81 @@
  */
 #include "xdd.h"
 /*----------------------------------------------------------------------------*/
-/* xdd_sigint() - Routine that gets called when an Interrupt occurs. This will
- * call the appropriate routines to remove all the barriers and semaphores so
- * that we shut down gracefully.
+/* xdd_signal_handler() - Routine that gets called when a signal gets caught. 
+ * This will call the appropriate routines to shut down gracefully.
  */
 void
-xdd_sigint(int n) {
-	fprintf(xgp->errout,"Program canceled - destroying all barriers...");
+xdd_signal_handler(int signum, siginfo_t *sip, void *ucp) {
+	ucontext_t	*up;		// Pointer to the ucontext structure
+
+	up = (ucontext_t *)ucp;
+	
+	fprintf(xgp->errout,"\n%s: xdd_signal_handler: Received signal %d: ", xgp->progname, signum);
+	switch (signum) {
+		case SIGINT:
+			fprintf(xgp->errout,"SIGINT: Interrupt from keyboard\n");
+			break;
+		case SIGQUIT:
+			fprintf(xgp->errout,"SIGQUIT: Quit from keyboard\n");
+			break;
+		case SIGABRT:
+			fprintf(xgp->errout,"SIGABRT: Abort\n");
+			break;
+		case SIGTERM:
+			fprintf(xgp->errout,"SIGTERm: Termination\n");
+			break;
+		default:
+			fprintf(xgp->errout,"Unknown Signal - terminating\n");
+			break;
+	}
 	fflush(xgp->errout);
-	xgp->canceled = 1;
-	xdd_destroy_all_barriers();
-	fprintf(xgp->errout,"done. Exiting\n");
-	fflush(xgp->errout);
-} /* end of xdd_sigint() */
+	xgp->canceled += 1;
+	if (xgp->canceled > 3) {
+		fprintf(xgp->errout,"xdd_signal_handler: Starting Debugger\n");
+		xdd_signal_start_debugger();
+	}
+
+} /* end of xdd_signal_handler() */
 
 /*----------------------------------------------------------------------------*/
-/* xdd_init_signals() - Initialize all the signal handlers
+/* xdd_signal_init() - Initialize all the signal handlers
+ */
+int32_t
+xdd_signal_init(void) {
+	int		status;			// status of the sigaction() system call
+
+
+	xgp->sa.sa_sigaction = xdd_signal_handler;			// Pointer to the signal handler
+ 	sigemptyset( &xgp->sa.sa_mask );				// The "empty set" - don't mask any signals
+	xgp->sa.sa_flags = SA_SIGINFO; 					// This indicates that the signal handler will get a pointer to a siginfo structure indicating what happened
+	status 	= sigaction(SIGINT,  &xgp->sa, NULL);	// Interrupt from keyboard - ctrl-c
+	status += sigaction(SIGQUIT, &xgp->sa, NULL);	// Quit from keyboard 
+	status += sigaction(SIGABRT, &xgp->sa, NULL);	// Abort signal from abort(3)
+	status += sigaction(SIGTERM, &xgp->sa, NULL);	// Termination
+
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_signal_init: ERROR initializing signal handler(s)\n",xgp->progname);
+		perror("Reason");
+		return(-1);
+	}
+	return(0);
+
+} /* end of xdd_signal_init() */
+
+/*----------------------------------------------------------------------------*/
+/* xdd_signal_start_debugger() - Will start the Interactive Debugger Thread
  */
 void
-xdd_init_signals(void) {
-	signal(SIGINT, xdd_sigint);
-} /* end of xdd_init_signals() */
+xdd_signal_start_debugger() {
+	int32_t		status;			// Status of a subroutine call
 
+
+	status = pthread_create(&xgp->Interactive_Thread, NULL, xdd_interactive, (void *)(unsigned long)1);
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_signal_start_debugger: ERROR: Could not start debugger control processor\n", xgp->progname);
+		fflush(xgp->errout);
+		xdd_destroy_all_barriers();
+		exit(1);
+	}
+
+} // End of xdd_signal_start_debugger()

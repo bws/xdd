@@ -57,8 +57,7 @@ void xdd_build_ptds_substructure(void);
  * "-operation" but I am lazy so there you have it. 
  */
 void
-xdd_parse_args(int32_t argc, char *argv[], uint32_t flags)
-{
+xdd_parse_args(int32_t argc, char *argv[], uint32_t flags) {
     int funci;      // Index into xdd_func[]
     int argi;       // Index into argv
     int arg_count;  // Number of args left to look at
@@ -116,8 +115,7 @@ xdd_parse_args(int32_t argc, char *argv[], uint32_t flags)
 /* xdd_parse() - Command line parser.
  */
 void
-xdd_parse(int32_t argc, char *argv[])
-{
+xdd_parse(int32_t argc, char *argv[]) {
 
 	
 	if (argc < 1) { // Ooopppsss - nothing specified...
@@ -143,8 +141,7 @@ xdd_parse(int32_t argc, char *argv[])
 /* xdd_usage() - Display usage information
  */
 void
-xdd_usage(int32_t fullhelp)
-{
+xdd_usage(int32_t fullhelp) {
     int i,j;
 
     fprintf(stderr,"Usage: %s command-line-options\n",xgp->progname);
@@ -173,8 +170,7 @@ xdd_usage(int32_t fullhelp)
  * If the option pointer is 0 then return -1 - this should never happen.
  */
 int
-xdd_check_option(char *op)
-{
+xdd_check_option(char *op) {
 	int i;
 
 
@@ -331,8 +327,7 @@ xdd_process_paramfile(char *fnp) {
  *
  */
 int
-xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_number)
-{
+xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_number) {
 	int32_t tn; // Temporary target number 
 	ptds_t	*p; // Pointer to a ptds for the specified target number
 
@@ -426,8 +421,7 @@ xdd_get_restartp(ptds_t *p) {
 /* xdd_linux_cpu_count() - return the number of CPUs on  this system
  */
 int32_t
-xdd_linux_cpu_count(void)
-{
+xdd_linux_cpu_count(void) {
 	size_t	 	cpumask_size; 	/* size of the CPU mask in bytes */
 	cpu_set_t 	cpumask; 	/* mask of the CPUs configured on this system */
 	int		status; 	/* System call status */
@@ -454,8 +448,7 @@ xdd_linux_cpu_count(void)
 /* xdd_cpu_count() - return the number of CPUs on  this system
  */
 int32_t
-xdd_cpu_count(void)
-{
+xdd_cpu_count(void) {
 	int32_t		cpus; // Number of CPUs found
 #if (OSX)
 	cpus = 1;
@@ -483,8 +476,7 @@ xdd_cpu_count(void)
  * returns the length of the hex data destination buffer in 4-bit nibbles.
  */
 int32_t
-xdd_atohex(unsigned char *destp, char *sourcep)
-{
+xdd_atohex(unsigned char *destp, char *sourcep) {
 	int		i;
 	size_t     	length;
 	size_t		nibbles;
@@ -588,9 +580,9 @@ xdd_atohex(unsigned char *destp, char *sourcep)
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

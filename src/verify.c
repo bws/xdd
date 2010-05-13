@@ -40,7 +40,7 @@
  */
 int32_t
 xdd_verify_checksum(ptds_t *p, int32_t current_op) {
-	fprintf(xgp->errout, "NOT IMPLEMENTED YET\n");
+	fprintf(xgp->errout, "%s: xdd_verify_checksum: ERROR: NOT IMPLEMENTED YET\n", xgp->progname);
 	return(0);
 } // end of xdd_verify_checksum()
 
@@ -77,16 +77,12 @@ xdd_verify_hex(ptds_t *p, int32_t current_op) {
 		patternp = p->data_pattern;
 		for (i=0; i<p->data_pattern_length; i++, patternp++, bufferp++) {
 			if (*patternp != *bufferp) {
-#ifdef WIN32
-				fprintf(xgp->errout,"%s [%d]: Content mismatch on target %s at %d bytes into block %I64u, expected 0x%02x, got 0x%02x\n",
-#else
-				fprintf(xgp->errout,"%s [%d]: Content mismatch on target %s at %d bytes into block %llu, expected 0x%02x, got 0x%02x\n",
-#endif
+				fprintf(xgp->errout,"%s: xdd_verify_hex: ERROR: Content mismatch on target number %d name %s at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
 					xgp->progname, 
 					p->my_target_number, 
-					p->target, 
+					p->target_full_pathname, 
 					offset, 
-					(unsigned long long)(p->my_current_byte_location/p->block_size), 
+					(long long int)(p->my_current_byte_location/p->block_size), 
 					*patternp, 
 					*bufferp);
 
@@ -113,11 +109,11 @@ xdd_verify_hex(ptds_t *p, int32_t current_op) {
  */
 int32_t
 xdd_verify_sequence(ptds_t *p, int32_t current_op) {
-	int32_t  i,j;
-	int32_t  errors;
-	uint64_t expected_data;
-	uint64_t *uint64p;
-	unsigned char *ucp;        /* A temporary unsigned char pointer */
+	int32_t  		i,j;
+	int64_t	  		errors;
+	uint64_t 		expected_data;
+	uint64_t 		*uint64p;
+	unsigned char 	*ucp;        /* A temporary unsigned char pointer */
  
 
 	uint64p = (uint64_t *)p->rwbuf;
@@ -133,12 +129,12 @@ xdd_verify_sequence(ptds_t *p, int32_t current_op) {
 		if (*uint64p != expected_data) { // If the expected_data pattern is not what we think it should be then scream!
 			//Check how many errors we've had, if too many, then don't print data
 			if (errors <= xgp->max_errors_to_print) {
-				fprintf(xgp->errout,"%s [%d]: Data Buffer Content mismatch on target %s at %d bytes into block %llu, ",
+				fprintf(xgp->errout,"%s: xdd_verify_sequence: ERROR: Data Buffer Content Sequence mismatch on target number %d name %s at %d bytes into block %lld, ",
 					xgp->progname, 
 					p->my_target_number, 
-					p->target, 
+					p->target_full_pathname, 
 					i, 
-					(unsigned long long)(p->my_current_byte_location/p->block_size));
+					(long long int)(p->my_current_byte_location/p->block_size));
 
 				fprintf(xgp->errout, "expected 0x");
 				for (j=0, ucp=(unsigned char *)&expected_data; j<sizeof(uint64_t); j++, ucp++) {
@@ -156,8 +152,11 @@ xdd_verify_sequence(ptds_t *p, int32_t current_op) {
 	} // end of FOR loop that looks at all locations 
 	//print out remaining error count if exceeded max
     if (errors > xgp->max_errors_to_print) {
-		fprintf(xgp->errout,"%s [%d]: ADDITIONAL Data Buffer Content mismatchs on target %s = %d\n",
-			    xgp->progname, p->my_target_number, p->target, errors - (xgp->max_errors_to_print));
+		fprintf(xgp->errout,"%s: xdd_verify_sequence: ERROR: ADDITIONAL Data Buffer Content mismatchs on target number %d name %s = %lld\n",
+			    xgp->progname, 
+				p->my_target_number, 
+				p->target_full_pathname, 
+				(long long int)(errors - (xgp->max_errors_to_print)));
 	}
 	return(errors);
 } // end of xdd_verify_sequence() 
@@ -179,19 +178,14 @@ xdd_verify_singlechar(ptds_t *p, int32_t current_op) {
 	errors = 0;
 	for (i = 0; i < p->actual_iosize; i++) {
 		if (*ucp != *(p->data_pattern)) {
-#ifdef WIN32
-		fprintf(xgp->errout,"%s [%d]: Content mismatch on target %s at %d bytes into block %I64u, expected 0x%02x, got 0x%02x\n",
-#else
-		fprintf(xgp->errout,"%s [%d]: Content mismatch on target %s at %d bytes into block %llu, expected 0x%02x, got 0x%02x\n",
-#endif
-			xgp->progname, 
-			p->my_target_number, 
-			p->target, 
-			i, 
-			(unsigned long long)(p->my_current_byte_location/p->block_size), 
-			*(p->data_pattern), 
-			*ucp);
-
+			fprintf(xgp->errout,"%s: xdd_verify_singlechar: ERROR: Content mismatch on target number %d name %s at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
+				xgp->progname, 
+				p->my_target_number, 
+				p->target_full_pathname, 
+				i, 
+				(unsigned long long)(p->my_current_byte_location/p->block_size), 
+				*(p->data_pattern), 
+				*ucp);
 		errors++;
 		} /* End printing error message */
 		ucp++;
@@ -233,8 +227,10 @@ xdd_verify_contents(ptds_t *p, int32_t current_op) {
 	}
 
 	// If we get here then the data pattern was either not specified or the data pattern type was not recognized.
-	fprintf(xgp->errout, "%s [%d]xdd_verify_contents: Data verification type not understood for target %s. No verification possible.\n",
-				xgp->progname, p->my_target_number, p->target);
+	fprintf(xgp->errout, "%s: xdd_verify_contents: ERROR: Data verification request not understood for target number %d name %s. No verification possible.\n",
+				xgp->progname, 
+				p->my_target_number, 
+				p->target_full_pathname);
 	return(0);
 	
 } // end of xdd_verify_contents()  
@@ -257,16 +253,12 @@ xdd_verify_location(ptds_t *p, int32_t current_op) {
 	current_position = *(uint64_t *)p->rwbuf;
 	if (current_position != p->my_current_byte_location) {
 		errors++;
-#ifdef WIN32
-		fprintf(xgp->errout,"%s [%d]: Data Buffer Sequence mismatch on target %s - expected %I64u, got %I64u\n",
-#else
-		fprintf(xgp->errout,"%s [%d]: Data Buffer Sequence mismatch on target %s - expected %llu, got %llu\n",
-#endif
+		fprintf(xgp->errout,"%s: xdd_verify_location: ERROR: Data Buffer Sequence mismatch on target number %d name %s - expected %lld, got %lld\n",
 			xgp->progname, 
 			p->my_target_number, 
-			p->target, 
-			(unsigned long long)p->my_current_byte_location, 
-			(unsigned long long)current_position);
+			p->target_full_pathname, 
+			(long long int)p->my_current_byte_location, 
+			(long long int)current_position);
 
 		fflush(xgp->errout);
 	}
@@ -284,8 +276,8 @@ xdd_verify(ptds_t *p, int32_t current_op) {
 
 	// We only do verification of data if the last operation was a read. Otherwise, just return.
 	if (p->seekhdr.seeks[current_op].operation != SO_OP_READ){
-		fprintf(xgp->errout, "%s [%d] xdd_verify: Data verification for target %s during a write operation is not possible. No verification performed.\n",
-				xgp->progname, p->my_target_number, p->target);
+		fprintf(xgp->errout, "%s: xdd_verify: ERROR: Data verification for target number %d name %s during a write operation is not possible. No verification performed.\n",
+				xgp->progname, p->my_target_number, p->target_full_pathname);
 		return(0);
 	}
 
@@ -294,8 +286,8 @@ xdd_verify(ptds_t *p, int32_t current_op) {
 	* sequence number(s) in it.
 	*/
 	if (!(p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION))) { // If we don't need to verify location or contents of the buffer, then just return.
-		fprintf(xgp->errout, "%s [%d] xdd_verify: Data verification type <location or contents> not specified for target %s. No verification performed.\n",
-				xgp->progname, p->my_target_number, p->target);
+		fprintf(xgp->errout, "%s: xdd_verify: ERROR: Data verification type <location or contents> not specified for target number %d name %s. No verification performed.\n",
+				xgp->progname, p->my_target_number, p->target_full_pathname);
 		return(0);
 	}
 

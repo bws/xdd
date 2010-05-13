@@ -12,7 +12,7 @@ OS 	= 	$(shell uname)
 DATESTAMP =	$(shell date +%m%d%y )
 BUILD 	=	$(shell date +%H%M )
 PROJECT =	xdd
-VERSION =	7.0.0.rc12
+VERSION =	7.1.0.rc1
 XDD_VERSION = $(OS).$(VERSION).$(DATESTAMP).Build.$(BUILD)
 XDDVERSION = \"$(XDD_VERSION)\"
 
@@ -30,30 +30,33 @@ XDD_SOURCE = $(SRC_DIR)/access_pattern.c \
 	$(SRC_DIR)/datapatterns.c \
 	$(SRC_DIR)/debug.c \
 	$(SRC_DIR)/end_to_end.c \
+	$(SRC_DIR)/end_to_end_init.c \
 	$(SRC_DIR)/global_clock.c \
 	$(SRC_DIR)/global_data.c \
 	$(SRC_DIR)/global_time.c \
 	$(SRC_DIR)/heartbeat.c \
 	$(SRC_DIR)/info_display.c \
 	$(SRC_DIR)/initialization.c \
+	$(SRC_DIR)/interactive.c \
+	$(SRC_DIR)/interactive_func.c \
+	$(SRC_DIR)/interactive_table.c \
 	$(SRC_DIR)/io_buffers.c \
-	$(SRC_DIR)/io_loop.c \
-	$(SRC_DIR)/io_loop_after_io_operation.c \
-	$(SRC_DIR)/io_loop_after_loop.c  \
-	$(SRC_DIR)/io_loop_before_io_operation.c \
-	$(SRC_DIR)/io_loop_before_loop.c \
-	$(SRC_DIR)/io_loop_perform_io_operation.c \
-	$(SRC_DIR)/io_thread.c \
-	$(SRC_DIR)/io_thread_cleanup.c \
-	$(SRC_DIR)/io_thread_init.c \
 	$(SRC_DIR)/lockstep.c \
 	$(SRC_DIR)/memory.c \
 	$(SRC_DIR)/parse.c \
 	$(SRC_DIR)/parse_func.c \
 	$(SRC_DIR)/parse_table.c \
 	$(SRC_DIR)/pclk.c \
+	$(SRC_DIR)/preallocate.c \
 	$(SRC_DIR)/processor.c \
 	$(SRC_DIR)/ptds.c \
+	$(SRC_DIR)/qthread.c \
+	$(SRC_DIR)/qthread_cleanup.c \
+	$(SRC_DIR)/qthread_init.c \
+	$(SRC_DIR)/qthread_io.c \
+	$(SRC_DIR)/qthread_io_for_os.c \
+	$(SRC_DIR)/qthread_ttd_after_io_op.c \
+	$(SRC_DIR)/qthread_ttd_before_io_op.c \
 	$(SRC_DIR)/read_after_write.c \
 	$(SRC_DIR)/restart.c \
 	$(SRC_DIR)/results_display.c \
@@ -61,7 +64,14 @@ XDD_SOURCE = $(SRC_DIR)/access_pattern.c \
 	$(SRC_DIR)/schedule.c \
 	$(SRC_DIR)/sg.c \
 	$(SRC_DIR)/signals.c \
-	$(SRC_DIR)/target.c \
+	$(SRC_DIR)/target_cleanup.c \
+	$(SRC_DIR)/target_init.c \
+	$(SRC_DIR)/target_open.c \
+	$(SRC_DIR)/target_pass.c \
+	$(SRC_DIR)/target_thread.c \
+	$(SRC_DIR)/target_ttd_before_io_op.c \
+	$(SRC_DIR)/target_ttd_after_pass.c \
+	$(SRC_DIR)/target_ttd_before_pass.c \
 	$(SRC_DIR)/ticker.c \
 	$(SRC_DIR)/timestamp.c \
 	$(SRC_DIR)/utils.c \
@@ -87,6 +97,8 @@ XDD_HEADERS = $(HDR_DIR)/access_pattern.h \
 	$(HDR_DIR)/timestamp.h \
 	$(HDR_DIR)/xdd.h \
 	$(HDR_DIR)/xdd_common.h \
+	$(HDR_DIR)/xdd_global_data.h \
+	$(HDR_DIR)/xdd_prototypes.h \
 	$(HDR_DIR)/xdd_version.h
 
 #
@@ -104,7 +116,7 @@ GT_OBJECTS = $(SRC_DIR)/gettime.o \
 #
 CC = 		gcc
 INCLUDES = -I$(SRC_DIR)
-LIBRARIES =	-lpthread
+LIBRARIES =	-lpthread -lrt
 CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -g
 
 #
@@ -112,7 +124,7 @@ CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -g
 #
 $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
-CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -fno-strict-aliasing -Wall
+CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -fno-strict-aliasing -Wall -DXFS_ENABLED -DLIBXFS_DEVEL
 endif
 ifeq '$(OS)' 'Darwin' 
 CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DOSX -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g

@@ -33,13 +33,14 @@
 
 /** typedef unsigned long long iotimer_t; */
 struct tte {
-	short pass;  /**< pass number */
-	char rwvop;  /**< operation: write=2, read=1 */
-	char filler1; /**< */
-	int32_t opnumber; /**< operation number */
-	uint64_t byte_location; /**< seek location in bytes */
-	pclk_t start;  /**< The starting time stamp */
-	pclk_t end;  /**< The ending time stamp */
+	short 		pass_number;  	// Pass Number
+	char 		op_type;  		// operation: write=2, read=1, no-op=0
+	char 		filler1; 		// Alignment
+	int32_t		qthread_number;	// My QThread Number
+	int64_t 	op_number; 		// Operation number
+	int64_t 	byte_location; 	// Location in bytes - aka Offset into the device/file
+	pclk_t 		start;  		// The starting time stamp of this operation
+	pclk_t 		end;  			// The ending time stamp of this operation
 };
 typedef struct tte tte_t;
 
@@ -48,25 +49,25 @@ typedef struct tte tte_t;
  * the time stamp trace table data 
  */
 struct tthdr {
-	int32_t reqsize; /**< size of these requests in 'blocksize'-byte blocks */
-	int32_t blocksize; /**< size of each block in bytes */
-	int32_t numents; /**< number of timestamp table entries */
-	pclk_t trigtime; /**< Time the time stamp started */
-	int32_t trigop;  /**< Operation number that timestamping started */
-	int64_t res;  /**< clock resolution - pico seconds per clock tick */
-	int64_t range;  /**< range over which the IO took place */
-	int64_t start_offset; /**< offset of the starting block */
-	int64_t target_offset; /**< offset of the starting block for each proc*/
-	uint64_t global_options;  /**< options used */
-	uint64_t target_options;  /**< options used */
-	char id[MAX_IDLEN]; /**< ID string */
-	char td[32];  /**< time and date */
-	pclk_t timer_oh; /**< Timer overhead in nanoseconds */
-	pclk_t delta;  /**< Delta used for normalization */
-	int32_t tt_bytes; /**< Size of the entire time stamp table in bytes */
-	int32_t tt_size; /**< Size of the entire time stamp table in entries */
-	int64_t tte_indx; /**< Index into the time stamp table */
-	struct tte tte[1]; /**< timestamp table entries */
+	int32_t		reqsize; 		/**< size of these requests in 'blocksize'-byte blocks */
+	int32_t 	blocksize; 		/**< size of each block in bytes */
+	int64_t 	numents; 		/**< number of timestamp table entries */
+	pclk_t 		trigtime; 		/**< Time the time stamp started */
+	int64_t 	trigop;  		/**< Operation number that timestamping started */
+	int64_t 	res;  			/**< clock resolution - pico seconds per clock tick */
+	int64_t 	range;  		/**< range over which the IO took place */
+	int64_t 	start_offset;	/**< offset of the starting block */
+	int64_t 	target_offset;	/**< offset of the starting block for each proc*/
+	uint64_t 	global_options;	/**< options used */
+	uint64_t 	target_options;	/**< options used */
+	char 		id[MAX_IDLEN]; 	/**< ID string */
+	char 		td[32];  		/**< time and date */
+	pclk_t 		timer_oh; 		/**< Timer overhead in nanoseconds */
+	pclk_t 		delta;  		/**< Delta used for normalization */
+	int64_t 	tt_bytes; 		/**< Size of the entire time stamp table in bytes */
+	int64_t 	tt_size; 		/**< Size of the entire time stamp table in entries */
+	int64_t 	tte_indx; 		/**< Index into the time stamp table */
+	struct 		tte tte[1]; 	/**< timestamp table entries */
 };
 typedef struct tthdr tthdr_t;
 
@@ -90,9 +91,9 @@ typedef struct tthdr tthdr_t;
 /*
  * Local variables:
  *  indent-tabs-mode: t
- *  c-indent-level: 8
- *  c-basic-offset: 8
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
  * End:
  *
- * vim: ts=8 sts=8 sw=8 noexpandtab
+ * vim: ts=4 sts=4 sw=4 noexpandtab
  */

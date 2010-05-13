@@ -30,32 +30,14 @@
  */
 #include "xdd.h"
 
-//******************************************************************************
-// After I/O Loop
-//******************************************************************************
-
 /*----------------------------------------------------------------------------*/
-/* xdd_io_loop_after_loop() - This subroutine will do all the stuff needed to 
- * be done after the inner-most loop has done does all the I/O operations
- * that constitute a "pass" or some portion of a pass if it terminated early.
+/* xdd_qthread_cleanup() - Termination cleanup routine for a QThread
  */
-int32_t
-xdd_io_loop_after_loop(ptds_t *p) {
-	int32_t  status;
+void
+xdd_qthread_cleanup(ptds_t *qp) {
 
+	xdd_destroy_barrier(&qp->qthread_targetpass_wait_barrier);
+	xdd_destroy_barrier(&qp->qthread_targetpass_wait_barrier);
 
-	/* Get the ending time stamp */
-	pclk_now(&p->my_pass_end_time);
-	p->my_elapsed_pass_time = p->my_pass_end_time - p->my_pass_start_time;
-
-	/* Get the current CPU user and system times and the effective current wall clock time using pclk_now() */
-	times(&p->my_current_cpu_times);
-
-	status = xdd_lockstep_after_io_loop(p);
-
-	if (status) return(1);
-
-	return(0);
-} // End of xdd_io_loop_after_loop()
-
- 
+	return;
+} // End of xdd_qthread_cleanup()
