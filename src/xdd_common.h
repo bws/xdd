@@ -48,7 +48,6 @@
 #define FAILED 0
 #define MAX_TARGETS 8192
 #define MAX_TARGET_NAME_LENGTH 2048
-#define XFS
 #define MAXSEM 1
 
 /* program defines */

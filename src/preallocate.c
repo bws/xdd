@@ -45,12 +45,12 @@
  */
 int32_t
 xdd_target_preallocate_for_os(ptds_t *p) {
-	int32_t 		status;		// Status of various system calls
-	struct statfs 	sfs;		// File System Information struct
-	xfs_flock64_t 	xfs_flock;		// Used to pass preallocation information to xfsctl()
 	
-
 #ifdef XFS_ENABLED
+	int32_t 	status;		// Status of various system calls
+	struct statfs 	sfs;		// File System Information struct
+	xfs_flock64_t 	xfs_flock;	// Used to pass preallocation information to xfsctl()
+	
 	// Determine the file system type
 	status = fstatfs(p->fd, &sfs);
 	if (0 != status) {
@@ -64,23 +64,39 @@ xdd_target_preallocate_for_os(ptds_t *p) {
 		return(1);
 	}
 	
-	// Support preallocate on XFS 
+	/* Support preallocate on XFS */ 
 	if (XFS_SUPER_MAGIC == sfs.f_type) {
-		xfs_flock.l_whence = 0; 			// Specifies allocation to start at the beginning of the file
-		xfs_flock.l_start = 0;				// This parameter is not used
-		xfs_flock.l_len = p->preallocate; 	// The number of bytes to preallocate
-		status = xfsctl(p->target_full_pathname,p->fd, XFS_IOC_RESVSP64, &xfs_flock);
-		if (status) { // Preallocate failed?
-			fprintf(xgp->errout, 
-				"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: xfsctl call for preallocation failed\n",
-				xgp->progname,
-				p->my_target_number,
-				p->target_full_pathname);
-			perror("Reason");
-			fflush(xgp->errout);
-			return(1);
+		int64_t pos,rem;
+		const int64_t max_bytes = 1L<<32;
+
+		/* Perform allocation in 4GB chunks to support 16KB alignment */
+		pos = 0;
+		rem = p->preallocate;
+		while (rem > 0) {
+			/* Always set whence to 0, for now */
+			xfs_flock.l_whence = 0;
+
+			/* Allocate the next 4GB */
+			xfs_flock.l_start = pos; 
+			xfs_flock.l_len = (rem <= max_bytes) ? rem : max_bytes;
+			status = xfsctl(p->target_name,p->fd, XFS_IOC_RESVSP64, &xfs_flock);
+
+			/* Check preallocate status */
+			if (status) { 
+				fprintf(xgp->errout, 
+					"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: xfsctl call for preallocation failed\n",
+					xgp->progname,
+					p->my_target_number,
+					p->target_name);
+				perror("Reason");
+				fflush(xgp->errout);
+				return(1);
+			}
+			pos += max_bytes;
+			rem -= max_bytes;
 		}
 	}
+		
 	// Everything must have worked :)
 	return(0); 
 #else // XFS is not ENABLED

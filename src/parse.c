@@ -72,7 +72,7 @@ xdd_parse_args(int32_t argc, char *argv[], uint32_t flags) {
         while (*(argv[argi]) != '-') { // command line options must be proceeded with a "-" or they are ignored
                 argi++;
                 if (argi >= argc) {
-                    fprintf(stderr,"xdd_parse_args: ignoring extraneous command line arguments\n");
+                    fprintf(stderr,"xdd_parse_args: ignoring extraneous command line argument %d '%s'\n", argi, argv[argi]?argv[argi]:"NULL");
                     arg_count = 0;
                     break;
                 }

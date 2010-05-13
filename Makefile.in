@@ -1,11 +1,19 @@
 # XDD Makefile
 
 #
+# Autoconf provided values
+#
+XDD_DIR := @CONFIG_PROJECT_DIR@
+BUILD_DIR := @CONFIG_BUILD_DIR@
+INSTALL_DIR := @prefix@
+XFS_ENABLED_DEF := @CONFIG_XFS_ENABLED@ @CONFIG_XFS_PACKAGE@ @CONFIG_LINUX_MAGIC@
+
+#
 # Configuration
 #
 SHELL 	=	/bin/sh
 OS 	= 	$(shell uname)
-
+INSTALL = $(XDD_DIR)/contrib/install-sh
 #
 # Version information
 #
@@ -124,7 +132,7 @@ CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -g
 #
 $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
-CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g -fno-strict-aliasing -Wall -DXFS_ENABLED -DLIBXFS_DEVEL
+CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) -g -fno-strict-aliasing -Wall
 endif
 ifeq '$(OS)' 'Darwin' 
 CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DOSX -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
@@ -168,7 +176,7 @@ gettime: $(GT_OBJECTS)
 	ln -s gettime.$(OS) bin/gettime
 
 baseversion:
-	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > xdd_base_version.h
+	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > src/xdd_base_version.h
 
 dist:	clean baseversion tarball
 		echo "Base Version $(XDDVERSION) Source Only"
@@ -194,7 +202,7 @@ clean: oclean
 		a.out 
 	rm -rf doc/doxygen
 
-install: clean all fastinstall
+install: fullinstall
 
 fastinstall: all
 	rm -f /sbin/xdd.$(OS) /sbin/xdd
@@ -206,6 +214,16 @@ fastinstall: all
 	rm -f /sbin/gettime.$(OS) /sbin/gettime
 	cp bin/gettime.$(OS) /sbin
 	ln /sbin/gettime.$(OS) /sbin/gettime
+
+fullinstall:
+	$(INSTALL) -d $(INSTALL_DIR)/bin
+	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd.$(OS)
+	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd
+	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver.$(OS)
+	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver
+	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime.$(OS)
+	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime
+	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
 
 doc:
 	doxygen doc/Doxyfile

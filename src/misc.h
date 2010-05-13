@@ -63,20 +63,25 @@ typedef enum { false = 0, true } bool;
 /* --------- */
 /* Constants */
 /* --------- */
-#define THOUSAND 1000LL /**< 10^3, as opposed to 2^10 */
-#define MILLION  1000000LL /**< 10^6, as opposed to 2^20 */
-#define BILLION  1000000000LL /**< 10^9, as opposed to 2^30 */
-#define TRILLION 1000000000000LL /**< 10^12, as opposed to 2^40 */
-#define FLOAT_THOUSAND 1000.0 /**< 10^3 as floating point */
-#define FLOAT_MILLION 1000000.0 /**< 10^6 as floating point */
-#define FLOAT_BILLION 1000000000.0 /**< 10^9 as floating point */
-#define FLOAT_TRILLION 1000000000000.0 /**< 10^12 as floating point */
-#define FLOAT_KILOBYTE 1024.0 /**< 2^10 as floating point */
-#define FLOAT_MEGABYTE 1048576.0 /**< 2^20 as floating point */
-#define FLOAT_GIGABYTE 1073741824.0 /**< 2^30 as floating point */
-#define FLOAT_TERABYTE 1099511627776.0 /**< 2^40 as floating point */
+// Base10 Numbers
+#define THOUSAND 		1000LL 			/**< 10^3, as opposed to 2^10 */
+#define MILLION  		1000000LL 		/**< 10^6, as opposed to 2^20 */
+#define BILLION  		1000000000LL 	/**< 10^9, as opposed to 2^30 */
+#define TRILLION 		1000000000000LL /**< 10^12, as opposed to 2^40 */
+#define FLOAT_MILLION 	1000000.0 		/**< 10^6 as floating point */
+#define FLOAT_BILLION 	1000000000.0 	/**< 10^9 as floating point */
+#define FLOAT_TRILLION 	1000000000000.0 /**< 10^12 as floating point */
+// Base2 Numbers
+#define LL_KILOBYTE 	1024LL 			/**< 2^10 as Long long Int */
+#define LL_MEGABYTE 	1048576LL 		/**< 2^20 as Long Long Int */
+#define LL_GIGABYTE 	1073741824LL 	/**< 2^30 as Long Long Int */
+#define LL_TERABYTE 	1099511627776LL /**< 2^40 as Long Long Int */
+#define FLOAT_KILOBYTE 	1024.0 			/**< 2^10 as floating point */
+#define FLOAT_MEGABYTE 	1048576.0 		/**< 2^20 as floating point */
+#define FLOAT_GIGABYTE 	1073741824.0 	/**< 2^30 as floating point */
+#define FLOAT_TERABYTE 	1099511627776.0 /**< 2^40 as floating point */
 #ifndef DOUBLE_MAX
-#define DOUBLE_MAX 1.7976931348623158e+308 /* max value of a double float*/
+#define DOUBLE_MAX 		1.7976931348623158e+308 /* max value of a double float*/
 #define NATIONAL_DEBT DOUBLE_MAX
 #endif
 

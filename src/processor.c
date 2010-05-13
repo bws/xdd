@@ -117,11 +117,11 @@ xdd_processor(ptds_t *p) {
 #elif (AIX)
 	int32_t status;
 	if (xgp->global_options & GO_REALLYVERBOSE)
-		fprintf(xgp->output, "Binding process/thread %d/%d to processor %d\n",p->my_pid, p->my_thread_id, p->processor);
-	status = bindprocessor( BINDTHREAD, p->my_thread_id, p->processor );
+		fprintf(xgp->output, "Binding process/thread %d/%d to processor %d\n",p->mypid, p->mythreadid, p->processor);
+	status = bindprocessor( BINDTHREAD, p->mythreadid, p->processor );
 	if (status) {
 		fprintf(xgp->errout,"%s: Processor assignment failed for target %d to processor %d, thread ID %d, process ID %d\n",
-			xgp->progname, p->my_target_number, p->processor, p->my_thread_id, p->my_pid);
+			xgp->progname, p->my_target_number, p->processor, p->mythreadid, p->mypid);
 		perror("Reason");
 	}
 	return;

@@ -1,0 +1,169 @@
+#! /bin/sh -x
+
+# 1 SCENARIO 1 - SINGLE STREAM LARGE BLOCK 
+# HALF DUPLEX 
+# 1.01 OBJECTIVE 
+# The objective of this Scenario is to examine the system capabilities for both file writing 
+# and reading performed as independent operations.  This Scenario will examine reads and 
+# writes of large files with varying numbers of threads and block sizes to achieve optimal 
+# performance.  This Scenario will establish a baseline best-case for performance for 
+# Scenarios 2 and 3.  A single file system is to be used with cache coherent shared memory. 
+# 1.02 DESCRIPTION 
+# Large files should be created such that they are at least ten (10) times larger than both the 
+# memory of the participating processors and the storage cache.  This will ensure that data 
+# is being written to storage and then read back to assess system rate capabilities during 
+# benign conditions (best case).  The vendor is to choose the block size and thread count 
+# appropriate for their system.  
+#  
+# A series of file creates and writes will be performed to various storage configurations 
+# with the purpose of understanding scaling performance.   Scaling performance with 
+# efficient use of hardware is an important part of this test. 
+#  
+# Method for running the Scenario: 
+#  
+# 1. Create a file system, mount, and tune. 
+# 2. Allocate a large memory buffer using at least 4 GB of Real*8 arrays. 
+# 3. Start time counter. 
+# 4. Continue writing buffer until the criteria are met for the amount of data needed 
+# (given system configuration) or until performance peaks. 
+# 5. Ensure all data is synchronized to disk. 
+# 6. Stop time counter. 
+# 7. Start time counter. 
+# 8. Read file created at step 5. 
+# 9. Stop time counter. 
+# 1.03 EXPECTED RESULTS 
+# Desired single stream half duplex performance is at least 90% of theoretical peak of 
+# hardware performance.  Likewise desired scaling for a single stream is at least 95% from 
+# a small storage configuration to a larger configuration.  This should be a compounded 
+# formula of 95% each time you double the HBA/HCA/NIC to LUN bandwidth.  The 
+# following constraint is imposed: 
+#  
+# HPCS MISSION PARTNER FILE I/O SCENARIOS 7 NOVEMBER 7, 2008 
+#  DRAFT DARPA HPCS 
+# • The bandwidth for storage and storage network (i.e., if you have one (1) 4 Gbit 
+# storage controller, the system should only have one (1) 4 Gbit HBA 
+# communicating with that controller).   
+#  
+# Hypothetical example outcome — with 4 Gbit Fibre Channel interconnect, the desired 
+# performance for writes and reads to one (1) storage controller and one (1) LUN is at least 
+# 360 MB/sec (90% of 400 MB/sec).  When moving to two (2) LUNs and two (2) storage 
+# controllers the desired performance is at least 684 MB/sec (95% of 360 MB/sec 
+# multiplied by (2) for the existence of the two (2) storage controllers and two (2) HBAs).     
+#  
+# HPCS vendors should provide information on the scalability of increasing the size of the 
+# storage system. At least three (3) data points should be provided that are taken from three 
+# (3) different size storage configurations. 
+
+
+#PBS -q batch
+#PBS -A stf006
+#PBS -N batch
+#PBS -j oe
+#PBS -l walltime=0:20:00,nodes=8:ppn=1
+
+LAUNCH_CMD="mpirun -np 1 "
+XDD=xdd.Linux
+Hostname=`uname -n`
+echo $Hostname
+data_file=Scenario__1_file
+log_file=Scenario__1.$Hostname.log
+ntargets=1
+
+data_dir=/lustre/widow1/scratch/${USER}/
+rm -f ${data_dir}/${data_file}*
+######################################################
+# Make directories stripe 1, each on unique OST
+######################################################
+date
+itarget=0
+while expr $itarget "-" $ntargets
+do
+lfs setstripe -s 1m -c 1 -i $itarget ${data_dir}/${data_file}.${itarget}
+itarget=`expr $itarget + 1`
+done
+date
+
+if [ true ]
+then
+#####################################################################
+#Constants
+#####################################################################
+let "MB  = 1024 * 1024"
+let "GB  = $1MB * 1024"
+let "TB  = $1GB * 1024"
+#####################################################################
+#Constants - test parameters
+#queuedepth = number of I/O threads
+#filesize = npasswr * bytesperpass
+#####################################################################
+let "queuedepth   =  1" 
+let "npasswr      = 10"
+let "bytesperpass = ${GB}"
+
+##########################
+# Gosh, debugging, too!!!
+# and deskewing (dicey)
+##########################
+DEBUG="-debug"
+DEBUG=""
+##########################
+# To use Direct IO, or not
+# Don't work on /dev/XXXX
+##########################
+useDIO="-dio"
+useDIO=""
+
+SAVEPWD=${PWD}
+
+#####################################################################
+#numreqs is total number of requests of size blocksizeXreqsize=XFER 
+#npasswr = number of passes for gene(write only) and genr(read only)
+######################################################
+######################################################
+# Read 10TB file at source  & destination sites
+# Do it in 10 passes, 1TB/pass, note performance diffs
+######################################################
+XFERS="16777216"
+for xfer in `echo $XFERS`
+do
+
+let "numreqs      = $bytesperpass / $xfer"
+let "blocksize    = 4096"
+let "reqsize      = $xfer / $blocksize"
+let "passoff      = $bytesperpass / $blocksize"
+
+#################################################
+# Write ONLY: to-file
+test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".write-file.xfs"
+#################################################
+itarget=0
+while expr $itarget "-" $ntargets
+do
+
+datapattern="                   "
+${LAUNCH_CMD} ${XDD} -targets 1 ${data_file}.$itarget -targetdir ${data_dir} -passoffset $passoff -minall -numreqs $numreqs  -reqsize $reqsize -blocksize $blocksize -passes $npasswr -verbose -queuedepth $queuedepth -op write $datapattern ${useDIO}         ${DEBUG}  &> ${test}.${log_file}.$itarget &
+
+itarget=`expr $itarget + 1`
+
+done
+wait
+
+
+#################################################
+# Read ONLY: from-file
+test="nt1.qd"$queuedepth"."$xfer"x"$numreqs".read-file.xfs"
+#################################################
+itarget=0
+while expr $itarget "-" $ntargets
+do
+${LAUNCH_CMD} ${XDD} -targets 1 ${data_file}.$itarget -targetdir ${data_dir} -passoffset $passoff -minall -numreqs $numreqs  -reqsize $reqsize -blocksize $blocksize -passes $npasswr -verbose -queuedepth $queuedepth -op read    ${useDIO} ${DEBUG}  &> ${test}.${log_file}.$itarget &
+
+itarget=`expr $itarget + 1`
+
+done
+wait
+
+done #xfer
+fi
+
+echo "Tests finished"

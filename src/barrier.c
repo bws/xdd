@@ -185,14 +185,11 @@ xdd_destroy_all_barriers(void) {
 #ifdef SYSV_SEMAPHORES
 //SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV
 /*----------------------------------------------------------------------------*/
-/* xdd_init_barrier() - Will initialize all the barriers used to synchronize
- * the I/O threads with each other and with the parent thread.
+/* xdd_init_barrier() - Will initialize the specified pthread_barrier
  */
 int32_t
 xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
-	int32_t status; /* status of various system calls */
-	char errmsg[512];
-	uint16_t zeros[32] = {0};
+	int32_t 		status; 			// status of various system calls 
 
 
 	/* Init barrier mutex lock */
@@ -244,7 +241,8 @@ xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
 	xgp->barrier_count++;
 	pthread_mutex_unlock(&xgp->barrier_chain_mutex);
 	return(0);
-} /* end of xdd_init_barrier() */
+} // End of xdd_init_barrier() POSIX
+
 /*----------------------------------------------------------------------------*/
 /* xdd_destroy_barrier() - Will destroy all the barriers and semphores.
  * The barrier counter variable (bp->counter) is normally set to zero or some
