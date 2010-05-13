@@ -79,7 +79,7 @@ xdd_target_preallocate_for_os(ptds_t *p) {
 			/* Allocate the next 4GB */
 			xfs_flock.l_start = pos; 
 			xfs_flock.l_len = (rem <= max_bytes) ? rem : max_bytes;
-			status = xfsctl(p->target_name,p->fd, XFS_IOC_RESVSP64, &xfs_flock);
+			status = xfsctl(p->target_full_pathname,p->fd, XFS_IOC_RESVSP64, &xfs_flock);
 
 			/* Check preallocate status */
 			if (status) { 
@@ -87,7 +87,7 @@ xdd_target_preallocate_for_os(ptds_t *p) {
 					"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: xfsctl call for preallocation failed\n",
 					xgp->progname,
 					p->my_target_number,
-					p->target_name);
+					p->target_full_pathname);
 				perror("Reason");
 				fflush(xgp->errout);
 				return(1);
