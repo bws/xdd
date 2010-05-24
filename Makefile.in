@@ -80,7 +80,6 @@ XDD_SOURCE = $(SRC_DIR)/access_pattern.c \
 	$(SRC_DIR)/target_ttd_before_io_op.c \
 	$(SRC_DIR)/target_ttd_after_pass.c \
 	$(SRC_DIR)/target_ttd_before_pass.c \
-	$(SRC_DIR)/ticker.c \
 	$(SRC_DIR)/timestamp.c \
 	$(SRC_DIR)/utils.c \
 	$(SRC_DIR)/verify.c \
@@ -101,7 +100,6 @@ XDD_HEADERS = $(HDR_DIR)/access_pattern.h \
 	$(HDR_DIR)/sg.h \
 	$(HDR_DIR)/sg_err.h \
 	$(HDR_DIR)/sg_include.h \
-	$(HDR_DIR)/ticker.h \
 	$(HDR_DIR)/timestamp.h \
 	$(HDR_DIR)/xdd.h \
 	$(HDR_DIR)/xdd_common.h \
@@ -113,11 +111,10 @@ XDD_HEADERS = $(HDR_DIR)/access_pattern.h \
 # Objects
 #
 XDD_OBJECTS = $(patsubst %.c, %.o, $(filter %.c, $(XDD_SOURCE)))
-TS_OBJECTS = $(SRC_DIR)/timeserver.o $(SRC_DIR)/pclk.o $(SRC_DIR)/ticker.o
+TS_OBJECTS = $(SRC_DIR)/timeserver.o $(SRC_DIR)/pclk.o
 GT_OBJECTS = $(SRC_DIR)/gettime.o \
 	$(SRC_DIR)/global_time.o \
-	$(SRC_DIR)/pclk.o \
-	$(SRC_DIR)/ticker.o
+	$(SRC_DIR)/pclk.o
 
 #
 # Default build settings
