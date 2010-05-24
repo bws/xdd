@@ -35,45 +35,38 @@
 /* Includes */
 /* -------- */
 #include <stdio.h>
+#if (LINUX)
+#include <time.h> /* pclk_t, prototype compatibility */
+#endif
 #include "pclk.h" /* pclk_t, prototype compatibility */
 /* --------------- */
 /* Private globals */
 /* --------------- */
 /* Nothing works until the pclk subsystem is initialized. */
 private bool     pclk_initialized = false;
-/*
- * The ticker simply counts ticks.  The value doesn't represent any
- * particular time; we use its values to track the time elapsed between
- * samples.  We translate a clock tick into some number of picoseconds
- * using this conversion variable.
- */
-private pclk_t     pclk_tick_picos = 0;    /* # picoseconds per tick */
-private pclk_t     pclk_ticker_max = 0;    /* Max acceptable tick value */
-/* -------------------- */
-/* Function definitions */
-/* -------------------- */
 /*----------------------------------------------------------------------------*/
-/*
- * pclk_initialize()
+/* pclk_initialize()
  *
  * Initialize the clock used to record time stamps for timers.  Returns
- * the resolution of the clock (picoseconds per tick), or -1 on error.
+ * the resolution of the clock (picoseconds per tick)
+ * In some operating systems there is an actual "initialization" routine that
+ * needs to be called but most of those have gone away so the initialization 
+ * function is simply returning the resolution of the clock to the caller. 
+ *
  */
 void
 pclk_initialize(pclk_t *pclkp) {
-    if (pclk_initialized) {
-        *((pclk_t *)pclkp) =  (pclk_t) pclk_tick_picos;
-        return;
-    }
-    ticker_open((tick_t *)&pclk_tick_picos);
-    if (!pclk_tick_picos) {
-        *pclkp = (pclk_t)PCLK_BAD;
-        return;
-    }
-    /* Compute the maximum tick value that won't yield overflow on a pclk_t */
-    pclk_ticker_max = PCLK_MAX;
+
+#if (LINUX)
+	// Since we use the "nanosecond" clocks in Linux, 
+	// the number of picoseconds per nanosecond "tick" is 1000
+    *pclkp =  THOUSAND;
+#elif (SOLARIS || AIX || OSX || FREEBSD )
+	// Since we use the "gettimeofday" clocks in this OS, 
+	// the number of picoseconds per microsecond "tick" is 1,000,000
+    *pclkp =  MILLION;
+#endif
     pclk_initialized = true;
-    *pclkp =  (pclk_t) pclk_tick_picos;
     return;
 }
 /*----------------------------------------------------------------------------*/
@@ -84,31 +77,48 @@ pclk_initialize(pclk_t *pclkp) {
  */
 void
 pclk_shutdown(void) {
-    if (pclk_initialized) {
-		ticker_close();
-		pclk_tick_picos = 0;
-		pclk_ticker_max = 0;
+    if (pclk_initialized) 
 		pclk_initialized = false;
-    }
 }
 /*----------------------------------------------------------------------------*/
 /*
  * pclk_now()
  *
- * Return the current value of the ticker, in picoseconds.
- * If initialization hasn't been performed, or if the ticker
- * value has overflowed its useful range, then the return value is undefined
+ * Return the current value of the high resolution clock, in picoseconds.
+ * If initialization hasn't been performed then the return value is 0.
  */
+#ifdef WIN32
 void
 pclk_now(pclk_t *pclkp) {
-    pclk_t  value;
 
-    ticker_read((tick_t *)&value);
-    *pclkp = (pclk_t)(value * pclk_tick_picos);
+    if(pclk_initialized) 
+		QueryPerformanceCounter((LARGE_INTEGER *)pclkp);
+	else *pclkp = 0;
+}
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#elif (LINUX)
+void
+pclk_now(pclk_t *pclkp) {
+    struct timespec current_time;
+
+    if(pclk_initialized) {
+        clock_gettime(CLOCK_REALTIME, &current_time);
+        *pclkp = (pclk_t)((((long long int)current_time.tv_sec * BILLION) + (long long int)current_time.tv_nsec) * THOUSAND);
+    } else *pclkp = 0;
     return;
 }
- 
- 
- 
- 
- 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#elif (SOLARIS || AIX || OSX || FREEBSD )
+void
+pclk_now(pclk_t *pclkp) {
+    struct timeval current_time;
+    struct timezone tz;
+    pclk_t i;
+
+    if(pclk_initialized) {
+        gettimeofday(&current_time, &tz);
+        *pclkp = (pclk_t)((((long long int)current_time.tv_sec * BILLION) + (long long int)current_time.tv_usec) * MILLION));
+    } else *pclkp = 0;
+    return;
+}
+#endif

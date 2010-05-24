@@ -37,16 +37,15 @@
 /* -------- */
 /* Includes */
 /* -------- */
-#include "ticker.h" /* For tick_t, on which pclk_t is based */
 #include "misc.h" /* bool, LONGLONG_MAX, LONGLONG_MIN */
 /* ----- */
 /* Types  */
 /* ----- */
-typedef tick_t pclk_t;  /* Number of picoseconds */
+typedef unsigned long long int pclk_t;  /* Number of picoseconds */
 /* --------- */
 /* Constants */
 /* --------- */
-#define PCLK_MAX ULONGLONG_MAX
+#define PCLK_MAX LONGLONG_MAX
 #define PCLK_BAD LONGLONG_MIN
 /* --------------------- */
 /* Structure declarations */
@@ -76,9 +75,7 @@ extern void pclk_shutdown(void);
 /*
  * pclk_now()
  *
- * Return the current value of the ticker, in picoseconds.
- * If initialization hasn't been performed, or if the ticker
- * value has overflowed its useful range, returns PCLK_BAD.
+ * Return the current value of the clock, in picoseconds.
  */
 extern void pclk_now(pclk_t *pclkp);
 /* #define PCLK_TEST */

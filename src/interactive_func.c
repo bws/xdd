@@ -249,7 +249,7 @@ xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags) {
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
 		p = xgp->ptdsp[target_number];
 		if (p) {
-			fprintf(xgp->output,"Target %d\n",qp->my_target_number);
+			fprintf(xgp->output,"Target %d\n",p->my_target_number);
 			xdd_interactive_display_state_info(p);
 			qp = p->next_qp;
 			while (qp) {
