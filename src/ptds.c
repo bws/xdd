@@ -175,14 +175,12 @@ xdd_calculate_xfer_info(ptds_t *tp) {
 
 	// This calculates the number of iosize (or smaller) operations that need to be performed. 
 	tp->target_ops = tp->target_bytes_to_xfer_per_pass / tp->iosize;
-fprintf(stderr,"target_bytes_to_xfer_per_pass is %lld, iosize is %d, target_ops is %lld\n",(long long int)tp->target_bytes_to_xfer_per_pass, tp->iosize, (long long int)tp->target_ops);
 
  	// In the event the number of bytes to transfer is not an integer multiple of iosized requests then 
  	// the total number of ops is incremented by 1 and the last I/O op will be the something less than
 	// than the normal iosize.
 	if (tp->target_bytes_to_xfer_per_pass % tp->iosize) 
 		tp->target_ops++;
-fprintf(stderr,"target_ops is now %lld\n",(long long int)tp->target_ops);
 	
 } // End of xdd_calculate_xfer_info()
 	
