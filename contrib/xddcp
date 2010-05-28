@@ -1,12 +1,47 @@
 #!/bin/bash
 #
-# IMPORTANT NOTE: I found it necessary to delete the destination file
-# before every test *IF* the same namespace is used AND the test used
-# a smaller file size than the previous test. It seems as though the
-# destination file is not truncated to the newer, SMALLER size, thus
-# md5sum goes after the old size and gives different sums. I know WHAT
-# happens, but not WHY. Is this an XDD or XFS issue??? Just be forewarned.
+# This program is free software; you can redistribute it and/or modify 
+# it under the terms of the GNU General Public License as published by 
+# the Free Software Foundation; either version 2 of the License, or 
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but 
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
+# or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License 
+# for more details.
+# 
+# You should have received a copy of the GNU General Public License along 
+# with this program; if not, write to the Free Software Foundation, Inc., 
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 #
+#
+# This file is part of XDD
+#
+# Copyright (C) 2010, Brad Settlemyer
+#
+# Description:  This script enables the use of XDD as a remote data movement
+# engine.  Its functionality loosely mimics the capabilities of scp and bbcp,
+# however, with hopefully much improved performance.
+#
+# Notes: XDDCP has only been tested on Linux environments.  The
+# following POSIX utilities are required to utilize XDDCP:
+#    basename
+#    cat
+#    cut
+#    date
+#    dirname
+#    echo
+#    grep
+#    hostname
+#    ps
+#    tr
+#
+# The following other utilities (non-POSIX) are required to utilize XDDCP:
+#    netstat 
+#    ssh
+#    stat
+#    truncate
+#    xdd.Linux
 #
 
 # XDD Configurable global settings
@@ -17,6 +52,33 @@ XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
 XDDCP_DEFAULT_TIMESTAMP="$(date -u +'%Y-%m-%d-%H%M%S')-GMT"
 XDDCP_DEFAULT_NETWORK_SLEEP_SECS=10
+XDDCP_DEFAULT_XDD="xdd.$(uname)"
+
+# XDDCP Error Codes
+XDDCP_ERR_CODE_INVALID_ARGS=1
+XDDCP_ERR_CODE_INVALID_FORMAT=2
+XDDCP_ERR_CODE_XDD_NOT_FOUND=3
+XDDCP_ERR_CODE_QIP_NOT_FOUND=4
+XDDCP_ERR_CODE_INV_FLAGS=5
+XDDCP_ERR_CODE_SRC_XST=6
+XDDCP_ERR_CODE_INV_RST=7
+XDDCP_ERR_CODE_SSH_ERROR=8
+XDDCP_ERR_CODE_SSH_FAILURE=9
+XDDCP_ERR_CODE_SMALL_FILE=10
+XDDCP_ERR_CODE_XFER_SIZE=11
+XDDCP_ERR_CODE_VERSION_MATCH=12
+XDDCP_ERR_CODE_NO_REMOTE=13
+XDDCP_ERR_CODE_XFER_FAIL=14
+XDDCP_ERR_CODE_DEST_PORT=15
+
+#
+# Global variables
+#
+g_xddcpXddVersion="-1"
+g_xddcpDestXddPid="-1"
+g_xddcpSrcXddPid="-1"
+g_xddcpResumeOffset="0"
+
 
 #
 # Print out the usage information
@@ -32,12 +94,11 @@ function print_usage() {
     echo "OPTIONS: "
     echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
     echo " -d		- Use direct I/O on the destination end"
-    echo " -D log_dir	- Directory for the destination log files"
+    echo " -f           - If ports are unavailable on destination, attempt to kill running XDD and retry"
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo " -s		- Use direct I/O on the source end"
-    echo " -S log_dir	- Directory for the source log files"
     echo " -t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
     #echo "-Y		- Force SSH to create psueo-terminal tty"
     #echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
@@ -45,15 +106,138 @@ function print_usage() {
 }
 
 #
+# Print out an appropriate error message and exit
+#
+function error_exit() {
+    local errorCode=$1
+    error_print $errorCode
+    exit $errorCode
+}
+
+#
+# Print out an appropriate error message
+#
+function error_print() {
+    local errorCode=$1
+    case $errorCode in
+        $XDDCP_ERR_CODE_INVALID_ARGS) 
+            echo "ERROR: Invalid command arguments" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_INVALID_FORMAT) 
+            echo "ERROR: Invalid source/destination format" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_XDD_NOT_FOUND) 
+            echo "ERROR: xdd.Linux executable not found" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_QIP_NOT_FOUND) 
+            echo "ERROR: qipcrm executable not found" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_INV_FLAGS) 
+            echo "ERROR: Incompatible command line arguments" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_SRC_XST) 
+            echo "ERROR: Cannot locate source file" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_INV_RST) 
+            echo "ERROR: Invalid restart offset location" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_SSH_ERROR) 
+            echo "ERROR: Failure spawing process via SSH" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_SSH_FAILURE) 
+            echo "ERROR: Remote session failure" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_SMALL_FILE) 
+            echo "ERROR: Cannot transfer files smaller than $XDDCP_DEFAULT_XFER_SIZE bytes" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_XFER_SIZE) 
+            echo "ERROR: Requested transfer size is larger than file size" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_VERSION_MATCH) 
+            echo "ERROR: xdd.Linux versions differ on source and destination" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_NO_REMOTE) 
+            echo "ERROR: Local file transfers are not permitted" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_XFER_FAIL) 
+            echo "ERROR: File transfer failed" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_DEST_PORT) 
+            echo "ERROR: Destination port is in use" >/dev/stderr
+            ;;
+        \?) 
+            echo "ERROR: Unknown error code" >/dev/stderr
+            ;;
+    esac
+}
+
+#
 # Handle trapped signals
 #
 function handle_signal_common() {
-    perform_local_cleanup
-    echo "INFO:  Transfer cancelled by user."
+    local signum=$1
+
+    # Attempt to deliver the signal to XDD
+    if [ -1 -ne $g_xddcpSrcXddPid ]; then
+        kill -$signum $g_xddcpSrcXddPid
+    fi
+    echo "INFO:  Transfer cancelled by user." >/dev/stderr
+}
+
+#
+# Parse endpoint spec of the form [[user@]host:]path
+#
+# Call with spec and variable names as arguments, e.g.:
+#
+# spec="user@foo.bar.com:/home/user"
+# srcRemoteFlag=0
+# srcUser=""
+# srcHost=""
+# srcPath=""
+# parse_endpoint_spec $spec srcRemoteFlag srcUser srcHost srcPath
+#
+function parse_endpoint_spec() {
+    local spec=$1
+    local remoteFlagRef="$2"
+    local remoteUserRef="$3"
+    local remoteHostRef="$4"
+    local remotePathRef="$5"
+    
+    # Set the outbound defaults
+    eval "$remoteFlagRef=0"
+    eval "$remoteUserRef=\"\""
+    eval "$remoteHostRef=\"\""
+    eval "$remotePathRef=\"\""
+    
+    # Parse out remote host and file
+    local colon_count=`echo $spec | grep -c ":"`
+    if [ $colon_count -eq 1 ]; then
+
+        # Set the remote flag
+        eval "$remoteFlagRef=1"
+
+        # Set the path
+        eval "$remotePathRef=$(echo $spec | awk -F: '{print $2}')"
+
+        # Set the host
+        local _tmp=$(echo $spec | awk -F: '{print $1}')
+        eval "$remoteHostRef=$(echo $spec | awk -F: '{print $1}')"
+        
+        # Set the username if it exists
+        local amp_count=$(echo $_tmp |grep -c "@")
+        if [ 1 -eq $amp_count ]; then
+            eval "$remoteUserRef=$(echo $_tmp |awk -F@ '{print $1}')"
+            eval "$remoteHostRef=$(echo $_tmp |awk -F@ '{print $2}')"
+        fi
+    else
+        eval "$remotePathRef=$spec"
+    fi
 }
 
 #
 # Check preconditions for the host
+#
+# Sideffects: Sets the global XDDCP version identifier
 #
 function check_host_preconditions() {
 
@@ -63,35 +247,76 @@ function check_host_preconditions() {
     local fileSizeFlag=$3
     local resumeFlag=$4
 
-    # Check for qipcrm script
-    #which qipcrm > /dev/null 2> /dev/null
-    #if [ $? -eq 1 ]; then
-#	echo "ERROR: qipcrm executable was not found.  Please make sure it is in your PATH."
-#	exit 10
-    #fi
-
     # Check for xdd.Linux binary
-    which xdd.Linux >/dev/null 2> /dev/null
-    if [ $? -eq 1 ]; then
-        echo "ERROR: xdd.Linux executable was not found.  Please make sure it is in your PATH."
-        exit 11
+    hash xdd.Linux &>/dev/null
+    if [ 0 -ne $? ]; then
+        error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
+    else
+        g_xddcpXddVersion=$(xdd.Linux -version)
     fi
 
     # Ensure flag combinations are valid
     if [ 1 -eq $fileListFlag -a 1 -eq $resumeFlag ]; then
-        echo "ERROR: The -a and -F flags cannot be used simulataneously."
-        exit 12
+        echo "INFO: -F and -a flags cannot both be specified" >/dev/stderr
+        error_exit $XDDCP_ERR_CODE_INV_FLAGS
     elif [ 1 -eq $fileListFlag -a 1 -eq $fileSizeFlag ]; then
-        echo "ERROR: Cannot specify -F flag and a file size simulataneously."
-        exit 13
+        echo "INFO: -F and file size cannot both be specified" >/dev/stderr
+        error_exit $XDDCP_ERR_CODE_INV_FLAGS
     fi
 
-    # Ensure source side file exists
-    if [ ! -r "${sourceSideFilename}" ]; then
-	echo "ERROR: Cannot read source file: ${sourceSideFilename}"
-	exit 14
+    # Ensure source side file list filename exists
+    if [ 1 -eq $fileListFlag -a ! -r "${sourceSideFilename}" ]; then
+	echo "INFO: Cannot read ${sourceSideFilename}" >/dev/stderr
+	error_exit $XDDCP_ERR_CODE_SRC_XST
     fi
 }
+
+#
+# Execute xdd commands locally
+#
+function local_exec() {
+    local cmds="$1"
+    eval "$cmds"
+    
+    # If the transfer failed, trigger appropriate error
+    local rc=$?
+    if [ 0 -ne "$rc" ]; then
+        error_exit "$rc"
+    fi
+}
+
+#
+# Execute xdd commands on remote host
+#
+function remote_exec() {
+    echo "remote_exec Args: $@" >/dev/stderr
+    local cmd="$1"
+    local remoteHost="$2"
+    local remoteUser="$3"
+
+    # Construct ssh options
+    if [ ! -z "${remoteUser}" ]; then
+        sshOpts="-l $remoteUser"
+    fi
+
+    # Local decl must be on seperate line so $? is correct
+    local remoteOutput=""
+    remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash -x <<EOF
+$cmd
+EOF
+        )
+    local destRC=$?
+
+    # Check the status of remote operations
+    if [ 255 -eq $destRC ]; then
+        echo "INFO: Remote output - $remoteOutput" >/dev/stderr
+        error_exit $XDDCP_ERR_CODE_SSH_FAILURE
+    elif [ 0 -ne $destRC -a -z "$remoteOutput" ]; then
+        error_exit $XDDCP_ERR_CODE_SSH_ERROR
+    fi
+    echo "$remoteOutput"
+}
+
 
 #
 # Check preconditions for the source side file
@@ -105,8 +330,8 @@ function check_source_file_preconditions() {
 
     # Ensure source side file exists
     if [ ! -r "${sourceSideFilename}" ]; then
-	echo "ERROR: Cannot read source file: ${sourceSideFilename}"
-	exit 20
+	echo "INFO: Cannot read ${sourceSideFilename}"
+	error_exit $XDDCP_ERR_CODE_SRC_XST
     fi
 
     # Ensure file is large enough
@@ -114,107 +339,49 @@ function check_source_file_preconditions() {
     if [ "$sourceDir" != "/dev" ]; then
         local trueSize=$(stat -c '%s' "$sourceSideFilename")
         if [ 16777216 -gt $trueSize ]; then
-            echo "ERROR: Cannot transfer files smaller than 16MiB"
-            exit 21
+            error_exit $XDDCP_ERR_CODE_SMALL_FILE
         elif [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
-            echo "ERROR: Requested transfer size is larger than file size: $transferSize > $trueSize"
-            exit 22
+            error_exit $XDDCP_ERR_CODE_XFER_SIZE
         fi
     fi
 }
 
 #
-# Perform local cleanup operations
+# Return the file size
 #
-function perform_local_cleanup() {
-    #qipcrm ${USER} > /dev/null
-    pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
-}
+function get_file_size() {
+    echo "get_file_size Args: $@" >/dev/stderr
+    local filename=$1
+    local remoteFlag=$2
+    local host=$3
+    local user=$4
 
-#
-# Initialize local transfer
-#
-function init_local_transfer() {
-
-    # Arguments
-    local remoteHost=$1
-    local sourceFile=$2
-    local totalBytes=$3
-    local queueDepth=$4
-    local e2ePort=$5
-    local sourceDIOFlag=$6
-    local resumeFlag=$7
-    local sourcelogdir=$8
-    local resumeOffset=$9
-
-    # Construct XDD transfer settings
-    let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
-    let "numreqs   = ${totalBytes} / $xfer"
-    let "blocksize = 1024"
-    let "reqsize   = $xfer / $blocksize"
-
-    # Validate restart flag if necessary
-    sourceRestart=""
-    if [ 1 == $resumeFlag ]; then
-        if [ "enable" == "$resumeOffset" ]; then
-            sourceRestart="-restart enable"
-        elif [ 0 -le $resumeOffset ]; then
-            echo "INFO: Resuming XDD file transfer at offset: $resumeOffset"
-            sourceRestart="-restart enable -restart offset $resumeOffset"
-        else
-	    echo "ERROR: Invalid restart offset: $resumeOffset"
-	    exit -10
-        fi
-    fi
-
-    # Construct source XDD settings
-    local sourceBase=$(basename ${sourceFile})
-    local sourceQD="-queuedepth ${queuedepth}"
-    local sourceLog="xdd.$(hostname).${sourceBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
-    if [ 1 -eq $sourceDIOFlag ]; then
-        local sourceDIO="-dio"
-    fi
-
-    # Determine if output can be sent to log file
-    local sourceOutput="-output ${sourcelogdir}/${sourceLog}"
-    if [ ! -w "${sourcelogdir}/" ]; then
-        echo "WARNING:  Cannot create log file: $sourcelogdir/$sourceLog, logging output to stdout"
-        sourceOutput=""
-    fi
-
-    # Construct local transport endpoint
-    xdd.Linux -targets 1  ${sourceFile} -op read -minall \
-        -bytes ${totalBytes} -reqsize ${reqsize} ${sourceQD} \
-        -e2e issource -e2e dest ${remoteHost} -e2e port ${e2ePort} \
-        ${sourceDIO} ${sourceRestart} ${sourceOutput} \
-        -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct
-
-    # Check transfer completion status
-    transfer_rc=$?
-    if [ 0 -eq "$transfer_rc" ]; then
-        echo "Transfer finished (use md5sum to validate transfer)."
+    if [ 0 -eq "$remoteFlag" ]; then
+        echo $(stat -c %s $filename)
     else
-        echo "ERROR: Transfer did not complete.  XDD Error Code: $transfer_rc"
-        exit -11
+        cmd="stat -c %s $filename"
+        $(remote_exec $cmd $host $user)
     fi
 }
 
 #
-# Perform remote cleanup and construct remote transport endpoint
+# Return the destination side program
 #
-function init_remote_transfer() {
-    # Arguments
-    local remoteHost="$1"
-    local sshOpts="$2"
-    local srcFile="$3"
-    local destFile="$4"
-    local totalBytes="$5"
-    local queueDepth="$6"
-    local e2ePort="$7"
-    local destDIOFlag="$8"
-    local resumeFlag="$9"
-    local destinationlogdir=${10}
+function get_destination_cmds() {
+    echo "get_destination_cmds Args: $@" >/dev/stderr
+    local destHost="$1"
+    local srcFile="$2"
+    local destFile="$3"
+    local totalBytes="$4"
+    local queueDepth="$5"
+    local e2ePort="$6"
+    local dioFlag="$7"
+    local resumeFlag="$8"
 
+    # Options that aren't yet settable
+    local srcHost=$(hostname)
+    local forceFlag=1
+    
     # Construct transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
     let "numreqs   = $totalBytes / $xfer"
@@ -222,262 +389,415 @@ function init_remote_transfer() {
     let "reqsize   = $xfer / $blocksize"
 
     # Other variables
+    local e2eLB=$e2ePort
+    local e2eUB=$((e2ePort + queueDepth))
     local srcBase=$(basename $srcFile)
-    local destinationBase=$(basename $destFile)
-    local destinationDirname=$(dirname $destFile)
-    local destinationLog="xdd.${remoteHost}.${destinationBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
-    local destinationQD="-queuedepth ${queueDepth}"
-    if [ 1 -eq $destDIOFlag ]; then
-        local destinationDIO="-dio"
+    local destBase=$(basename $destFile)
+    local destDirname=$(dirname $destFile)
+    local destLog="xdd.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+    local destQD="-queuedepth ${queueDepth}"
+    if [ 1 -eq $dioFlag ]; then
+        local destDIO="-dio"
     fi
-    remote_output=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
 
-# Kill any stale xdd processes
-xddpid=\$(pgrep -u \${USER} -fl xdd.Linux |grep -v pgrep |cut -f 1 -d ' ')
-if [ ! -z "$xddpid" ]; then
-    kill \$xddpid 2>/dev/null
-    sleep 1
-    kill -9 \$xddpid 2>/dev/null
+    cat <<EOF
+# Ensure xdd is in the remote path
+\$(hash xdd.Linux) >/dev/null
+if [ 0 -ne \$? ]; then
+    echo "xdd.Linux is not in destination host PATH"
+    exit -1
 fi
 
-# Cleanup leaked system resources
-#qipcrm \${USER} &>/dev/null
+# Check that the correct version of XDD is available
+dest_version=\$(xdd.Linux -version)
+if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
+    echo "XDD source and destionation version mismatch."
+    exit -1
+fi
+
+# Check that ports are available for binding
+port_conflict=0
+used_ports=\$(netstat -nat |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+for p in \$used_ports; do
+    if [ $e2eLB -le \$p -a $e2eUB -gt \$p ]; then
+        port_conflict=1
+        break
+    fi
+done
+
+# If a port conflict, user may want to kill running XDD's and retry
+if [ 1 -eq \$port_conflict ]; then
+    # Attempt to kill any running XDDs and re-check
+    if [ 1 -eq $forceFlag ]; then
+        xddpid=\$(ps -u \${USER} |grep xdd.Linux |grep -v grep |cut -c-5)
+        if [ ! -z \"\$xddpid\" ]; then
+            kill \$xddpid 2>/dev/null
+            sleep 1
+            kill -9 \$xddpid 2>/dev/null
+            sleep 1
+        fi
+    else
+        echo "Requested port \$p is in use"
+        exit -1
+    fi
+    used_ports=\$(netstat -nat |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+    for p in \$used_ports; do
+        if [ $e2eLB -le \$p -a $e2eUB -gt \$p ]; then
+            echo "Requested port \$p is in use"
+            exit -1
+        fi
+    done
+fi
 
 # If the filename uses a relative path, path complement it
 path_char=\$(dirname $destFile |cut -c 1)
-destinationLogDir="${destinationlogdir}"
-#echo "First path char: \$path_char"
 if [ "." == \$path_char ]; then
     default_dir=\$(pwd)
-    destinationDir="\${default_dir}/${destinationDirname}"
-    destinationFile="\${default_dir}/${destFile}"
-    if [ \${destinationLogDir} == "." ]; then
-	destinationLogDir="\${default_dir}"
-    fi
+    destination_dir="\${default_dir}/${destDirname}"
+    destination_file="\${default_dir}/${destFile}"
+    destination_log="\${default_dir}/${destLog}"
 else
-    destinationDir="${destinationDirname}"
-    destinationFile="${destFile}"
-    if [ \${destinationLogDir} == "." ]; then
-	destinationLogDir="\${destinationDir}"
-    fi
+    destination_dir="${destDirname}"
+    destination_file="${destFile}"
+    destination_log="\${destination_dir}/${destLog}"
 fi
-destinationLog="\${destinationLogDir}/${destinationLog}"
-
-#echo "Path complemented filename is \$destinationFile"
-#echo "Path complemented logfile is \$destinationLog"
 
 # Ensure destination is writable
-if [ ! -d \$destinationDir ]; then
-    echo "Destination directory does not exist: \$destinationDir"
+if [ ! -d \$destination_dir ]; then
+    echo "Destination directory does not exist: \$destination_dir"
     exit -1
-elif [ -d \$destinationDir -a ! -e \$destinationFile -a ! -w \$destinationDir ]; then
-    echo "Destination directory is not writable: \$destinationDir"
+elif [ -d \$destination_dir -a ! -e \$destination_file -a ! -w \$destination_dir ]; then
+    echo "Destination directory is not writable: \$destination_dir"
     exit -1
-elif [ -e \$destinationFile -a ! -w \$destinationFile ]; then
-    echo "Destination target exists but is not writable: \$destinationFile"
+elif [ -e \$destination_file -a ! -w \$destination_file ]; then
+    echo "Destination target exists but is not writable: \$destination_file"
     exit -1
 fi
 
-# Perform restart if neccesary
+# Perform restart if necessary
 if [ 1 == $resumeFlag ]; then
     # Ensure sufficient permissions exist to create restart cookie
-    if [ ! -w \${destinationDir} ]; then
-        echo "Restart option requires write access to: \${destinationDir}"
+    if [ ! -w \$destination_dir ]; then
+        echo "Restart option requires write access to: \$destination_dir"
         exit -1
     fi
 
     # Create the name for a new restart cookie
-    restart_logfile="\${destinationDir}/xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.${XDDCP_DEFAULT_TIMESTAMP}.rst"
+    restart_logfile="\${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}.rst"
 
     # Check for the existence a restart cookie
-    most_recent_restart_cookie=\$(ls \${destinationDir}/xdd.$(hostname).${srcBase}.${remoteHost}.${destinationBase}.*.rst 2>/dev/null |tail -1)
+    most_recent_restart_cookie=\$(ls \${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.${destBase}.*.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
-       destinationRestart="-restart file \${restart_logfile} -restart enable"
+       destination_restart="-restart file \${restart_logfile} -restart enable"
     else
-       destinationRestart="-restart file \${restart_logfile} -restart enable \$(cat \$most_recent_restart_cookie)"
+       destination_restart="-restart file \${restart_logfile} -restart enable \$(cat \$most_recent_restart_cookie)"
     fi
 fi
 
-# If insufficient permissions for the log exist, direct /dev/null
-if [ ! -w \$destinationLogDir -a -e \$destinationLog -a ! -w \$destinationLog ]; then
-    echo "Logfile already exists and is not writable: \$destinationLog"
+# If insufficient permissions for the log exist, direct to HOME
+if [ ! -w \$destination_dir -a -e \$destination_log -a ! -w \$destination_log ]; then
+    echo "Logfile already exists and is not writable: \$destination_log"
     exit -1
-elif [ ! -w \$destinationLogDir -a ! -w \$destinationLog ]; then
-    homeDirLog="./${destinationLog}"
+elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
+    home_dir_log="./${destination_log}"
     if [ ! -w "./" ]; then
-        echo "Could not create log file as \$destinationLog or as \$homeDirLog"
+        echo "Could not create log file as \$destination_log or as \$home_dir_log"
         exit -1
     fi
-    echo "Warning: Writing log to: \$homeDirLog"
-    destinationLog=\$homeDirLog
+    echo "Warning: Writing log to: \$home_dir_log"
+    destination_log=\$home_dir_log
 fi
 
-# Start the XDD process
-echo "Starting remote xdd . . ."
-xdd.Linux -targets 1 \${destinationFile} -op write -minall \
-    -bytes ${totalBytes} -reqsize $reqsize ${destinationQD} \
-    -e2e isdestination -e2e dest ${remoteHost} -e2e port ${e2ePort} \
-    ${destinationDIO} \${destinationRestart} \
-    -preallocate ${totalBytes} \
-    -verbose &> \${destinationLog} &
+# Truncate the destination to the correct size if necessary
+cur_size=\$(stat -c '%s' \${destination_file})
+if [ \$cur_size -gt $totalBytes ]; then
+    truncate -s $totalBytes \${destination_file}
+fi
+
+xdd.Linux -target \${destination_file} -op write -minall -bytes ${totalBytes} -reqsize $reqsize ${destQD} -e2e isdestination -e2e dest ${destHost} -e2e port ${e2ePort} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log} 2>&1 &
 
 # Send the restart offset back to the source side via an exit code
-if [ 1 == $resumeFlag ]; then
-    echo "XDDCP RESTART TOKENS: \${destinationRestart}"
+if [ 1 -eq $resumeFlag ]; then
+    echo "XDDCP RESTART TOKENS: \${destination_restart}"
+else
+    echo "XDD started without restart capability"
+fi
+EOF
+}
+
+#
+# Return the source side program
+#
+function get_source_cmds() {
+    echo "get_source_cmds Args: $@" >/dev/stderr
+    local destHost=$1
+    local srcFile=$2
+    local totalBytes=$3
+    local queueDepth=$4
+    local e2ePort=$5
+    local srcDIOFlag=$6
+    local resumeFlag=$7
+    local resumeOffset=$8
+
+    # Construct XDD transfer settings
+    let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
+    let "numReqs   = ${totalBytes} / $xfer"
+    let "blockSize = 1024"
+    let "reqSize   = $xfer / $blockSize"
+
+    # Validate restart flag if necessary
+    srcRestart=""
+    if [ 1 == $resumeFlag ]; then
+        if [ "enable" == "$resumeOffset" ]; then
+            srcRestart="-restart enable"
+        elif [ 0 -le $resumeOffset ]; then
+            echo "INFO: Resuming XDD file transfer at offset: $resumeOffset" >/dev/stderr
+            srcRestart="-restart enable -restart offset $resumeOffset"
+        else
+            error_exit $XDDCP_ERR_CODE_INV_RESTART
+        fi
+    fi
+
+    # Construct source XDD settings
+    local srcBase=$(basename ${srcFile})
+    local srcQD="-queuedepth ${queueDepth}"
+    local srcLog="xdd.$(hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+    if [ 1 -eq $srcDIOFlag ]; then
+        local srcDIO="-dio"
+    fi
+
+    # Determine if output can be sent to log file
+    local srcOutput="-output ${srcLog}"
+    if [ ! -w "./" ]; then
+        echo "WARNING:  Cannot create log file: ./$srcLog, logging output to stdout" >/dev/stderr
+        sourceOutput=""
+    fi
+
+    # Build the command string
+    cat <<EOF
+# Ensure xdd is in the path
+\$(hash xdd.Linux) >/dev/null
+if [ 0 -ne \$? ]; then
+    echo "xdd.Linux is not in the source host PATH"
+    exit -1
 fi
 
-EOF
-    )
+# Check that the correct version of XDD is available
+source_version=\$(xdd.Linux -version)
+if [ "\$source_version" != "$g_xddcpXddVersion" ]; then
+    echo "XDD source and destionation version mismatch."
+    exit -1
+fi
 
-    # Check the status of remote operations
-    dest_rc=$?
-    #echo "Remote output strings are >$remote_output<"
-    #echo "Remote return code is: $dest_rc"
-    if [ 255 -eq $dest_rc ]; then
-        echo "ERROR: Failure spawning remote XDD.  $remote_output"
-        exit -7
-    elif [ -z "$remote_output" ]; then
-        echo "ERROR: Remote session failed."
-        exit -8
+# Ensure source side file exists
+if [ ! -r "${srcFile}" ]; then
+    echo "ERROR: Cannot read source file: ${srcFile}"
+    exit 20
+fi
+
+# Construct local transport endpoint
+xdd.Linux -targets 1  ${srcFile} -op read -minall -bytes ${totalBytes} -reqsize ${reqSize} ${srcQD} -e2e issource -e2e dest ${destHost} -e2e port ${e2ePort} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct
+EOF
+}
+
+function start_destination_xdd() {
+    echo "start_destination_xdd Args: $@" >/dev/stderr
+    local srcPath=$1
+    local destPath=$2
+    local totalBytes=$3
+    local queueDepth=$4
+    local e2ePort=$5
+    local dioFlag=$6
+    local resumeFlag=$7
+    local remoteFlag=$8
+    local destHost=$9
+    local destUser=${10}
+
+    # Get source commands and execute
+    destResult=""
+    destCmds=$(get_destination_cmds $destHost $srcPath $destPath \
+        $totalBytes $queueDepth $e2ePort $dioFlag $resumeFlag)
+    if [ 1 -eq ${remoteFlag} ]; then
+        destResult=$(remote_exec "${destCmds}" "${destHost}" "${destUser}")
+    else
+        destResult=$(local_exec "${destCmds}")
     fi
 
     # Extract the resume offset from the remote output
+    #echo "Output was: $destResult"
     if [ 1 == $resumeFlag ]; then
-        resumeOffset=$(echo $remote_output |rev |cut -d ' ' -f 1 |rev)
-        if [ -z "$resumeOffset" ]; then
-            echo "ERROR: SSH psueo-terminal problems.  Adding '-Y' to the command line may fix this problem."
-            exit -9
+        g_xddcpResumeOffset=$(echo $destResult |rev |cut -d ' ' -f 1 |rev)
+        if [ -z "$g_xddcpResumeOffset" ]; then
+            error_exit $XDDCP_ERR_CODE_INV_RESTART
         fi
+    fi    
+
+}
+
+function start_source_xdd() {
+    echo "start_source_xdd Args: $@" >/dev/stderr
+    local path=${1}
+    local totalBytes=${2}
+    local queueDepth=${3}
+    local e2ePort=${4}
+    local dioFlag=${5}
+    local resumeFlag=${6}
+    local resumeOffset=${7}
+    local destHost=${8}
+    local remoteFlag=${9}
+    local srcHost=${10}
+    local srcUser=${11}
+
+    # Get source commands and execute
+    srcCmds=$(get_source_cmds $destHost $path $totalBytes $queueDepth \
+        $e2ePort $dioFlag $resumeFlag $resumeOffset)
+    if [ 1 -eq ${remoteFlag} ]; then
+        remote_exec "${srcCmds}" "${srcHost}" "${srcUser}"
+    else
+        local_exec "${srcCmds}"
     fi
 }
 
 #
-# Install necessary signal handlers
+# XDDCP Main
 #
-# Note: We still need to pass the signal thru for Posix compliance.  See
-#  http://www.cons.org/cracauer/sigint.html
-#
-trap 'handle_signal_common; trap 2; kill -2 $$' 2 
-trap 'handle_signal_common; trap 3; kill -3 $$' 3 
-trap 'handle_signal_common; trap 15; kill -15 $$' 15
+function xddcp_main() {
+    #
+    # Install necessary signal handlers
+    #
+    # Note: We still need to pass the signal thru for Posix compliance.  See
+    #  http://www.cons.org/cracauer/sigint.html
+    #
+    trap 'handle_signal_common 2; trap 2; kill -2 $$' 2 
+    trap 'handle_signal_common 3; trap 3; kill -3 $$' 3 
+    trap 'handle_signal_common 15; trap 15; kill -15 $$' 15
 
-#
-# Main
-#
-if [ "$1" == "-h" ]; then
-    print_usage
-    exit 0
-elif [ $# -lt 2 ]; then
-    echo "usage: $0 [OPTION] /full_path/source_file destination_host:/full_path/destination_file [bytes_to_transfer]"
-    echo "Try '$0 -h' for more information."
-    exit 1
-fi
-
-# Parse options
-resumeFlag=0
-destinationDIOFlag=0
-e2eport=$XDDCP_DEFAULT_E2E_PORT
-fileListFlag=0
-sourceDIOFlag=0
-queuedepth=$XDDCP_DEFAULT_QUEUE_DEPTH
-sshoption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
-sourcelogdir="."
-destinationlogdir="."
-
-while getopts ":adD:Fhp:sS:t:Y" option; do
-    case $option in
-        a) resumeFlag=1;;
-	d) destinationDIOFlag=1;;
-	D) destinationlogdir=$OPTARG;;
-        F) fileListFlag=1;;
-	h) print_usage; exit 0;;
-        p) e2eport=$OPTARG;;
-	s) sourceDIOFlag=1;;
-	S) sourcelogdir=$OPTARG;;
-	t) queuedepth=$OPTARG;;
-        Y) sshoption="-tt";;
-        \?) echo "ERROR:  Invalid option specified: -$OPTARG"; exit 1;;
-    esac
-done
-shift $((OPTIND-1))
-
-# Parse out source file and source host
-TDSource="$1"
-HSourceIP=`hostname`
-
-# Parse out destination file and destination host
-colon_count=`echo $2 | grep -c ":"`
-if [ $colon_count -eq 1 ]; then
-    HDestin=`echo $2 | awk -F: '{print $1}'`
-    HDestinIP=$HDestin
-    TDDestin=`echo $2 | awk -F: '{print $2}'`
-
-    # Pull off the username if it exists
-    amp_count=$(echo ${HDestinIP} |grep -c "@")
-    if [ 1 -eq $amp_count ]; then
-        remoteUsername=$(echo ${HDestinIP} |awk -F@ '{print $1}')
-        HDestinIP=$(echo ${HDestinIP} |awk -F@ '{print $2}')
-        sshoptions="$sshoptions -l $remoteUsername"
+    # Print a helpful message if user is just typing command to get syntax
+    if [ "$1" == "-h" ]; then
+        print_usage
+        return 0
+    elif [ $# -lt 2 ]; then
+        echo "usage: $0 [OPTION] /full_path/source_file destination_host:/full_path/destination_file [bytes_to_transfer]"
+        echo "Try '$0 -h' for more information."
+        return $XDDCP_ERR_CODE_INVALID_ARGS
     fi
-else
-    echo "ERROR: Destination format must be in the form '[user@]host:filename'"
-    exit 2
-fi
 
-# Get the specified size if it is defined
-fileSizeFlag=0
-totalbytes=0
-if [ ! -z "$3" ]; then
-    fileSizeFlag=1
-    totalbytes=$3
-fi
+    # Parse options
+    forceFlag=0
+    resumeFlag=0
+    destDIOFlag=0
+    fileListFlag=0
+    srcDIOFlag=0
+    e2ePort=$XDDCP_DEFAULT_E2E_PORT
+    queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
+    sshOption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
 
-# Ensure local-side preconditions are met
-check_host_preconditions ${TDSource} ${fileListFlag} ${fileSizeFlag} ${resumeFlag}
+    while getopts ":FYadfhp:st:" option; do
+        case $option in
+            F) 
+                fileListFlag=1
+                ;;
+            Y) 
+                sshOption="-tt"
+                ;;
+            a) 
+                resumeFlag=1
+                ;;
+	    d) 
+                destDIOFlag=1
+                ;;
+	    f) 
+                forceFlag=1
+                ;;
+	    h) 
+                print_usage 
+                return 0
+                ;;
+            p) 
+                e2ePort=$OPTARG
+                ;;
+	    s) 
+                srcDIOFlag=1
+                ;;
+	    t) 
+                queueDepth=$OPTARG
+                ;;
+            \?)
+                echo "INFO: Unsupported option: -$OPTARG" >/dev/stderr 
+                error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
 
-# Handle a set of input file
-sourceFileList="${TDSource}"
-if [ 1 -eq $fileListFlag ]; then
-    sourceFileList=$(cat ${TDSource})
-fi
+    # Handle a set of input files
+    srcFileSpecList="$1"
 
-# Process all source files
-for sourceFile in ${sourceFileList}; do
+    # Parse the destination endpoint spec
+    destRemoteFlag=0
+    parse_endpoint_spec "${2}" destRemoteFlag destUser destHost destPath
 
-    # Construct the detination filename if there are multiple sources
-    destFile=${TDDestin}
+    # Get the specified size if it is defined
+    fileSizeFlag=0
+    totalBytes=0
+    if [ ! -z "$3" ]; then
+        fileSizeFlag=1
+        totalBytes=$3
+    fi
+
+    # Ensure local option preconditions are met
+    check_host_preconditions ${srcFileSpecList} ${fileListFlag} \
+        ${fileSizeFlag} ${resumeFlag}
+
+    # If using the file list, get all of the source specs
     if [ 1 -eq $fileListFlag ]; then
-        sourceNameBase=$(basename $sourceFile)
-        destFile="${TDDestin}/${sourceNameBase}"
-        echo "INFO: Starting transfer for: $sourceFile"
+        srcFileSpecList=$(cat ${srcFileSpecList})
     fi
 
-    # Perform source side cleanup
-    perform_local_cleanup
+    # Process all source file specs
+    for srcFileSpec in ${srcFileSpecList}; do
 
-    # Ensure source file preconditions are met
-    check_source_file_preconditions ${sourceFile} ${fileSizeFlag} ${totalbytes}
-    if [ 0 -eq $fileSizeFlag ]; then
-        totalbytes=$(stat -c "%s" ${sourceFile})
-    fi
+        # Parse the source side spec
+        srcRemoteFlag=0
+        parse_endpoint_spec ${srcFileSpec} srcRemoteFlag srcUser srcHost srcPath
 
-    # Initialize the remote transfer (note $resumeOffset is set as a side effect of init_remote_transfer
-    init_remote_transfer ${HDestinIP} ${sshoption} ${sourceFile} ${destFile} ${totalbytes} ${queuedepth} ${e2eport} ${destinationDIOFlag} ${resumeFlag} ${destinationlogdir}
-    if [ 1 -eq "${resumeFlag}" ]; then
-        if [ -z "${resumeOffset}" ]; then
-            echo "ERROR: Restart offset could not be determined."
-            exit -10
+        # Ensure at least one of the sides is remote
+        if [ 0 -eq ${destRemoteFlag} -a 0 -eq ${srcRemoteFlag} ]; then
+            error_exit $XDDCP_ERR_CODE_NO_REMOTE
         fi
-    fi
 
-    # Wait to ensure the remote side has setup network and listening
-    sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
+        # Determine the source file size
+        if [ 0 -eq $fileSizeFlag ]; then
+            totalBytes=$(get_file_size ${srcPath} \
+                ${srcRemoteFlag} ${srcHost} ${srcUser})
+        fi
 
-    # Initialize the local-side transfer (note $resumeOffset is set as a side effect of init_remote_transfer)
-    init_local_transfer ${HDestinIP} ${sourceFile} ${totalbytes} ${queuedepth} ${e2eport} ${sourceDIOFlag} ${resumeFlag} ${sourcelogdir} ${resumeOffset}
+        # Ensure the source file is large enough
+        if [ "$XDDCP_DEFAULT_XFER_SIZE" -gt "$totalBytes" ]; then
+            echo "INFO: $srcPath file size is $totalBytes bytes" >/dev/stderr
+            error_exit $XDDCP_ERR_CODE_SMALL_FILE
+        fi
 
-done
+        # Start destination-side XDD (also sets resume offset if needed)
+        start_destination_xdd ${srcPath} ${destPath} ${totalBytes} \
+            ${queueDepth} ${e2ePort} ${destDIOFlag} ${resumeFlag} \
+            ${destRemoteFlag} ${destHost} ${destUser}
 
-# Return success
-exit 0
+        # Wait to ensure the destination side has setup network and accepting
+        sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
+
+        # Start source-side XDD
+        start_source_xdd "${srcPath}" "${totalBytes}" "${queueDepth}" \
+            "${e2ePort}" "${srcDIOFlag}" "${resumeFlag}" "${g_xddcpResumeOffset}" \
+            "${destHost}" "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
+
+    done
+    return 0
+}
+
+#
+# Execute xddcp
+#
+xddcp_main "$@"
+exit $?
