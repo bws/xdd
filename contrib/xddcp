@@ -289,7 +289,7 @@ function local_exec() {
 # Execute xdd commands on remote host
 #
 function remote_exec() {
-    echo "remote_exec Args: $@" >/dev/stderr
+    #echo "remote_exec Args: $@" >/dev/stderr
     local cmd="$1"
     local remoteHost="$2"
     local remoteUser="$3"
@@ -301,7 +301,7 @@ function remote_exec() {
 
     # Local decl must be on seperate line so $? is correct
     local remoteOutput=""
-    remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash -x <<EOF
+    remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash  <<EOF
 $cmd
 EOF
         )
@@ -350,7 +350,7 @@ function check_source_file_preconditions() {
 # Return the file size
 #
 function get_file_size() {
-    echo "get_file_size Args: $@" >/dev/stderr
+    #echo "get_file_size Args: $@" >/dev/stderr
     local filename=$1
     local remoteFlag=$2
     local host=$3
@@ -368,7 +368,7 @@ function get_file_size() {
 # Return the destination side program
 #
 function get_destination_cmds() {
-    echo "get_destination_cmds Args: $@" >/dev/stderr
+    #echo "get_destination_cmds Args: $@" >/dev/stderr
     local destHost="$1"
     local srcFile="$2"
     local destFile="$3"
@@ -510,9 +510,11 @@ elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
 fi
 
 # Truncate the destination to the correct size if necessary
-cur_size=\$(stat -c '%s' \${destination_file})
-if [ \$cur_size -gt $totalBytes ]; then
-    truncate -s $totalBytes \${destination_file}
+if [ -e \$destination_file ]; then
+    cur_size=\$(stat -c '%s' \${destination_file})
+    if [ \$cur_size -gt $totalBytes ]; then
+        truncate -s $totalBytes \${destination_file}
+    fi
 fi
 
 xdd.Linux -target \${destination_file} -op write -minall -bytes ${totalBytes} -reqsize $reqsize ${destQD} -e2e isdestination -e2e dest ${destHost} -e2e port ${e2ePort} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log} 2>&1 &
@@ -530,7 +532,7 @@ EOF
 # Return the source side program
 #
 function get_source_cmds() {
-    echo "get_source_cmds Args: $@" >/dev/stderr
+    #echo "get_source_cmds Args: $@" >/dev/stderr
     local destHost=$1
     local srcFile=$2
     local totalBytes=$3
@@ -602,7 +604,7 @@ EOF
 }
 
 function start_destination_xdd() {
-    echo "start_destination_xdd Args: $@" >/dev/stderr
+    #echo "start_destination_xdd Args: $@" >/dev/stderr
     local srcPath=$1
     local destPath=$2
     local totalBytes=$3
@@ -636,7 +638,7 @@ function start_destination_xdd() {
 }
 
 function start_source_xdd() {
-    echo "start_source_xdd Args: $@" >/dev/stderr
+    #echo "start_source_xdd Args: $@" >/dev/stderr
     local path=${1}
     local totalBytes=${2}
     local queueDepth=${3}
@@ -792,6 +794,8 @@ function xddcp_main() {
             "${e2ePort}" "${srcDIOFlag}" "${resumeFlag}" "${g_xddcpResumeOffset}" \
             "${destHost}" "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
 
+        echo ""
+        echo "Transfer complete.  Verify results with md5sum."
     done
     return 0
 }
