@@ -51,6 +51,7 @@ int32_t	xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owne
 
 // datapatterns.c
 void	xdd_datapattern_buffer_init(ptds_t *p);
+void	xdd_datapattern_fill(ptds_t *qp);
 
 // debug.c
 void	xdd_show_ptds(ptds_t *p);
@@ -182,7 +183,6 @@ int32_t	xdd_qthread_init(ptds_t *qp);
 
 // qthread_io.c
 void	xdd_qthread_io(ptds_t *qp);
-void	xdd_data_pattern_fill(ptds_t *qp);
 int32_t	xdd_qthread_wait_for_previous_qthread(ptds_t *qp);
 int32_t	xdd_qthread_release_next_qthread(ptds_t *qp);
 void	xdd_qthread_update_local_counters(ptds_t *qp);

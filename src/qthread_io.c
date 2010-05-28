@@ -97,36 +97,6 @@ xdd_qthread_io(ptds_t *qp) {
 } // End of xdd_qthread_io()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_data_pattern_fill() - This subroutine will fill the buffer with a 
- * specific pattern. 
- * This routine is called within the inner I/O loop for every I/O if the data
- * pattern changes from IO to IO
- */
-void
-xdd_data_pattern_fill(ptds_t *qp) {
-	int32_t  		j;					// random variables 
-	uint64_t 		*posp;             	// Position Pointer 
-	pclk_t			start_time;			// Used for calculating elapsed times of ops
-	pclk_t			end_time;			// Used for calculating elapsed times of ops
-
-
-	/* Sequenced Data Pattern */
-	if (qp->target_options & TO_SEQUENCED_PATTERN) {
-		pclk_now(&start_time);
-		posp = (uint64_t *)qp->rwbuf;
-		for (j=0; j<(qp->my_current_io_size/sizeof(qp->my_current_byte_location)); j++) {
-			*posp = qp->my_current_byte_location + (j * sizeof(qp->my_current_byte_location));
-			*posp |= qp->data_pattern_prefix_binary;
-			if (qp->target_options & TO_INVERSE_PATTERN)
-				*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
-			posp++;
-		}
-		pclk_now(&end_time);
-		qp->my_accumulated_pattern_fill_time = (end_time - start_time);
-	}
-} // End of xdd_data_pattern_fill() 
-
-/*----------------------------------------------------------------------------*/
 /* xdd_qthread_wait_for_previous_qthread() - This subroutine will check to
  * see if we need to wait for the previous QThread I/O to complete and 
  * enter the appropriate semaphore if necessary. Otherwise, this routine 

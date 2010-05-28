@@ -159,3 +159,32 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 		
 	return;
 } // end of xdd_datapattern_buffer_init()
+/*----------------------------------------------------------------------------*/
+/* xdd_datapattern_fill() - This subroutine will fill the buffer with a 
+ * specific pattern. 
+ * This routine is called within the inner I/O loop for every I/O if the data
+ * pattern changes from IO to IO
+ */
+void
+xdd_datapattern_fill(ptds_t *qp) {
+	int32_t  		j;					// random variables 
+	uint64_t 		*posp;             	// Position Pointer 
+	pclk_t			start_time;			// Used for calculating elapsed times of ops
+	pclk_t			end_time;			// Used for calculating elapsed times of ops
+
+
+	/* Sequenced Data Pattern */
+	if (qp->target_options & TO_SEQUENCED_PATTERN) {
+		pclk_now(&start_time);
+		posp = (uint64_t *)qp->rwbuf;
+		for (j=0; j<(qp->my_current_io_size/sizeof(qp->my_current_byte_location)); j++) {
+			*posp = qp->my_current_byte_location + (j * sizeof(qp->my_current_byte_location));
+			*posp |= qp->data_pattern_prefix_binary;
+			if (qp->target_options & TO_INVERSE_PATTERN)
+				*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
+			posp++;
+		}
+		pclk_now(&end_time);
+		qp->my_accumulated_pattern_fill_time = (end_time - start_time);
+	}
+} // End of xdd_datapattern_fill() 

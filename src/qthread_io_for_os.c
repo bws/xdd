@@ -52,8 +52,8 @@ xdd_io_for_os(ptds_t *qp) {
 	qp->my_current_op_end_time = 0;
 	if (qp->my_current_op_type == OP_TYPE_WRITE) {  // Write Operation
 		qp->my_current_op_str = "WRITE";
-		// Call xdd_data_pattern_fill() to fill the buffer with any required patterns
-		xdd_data_pattern_fill(qp);
+		// Call xdd_datapattern_fill() to fill the buffer with any required patterns
+		xdd_datapattern_fill(qp);
 
 		// Record the starting time for this write op
 		pclk_now(&qp->my_current_op_start_time);
@@ -120,8 +120,8 @@ xdd_io_for_os(ptds_t *qp) {
 	/* Do the deed .... */
 	if (qp->my_current_op_type == OP_TYPE_WRITE) {  // Write Operation
 		qp->my_current_op_str = "WRITE";
-		// Call xdd_data_pattern_fill() to fill the buffer with any required patterns
-		xdd_data_pattern_fill(p);
+		// Call xdd_datapattern_fill() to fill the buffer with any required patterns
+		xdd_datapattern_fill(p);
 		// Record the starting time for this write op
 		pclk_now(&p->my_current_op_start_time);
 
