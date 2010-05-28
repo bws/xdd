@@ -46,7 +46,7 @@ xdd_get_next_available_qthread(ptds_t *p) {
 	ptds_t		*qp;			// Pointer to a QThread PTDS
 	int			status;			// Status of the sem_wait system calls
 
-	if (p->target_options & TO_NO_POC_SEMAPHORE) {
+	if (p->target_options & TO_NO_STRICT_ORDERING) {
 		// Wait for any QThread to become available
 		p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
 		status = sem_wait(&p->any_qthread_available);
@@ -286,7 +286,7 @@ xdd_target_pass_task_setup(ptds_t *qp) {
 		}
 	}
 	// Set up the correct QThread to wait for if required
-	if (p->target_options & TO_NO_POC_SEMAPHORE) {
+	if (p->target_options & TO_NO_STRICT_ORDERING) {
 		qp->qthread_to_wait_for = NULL;
 	} else {
 		qp->qthread_to_wait_for = p->last_qthread_assigned;

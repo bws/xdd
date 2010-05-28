@@ -84,7 +84,7 @@ xdd_qthread_init(ptds_t *qp) {
 	
 	// Initialize the inter-qthread semaphore - this is a "non-shared" semaphore 
 	// By default this is initialized but can be overriden by the -nopocsem option
-	if (!(qp->target_options & TO_NO_POC_SEMAPHORE)) {
+	if (!(qp->target_options & TO_NO_STRICT_ORDERING)) {
 		status = sem_init(&qp->qthread_task_complete, 0, 0);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize qthread_task_complete semaphore.\n",

@@ -83,7 +83,8 @@
 #define TO_VERIFY_CONTENTS     0x0000004000000000ULL  // Verify the contents of the I/O buffer 
 #define TO_VERIFY_LOCATION     0x0000008000000000ULL  // Verify the location of the I/O buffer (first 8 bytes) 
 #define TO_RESTART_ENABLE      0x0000010000000000ULL  // Restart option enabled 
-#define TO_NO_POC_SEMAPHORE    0x0000020000000000ULL  // DO NOT use the Previous Op Complete (POC) Semaphore to sync QThreads
+#define TO_NO_STRICT_ORDERING  0x0000020000000000ULL  // DO NOT use Strict Ordering on QThreads
+#define TO_LOOSE_ORDERING      0x0000040000000000ULL  // Use Loose Ordering on QThreads
 
 // Per Thread Data Structure - one for each thread 
 struct ptds {

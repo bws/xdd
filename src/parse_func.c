@@ -61,7 +61,7 @@ extern	xdd_func_t xdd_func[];
 //     be for all the targets. Since Phase 1 allocated all the PTDS's then the options for any target can be set without
 //     worrying about whether or not a PTDS has been allocated.
 //
-// Precedance: The target-specific options have precedance over the global options which have precedance over the default options. 
+// Precedence: The target-specific options have precedence over the global options which have precedence over the default options. 
 // Man I hope this works....
 // 
 int32_t
@@ -1567,10 +1567,11 @@ xddfunc_nomemlock(int32_t argc, char *argv[], uint32_t flags)
     return(1);
 }
 /*----------------------------------------------------------------------------*/
-// Reset the Use Previous Op Complete Semaphore flag in Target Options
-// Arguments: -nopocsem [target #]
+// No Strict Ordering - do not enforce strict ordering on QThread I/O
+// Arguments: -nostrictordering [target #] 
+// aka -nso 
 int
-xddfunc_nopocsem(int32_t argc, char *argv[], uint32_t flags)
+xddfunc_nostrictordering(int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
@@ -1585,21 +1586,21 @@ xddfunc_nopocsem(int32_t argc, char *argv[], uint32_t flags)
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
-		p->target_options |= TO_NO_POC_SEMAPHORE;
+		p->target_options |= TO_NO_STRICT_ORDERING;
         return(args+1);
     } else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_NO_POC_SEMAPHORE;
+					p->target_options |= TO_NO_STRICT_ORDERING;
 					i++;
 					p = xgp->ptdsp[i];
 				}
 			}
         return(1);
 	}
-}
+} // End of  xddfunc_nostrictordering()
 /*----------------------------------------------------------------------------*/
 // Set the no process lock flag
 int

@@ -84,7 +84,7 @@ int xddfunc_minall(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_multipath(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_nobarrier(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_nomemlock(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_nopocsem(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_nostrictordering(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_noproclock(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_numreqs(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_operationdelay(int32_t argc, char *argv[], uint32_t flags);

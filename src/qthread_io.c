@@ -109,7 +109,7 @@ xdd_qthread_wait_for_previous_qthread(ptds_t *qp) {
 
 
 	// Wait for the QThread ahead of this one to complete (if necessary)
-	if (!(qp->target_options & TO_NO_POC_SEMAPHORE)) {
+	if (!(qp->target_options & TO_NO_STRICT_ORDERING)) {
 		if (qp->qthread_to_wait_for) {
 			qp->my_current_state |= CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD;
 			status = sem_wait(&qp->qthread_to_wait_for->qthread_task_complete);
@@ -141,7 +141,7 @@ xdd_qthread_release_next_qthread(ptds_t *qp) {
 
 
 	// Increment the "qthread_task_complete" semaphore to let the next QThread run if necessary
-	if (!(qp->target_options & TO_NO_POC_SEMAPHORE)) {
+	if (!(qp->target_options & TO_NO_STRICT_ORDERING)) {
 		status = sem_post(&qp->qthread_task_complete);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_qthread_release_next_qthread: Target %d QThread %d: ERROR: Bad status from sem_post: status=%d, errno=%d\n",
