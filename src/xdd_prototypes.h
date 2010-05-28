@@ -332,10 +332,6 @@ void	xdd_e2e_before_pass(ptds_t *p);
 void	xdd_init_ptds_before_pass(ptds_t *p);
 int32_t	xdd_target_ttd_before_pass(ptds_t *p);
 
-// ticker.c
-void	ticker_open(tick_t *tickp);
-void	ticker_read(tick_t *tickp);
-
 // timestamp.c
 void	xdd_ts_overhead(struct tthdr *ttp); 
 void	xdd_ts_setup(ptds_t *p);
