@@ -1,7 +1,22 @@
 dnl
+dnl This program is free software; you can redistribute it and/or modify 
+dnl it under the terms of the GNU General Public License as published by 
+dnl the Free Software Foundation; either version 2 of the License, or 
+dnl (at your option) any later version.
+dnl 
+dnl This program is distributed in the hope that it will be useful, but 
+dnl WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
+dnl or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License 
+dnl for more details.
+dnl
+dnl You should have received a copy of the GNU General Public License along 
+dnl with this program; if not, write to the Free Software Foundation, Inc., 
+dnl 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+dnl
+dnl
 dnl This file is part of XDD
 dnl
-dnl ALL RIGHTS RESERVED.
+dnl Copyright (C) 2010, Brad Settlemyer
 dnl
 
 dnl

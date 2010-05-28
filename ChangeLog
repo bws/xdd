@@ -2,6 +2,14 @@
 XDD Release ChangeLog
 -----------------------
 
+xdd-7.0.0 RC15
+==============
+* XDD: Supports ordered mode
+* XDDCP: Truncates file to correct length
+* XDDCP: Checks versions
+* XDDCP: More robust error messages
+* XDDCP: 
+
 xdd-7.0.0 RC14
 ==============
 * XDD: Fixed bug so --disable-xfs builds properly
