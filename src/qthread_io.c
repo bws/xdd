@@ -60,8 +60,10 @@ xdd_qthread_io(ptds_t *qp) {
 		xgp->canceled = 1; // Need to terminate early
 	}
 
-	// Wait for the previous QThread I/O operation to complete if requested
-	xdd_qthread_wait_for_previous_qthread(qp);
+	// Wait for the previous QThread I/O operation to complete if Strict Ordering or Loose Ordering is in effect
+	if ((qp->target_options & TO_STRICT_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) {
+		xdd_qthread_wait_for_previous_qthread(qp);
+	}
 	
 	// Check to see if we have been canceled - if so, then we need to 
 	// release the next I/O and just return without performing this I/O.
@@ -71,13 +73,19 @@ xdd_qthread_io(ptds_t *qp) {
 		xdd_qthread_release_next_qthread(qp);
 		return;
 	}
+
+	// Release the next QThread I/O at this point if Loose Ordering is in effect
+	if (qp->target_options & TO_LOOSE_ORDERING) 
+		xdd_qthread_release_next_qthread(qp);
+
 	// Call the OS-appropriate IO routine to perform the I/O
 	qp->my_current_state |= CURRENT_STATE_IO;
 	xdd_io_for_os(qp);
 	qp->my_current_state &= ~CURRENT_STATE_IO;
 
-	// Release the next QThread I/O if requested
-	xdd_qthread_release_next_qthread(qp);
+	// Release the next QThread I/O at this point if Strict Ordering is in effect
+	if (qp->target_options & TO_STRICT_ORDERING) 
+		xdd_qthread_release_next_qthread(qp);
 
 	// Update counters and status in this QThread's PTDS
 	xdd_qthread_update_local_counters(qp);
@@ -109,21 +117,19 @@ xdd_qthread_wait_for_previous_qthread(ptds_t *qp) {
 
 
 	// Wait for the QThread ahead of this one to complete (if necessary)
-	if (!(qp->target_options & TO_NO_STRICT_ORDERING)) {
-		if (qp->qthread_to_wait_for) {
-			qp->my_current_state |= CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD;
-			status = sem_wait(&qp->qthread_to_wait_for->qthread_task_complete);
-			if (status) {
-				fprintf(xgp->errout,"%s: xdd_qthread_wait_for_previous_qthread: Target %d QThread %d: ERROR: Bad status from sem_wait: status=%d, errno=%d\n",
-					xgp->progname,
-					qp->my_target_number,
-					qp->my_qthread_number,
-					status,
-					errno);
-				return(-1);	
-			}
-			qp->my_current_state &= ~CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD;
+	if (qp->qthread_to_wait_for) {
+		qp->my_current_state |= CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD;
+		status = sem_wait(&qp->qthread_to_wait_for->qthread_ordering_sem);
+		if (status) {
+			fprintf(xgp->errout,"%s: xdd_qthread_wait_for_previous_qthread: Target %d QThread %d: ERROR: Bad status from sem_wait: status=%d, errno=%d\n",
+				xgp->progname,
+				qp->my_target_number,
+				qp->my_qthread_number,
+				status,
+				errno);
+			return(-1);	
 		}
+		qp->my_current_state &= ~CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD;
 	}
 	return(0);
 } // End of xdd_qthread_wait_for_previous_qthread()
@@ -140,18 +146,16 @@ xdd_qthread_release_next_qthread(ptds_t *qp) {
 	int32_t 	status;
 
 
-	// Increment the "qthread_task_complete" semaphore to let the next QThread run if necessary
-	if (!(qp->target_options & TO_NO_STRICT_ORDERING)) {
-		status = sem_post(&qp->qthread_task_complete);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_qthread_release_next_qthread: Target %d QThread %d: ERROR: Bad status from sem_post: status=%d, errno=%d\n",
-				xgp->progname,
-				qp->my_target_number,
-				qp->my_qthread_number,
-				status,
-				errno);
-		return(-1);
-		}
+	// Increment the "qthread_ordering_sem" semaphore to let the next QThread run if necessary
+	status = sem_post(&qp->qthread_ordering_sem);
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_qthread_release_next_qthread: Target %d QThread %d: ERROR: Bad status from sem_post: status=%d, errno=%d\n",
+			xgp->progname,
+			qp->my_target_number,
+			qp->my_qthread_number,
+			status,
+			errno);
+	return(-1);
 	}
 	return(0);
 } // End of xdd_qthread_release_next_qthread()
@@ -249,7 +253,6 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	}
 	pthread_mutex_unlock(&p->counter_mutex);
 	// UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED
-//fprintf(stderr,"bytes_xfered_this_op=%lld, bytes_completed=%lld, current_bytes_xfered=%lld, current_op_count=%lld, pass_complete=%d\n",(long long int)p->my_current_bytes_xfered_this_op, (long long int)p->bytes_completed, (long long int)p->my_current_bytes_xfered, (long long int)p->my_current_op_count,p->pass_complete);
 
 } // End of xdd_qthread_update_target_counters()
 

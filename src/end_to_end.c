@@ -51,8 +51,10 @@ xdd_e2e_src_send(ptds_t *qp) {
 	int 	sent;
 	int		sendsize; 
 	int		maxmit;
+	ptds_t	*p;
 
 
+	p = qp->target_ptds;
 	qp->e2e_header.sendqnum = qp->my_qthread_number;
 	pclk_now(&qp->e2e_header.sendtime);
 	qp->e2e_header.sendtime += xgp->gts_delta;
@@ -75,10 +77,17 @@ xdd_e2e_src_send(ptds_t *qp) {
 	// Note: the qp->e2e_iosize is the size of the data field plus the size of the header
 	maxmit = MAXMIT_TCP;
 	sent = 0;
+	pclk_now(&qp->my_current_net_start_time);
 	while (sent < qp->e2e_iosize) {
 		sendsize = (qp->e2e_iosize-sent) > maxmit ? maxmit : (qp->e2e_iosize-sent);
 		status = sendto(qp->e2e_sd,(char *)qp->rwbuf+sent, sendsize, 0, (struct sockaddr *)&qp->e2e_sname, sizeof(struct sockaddr_in));
 		sent += status;
+	}
+	pclk_now(&qp->my_current_net_end_time);
+	// Time stamp if requested
+	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+		p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
+		p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
 	}
 
 	if (sent != qp->e2e_iosize) {
@@ -106,8 +115,10 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	int		maxmit;		// Max transmit size (for TCP)
 	pclk_t 	e2e_wait_1st_msg_start_time; // This is the time stamp of when the first message arrived
 	int		errno_save;	// A copy of the errno
+	ptds_t	*p;
 
 
+	p = qp->target_ptds;
 	// The following uses strictly TCP
 	if (!qp->e2e_wait_1st_msg) 
 		pclk_now(&e2e_wait_1st_msg_start_time);
@@ -167,6 +178,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 		 	 */
 			rcvd = 0;
 			recvsize = 0;
+			pclk_now(&qp->my_current_net_start_time);
 			while (rcvd < qp->e2e_iosize) {
 				recvsize = (qp->e2e_iosize-rcvd) > maxmit ? maxmit : (qp->e2e_iosize-rcvd);
 				status = recvfrom(qp->e2e_csd[qp->e2e_current_csd], (char *) qp->rwbuf+rcvd, recvsize, MSG_WAITALL,NULL,NULL);
@@ -181,12 +193,16 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 					break;
 				rcvd += status;
 			} // End of WHILE loop that received incoming data from the source machine
-
-			// Time stamp the receive and normalize it to the global clock
-	 		pclk_now(&qp->e2e_header.recvtime);
+			pclk_now(&qp->my_current_net_end_time);
+	 		qp->e2e_header.recvtime = qp->my_current_net_end_time;
 			if (!qp->e2e_wait_1st_msg) 
 				qp->e2e_wait_1st_msg = qp->e2e_header.recvtime - e2e_wait_1st_msg_start_time;
 			qp->e2e_header.recvtime += xgp->gts_delta;
+			// Time stamp if requested
+			if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+				p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
+				p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
+			}
 
 			// Check the status of the last recvfrom()
 			// The normal condition where the recvfrom() call returns the expected amount of data (recvsize)

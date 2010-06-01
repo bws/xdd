@@ -220,7 +220,6 @@ xdd_init_ptds_before_pass(ptds_t *p) {
 	p->my_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
 	p->my_error_break = 0; 			// This is set after an I/O Operation if the op failed in some way
 	p->my_current_error_count = 0;		// The number of I/O errors for this qthread
-	p->my_current_state = 0;		// State of this thread at any given time (see Current State definitions below)
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS
 	p->my_longest_op_time = 0;			// Longest op time that occured during this pass

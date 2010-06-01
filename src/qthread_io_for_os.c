@@ -98,8 +98,8 @@ xdd_io_for_os(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].op_type = qp->my_current_op_type;
 		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
 		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
-		p->ttp->tte[qp->ts_current_entry].start = qp->my_current_op_start_time;
-		p->ttp->tte[qp->ts_current_entry].end = qp->my_current_op_end_time;
+		p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
+		p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
 	}
 
 } // End of xdd_io_for_linux()
@@ -207,7 +207,7 @@ xdd_io_for_os(ptds_t *p) {
         pclk_now(&p->my_current_end_time);
 		/* Take a time stamp if necessary */
 		if ((p->ts_options & TS_ON) && (p->ts_options & TS_TRIGGERED)) {  
-			p->ttp->tte[p->ttp->tte_indx++].end = p->my_current_end_time;
+			p->ttp->tte[p->ttp->tte_indx++].disk_end = p->my_current_end_time;
 			if (p->ttp->tte_indx == p->ttp->tt_size) { /* Check to see if we are at the end of the buffer */
 				if (p->ts_options & TS_ONESHOT) 
 					p->ts_options &= ~TS_ON; /* Turn off Time Stamping now that we are at the end of the time stamp buffer */

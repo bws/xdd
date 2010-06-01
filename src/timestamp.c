@@ -198,7 +198,7 @@ xdd_ts_cleanup(struct tthdr *ttp) {
 } /* end of xdd_ts_cleanup() */
 /*----------------------------------------------------------------------------*/
 /* xdd_ts_reports() - Generate the time stamp reports.    
- *    In this section io_time is the time from the start of
+ *    In this section disk_io_time is the time from the start of
  *    I/O to the end of the I/O. The Relative I/O time is 
  *    the time from time 0 to the end of the current I/O.
  *    The Dead Time is the time from the end of an I/O to
@@ -215,25 +215,24 @@ xdd_ts_reports(ptds_t *p) {
 	int64_t  *distance; /* distance between two successive operations */
 	int64_t  mean_distance; /* average distance */
 	int64_t  mean_iotime; /* average iotime */
-	int64_t  start_ts; /* starting timestamp to print*/
-	int64_t  end_ts;  /* ending timestamp to print*/
+	int64_t  disk_start_ts; /* starting timestamp to print*/
+	int64_t  disk_end_ts;  /* ending timestamp to print*/
+	int64_t  net_start_ts; /* starting timestamp to print*/
+	int64_t  net_end_ts;  /* ending timestamp to print*/
 	double  fmean_iotime; /* average iotime */
-	int64_t  mean_dead; /* average dead time */
-	uint64_t *io_time; /* io time in ms for a single operation */
-	double  fio_time; /* io time in floating point */
+	uint64_t *disk_io_time; /* io time in ms for a single disk operation */
+	uint64_t *net_io_time; /* io time in ms for a single net operation */
+	double  disk_fio_time; /* io time in floating point */
+	double  net_fio_time; /* io time in floating point */
 	int64_t  relative_time; /* relative time in ms from the beginning of the pass */
 	double  frelative_time; /* same thing in floating point */
 	uint64_t hi_time, lo_time; /* high and low times for io times */
 	double  fhi_time, flo_time; /* high and low times for io times */
-	uint64_t hi_dead, lo_dead; /* high and low times for dead times */
-	double  fhi_dead, flo_dead; /* high and low times for dead times */
 	uint64_t total_time; /* Sum of all io times */
-	uint64_t total_dead; /* Sum of all dead times */
-	uint64_t *dead_time; /* time between the end of last I/O and start of this one */
-	double  fdead_time; /* same thing in floating point */
 	int64_t  loop_time; /* time between the end of last I/O and end of this one */
 	double  floop_time; /* same thing in floating point */
-	double  irate; /* instantaneous data rate */
+	double  disk_irate; /* instantaneous data rate */
+	double  net_irate; /* instantaneous data rate */
 	char  filename[1024]; /* tsoutput filename */
 	int64_t  indx; /* Current TS index */
 	tthdr_t  *ttp;  /* pointer to the time stamp table header */
@@ -274,9 +273,9 @@ xdd_ts_reports(ptds_t *p) {
 			}
 		/* allocate some temporary arrays */
 		distance = (int64_t *)calloc(ttp->numents,sizeof(int64_t));
-		io_time = (uint64_t *)calloc(ttp->numents,sizeof(uint64_t));
-		dead_time = (uint64_t *)calloc(ttp->numents,sizeof(uint64_t));
-		if ((distance == NULL) || (io_time == NULL) || (dead_time == NULL)) {
+		disk_io_time = (uint64_t *)calloc(ttp->numents,sizeof(uint64_t));
+		net_io_time = (uint64_t *)calloc(ttp->numents,sizeof(uint64_t));
+		if ((distance == NULL) || (disk_io_time == NULL) || (net_io_time == NULL)) {
 			fprintf(xgp->errout,"%s: cannot allocate memory for temporary buffers to analyze timestamp info\n",
 				xgp->progname);
 			fflush(xgp->errout);
@@ -297,25 +296,22 @@ xdd_ts_reports(ptds_t *p) {
 		(long long)ttp->res,
 		(long long)ttp->delta);
 
-	fprintf(p->tsfp,"Target, RWV Op, Pass, OP Number, Byte Location, Distance, StartTS, EndTS, IO_Time_ms, Relative_ms, Delta_us, Loop_ms, Inst MB/sec\n");
+	fprintf(p->tsfp,"QThread,RWNOp,Pass,OP,Location,Distance,DiskStart,DiskEnd,DiskIOTime,NetStart,NetEnd,NetTime,RelativeTime,LoopTime,DiskRate,NetRate\n");
+	fprintf(p->tsfp,"Number,OpType,Number,Number,Bytes,Blocks,TimeStamp,TimeStamp,milliseconds,TimeStamp,TimeStamp,milliseconds,milliseconds,milliseconds,MBytes/sec,MBytes/sec\n");
 	fflush(p->tsfp);
 		}
 		/* Scan the time stamp table and calculate the numbers */
 		count = 0;
 		hi_dist = 0;
 		hi_time = 0;
-		hi_dead = 0;
 		lo_dist = 1000000000000LL;
 		lo_time = 1000000000000LL;
-		lo_dead = 1000000000000LL;
 		total_distance = 0;
 		total_time = 0;
-		total_dead = 0;
 		for (i = 0; i < ttp->numents; i++) {
 			/* print out the detailed information */
 			if (i == 0) {
 				distance[i] = 0;
-				dead_time[i] = 0;
 				loop_time = 0;
 			} else {
 				if (ttp->blocksize == 0) {
@@ -333,11 +329,11 @@ xdd_ts_reports(ptds_t *p) {
 						(ttp->tte[i].byte_location + 
 						(ttp->reqsize)));
 				}
-				dead_time[i] = ttp->tte[i].start - ttp->tte[i-1].end;
-				loop_time = ttp->tte[i].end - ttp->tte[i-1].end;
+				loop_time = ttp->tte[i].disk_end - ttp->tte[i-1].disk_end;
 			}
-			io_time[i] = ttp->tte[i].end - ttp->tte[i].start;
-			relative_time = ttp->tte[i].start - ttp->tte[0].start;
+			disk_io_time[i] = ttp->tte[i].disk_end - ttp->tte[i].disk_start;
+			net_io_time[i] = ttp->tte[i].net_end - ttp->tte[i].net_start;
+			relative_time = ttp->tte[i].disk_start - ttp->tte[0].disk_start;
 			if (i > 0) {
 				if (ttp->tte[i].pass_number > ttp->tte[i-1].pass_number) {
 					fprintf(p->tsfp,"\n");
@@ -346,24 +342,26 @@ xdd_ts_reports(ptds_t *p) {
 				total_distance += distance[i];
 				if (hi_dist < distance[i]) hi_dist = distance[i];
 				if (lo_dist > distance[i]) lo_dist = distance[i];
-				total_time += io_time[i];
-				if (hi_time < io_time[i]) hi_time = io_time[i];
-				if (lo_time > io_time[i]) lo_time = io_time[i];
-				total_dead += dead_time[i];
-				if (hi_dead < dead_time[i]) hi_dead = dead_time[i];
-				if (lo_dead > dead_time[i]) lo_dead = dead_time[i];
+				total_time += disk_io_time[i];
+				if (hi_time < disk_io_time[i]) hi_time = disk_io_time[i];
+				if (lo_time > disk_io_time[i]) lo_time = disk_io_time[i];
 				count++;
 			}
-			fio_time = (double)io_time[i];
+			disk_fio_time = (double)disk_io_time[i];
 			frelative_time = (double)relative_time;
-			fdead_time = (double)dead_time[i];
 			floop_time = (double)loop_time;
-			if (fio_time > 0.0) 
-				irate = ((ttp->reqsize)/(fio_time / TRILLION))/1000000.0;
-			else irate = 0.0;
+			if (disk_fio_time > 0.0) 
+				disk_irate = ((ttp->reqsize)/(disk_fio_time / TRILLION))/1000000.0;
+			else disk_irate = 0.0;
+			net_fio_time = (double)net_io_time[i];
+			if (net_fio_time > 0.0) 
+				net_irate = ((ttp->reqsize)/(net_fio_time / TRILLION))/1000000.0;
+			else net_irate = 0.0;
 			if (p->ts_options & TS_DETAILED) { /* Print the detailed report */
-				start_ts = ttp->tte[i].start + ttp->delta;
-				end_ts = ttp->tte[i].end + ttp->delta;
+				disk_start_ts = ttp->tte[i].disk_start + ttp->delta;
+				disk_end_ts = ttp->tte[i].disk_end + ttp->delta;
+				net_start_ts = ttp->tte[i].net_start + ttp->delta;
+				net_end_ts = ttp->tte[i].net_end + ttp->delta;
 				switch (ttp->tte[i].op_type) {
 					case SO_OP_WRITE: opc="w"; break;
 					case SO_OP_WRITE_VERIFY: opc="v"; break;
@@ -371,20 +369,23 @@ xdd_ts_reports(ptds_t *p) {
 					default: opc="r"; break;
 				}
 
-	fprintf(p->tsfp,"%d,%s,%d,%lld,%lld,%lld,%llu,%llu,%15.5f,%15.5f,%15.5f,%15.5f,%12.3f\n",
-				ttp->tte[i].qthread_number, 
-				opc,
-				ttp->tte[i].pass_number, 
-				(long long)ttp->tte[i].op_number, 
-				(long long)ttp->tte[i].byte_location, 
-				(long long)distance[i],  
-				(unsigned long long)start_ts,  
-				(unsigned long long)end_ts, 
-				fio_time/1000000000.0, 
-				frelative_time/1000000000.0, 
-				fdead_time/1000000.0, 
-				floop_time/1000000000.0,
-				irate);
+				fprintf(p->tsfp,"%d,",ttp->tte[i].qthread_number);
+				fprintf(p->tsfp,"%s,",opc);
+				fprintf(p->tsfp,"%d,",ttp->tte[i].pass_number); 
+				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].op_number); 
+				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].byte_location); 
+				fprintf(p->tsfp,"%lld,",(long long)distance[i]);  
+				fprintf(p->tsfp,"%llu,",(unsigned long long)disk_start_ts);  
+				fprintf(p->tsfp,"%llu,",(unsigned long long)disk_end_ts); 
+				fprintf(p->tsfp,"%15.5f,",disk_fio_time/1000000000.0); 
+				fprintf(p->tsfp,"%llu,",(unsigned long long)net_start_ts);  
+				fprintf(p->tsfp,"%llu,",(unsigned long long)net_end_ts); 
+				fprintf(p->tsfp,"%15.5f,",net_fio_time/1000000000.0); 
+				fprintf(p->tsfp,"%15.5f,",frelative_time/1000000000.0); 
+				fprintf(p->tsfp,"%15.5f,",floop_time/1000000000.0);
+				fprintf(p->tsfp,"%15.5f,",disk_irate);
+				fprintf(p->tsfp,"%15.3f",net_irate);
+				fprintf(p->tsfp,"\n");
 			fflush(p->tsfp);
 			}
 		} /* end of FOR loop that scans time stamp table */
@@ -402,9 +403,6 @@ xdd_ts_reports(ptds_t *p) {
 				mean_distance = (uint64_t)(total_distance / ttp->numents);
 				mean_iotime = total_time / ttp->numents;
 			}
-			if (ttp->numents > 1)
-				mean_dead = total_dead / (ttp->numents-1);
-			else mean_dead = 0;
 			fprintf(p->tsfp, "Start of SUMMARY Time Stamp Report\n");
 			fflush(p->tsfp);
 
@@ -420,17 +418,12 @@ xdd_ts_reports(ptds_t *p) {
 				(long long)lo_dist);
 			fflush(p->tsfp);
 			fmean_iotime = (double)mean_iotime;
-			fdead_time = (double)mean_dead;
-			fprintf(p->tsfp,"Average I/O time in milliseconds, %15.5f, average dead time in microseconds, %15.5f\n",
-				fmean_iotime/1000000000.0, fdead_time/1000000.0);
+			fprintf(p->tsfp,"Average I/O time in milliseconds, %15.5f\n",
+				fmean_iotime/1000000000.0);
 			fhi_time = (double)hi_time;
 			flo_time = (double)lo_time;
 			fprintf(p->tsfp,"I/O Time Range:  Longest I/O time in milliseconds, %15.5f, shortest I/O time in milliseconds, %15.5f\n",
 				fhi_time/1000000000.0, flo_time/1000000000.0);
-			fhi_dead = (double)hi_dead;
-			flo_dead = (double)lo_dead;
-			fprintf(p->tsfp,"Dead Time Range:  Longest dead time in microseconds, %15.5f, shortest dead time in microseconds, %15.5f\n",
-				fhi_dead/1000000.0, flo_dead/1000000.0);
 			fprintf(p->tsfp, "End of SUMMARY Time Stamp Report\n");
 		} /* end of IF clause that prints SUMMARY */
 		/* close the ts output file if necessary */

@@ -43,6 +43,7 @@ xdd_qthread(void *pin) {
 	int32_t  	status;
 	ptds_t		*qp;	// Pointer to this QThread's PTDS
 	ptds_t		*p;		// Pointer to this QThread's Target PTDS
+	int			sem_val;
 
 
 	qp = (ptds_t *)pin; 
@@ -59,7 +60,6 @@ xdd_qthread(void *pin) {
 		xgp->abort = 1; // This will prevent all other threads from being created...
 	}
 
-	// At this point this QThread should be on the QThreadAvailable queue assuming nothing went wrong.
 	// Enter the QThread_Init barrier so that the next QThread can start 
 	xdd_barrier(&p->target_qthread_init_barrier,&qp->occupant,0);
 
@@ -102,23 +102,26 @@ xdd_qthread(void *pin) {
 				break;
 		} // End of SWITCH stmnt that determines the TASK
 
-		// Now that the previous task has completed, indicate that this thread is available for another task
-
 		// Indicate that *this* QThread is available
 		qp->my_current_state |= CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE;
-		status = sem_post(&qp->this_qthread_available);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on qthread_available semaphore: status=%d, errno=%d\n",
-				xgp->progname,
-				qp->my_target_number,
-				qp->my_qthread_number,
-				status,
-				errno);
-		}
+		sem_val = 0;
+		status = sem_getvalue(&qp->this_qthread_available, &sem_val);
+		if (sem_val == 0) {
+			status = sem_post(&qp->this_qthread_available);
+			if (status) {
+				fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on this_qthread_available semaphore: status=%d, errno=%d\n",
+					xgp->progname,
+					qp->my_target_number,
+					qp->my_qthread_number,
+					status,
+					errno);
+			}
+		} else fprintf(xgp->output,"\rqthread: Target %d Qthread %d this_qthread_available: sem_val is %d when it should be 0!!!!\n",qp->my_target_number, qp->my_qthread_number, sem_val);
+
 		// Indicate to the Target Thread that there is *another* QThread available
 		status = sem_post(&p->any_qthread_available);
 		if (status) {
-			fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on qthread_available semaphore: status=%d, errno=%d\n",
+			fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
 				xgp->progname,
 				qp->my_target_number,
 				qp->my_qthread_number,

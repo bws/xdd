@@ -225,8 +225,8 @@ xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags) {
 				status = sem_getvalue(&qp->this_qthread_available, &sem_val);
 				fprintf(xgp->output,"Target %d Qthread %d this_qthread_available: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
 				sem_val = 0;
-				status = sem_getvalue(&qp->qthread_task_complete, &sem_val);
-				fprintf(xgp->output,"Target %d Qthread %d qthread_task_complete: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
+				status = sem_getvalue(&qp->qthread_ordering_sem, &sem_val);
+				fprintf(xgp->output,"Target %d Qthread %d qthread_ordering_sem: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
 				qp = qp->next_qp;
 			}
 		} else {

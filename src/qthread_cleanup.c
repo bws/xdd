@@ -36,8 +36,5 @@
 void
 xdd_qthread_cleanup(ptds_t *qp) {
 
-	xdd_destroy_barrier(&qp->qthread_targetpass_wait_barrier);
-	xdd_destroy_barrier(&qp->qthread_targetpass_wait_barrier);
-
 	return;
 } // End of xdd_qthread_cleanup()

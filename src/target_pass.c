@@ -45,9 +45,26 @@ ptds_t *
 xdd_get_next_available_qthread(ptds_t *p) {
 	ptds_t		*qp;			// Pointer to a QThread PTDS
 	int			status;			// Status of the sem_wait system calls
+	int			sem_val;
 
-	if (p->target_options & TO_NO_STRICT_ORDERING) {
-		// Wait for any QThread to become available
+	if ((p->target_options & TO_STRICT_ORDERING) || 
+		(p->target_options & TO_LOOSE_ORDERING)) { // Strict or Loose Ordering requires us to wait for a "specific" QThread to become available
+		qp = p->next_qthread_to_use;
+		if (qp->next_qp) // Is there another QThread on this chain after the current one?
+			p->next_qthread_to_use = qp->next_qp; // point to the next QThread in the chain
+		else p->next_qthread_to_use = p->next_qp; // else point to the first QThread in the chain
+		// Wait for this specific QThread to become available
+		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+		status = sem_wait(&qp->this_qthread_available);
+		if (status) {
+			fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_wait on this_qthread_available semaphore: status=%d, errno=%d\n",
+				xgp->progname,
+				p->my_target_number,
+				status,
+				errno);
+		}
+		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+	} else { // No Strict Ordering - just wait for any QThread to become available
 		p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
 		status = sem_wait(&p->any_qthread_available);
 		if (status) {
@@ -60,8 +77,26 @@ xdd_get_next_available_qthread(ptds_t *p) {
 		p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
 		qp = p->next_qp;
 		while (qp) {
-			if (qp->my_current_state & CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE)
+			if (qp->my_current_state & CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE)  {
+				// The following "sem_wait" is used to decrement the semaphore to zero
+				sem_val = 0;
+				sem_getvalue(&qp->this_qthread_available, &sem_val);
+				if (sem_val == 1) {
+					p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+					status = sem_wait(&qp->this_qthread_available);
+					if (status) {
+						fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_wait on this_qthread_available semaphore: status=%d, errno=%d\n",
+						xgp->progname,
+						p->my_target_number,
+						status,
+						errno);
+					}
+					p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+				} else { 
+					fprintf(stderr,"xdd_get_next_available_qthread: Target %d: QThread %d: WARNING: sem_val for this_qthread_available semaphore is %d when it should be 1\n",qp->my_target_number, qp->my_qthread_number, sem_val);
+				}
 				break;
+			}
 			qp = qp->next_qp;
 			if (qp == NULL) {
 				fprintf(stderr, "xdd_get_next_available_qthread: Target %d: no available QThreads found but there should be one here... waiting on any_qthread_available semaphore\n",p->my_target_number);
@@ -71,23 +106,7 @@ xdd_get_next_available_qthread(ptds_t *p) {
 				qp = p->next_qp;
 			}
 		}
-	} else { // Use Strict Ordering
-		qp = p->next_qthread_to_use;
-		if (qp->next_qp) // Is there another QThread on this chain after the current one?
-			p->next_qthread_to_use = qp->next_qp; // point to the next QThread in the chain
-		else p->next_qthread_to_use = p->next_qp; // else point to the first QThread in the chain
-		// Wait for this specific QThread to become available
-		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		status = sem_wait(&qp->this_qthread_available);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_post on this_qthread_available semaphore: status=%d, errno=%d\n",
-				xgp->progname,
-				p->my_target_number,
-				status,
-				errno);
-		}
-		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-	} // End of Strict Ordering QThread locator
+	} // End of QThread locator 
 
 	// Mark this QThread NOT Available
 	qp->my_current_state &= ~CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE; 
@@ -102,6 +121,7 @@ int32_t
 xdd_target_pass(ptds_t *p) {
 	ptds_t		*qp;			// Pointer to a QThread's PTDS
 	int			status;			// Status of the sem_wait system calls
+	int			sem_val;
 
 	/* Before we get started, check to see if we need to reset the 
 	 * run_status in case we are using the start trigger.
@@ -201,17 +221,21 @@ xdd_target_pass(ptds_t *p) {
 		}
 		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
 
+		sem_val = 0;
+		status = sem_getvalue(&qp->this_qthread_available, &sem_val);
 		// Make this thread available 
-		qp->my_current_state |= CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE;
-		status = sem_post(&qp->this_qthread_available);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_target_pass: Target %d QThread %d: WARNING: Bad status from sem_post on qthread_available semaphore: status=%d, errno=%d\n",
-				xgp->progname,
-				qp->my_target_number,
-				qp->my_qthread_number,
-				status,
-				errno);
+		if (sem_val < 1) { // Only post this semaphore if it is less than 1 
+			status = sem_post(&qp->this_qthread_available);
+			if (status) {
+				fprintf(xgp->errout,"%s: xdd_target_pass: Target %d QThread %d: WARNING: Bad status from sem_post on qthread_available semaphore: status=%d, errno=%d\n",
+					xgp->progname,
+					qp->my_target_number,
+					qp->my_qthread_number,
+					status,
+					errno);
+			}
 		}
+		qp->my_current_state |= CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE;
 		qp = qp->next_qp;
 	}
 
@@ -285,11 +309,12 @@ xdd_target_pass_task_setup(ptds_t *qp) {
 			p->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
 	}
-	// Set up the correct QThread to wait for if required
-	if (p->target_options & TO_NO_STRICT_ORDERING) {
-		qp->qthread_to_wait_for = NULL;
-	} else {
+	// Set up the correct QThread to wait for if Strict or Loose ordering is in effect
+	if ((p->target_options & TO_STRICT_ORDERING) || 
+		(p->target_options & TO_LOOSE_ORDERING)) { 
 		qp->qthread_to_wait_for = p->last_qthread_assigned;
+	} else { // No ordering restrictions 
+		qp->qthread_to_wait_for = NULL;
 	}
 
 } // End of xdd_target_pass_task_setup()

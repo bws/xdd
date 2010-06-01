@@ -39,8 +39,10 @@ struct tte {
 	int32_t		qthread_number;	// My QThread Number
 	int64_t 	op_number; 		// Operation number
 	int64_t 	byte_location; 	// Location in bytes - aka Offset into the device/file
-	pclk_t 		start;  		// The starting time stamp of this operation
-	pclk_t 		end;  			// The ending time stamp of this operation
+	pclk_t 		disk_start;  		// The starting time stamp of the disk operation
+	pclk_t 		disk_end;  			// The ending time stamp of the disk operation
+	pclk_t 		net_start;  		// The starting time stamp of the net operation (e2e only)
+	pclk_t 		net_end;  			// The ending time stamp of the net operation (e2e only)
 };
 typedef struct tte tte_t;
 

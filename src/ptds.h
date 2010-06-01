@@ -83,7 +83,7 @@
 #define TO_VERIFY_CONTENTS     0x0000004000000000ULL  // Verify the contents of the I/O buffer 
 #define TO_VERIFY_LOCATION     0x0000008000000000ULL  // Verify the location of the I/O buffer (first 8 bytes) 
 #define TO_RESTART_ENABLE      0x0000010000000000ULL  // Restart option enabled 
-#define TO_NO_STRICT_ORDERING  0x0000020000000000ULL  // DO NOT use Strict Ordering on QThreads
+#define TO_STRICT_ORDERING     0x0000020000000000ULL  // Use Strict Ordering on QThreads
 #define TO_LOOSE_ORDERING      0x0000040000000000ULL  // Use Loose Ordering on QThreads
 
 // Per Thread Data Structure - one for each thread 
@@ -151,7 +151,7 @@ struct ptds {
 
 	// QThread-specific semaphores and associated pointers
 	sem_t				this_qthread_available;				// The xdd_get_next_available_qthread() routine waits on this for a specific QThread to become available
-	sem_t				qthread_task_complete;				// The QThread sets this when it has completed a task
+	sem_t				qthread_ordering_sem;				// The QThread sets this to release a waiting QThread when Strict or Loose ordering is used
 	struct ptds			*qthread_to_wait_for;				// Pointer to the QThread to wait for before starting I/O
 
 															// The QThread Wait Barrier is used just by the QThread and the issue_thread
@@ -293,6 +293,9 @@ struct ptds {
 	pclk_t				my_current_op_start_time; 	// Start time of the current op
 	pclk_t				my_current_op_end_time; 	// End time of the current op
 	pclk_t				my_current_op_elapsed_time;	// Elapsed time of the current op
+	pclk_t				my_current_net_start_time; 	// Start time of the current network op (e2e only)
+	pclk_t				my_current_net_end_time; 	// End time of the current network op (e2e only)
+	pclk_t				my_current_net_elapsed_time;// Elapsed time of the current network op (e2e only)
 	pclk_t				my_accumulated_op_time; 	// Accumulated time spent in I/O 
 	pclk_t				my_accumulated_read_op_time; // Accumulated time spent in read 
 	pclk_t				my_accumulated_write_op_time;// Accumulated time spent in write 

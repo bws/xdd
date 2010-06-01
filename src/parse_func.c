@@ -646,7 +646,7 @@ xddfunc_devicefile(int32_t argc, char *argv[], uint32_t flags)
     if (args < 0) return(-1);
 
     // At this point the "target_number" is valid
-	if (target_number >= 0) { /* Request size for a specific target */
+	if (target_number >= 0) { /* Set this option for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
@@ -680,7 +680,7 @@ xddfunc_dio(int32_t argc, char *argv[], uint32_t flags)
     if (args < 0) return(-1);
 
     // At this point the "target_number" is valid
-	if (target_number >= 0) { /* Request size for a specific target */
+	if (target_number >= 0) { /* Set this option for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
@@ -1375,7 +1375,45 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
     retval++;
 
     return(retval);
- }
+} // End of xddfunc_lockstep()
+/*----------------------------------------------------------------------------*/
+// Loose Ordering - Allow loose ordering of QThread I/O
+// Note that Loose Ordering for a Target is mutually exclusive with Strict Ordering
+// Arguments: -looseordering [target #] 
+// aka -lo 
+int
+xddfunc_looseordering(int32_t argc, char *argv[], uint32_t flags)
+{
+    int args, i; 
+    int target_number;
+    ptds_t *p;
+
+
+    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+    // At this point the "target_number" is valid
+	if (target_number >= 0) { /* Set this option for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL) return(-1);
+
+		p->target_options |= TO_LOOSE_ORDERING;
+		p->target_options &= ~TO_STRICT_ORDERING;
+        return(args+1);
+    } else {// Put this option into all PTDSs 
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					p->target_options |= TO_LOOSE_ORDERING;
+					p->target_options &= ~TO_STRICT_ORDERING;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+        return(1);
+	}
+} // End of  xddfunc_looseordering()
 /*----------------------------------------------------------------------------*/
 // Set the maxpri and process lock
 int
@@ -1566,41 +1604,6 @@ xddfunc_nomemlock(int32_t argc, char *argv[], uint32_t flags)
 		xgp->global_options |= GO_NOMEMLOCK;
     return(1);
 }
-/*----------------------------------------------------------------------------*/
-// No Strict Ordering - do not enforce strict ordering on QThread I/O
-// Arguments: -nostrictordering [target #] 
-// aka -nso 
-int
-xddfunc_nostrictordering(int32_t argc, char *argv[], uint32_t flags)
-{
-    int args, i; 
-    int target_number;
-    ptds_t *p;
-
-
-    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
-    if (args < 0) return(-1);
-
-    // At this point the "target_number" is valid
-	if (target_number >= 0) { /* Request size for a specific target */
-		p = xdd_get_ptdsp(target_number, argv[0]);
-		if (p == NULL) return(-1);
-
-		p->target_options |= TO_NO_STRICT_ORDERING;
-        return(args+1);
-    } else {// Put this option into all PTDSs 
-			if (flags & XDD_PARSE_PHASE2) {
-				p = xgp->ptdsp[0];
-				i = 0;
-				while (p) {
-					p->target_options |= TO_NO_STRICT_ORDERING;
-					i++;
-					p = xgp->ptdsp[i];
-				}
-			}
-        return(1);
-	}
-} // End of  xddfunc_nostrictordering()
 /*----------------------------------------------------------------------------*/
 // Set the no process lock flag
 int
@@ -2903,7 +2906,7 @@ xddfunc_sgio(int32_t argc, char *argv[], uint32_t flags)
     if (args < 0) return(-1);
 
     // At this point the "target_number" is valid
-	if (target_number >= 0) { /* Request size for a specific target */
+	if (target_number >= 0) { /* Set this option for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
@@ -2935,7 +2938,7 @@ xddfunc_sharedmemory(int32_t argc, char *argv[], uint32_t flags)
     if (args < 0) return(-1);
 
     // At this point the "target_number" is valid
-	if (target_number >= 0) { /* Request size for a specific target */
+	if (target_number >= 0) { /* Set this option for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
@@ -3256,6 +3259,44 @@ xddfunc_stoptrigger(int32_t argc, char *argv[], uint32_t flags)
         return(0);
 	}
 }
+/*----------------------------------------------------------------------------*/
+// Strict Ordering - Enforce Strict Ordering on QThread I/O
+// Note that Strict Ordering for a Target is mutually exclusive with Loose Ordering
+// Arguments: -strictordering [target #] 
+// aka -nso 
+int
+xddfunc_strictordering(int32_t argc, char *argv[], uint32_t flags)
+{
+    int args, i; 
+    int target_number;
+    ptds_t *p;
+
+
+    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+    // At this point the "target_number" is valid
+	if (target_number >= 0) { /* Set this option for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL) return(-1);
+
+		p->target_options |= TO_STRICT_ORDERING;
+		p->target_options &= ~TO_LOOSE_ORDERING;
+        return(args+1);
+    } else {// Put this option into all PTDSs 
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					p->target_options |= TO_STRICT_ORDERING;
+					p->target_options &= ~TO_LOOSE_ORDERING;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+        return(1);
+	}
+} // End of  xddfunc_strictordering()
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_syncio(int32_t argc, char *argv[], uint32_t flags)

@@ -511,7 +511,8 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 		bp->last_occupant->next_occupant = occupantp;
 		bp->last_occupant = occupantp;
 	} // Done adding this barrier to the chain
-	if (occupantp->occupant_type & (XDD_OCCUPANT_TYPE_TARGET | XDD_OCCUPANT_TYPE_QTHREAD)) {
+	if ((occupantp->occupant_type & XDD_OCCUPANT_TYPE_TARGET ) ||
+		(occupantp->occupant_type & XDD_OCCUPANT_TYPE_QTHREAD)) {
 		// Put the barrier pointer into this thread's PTDS->current_barrier
 		occupantp->occupant_ptds->my_current_state |= CURRENT_STATE_BARRIER;
 		occupantp->occupant_ptds->current_barrier = bp;
@@ -530,7 +531,8 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 		perror("Reason");
 		status = -1;
 	}
-	if (occupantp->occupant_type & (XDD_OCCUPANT_TYPE_TARGET | XDD_OCCUPANT_TYPE_QTHREAD)) {
+	if ((occupantp->occupant_type & XDD_OCCUPANT_TYPE_TARGET ) ||
+		(occupantp->occupant_type & XDD_OCCUPANT_TYPE_QTHREAD)) {
 		// Clear this thread's PTDS->current_barrier
 		occupantp->occupant_ptds->current_barrier = NULL;
 		occupantp->occupant_ptds->my_current_state &= ~CURRENT_STATE_BARRIER;

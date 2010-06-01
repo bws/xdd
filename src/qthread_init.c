@@ -81,13 +81,13 @@ xdd_qthread_init(ptds_t *qp) {
 		return(-1);
 	}
 
-	
 	// Initialize the inter-qthread semaphore - this is a "non-shared" semaphore 
-	// By default this is initialized but can be overriden by the -nopocsem option
-	if (!(qp->target_options & TO_NO_STRICT_ORDERING)) {
-		status = sem_init(&qp->qthread_task_complete, 0, 0);
+	// By default this is not used
+	if ((qp->target_options & TO_STRICT_ORDERING) ||
+		(qp->target_options & TO_LOOSE_ORDERING)) {
+		status = sem_init(&qp->qthread_ordering_sem, 0, 0);
 		if (status) {
-			fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize qthread_task_complete semaphore.\n",
+			fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize qthread_ordering_sem semaphore.\n",
 				xgp->progname, 
 				qp->my_target_number,
 				qp->my_qthread_number);
@@ -95,6 +95,9 @@ xdd_qthread_init(ptds_t *qp) {
 			return(-1);
 		}
 	}
+	qp->qthread_to_wait_for = NULL;
+
+	// Init the semaphore used by target_pass() to wait for this qthread to become available
 	status = sem_init(&qp->this_qthread_available, 0, 1);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize this_qthread_available semaphore.\n",
@@ -104,7 +107,17 @@ xdd_qthread_init(ptds_t *qp) {
 		fflush(xgp->errout);
 		return(-1);
 	}
-	qp->qthread_to_wait_for = NULL;
+	// Indicate to the Target Thread that this QThread is available
+	qp->my_current_state |= CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE;
+	status = sem_post(&p->any_qthread_available);
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
+			xgp->progname,
+			qp->my_target_number,
+			qp->my_qthread_number,
+			status,
+			errno);
+	}
 
 	// Set up for an End-to-End operation (if requested)
 	if (qp->target_options & TO_ENDTOEND) {
@@ -132,7 +145,6 @@ xdd_qthread_init(ptds_t *qp) {
 		return(-1);
 		}
 	} // End of end-to-end setup
-	qp->my_current_state |= CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE;
 
 	// All went well...
 	return(0);
