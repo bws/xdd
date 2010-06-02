@@ -98,8 +98,11 @@ function print_usage() {
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
+#    echo " -o		- Ordered-mode, write data in sequential order"
+#    echo " -r		- Copy sub-directories and contents recursively"
     echo " -s		- Use direct I/O on the source end"
     echo " -t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
+    echo " -v		- Add verbose output to logs"
     #echo "-Y		- Force SSH to create psueo-terminal tty"
     #echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
     echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
@@ -369,18 +372,20 @@ function get_file_size() {
 #
 function get_destination_cmds() {
     #echo "get_destination_cmds Args: $@" >/dev/stderr
-    local destHost="$1"
-    local srcFile="$2"
-    local destFile="$3"
-    local totalBytes="$4"
-    local queueDepth="$5"
-    local e2ePort="$6"
-    local dioFlag="$7"
-    local resumeFlag="$8"
+    local destHost=${1}
+    local srcFile=${2}
+    local destFile=${3}
+    local totalBytes=${4}
+    local queueDepth=${5}
+    local e2ePort=${6}
+    local dioFlag=${7}
+    local forceFlag=${8}
+    local orderedFlag=${9}
+    local resumeFlag=${10}
+    local verboseFlag=${11}
 
     # Options that aren't yet settable
     local srcHost=$(hostname)
-    local forceFlag=1
     
     # Construct transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
@@ -396,10 +401,22 @@ function get_destination_cmds() {
     local destDirname=$(dirname $destFile)
     local destLog="xdd.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
     local destQD="-queuedepth ${queueDepth}"
+
+    # Direct I/O option
     if [ 1 -eq $dioFlag ]; then
         local destDIO="-dio"
     fi
 
+    # Strict ordering option
+    if [ 1 -eq $orderedFlag ]; then
+        local orderedOpt=""
+    fi
+
+    # Verbose option
+    if [ 1 -eq $verboseFlag ]; then
+        local verboseOpt="-ts detailed -ts output e2e"
+    fi
+    
     cat <<EOF
 # Ensure xdd is in the remote path
 \$(hash xdd.Linux) >/dev/null
@@ -517,7 +534,7 @@ if [ -e \$destination_file ]; then
     fi
 fi
 
-xdd.Linux -target \${destination_file} -op write -minall -bytes ${totalBytes} -reqsize $reqsize ${destQD} -e2e isdestination -e2e dest ${destHost} -e2e port ${e2ePort} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log} 2>&1 &
+xdd.Linux -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize ${destQD} -e2e isdestination -e2e dest ${destHost} -e2e port ${e2ePort} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log} 2>&1 &
 
 # Send the restart offset back to the source side via an exit code
 if [ 1 -eq $resumeFlag ]; then
@@ -533,14 +550,16 @@ EOF
 #
 function get_source_cmds() {
     #echo "get_source_cmds Args: $@" >/dev/stderr
-    local destHost=$1
-    local srcFile=$2
-    local totalBytes=$3
-    local queueDepth=$4
-    local e2ePort=$5
-    local srcDIOFlag=$6
-    local resumeFlag=$7
-    local resumeOffset=$8
+    local destHost=${1}
+    local srcFile=${2}
+    local totalBytes=${3}
+    local queueDepth=${4}
+    local e2ePort=${5}
+    local srcDIOFlag=${6}
+    local orderedFlag=${7}
+    local resumeFlag=${8}
+    local verboseFlag=${9}
+    local resumeOffset=${10}
 
     # Construct XDD transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
@@ -565,10 +584,22 @@ function get_source_cmds() {
     local srcBase=$(basename ${srcFile})
     local srcQD="-queuedepth ${queueDepth}"
     local srcLog="xdd.$(hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+
+    # Direct I/O option
     if [ 1 -eq $srcDIOFlag ]; then
         local srcDIO="-dio"
     fi
 
+    # Strict ordering option
+    if [ 1 -eq $orderedFlag ]; then
+        local orderedOpt=""
+    fi
+
+    # Verbose option
+    if [ 1 -eq $verboseFlag ]; then
+        local verboseOpt="-ts detailed -ts output e2e"
+    fi
+    
     # Determine if output can be sent to log file
     local srcOutput="-output ${srcLog}"
     if [ ! -w "./" ]; then
@@ -599,27 +630,32 @@ if [ ! -r "${srcFile}" ]; then
 fi
 
 # Construct local transport endpoint
-xdd.Linux -targets 1  ${srcFile} -op read -minall -bytes ${totalBytes} -reqsize ${reqSize} ${srcQD} -e2e issource -e2e dest ${destHost} -e2e port ${e2ePort} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct
+xdd.Linux -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} ${srcQD} -e2e issource -e2e dest ${destHost} -e2e port ${e2ePort} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct
 EOF
 }
 
 function start_destination_xdd() {
     #echo "start_destination_xdd Args: $@" >/dev/stderr
-    local srcPath=$1
-    local destPath=$2
-    local totalBytes=$3
-    local queueDepth=$4
-    local e2ePort=$5
-    local dioFlag=$6
-    local resumeFlag=$7
-    local remoteFlag=$8
-    local destHost=$9
-    local destUser=${10}
+    local srcPath=${1}
+    local destPath=${2}
+    local totalBytes=${3}
+    local queueDepth=${4}
+    local e2ePort=${5}
+    local dioFlag=${6}
+    local forceFlag=${7}
+    local orderedFlag=${8}
+    local recursionFlag=${9}
+    local resumeFlag=${10}
+    local verboseFlag=${11}
+    local remoteFlag=${12}
+    local destHost=${13}
+    local destUser=${14}
 
     # Get source commands and execute
     destResult=""
     destCmds=$(get_destination_cmds $destHost $srcPath $destPath \
-        $totalBytes $queueDepth $e2ePort $dioFlag $resumeFlag)
+        $totalBytes $queueDepth $e2ePort $dioFlag $forceFlag $orderedFlag \
+        $recursionFlag $resumeFlag $verboseFlag)
     if [ 1 -eq ${remoteFlag} ]; then
         destResult=$(remote_exec "${destCmds}" "${destHost}" "${destUser}")
     else
@@ -644,16 +680,18 @@ function start_source_xdd() {
     local queueDepth=${3}
     local e2ePort=${4}
     local dioFlag=${5}
-    local resumeFlag=${6}
-    local resumeOffset=${7}
-    local destHost=${8}
-    local remoteFlag=${9}
-    local srcHost=${10}
-    local srcUser=${11}
+    local orderedFlag=${6}
+    local resumeFlag=${7}
+    local verboseFlag=${8}
+    local resumeOffset=${9}
+    local destHost=${10}
+    local remoteFlag=${11}
+    local srcHost=${12}
+    local srcUser=${13}
 
     # Get source commands and execute
     srcCmds=$(get_source_cmds $destHost $path $totalBytes $queueDepth \
-        $e2ePort $dioFlag $resumeFlag $resumeOffset)
+        $e2ePort $dioFlag $orderedFlag $resumeFlag $verboseFlag $resumeOffset)
     if [ 1 -eq ${remoteFlag} ]; then
         remote_exec "${srcCmds}" "${srcHost}" "${srcUser}"
     else
@@ -686,16 +724,19 @@ function xddcp_main() {
     fi
 
     # Parse options
-    forceFlag=0
-    resumeFlag=0
     destDIOFlag=0
-    fileListFlag=0
-    srcDIOFlag=0
     e2ePort=$XDDCP_DEFAULT_E2E_PORT
+    fileListFlag=0
+    forceFlag=0
+    orderedFlag=0
     queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
+    recursiveFlag=0
+    resumeFlag=0
+    srcDIOFlag=0
     sshOption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
+    verboseFlag=0
 
-    while getopts ":FYadfhp:st:" option; do
+    while getopts ":FYadfhp:orst:v" option; do
         case $option in
             F) 
                 fileListFlag=1
@@ -716,14 +757,25 @@ function xddcp_main() {
                 print_usage 
                 return 0
                 ;;
+            o) 
+                orderedFlag=1
+                ;;
             p) 
                 e2ePort=$OPTARG
+                ;;
+	    r) 
+                recursiveFlag=1
+                echo "INFO: Unsupported option: -$OPTARG" >/dev/stderr 
+                error_exit $XDDCP_ERR_CODE_INVALID_ARGS
                 ;;
 	    s) 
                 srcDIOFlag=1
                 ;;
 	    t) 
                 queueDepth=$OPTARG
+                ;;
+	    v) 
+                verboseFlag=1
                 ;;
             \?)
                 echo "INFO: Unsupported option: -$OPTARG" >/dev/stderr 
@@ -782,17 +834,20 @@ function xddcp_main() {
         fi
 
         # Start destination-side XDD (also sets resume offset if needed)
-        start_destination_xdd ${srcPath} ${destPath} ${totalBytes} \
-            ${queueDepth} ${e2ePort} ${destDIOFlag} ${resumeFlag} \
-            ${destRemoteFlag} ${destHost} ${destUser}
+        start_destination_xdd "${srcPath}" "${destPath}" "${totalBytes}" \
+            "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
+            "${orderedFlag}" "${recursiveFlag}" "${resumeFlag}" "${verboseFlag}" \
+            "${destRemoteFlag}" "${destHost}" "${destUser}"
 
         # Wait to ensure the destination side has setup network and accepting
         sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
 
         # Start source-side XDD
-        start_source_xdd "${srcPath}" "${totalBytes}" "${queueDepth}" \
-            "${e2ePort}" "${srcDIOFlag}" "${resumeFlag}" "${g_xddcpResumeOffset}" \
-            "${destHost}" "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
+        start_source_xdd "${srcPath}" "${totalBytes}" \
+            "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
+            "${orderedFlag" "${resumeFlag}" "${verboseFlag}" \
+            "${g_xddcpResumeOffset}" "${destHost}" \
+            "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
 
         echo ""
         echo "Transfer complete.  Verify results with md5sum."
