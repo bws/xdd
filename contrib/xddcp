@@ -51,7 +51,7 @@ XDDCP_DEFAULT_QUEUE_DEPTH=4
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
 XDDCP_DEFAULT_TIMESTAMP="$(date -u +'%Y-%m-%d-%H%M%S')-GMT"
-XDDCP_DEFAULT_NETWORK_SLEEP_SECS=10
+XDDCP_DEFAULT_NETWORK_SLEEP_SECS=1
 XDDCP_DEFAULT_XDD="xdd.$(uname)"
 
 # XDDCP Error Codes
@@ -130,7 +130,7 @@ function error_print() {
             echo "ERROR: Invalid source/destination format" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_XDD_NOT_FOUND) 
-            echo "ERROR: xdd.Linux executable not found" >/dev/stderr
+            echo "ERROR: ${XDDCP_DEFAULT_XDD} executable not found" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_QIP_NOT_FOUND) 
             echo "ERROR: qipcrm executable not found" >/dev/stderr
@@ -157,13 +157,14 @@ function error_print() {
             echo "ERROR: Requested transfer size is larger than file size" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_VERSION_MATCH) 
-            echo "ERROR: xdd.Linux versions differ on source and destination" >/dev/stderr
+            echo "ERROR: ${XDDCP_DEFAULT_XDD} versions differ on source and destination" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_NO_REMOTE) 
             echo "ERROR: Local file transfers are not permitted" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_XFER_FAIL) 
-            echo "ERROR: File transfer failed" >/dev/stderr
+            echo "ERROR: File transfer failed." >/dev/stderr
+            echo "  If the reason is \"Connection refused\", check the destination logfile." >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_DEST_PORT) 
             echo "ERROR: Destination port is in use" >/dev/stderr
@@ -251,11 +252,11 @@ function check_host_preconditions() {
     local resumeFlag=$4
 
     # Check for xdd.Linux binary
-    hash xdd.Linux &>/dev/null
+    hash ${XDDCP_DEFAULT_XDD} &>/dev/null
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
     else
-        g_xddcpXddVersion=$(xdd.Linux -version)
+        g_xddcpXddVersion=$(${XDDCP_DEFAULT_XDD} -version)
     fi
 
     # Ensure flag combinations are valid
@@ -279,7 +280,9 @@ function check_host_preconditions() {
 #
 function local_exec() {
     local cmds="$1"
-    eval "$cmds"
+    bash <<EOF
+$cmds
+EOF
     
     # If the transfer failed, trigger appropriate error
     local rc=$?
@@ -293,7 +296,7 @@ function local_exec() {
 #
 function remote_exec() {
     #echo "remote_exec Args: $@" >/dev/stderr
-    local cmd="$1"
+    local cmds="$1"
     local remoteHost="$2"
     local remoteUser="$3"
 
@@ -305,7 +308,7 @@ function remote_exec() {
     # Local decl must be on seperate line so $? is correct
     local remoteOutput=""
     remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash  <<EOF
-$cmd
+$cmds
 EOF
         )
     local destRC=$?
@@ -419,17 +422,17 @@ function get_destination_cmds() {
     
     cat <<EOF
 # Ensure xdd is in the remote path
-\$(hash xdd.Linux) >/dev/null
+\$(hash ${XDDCP_DEFAULT_XDD}) >/dev/null
 if [ 0 -ne \$? ]; then
-    echo "xdd.Linux is not in destination host PATH"
-    exit -1
+    echo "xdd.Linux is not in destination host PATH" >/dev/stderr
+    exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
 # Check that the correct version of XDD is available
-dest_version=\$(xdd.Linux -version)
+dest_version=\$(${XDDCP_DEFAULT_XDD} -version)
 if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
-    echo "XDD source and destionation version mismatch."
-    exit -1
+    echo "XDD source and destionation version mismatch." >/dev/stderr
+    exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
 # Check that ports are available for binding
@@ -446,7 +449,7 @@ done
 if [ 1 -eq \$port_conflict ]; then
     # Attempt to kill any running XDDs and re-check
     if [ 1 -eq $forceFlag ]; then
-        xddpid=\$(ps -u \${USER} |grep xdd.Linux |grep -v grep |cut -c-5)
+        xddpid=\$(ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
         if [ ! -z \"\$xddpid\" ]; then
             kill \$xddpid 2>/dev/null
             sleep 1
@@ -454,14 +457,14 @@ if [ 1 -eq \$port_conflict ]; then
             sleep 1
         fi
     else
-        echo "Requested port \$p is in use"
-        exit -1
+        echo "Requested port \$p is in use" >/dev/stderr
+        exit ${XDDCP_ERR_CODE_DEST_PORT}
     fi
     used_ports=\$(netstat -nat |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
     for p in \$used_ports; do
         if [ $e2eLB -le \$p -a $e2eUB -gt \$p ]; then
-            echo "Requested port \$p is in use"
-            exit -1
+            echo "Requested port \$p is in use" >/dev/stderr
+            exit ${XDDCP_ERR_CODE_DEST_PORT}
         fi
     done
 fi
@@ -481,22 +484,22 @@ fi
 
 # Ensure destination is writable
 if [ ! -d \$destination_dir ]; then
-    echo "Destination directory does not exist: \$destination_dir"
-    exit -1
+    echo "Destination directory does not exist: \$destination_dir" >/dev/stderr
+    exit ${XDDCP_ERR_CODE_DEST_XST}
 elif [ -d \$destination_dir -a ! -e \$destination_file -a ! -w \$destination_dir ]; then
-    echo "Destination directory is not writable: \$destination_dir"
-    exit -1
+    echo "Destination directory is not writable: \$destination_dir" >/dev/stderr
+    exit ${XDDCP_ERR_CODE_DEST_XST}
 elif [ -e \$destination_file -a ! -w \$destination_file ]; then
-    echo "Destination target exists but is not writable: \$destination_file"
-    exit -1
+    echo "Destination target exists but is not writable: \$destination_file" >/dev/stderr
+    exit ${XDDCP_ERR_CODE_DEST_XST}
 fi
 
 # Perform restart if necessary
 if [ 1 == $resumeFlag ]; then
     # Ensure sufficient permissions exist to create restart cookie
     if [ ! -w \$destination_dir ]; then
-        echo "Restart option requires write access to: \$destination_dir"
-        exit -1
+        echo "Restart option requires write access to: \$destination_dir" >/dev/stderr
+        exit ${XDDCP_ERR_CODE_DEST_XST}
     fi
 
     # Create the name for a new restart cookie
@@ -514,15 +517,15 @@ fi
 
 # If insufficient permissions for the log exist, direct to HOME
 if [ ! -w \$destination_dir -a -e \$destination_log -a ! -w \$destination_log ]; then
-    echo "Logfile already exists and is not writable: \$destination_log"
-    exit -1
+    echo "Logfile already exists and is not writable: \$destination_log" >/dev/stderr
+    exit ${XDDCP_ERR_CODE_DEST_XST}
 elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
     home_dir_log="./${destination_log}"
     if [ ! -w "./" ]; then
-        echo "Could not create log file as \$destination_log or as \$home_dir_log"
-        exit -1
+        echo "Could not create log file as \$destination_log or as \$home_dir_log" >/dev/stderr
+        exit ${XDDCP_ERR_CODE_DEST_XST}
     fi
-    echo "Warning: Writing log to: \$home_dir_log"
+    echo "Warning: Writing log to: \$home_dir_log" >/dev/stderr
     destination_log=\$home_dir_log
 fi
 
@@ -534,7 +537,7 @@ if [ -e \$destination_file ]; then
     fi
 fi
 
-xdd.Linux -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize ${destQD} -e2e isdestination -e2e dest ${destHost} -e2e port ${e2ePort} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log} 2>&1 &
+${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize ${destQD} -e2e isdestination -e2e dest ${destHost} -e2e port ${e2ePort} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log} 2>&1 &
 
 # Send the restart offset back to the source side via an exit code
 if [ 1 -eq $resumeFlag ]; then
@@ -610,27 +613,32 @@ function get_source_cmds() {
     # Build the command string
     cat <<EOF
 # Ensure xdd is in the path
-\$(hash xdd.Linux) >/dev/null
+\$(hash ${XDDCP_DEFAULT_XDD}) >/dev/null
 if [ 0 -ne \$? ]; then
     echo "xdd.Linux is not in the source host PATH"
-    exit -1
+    exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
 # Check that the correct version of XDD is available
-source_version=\$(xdd.Linux -version)
+source_version=\$(${XDDCP_DEFAULT_XDD} -version)
 if [ "\$source_version" != "$g_xddcpXddVersion" ]; then
     echo "XDD source and destionation version mismatch."
-    exit -1
+    exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
 # Ensure source side file exists
 if [ ! -r "${srcFile}" ]; then
     echo "ERROR: Cannot read source file: ${srcFile}"
-    exit 20
+    exit ${XDDCP_ERR_CODE_SRC_XST}
 fi
 
 # Construct local transport endpoint
-xdd.Linux -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} ${srcQD} -e2e issource -e2e dest ${destHost} -e2e port ${e2ePort} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct
+${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} ${srcQD} -e2e issource -e2e dest ${destHost} -e2e port ${e2ePort} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct
+
+src_xdd_rc=\$?
+if [ \${src_xdd_rc} -ne 0 ]; then
+    exit ${XDDCP_ERR_CODE_XFER_FAIL}
+fi
 EOF
 }
 
@@ -703,6 +711,7 @@ function start_source_xdd() {
 # XDDCP Main
 #
 function xddcp_main() {
+    #echo "main Args: $@"
     #
     # Install necessary signal handlers
     #
@@ -786,7 +795,7 @@ function xddcp_main() {
     shift $((OPTIND-1))
 
     # Handle a set of input files
-    srcFileSpecList="$1"
+    srcFileSpecList="${1}"
 
     # Parse the destination endpoint spec
     destRemoteFlag=0
@@ -795,9 +804,9 @@ function xddcp_main() {
     # Get the specified size if it is defined
     fileSizeFlag=0
     totalBytes=0
-    if [ ! -z "$3" ]; then
+    if [ ! -z "${3}" ]; then
         fileSizeFlag=1
-        totalBytes=$3
+        totalBytes=${3}
     fi
 
     # Ensure local option preconditions are met
@@ -836,8 +845,8 @@ function xddcp_main() {
         # Start destination-side XDD (also sets resume offset if needed)
         start_destination_xdd "${srcPath}" "${destPath}" "${totalBytes}" \
             "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
-            "${orderedFlag}" "${recursiveFlag}" "${resumeFlag}" "${verboseFlag}" \
-            "${destRemoteFlag}" "${destHost}" "${destUser}"
+            "${orderedFlag}" "${recursiveFlag}" "${resumeFlag}" \
+            "${verboseFlag}" "${destRemoteFlag}" "${destHost}" "${destUser}"
 
         # Wait to ensure the destination side has setup network and accepting
         sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
@@ -845,7 +854,7 @@ function xddcp_main() {
         # Start source-side XDD
         start_source_xdd "${srcPath}" "${totalBytes}" \
             "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
-            "${orderedFlag" "${resumeFlag}" "${verboseFlag}" \
+            "${orderedFlag}" "${resumeFlag}" "${verboseFlag}" \
             "${g_xddcpResumeOffset}" "${destHost}" \
             "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
 
