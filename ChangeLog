@@ -10,6 +10,10 @@ xdd-7.0.0 RC15
 * XDDCP: More robust error messages
 * XDDCP: Truncates file to correct length
 * XDDCP: Various types of 3rd party and local transfers now work
+* XDDCP: Strict ordering option supported
+* XDDCP: Force mode that kills competing XDDs on destination if the required
+         ports are not available
+* XDDCP: Verbose option that logs detailed performance information
 
 xdd-7.0.0 RC14
 ==============

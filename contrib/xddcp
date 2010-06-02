@@ -409,7 +409,7 @@ function get_destination_cmds() {
 
     # Strict ordering option
     if [ 1 -eq $orderedFlag ]; then
-        local orderedOpt=""
+        local orderedOpt="-strictordering"
     fi
 
     # Verbose option
@@ -592,7 +592,7 @@ function get_source_cmds() {
 
     # Strict ordering option
     if [ 1 -eq $orderedFlag ]; then
-        local orderedOpt=""
+        local orderedOpt="-strictordering"
     fi
 
     # Verbose option
