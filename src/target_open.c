@@ -50,6 +50,9 @@ xdd_target_open(ptds_t *p) {
 	int32_t		status;		// Status of the open call
 
 
+	// If this is a NULL target then don't bother openning it
+	if (p->target_options & TO_NULL_TARGET)
+		return(0);
 
 	/* create the fully qualified target name */
 	xdd_target_name(p);

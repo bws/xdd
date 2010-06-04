@@ -161,6 +161,10 @@ xdd_target_preallocate(ptds_t *p){
 	int32_t		status;		// Status of the preallocate call
 
 
+	// If this is a NULL target then don't bother with preallocation
+	if (p->target_options & TO_NULL_TARGET)
+		return(0);
+
 	// Check to see if a preallocation amount was specified - if not, just return
 	if (p->preallocate <= 0) 
 		return(0);

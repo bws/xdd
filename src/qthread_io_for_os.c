@@ -46,7 +46,7 @@ xdd_io_for_os(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	/* In Linux the -D_FILE_OFFSET_BITS=64 makes the off_t type be a 64-bit integer */
-	if (!(qp->target_options & TO_SGIO))  // If this is NOT and SGIO operation... SGIO will do its own seek
+	if (!(qp->target_options & TO_SGIO) && (qp->target_options & TO_NULL_TARGET))  // If this is NOT and SGIO operation... SGIO will do its own seek
 		lseek(qp->fd, (off_t)qp->my_current_byte_location, SEEK_SET);
 	/* Do the deed .... */
 	qp->my_current_op_end_time = 0;
@@ -57,50 +57,52 @@ xdd_io_for_os(ptds_t *qp) {
 
 		// Record the starting time for this write op
 		pclk_now(&qp->my_current_op_start_time);
+		// Time stamp if requested
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+			p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
 
-		// Issue the actual operation
-		if ((qp->target_options & TO_SGIO)) 
-			 qp->my_current_io_status = xdd_sg_io(qp,'w'); // Issue the SGIO operation 
-		else qp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->my_current_io_size);// Issue a normal write operation
+		if (qp->target_options & TO_NULL_TARGET) { // If this is a NULL target then we fake the I/O
+			qp->my_current_io_status = qp->my_current_io_size;
+		} else { // Issue the actual operation
+			if ((qp->target_options & TO_SGIO)) 
+			 	qp->my_current_io_status = xdd_sg_io(qp,'w'); // Issue the SGIO operation 
+			else qp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->my_current_io_size);// Issue a normal write operation
+		}
 
-		// Record the ending time for this write op and update counters
-       	pclk_now(&qp->my_current_op_end_time);
 	} else if (qp->my_current_op_type == OP_TYPE_READ) {  // READ Operation
 		qp->my_current_op_str = "READ";
 		// Record the starting time for this read op
 		pclk_now(&qp->my_current_op_start_time);
+		// Time stamp if requested
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+			p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
 
-		// Issue the actual operation
-		if ((qp->target_options & TO_SGIO)) 
-			 qp->my_current_io_status = xdd_sg_io(qp,'r'); // Issue the SGIO operation 
-		else qp->my_current_io_status = read(qp->fd, qp->rwbuf, qp->my_current_io_size);// Issue a normal read() operation
-	
-		// Record the ending time for this read operation and update counters
-		pclk_now(&qp->my_current_op_end_time);
+		if (qp->target_options & TO_NULL_TARGET) { // If this is a NULL target then we fake the I/O
+			qp->my_current_io_status = qp->my_current_io_size;
+		} else { // Issue the actual operation
+			if ((qp->target_options & TO_SGIO)) 
+			 	qp->my_current_io_status = xdd_sg_io(qp,'r'); // Issue the SGIO operation 
+			else qp->my_current_io_status = read(qp->fd, qp->rwbuf, qp->my_current_io_size);// Issue a normal read() operation
+		}
 	} else {  // Must be a NOOP
 		// The NOOP is used to test the overhead usage of XDD when no actual I/O is done
 		qp->my_current_op_str = "NOOP";
 		// Record the starting time for this no op
 		pclk_now(&qp->my_current_op_start_time);
+		// Time stamp if requested
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+			p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
 
 		// Make it look like a successful I/O
 		qp->my_current_io_status = qp->my_current_io_size;
 		errno = 0;
-
-		// Record the ending time for this read operation and update counters
-		pclk_now(&qp->my_current_op_end_time);
-
 	} // End of NOOP operation
 		
+	// Record the ending time for this op 
+	pclk_now(&qp->my_current_op_end_time);
 	// Time stamp if requested
-	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
-		p->ttp->tte[qp->ts_current_entry].op_type = qp->my_current_op_type;
-		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
-		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
-		p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
+	if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
 		p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
-	}
 
 } // End of xdd_io_for_linux()
 #endif 
@@ -124,29 +126,41 @@ xdd_io_for_os(ptds_t *qp) {
 		xdd_datapattern_fill(p);
 		// Record the starting time for this write op
 		pclk_now(&p->my_current_op_start_time);
+		// Time stamp if requested
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+			p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
 
 		// Issue the actual operation
 		p->my_io_status = write(p->fd, p->rwbuf, p->my_current_io_size);// Issue a normal write operation
 
-		// Record the ending time for this write op and update counters
-		pclk_now(&p->my_current_op_end_time);
 	} else if (qp->my_current_op_type == OP_TYPE_READ) {  // READ Operation
 		// Record the starting time for this read op
 		pclk_now(&p->my_current_op_start_time);
+		// Time stamp if requested
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+			p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
 
 		// Issue the actual operation
 		p->my_io_status = read(p->fd, p->rwbuf, p->my_current_io_size);// Issue a normal read() operation
-		// Record the ending time for this read operation and update counters
-		pclk_now(&p->my_current_op_end_time);
 	} else {  // Must be a NOOP
 		// The NOOP is used to test the overhead usage of XDD when no actual I/O is done
 		qp->my_current_op_str = "NOOP";
 		// Record the starting time for this no op
 		pclk_now(&qp->my_current_op_start_time);
+		// Time stamp if requested
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+			p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
 
-		// Record the ending time for this read operation and update counters
-		pclk_now(&qp->my_current_op_end_time);
-	} // end of WRITE/READ operation
+		// Make it look like a successful I/O
+		qp->my_current_io_status = qp->my_current_io_size;
+		errno = 0;
+	} // end of WRITE/READ/NOOP operation
+
+	// Record the ending time for this operation 
+	pclk_now(&qp->my_current_op_end_time);
+	// Time stamp if requested
+	if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+		p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
 
 } // End of xdd_io_for_os()
 #endif

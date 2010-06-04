@@ -308,7 +308,14 @@ xdd_target_pass_task_setup(ptds_t *qp) {
 		} else if (p->ts_options & TS_WRAP) {
 			p->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
+		p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
+		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
+		p->ttp->tte[qp->ts_current_entry].op_type = qp->my_current_op_type;
+		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
+		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
 	}
+	}
+
 	// Set up the correct QThread to wait for if Strict or Loose ordering is in effect
 	if ((p->target_options & TO_STRICT_ORDERING) || 
 		(p->target_options & TO_LOOSE_ORDERING)) { 

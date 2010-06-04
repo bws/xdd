@@ -3450,6 +3450,8 @@ xddfunc_targets(int32_t argc, char *argv[], uint32_t flags)
 				if (p == NULL) return(-1);
 				
 				p->target_basename = argv[2];
+				if (strcmp(p->target_basename,"null") == 0) 
+					p->target_options |= TO_NULL_TARGET;
 			} // end of FOR loop that places a single target name on each of the associated PTDSs
 		} else { // Set all target names to the appropriate name
 			i = 2; // start with the third argument  
@@ -3459,6 +3461,8 @@ xddfunc_targets(int32_t argc, char *argv[], uint32_t flags)
 				p = xdd_get_ptdsp(j, argv[0]);
 				if (p == NULL) return(-1);
 				p->target_basename = argv[i];
+				if (strcmp(p->target_basename,"null") == 0) 
+					p->target_options |= TO_NULL_TARGET;
 				i++;
 			}
 		}

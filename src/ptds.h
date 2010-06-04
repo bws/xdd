@@ -85,6 +85,7 @@
 #define TO_RESTART_ENABLE      0x0000010000000000ULL  // Restart option enabled 
 #define TO_STRICT_ORDERING     0x0000020000000000ULL  // Use Strict Ordering on QThreads
 #define TO_LOOSE_ORDERING      0x0000040000000000ULL  // Use Loose Ordering on QThreads
+#define TO_NULL_TARGET         0x0000080000000000ULL  // Indicates that the target is effectively /dev/null
 
 // Per Thread Data Structure - one for each thread 
 struct ptds {
