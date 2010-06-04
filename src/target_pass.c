@@ -314,7 +314,6 @@ xdd_target_pass_task_setup(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
 		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
 	}
-	}
 
 	// Set up the correct QThread to wait for if Strict or Loose ordering is in effect
 	if ((p->target_options & TO_STRICT_ORDERING) || 
