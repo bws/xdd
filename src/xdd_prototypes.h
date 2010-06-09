@@ -346,13 +346,13 @@ int 	xdd_random_int(void);
 double 	xdd_random_float(void);
 
 // verify.c
-int32_t	xdd_verify_checksum(ptds_t *p, int32_t current_op);
-int32_t	xdd_verify_hex(ptds_t *p, int32_t current_op);
-int32_t	xdd_verify_sequence(ptds_t *p, int32_t current_op);
-int32_t	xdd_verify_singlechar(ptds_t *p, int32_t current_op);
-int32_t	xdd_verify_contents(ptds_t *p, int32_t current_op);
-int32_t	xdd_verify_location(ptds_t *p, int32_t current_op);
-int32_t	xdd_verify(ptds_t *p, int32_t current_op);
+int32_t	xdd_verify_checksum(ptds_t *p, int64_t current_op);
+int32_t	xdd_verify_hex(ptds_t *p, int64_t current_op);
+int32_t	xdd_verify_sequence(ptds_t *p, int64_t current_op);
+int32_t	xdd_verify_singlechar(ptds_t *p, int64_t current_op);
+int32_t	xdd_verify_contents(ptds_t *p, int64_t current_op);
+int32_t	xdd_verify_location(ptds_t *p, int64_t current_op);
+int32_t	xdd_verify(ptds_t *p, int64_t current_op);
 
 // xdd.c
 int32_t	xdd_start_targets();

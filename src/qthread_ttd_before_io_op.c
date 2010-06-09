@@ -224,10 +224,12 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 	// Lets read all the data from the source 
 	// xdd_e2e_dest_recv() will block until there is data to read 
 	qp->my_current_state |= CURRENT_STATE_DEST_RECEIVE;
+
 	pclk_now(&beg_time_tmp);
 	status = xdd_e2e_dest_recv(qp);
 	pclk_now(&end_time_tmp);
 	qp->e2e_sr_time = (end_time_tmp - beg_time_tmp); // Time spent reading from the source machine
+
 	qp->my_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
 
 	// If status is "-1" then soemthing happened to the connection - time to leave

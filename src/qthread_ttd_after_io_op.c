@@ -159,12 +159,6 @@ xdd_e2e_after_io_op(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	if ( (qp->my_current_io_status > 0) && (qp->target_options & TO_ENDTOEND) ) {
-		// Update the "last_committed" variables in case we need the for restart
-		pthread_mutex_lock(&p->counter_mutex); // Acquire the PTDS counter lock
-		p->last_committed_op = qp->my_current_op_number;
-		p->last_committed_location = qp->my_current_byte_location;
-		p->last_committed_length = qp->my_current_io_size;
-		pthread_mutex_unlock(&p->counter_mutex); // Release the PTDS counter lock
 		if (qp->target_options & TO_E2E_SOURCE) {
 			// SOURCE - THINGS TO DO - 
 			qp->e2e_header.magic = PTDS_E2E_MAGIC;
@@ -176,10 +170,12 @@ xdd_e2e_after_io_op(ptds_t *qp) {
 				}
 			}
 			qp->my_current_state |= CURRENT_STATE_SRC_SEND;
+
 			pclk_now(&beg_time_tmp);
 			xdd_e2e_src_send(qp);
 			pclk_now(&end_time_tmp);
 			qp->e2e_sr_time = (end_time_tmp - beg_time_tmp); // Time spent sending to the destination machine
+
 			qp->my_current_state &= ~CURRENT_STATE_SRC_SEND;
 		} // End of me being the SOURCE in an End-to-End test 
 	} // End of processing a End-to-End

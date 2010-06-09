@@ -45,9 +45,14 @@ xdd_io_for_os(ptds_t *qp) {
 
 
 	p = qp->target_ptds;
-	/* In Linux the -D_FILE_OFFSET_BITS=64 makes the off_t type be a 64-bit integer */
-	if (!(qp->target_options & TO_SGIO) && (qp->target_options & TO_NULL_TARGET))  // If this is NOT and SGIO operation... SGIO will do its own seek
+	// In Linux the -D_FILE_OFFSET_BITS=64 makes the off_t type be a 64-bit integer 
+	// We only do the lseek 
+	//        - if this is NOT and SGIO operation... SGIO will do its own seek -AND-
+	//        - if this is a NOT a NULL target...  we cannot do a seek on a NULL target
+	// Either one of those conditions (SGIO or a NULL Target) means we do not have to do the lseek
+	if (!(qp->target_options & TO_SGIO) && !(qp->target_options & TO_NULL_TARGET))  { 
 		lseek(qp->fd, (off_t)qp->my_current_byte_location, SEEK_SET);
+	}
 	/* Do the deed .... */
 	qp->my_current_op_end_time = 0;
 	if (qp->my_current_op_type == OP_TYPE_WRITE) {  // Write Operation
@@ -68,7 +73,13 @@ xdd_io_for_os(ptds_t *qp) {
 			 	qp->my_current_io_status = xdd_sg_io(qp,'w'); // Issue the SGIO operation 
 			else qp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->my_current_io_size);// Issue a normal write operation
 		}
-
+		// Record the ending time for this op 
+		pclk_now(&qp->my_current_op_end_time);
+		// Time stamp if requested
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+			p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
+			p->ttp->tte[qp->ts_current_entry].bytes_xferred = qp->my_current_io_status;
+		}
 	} else if (qp->my_current_op_type == OP_TYPE_READ) {  // READ Operation
 		qp->my_current_op_str = "READ";
 		// Record the starting time for this read op
@@ -84,6 +95,18 @@ xdd_io_for_os(ptds_t *qp) {
 			 	qp->my_current_io_status = xdd_sg_io(qp,'r'); // Issue the SGIO operation 
 			else qp->my_current_io_status = read(qp->fd, qp->rwbuf, qp->my_current_io_size);// Issue a normal read() operation
 		}
+		// Record the ending time for this op 
+		pclk_now(&qp->my_current_op_end_time);
+		// Time stamp if requested
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+			p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
+			p->ttp->tte[qp->ts_current_entry].bytes_xferred = qp->my_current_io_status;
+		}
+	
+		if (p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
+			qp->compare_errors += xdd_verify(qp, qp->target_op_number);
+		}
+	
 	} else {  // Must be a NOOP
 		// The NOOP is used to test the overhead usage of XDD when no actual I/O is done
 		qp->my_current_op_str = "NOOP";
@@ -96,14 +119,15 @@ xdd_io_for_os(ptds_t *qp) {
 		// Make it look like a successful I/O
 		qp->my_current_io_status = qp->my_current_io_size;
 		errno = 0;
+		// Record the ending time for this op 
+		pclk_now(&qp->my_current_op_end_time);
+		// Time stamp if requested
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+			p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
+			p->ttp->tte[qp->ts_current_entry].bytes_xferred = qp->my_current_io_status;
+		}
 	} // End of NOOP operation
 		
-	// Record the ending time for this op 
-	pclk_now(&qp->my_current_op_end_time);
-	// Time stamp if requested
-	if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
-		p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
-
 } // End of xdd_io_for_linux()
 #endif 
 
@@ -117,7 +141,12 @@ void
 xdd_io_for_os(ptds_t *qp) {
 
 	/* Perform the seek */
-	lseek64(p->fd, (off_t)p->my_current_byte_location, SEEK_SET);
+	// We only do the lseek 
+	//        - if this is a NOT a NULL target...  we cannot do a seek on a NULL target
+	// The I/O to/from a NULL Target means we do not have to do the lseek
+	if (!(qp->target_options & TO_NULL_TARGET))  { 
+		lseek64(p->fd, (off_t)p->my_current_byte_location, SEEK_SET);
+	}
 
 	/* Do the deed .... */
 	if (qp->my_current_op_type == OP_TYPE_WRITE) {  // Write Operation
