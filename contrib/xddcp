@@ -144,10 +144,10 @@ function error_print() {
         $XDDCP_ERR_CODE_INV_RST) 
             echo "ERROR: Invalid restart offset location" >/dev/stderr
             ;;
-        $XDDCP_ERR_CODE_SSH_ERROR) 
+        $XDDCP_ERR_CODE_SSH_FAILURE) 
             echo "ERROR: Failure spawing process via SSH" >/dev/stderr
             ;;
-        $XDDCP_ERR_CODE_SSH_FAILURE) 
+        $XDDCP_ERR_CODE_SSH_ERROR) 
             echo "ERROR: Remote session failure" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_SMALL_FILE) 
@@ -318,6 +318,7 @@ EOF
         echo "INFO: Remote output - $remoteOutput" >/dev/stderr
         error_exit $XDDCP_ERR_CODE_SSH_FAILURE
     elif [ 0 -ne $destRC -a -z "$remoteOutput" ]; then
+        print_error $destRC
         error_exit $XDDCP_ERR_CODE_SSH_ERROR
     fi
     echo "$remoteOutput"
