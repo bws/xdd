@@ -80,25 +80,23 @@ xdd_qthread_io(ptds_t *qp) {
 
 	// Call the OS-appropriate IO routine to perform the I/O
 	qp->my_current_state |= CURRENT_STATE_IO;
+
 	xdd_io_for_os(qp);
+
 	qp->my_current_state &= ~CURRENT_STATE_IO;
+
+	// Update counters and status in this QThread's PTDS
+	xdd_qthread_update_local_counters(qp);
+
+	// Update the Target's PTDS counters and timers
+	xdd_qthread_update_target_counters(qp);
 
 	// Release the next QThread I/O at this point if Strict Ordering is in effect
 	if (qp->target_options & TO_STRICT_ORDERING) 
 		xdd_qthread_release_next_qthread(qp);
 
-	// Update counters and status in this QThread's PTDS
-	xdd_qthread_update_local_counters(qp);
-
-// FLUSHWRITE ??????????????????? TMR-TTD
-	// Check status of the last operation 
-	xdd_qthread_check_io_status(qp);
-
 	// Check I/O operation completion
 	xdd_qthread_ttd_after_io_op(qp);
-
-	// Update the Target's PTDS counters and timers
-	xdd_qthread_update_target_counters(qp);
 
 	qp->qthread_to_wait_for = NULL; // Clear this out
 
@@ -118,7 +116,9 @@ xdd_qthread_wait_for_previous_qthread(ptds_t *qp) {
 
 	// Wait for the QThread ahead of this one to complete (if necessary)
 	if (qp->qthread_to_wait_for) {
+		pthread_mutex_lock(&qp->my_current_state_mutex);
 		qp->my_current_state |= CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD;
+		pthread_mutex_unlock(&qp->my_current_state_mutex);
 		status = sem_wait(&qp->qthread_to_wait_for->qthread_ordering_sem);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_qthread_wait_for_previous_qthread: Target %d QThread %d: ERROR: Bad status from sem_wait: status=%d, errno=%d\n",
@@ -129,7 +129,9 @@ xdd_qthread_wait_for_previous_qthread(ptds_t *qp) {
 				errno);
 			return(-1);	
 		}
+		pthread_mutex_lock(&qp->my_current_state_mutex);
 		qp->my_current_state &= ~CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD;
+		pthread_mutex_unlock(&qp->my_current_state_mutex);
 	}
 	return(0);
 } // End of xdd_qthread_wait_for_previous_qthread()
@@ -171,6 +173,7 @@ xdd_qthread_update_local_counters(ptds_t *qp) {
 	qp->my_current_op_elapsed_time = (qp->my_current_op_end_time - qp->my_current_op_start_time);
 	qp->my_accumulated_op_time += qp->my_current_op_elapsed_time;
 	qp->my_current_io_errno = errno;
+	qp->my_current_error_count = 0;
 	if (qp->my_current_io_status == qp->my_current_io_size) {
 		qp->my_current_bytes_xfered_this_op = qp->my_current_io_size;
 		qp->my_current_bytes_xfered += qp->my_current_io_size;
@@ -193,7 +196,29 @@ xdd_qthread_update_local_counters(ptds_t *qp) {
 				qp->my_current_noop_op_count++;
 				break;
 		} // End of SWITCH
-	}
+	} else {// ((qp->my_current_io_status < 0) || (qp->my_current_io_status != qp->my_current_io_size)) 
+		fprintf(xgp->errout, "%s: I/O ERROR on Target %d QThread %d: ERROR: Status %d, I/O Transfer Size %d, %s Operation Number %lld\n",
+			xgp->progname,
+			qp->my_target_number,
+			qp->my_qthread_number,
+			qp->my_current_io_status,
+			qp->my_current_io_size,
+			qp->my_current_op_str,
+			(long long)qp->target_op_number);
+		if (!(qp->target_options & TO_SGIO)) {
+			if ((qp->my_current_io_status == 0) && (errno == 0)) { // Indicate this is an end-of-file condition
+				fprintf(xgp->errout, "%s: Target %d QThread %d: WARNING: END-OF-FILE Reached during %s Operation Number %lld\n",
+					xgp->progname,
+					qp->my_target_number,
+					qp->my_qthread_number,
+					qp->my_current_op_str,
+					(long long)qp->target_op_number);
+			} else {
+				perror("reason"); // Only print the reason (aka errno text) if this is not an SGIO request
+			}
+		}
+		qp->my_current_error_count = 1;
+	} // Done checking status
 } // End of xdd_qthread_update_local_counters()
 
 /*----------------------------------------------------------------------------*/
@@ -214,7 +239,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	// in order to update the various counters and timers.
 	// It will also check to see if this was the last I/O operation for this
 	// Target in which case it will set the "pass_complete" flag in the local 
-	// QThread PTDS and the Target PTDS.
+	// QThread PTDS 
 	// LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK
 	pthread_mutex_lock(&p->counter_mutex);
 	// Update counters and status in the QThread PTDS
@@ -225,6 +250,14 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 		p->my_current_bytes_xfered += qp->my_current_bytes_xfered_this_op;
 		p->my_current_op_count++;
 		p->e2e_sr_time += qp->e2e_sr_time; // E2E Send/Receive Time
+		if ( (qp->target_options & TO_ENDTOEND) && (qp->target_options & TO_E2E_DESTINATION)) {
+			// Update the "last_committed" variables in case we need the for restart
+			if (qp->target_op_number > p->last_committed_op) {
+				p->last_committed_op = qp->target_op_number;
+				p->last_committed_location = qp->my_current_byte_location;
+				p->last_committed_length = qp->my_current_io_size;
+			}
+		}
 		// Operation-specific counters
 		switch (qp->my_current_op_type) { 
 			case OP_TYPE_READ: 
@@ -248,7 +281,6 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	}
 	p->my_current_error_count += qp->my_current_error_count;
 	if (p->bytes_completed >= p->target_bytes_to_xfer_per_pass) {  // This means that this was the last I/O operation and we are DONE
-		p->pass_complete = 1;
 		qp->pass_complete = 1;
 	}
 	pthread_mutex_unlock(&p->counter_mutex);
@@ -256,38 +288,6 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 
 } // End of xdd_qthread_update_target_counters()
 
-/*----------------------------------------------------------------------------*/
-/* xdd_qthread_check_io_status() - This subroutine will check the status of 
- * the most recent I/O operation for the given QThread PTDS 
- */
-void
-xdd_qthread_check_io_status(ptds_t *qp) {
-
-	qp->my_current_error_count = 0;
-	if ((qp->my_current_io_status < 0) || (qp->my_current_io_status != qp->my_current_io_size)) {
-		fprintf(xgp->errout, "%s: I/O ERROR on Target %d QThread %d: ERROR: Status %d, I/O Transfer Size %d, %s Operation Number %lld\n",
-			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number,
-			qp->my_current_io_status,
-			qp->my_current_io_size,
-			qp->my_current_op_str,
-			(long long)qp->target_op_number);
-		if (!(qp->target_options & TO_SGIO)) {
-			if ((qp->my_current_io_status == 0) && (errno == 0)) { // Indicate this is an end-of-file condition
-				fprintf(xgp->errout, "%s: Target %d QThread %d: WARNING: END-OF-FILE Reached during %s Operation Number %lld\n",
-					xgp->progname,
-					qp->my_target_number,
-					qp->my_qthread_number,
-					qp->my_current_op_str,
-					(long long)qp->target_op_number);
-			} else {
-				perror("reason"); // Only print the reason (aka errno text) if this is not an SGIO request
-			}
-		}
-		qp->my_current_error_count = 1;
-	} // Done checking status
-} // End of xdd_qthread_check_io_status()
 /*
  * Local variables:
  *  indent-tabs-mode: t

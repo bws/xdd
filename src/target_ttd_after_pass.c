@@ -45,6 +45,10 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 	ptds_t	*qp;
 
 
+	// Issue an fdatasync() to flush all the write buffers to disk for this file if the -syncwrite option was specified
+	if (p->target_options & TO_SYNCWRITE)
+		status = fdatasync(p->fd);
+
 	/* Get the ending time stamp */
 	pclk_now(&p->my_pass_end_time);
 	p->my_elapsed_pass_time = p->my_pass_end_time - p->my_pass_start_time;

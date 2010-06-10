@@ -45,7 +45,7 @@ ptds_t *
 xdd_get_next_available_qthread(ptds_t *p) {
 	ptds_t		*qp;			// Pointer to a QThread PTDS
 	int			status;			// Status of the sem_wait system calls
-	int			sem_val;
+	int			false_scans;	// Number of times we looked at the QP Chain expecting to find an available QThread but did not
 
 	if ((p->target_options & TO_STRICT_ORDERING) || 
 		(p->target_options & TO_LOOSE_ORDERING)) { // Strict or Loose Ordering requires us to wait for a "specific" QThread to become available
@@ -64,52 +64,54 @@ xdd_get_next_available_qthread(ptds_t *p) {
 				errno);
 		}
 		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+
 	} else { // No Strict Ordering - just wait for any QThread to become available
-		p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-		status = sem_wait(&p->any_qthread_available);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
-				xgp->progname,
-				p->my_target_number,
-				status,
-				errno);
-		}
-		p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-		qp = p->next_qp;
-		while (qp) {
-			if (qp->my_current_state & CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE)  {
-				// The following "sem_wait" is used to decrement the semaphore to zero
-				sem_val = 0;
-				sem_getvalue(&qp->this_qthread_available, &sem_val);
-				if (sem_val == 1) {
-					p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-					status = sem_wait(&qp->this_qthread_available);
-					if (status) {
-						fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_wait on this_qthread_available semaphore: status=%d, errno=%d\n",
-						xgp->progname,
-						p->my_target_number,
-						status,
-						errno);
-					}
-					p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-				} else { 
-					fprintf(stderr,"xdd_get_next_available_qthread: Target %d: QThread %d: WARNING: sem_val for this_qthread_available semaphore is %d when it should be 1\n",qp->my_target_number, qp->my_qthread_number, sem_val);
+		false_scans = 0;
+		qp = 0;
+		while (qp == 0) {
+			qp = p->next_qp;
+			p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+			status = sem_wait(&p->any_qthread_available);
+			if (status) {
+				fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
+					xgp->progname,
+					p->my_target_number,
+					status,
+					errno);
+			}
+			p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+			qp = p->next_qp;
+			// The following WHILE loop looks for a QThread that is available since there has to be at least one that is available
+			while (qp) {
+				pthread_mutex_lock(&qp->this_qthread_is_available_mutex);
+				if (qp->this_qthread_is_available)  { // Looks like this one is available so take it
+					// Mark this QThread Unavailable
+					qp->this_qthread_is_available = 0;
+					// Release the "this_qthread_is_available" lock 
+					pthread_mutex_unlock(&qp->this_qthread_is_available_mutex);
+					break; // qp now points to the QThread to use
 				}
-				break;
+				// Release the "this_qthread_is_available" lock 
+				pthread_mutex_unlock(&qp->this_qthread_is_available_mutex);
+	
+				// Get the next QThread Pointer 
+				qp = qp->next_qp;
+			} // End of WHILE (qp) that scans the QThread Chain looking for the next available QThread
+
+			if (qp == 0) {
+				// Hmmm.... something strange here...
+				false_scans++;
+				fprintf(stderr,"get_next_available_qthread: Target %d: INTERAL ERROR: Looking for 'any qthread available' but did not find one after %d scans\n",p->my_target_number, false_scans);
 			}
-			qp = qp->next_qp;
-			if (qp == NULL) {
-				fprintf(stderr, "xdd_get_next_available_qthread: Target %d: no available QThreads found but there should be one here... waiting on any_qthread_available semaphore\n",p->my_target_number);
-				p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-				status = sem_wait(&p->any_qthread_available);
-				p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-				qp = p->next_qp;
-			}
-		}
+		} // END of WHILE (qp == 0)
 	} // End of QThread locator 
 
-	// Mark this QThread NOT Available
-	qp->my_current_state &= ~CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE; 
+	// At this point:
+	//    The variable "qp" points to a valid QThread  
+	//    That QThread is not doing anything 
+	//    The "this_qthread_is_available_mutex" is unlocked
+	//    The "this_qthread_is_available" variable is 0 for the QThread being returned
+
 
 	return(qp);
 } // End of xdd_get_next_available_qthread()
@@ -120,8 +122,7 @@ xdd_get_next_available_qthread(ptds_t *p) {
 int32_t
 xdd_target_pass(ptds_t *p) {
 	ptds_t		*qp;			// Pointer to a QThread's PTDS
-	int			status;			// Status of the sem_wait system calls
-	int			sem_val;
+	int			active_qthreads;
 
 	/* Before we get started, check to see if we need to reset the 
 	 * run_status in case we are using the start trigger.
@@ -179,8 +180,8 @@ xdd_target_pass(ptds_t *p) {
 
 		// Check to see if we've been canceled - if so, we need to leave this loop
 		if (xgp->canceled) {
-			// Make this qthread available so that it will get through End-of-Pass checking
-			sem_post(&qp->this_qthread_available);
+			// Reset this qthread's io_complete semaphore so that it will get through End-of-Pass checking
+			sem_post(&qp->qthread_io_complete);
 			break;
 		}
 
@@ -204,38 +205,17 @@ xdd_target_pass(ptds_t *p) {
 	// In either case, there may be QThreads that have been assigned tasks and are still in the
 	// process of completing them. Therefore, we need to wait here until all the outstanding
 	// QThreads have finished their respective tasks.
-	// Cycle through all the QThreads and assign an "EndOfPass" task to each and enter their respective
-	// qthread_target_pass_wait barrier to release them to perform that special task. This loop will
-	// ensure that all QThreads have completed and the pass will thus be complete.
+	
+	// Enter the EndOfPass barrier and wait for the last QThread to get here
+	xdd_barrier(&p->targetpass_qthread_passcomplete_barrier,&p->occupant,1);
+	active_qthreads = 0;
 	qp = p->next_qp;
 	while (qp) {
-		// Wait for this thread to become available - meaning it has finished its last assigned task
-		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		status = sem_wait(&qp->this_qthread_available);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_target_pass: Target %d: WARNING: Bad status from sem_post on this_qthread_available semaphore: status=%d, errno=%d\n",
-				xgp->progname,
-				p->my_target_number,
-				status,
-				errno);
-		}
-		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-
-		sem_val = 0;
-		status = sem_getvalue(&qp->this_qthread_available, &sem_val);
-		// Make this thread available 
-		if (sem_val < 1) { // Only post this semaphore if it is less than 1 
-			status = sem_post(&qp->this_qthread_available);
-			if (status) {
-				fprintf(xgp->errout,"%s: xdd_target_pass: Target %d QThread %d: WARNING: Bad status from sem_post on qthread_available semaphore: status=%d, errno=%d\n",
-					xgp->progname,
-					qp->my_target_number,
-					qp->my_qthread_number,
-					status,
-					errno);
-			}
-		}
-		qp->my_current_state |= CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE;
+		pthread_mutex_lock(&qp->this_qthread_is_working);
+		active_qthreads++;
+		pthread_mutex_unlock(&qp->this_qthread_is_working);
+		if (xgp->global_options & GO_REALLYVERBOSE) 
+			fprintf(stderr,"target_pass: qthread %d this qthread is available is %d, op %lld byte location %lld\n", qp->my_qthread_number, qp->this_qthread_is_available, (long long int)qp->target_op_number, (long long int)qp->my_current_byte_location);
 		qp = qp->next_qp;
 	}
 
@@ -308,7 +288,13 @@ xdd_target_pass_task_setup(ptds_t *qp) {
 		} else if (p->ts_options & TS_WRAP) {
 			p->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
+		p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
+		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
+		p->ttp->tte[qp->ts_current_entry].op_type = qp->my_current_op_type;
+		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
+		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
 	}
+
 	// Set up the correct QThread to wait for if Strict or Loose ordering is in effect
 	if ((p->target_options & TO_STRICT_ORDERING) || 
 		(p->target_options & TO_LOOSE_ORDERING)) { 

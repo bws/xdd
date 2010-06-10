@@ -45,6 +45,37 @@ xdd_qthread_init(ptds_t *qp) {
 	// Get the target Thread PTDS address as well
 	p = qp->target_ptds;
 
+	// The "my_current_state_mutex" is used by the QThreads when checking or updating the state info
+	status = pthread_mutex_init(&qp->my_current_state_mutex, 0);
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot init my_current_state_mutex \n",
+			xgp->progname, 
+			qp->my_target_number,
+			qp->my_qthread_number);
+		fflush(xgp->errout);
+		return(-1);
+	}
+	// The "this_qthread_is_available_mutex" is used by the QThreads and the get_next_available_qthread() subroutines
+	status = pthread_mutex_init(&qp->this_qthread_is_available_mutex, 0);
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot init this_qthread_is_available_mutex \n",
+			xgp->progname, 
+			qp->my_target_number,
+			qp->my_qthread_number);
+		fflush(xgp->errout);
+		return(-1);
+	}
+	// The "this_qthread_is_working" is used by the QThreads and the target_pass() subroutines
+	status = pthread_mutex_init(&qp->this_qthread_is_working, 0);
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot init this_qthread_is_working \n",
+			xgp->progname, 
+			qp->my_target_number,
+			qp->my_qthread_number);
+		fflush(xgp->errout);
+		return(-1);
+	}
+
 	// Open the target device/file
 	status = xdd_target_open(qp);
 	if (status < 0) {
@@ -101,6 +132,18 @@ xdd_qthread_init(ptds_t *qp) {
 	status = sem_init(&qp->this_qthread_available, 0, 1);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize this_qthread_available semaphore.\n",
+			xgp->progname, 
+			qp->my_target_number,
+			qp->my_qthread_number);
+		fflush(xgp->errout);
+		return(-1);
+	}
+	qp->this_qthread_is_available = 1;
+
+	// Init the semaphore used by target_pass() to wait for this qthread to finish at the end of a pass
+	status = sem_init(&qp->qthread_io_complete, 0, 1);
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize qthread_io_complete semaphore.\n",
 			xgp->progname, 
 			qp->my_target_number,
 			qp->my_qthread_number);

@@ -85,6 +85,7 @@
 #define TO_RESTART_ENABLE      0x0000010000000000ULL  // Restart option enabled 
 #define TO_STRICT_ORDERING     0x0000020000000000ULL  // Use Strict Ordering on QThreads
 #define TO_LOOSE_ORDERING      0x0000040000000000ULL  // Use Loose Ordering on QThreads
+#define TO_NULL_TARGET         0x0000080000000000ULL  // Indicates that the target is effectively /dev/null
 
 // Per Thread Data Structure - one for each thread 
 struct ptds {
@@ -152,6 +153,10 @@ struct ptds {
 	// QThread-specific semaphores and associated pointers
 	sem_t				this_qthread_available;				// The xdd_get_next_available_qthread() routine waits on this for a specific QThread to become available
 	sem_t				qthread_ordering_sem;				// The QThread sets this to release a waiting QThread when Strict or Loose ordering is used
+	sem_t				qthread_io_complete;				// The QThread sets this to 1 when it has completed an I/O and resets to 0 when it starts an I/O
+	pthread_mutex_t		this_qthread_is_working;			// Used to serialize the end_of_pass processing in target_pass()
+	pthread_mutex_t		this_qthread_is_available_mutex;	// Used to serialize access to the "this_qthread_is_available" variable
+	int32_t				this_qthread_is_available;			// Is set by qthread() to 1 and reset by get_next_available_qthread() to a 0
 	struct ptds			*qthread_to_wait_for;				// Pointer to the QThread to wait for before starting I/O
 
 															// The QThread Wait Barrier is used just by the QThread and the issue_thread
@@ -231,6 +236,7 @@ struct ptds {
 	unsigned char		*data_pattern_name; 		// Data pattern name which is an ASCII string  
 	int32_t				data_pattern_name_length;	// Length of the data pattern name string 
 	char				*data_pattern_filename; 	// Name of a file that contains a data pattern to use 
+	int64_t				compare_errors;				// Number of content/sequence compare errors from the verify() subroutines
 	//
     // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
@@ -304,6 +310,7 @@ struct ptds {
 	pclk_t				my_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
 	// Updated by the QThread at different times
 	int32_t				my_current_state;			// State of this thread at any given time (see Current State definitions below)
+	pthread_mutex_t 	my_current_state_mutex; 	// Mutex for locking when checking or updating the state info
 	// State Definitions for "my_current_state"
 #define	CURRENT_STATE_INIT								0x0000000000000001	// Initialization 
 #define	CURRENT_STATE_IO								0x0000000000000002	// Waiting for an I/O operation to complete
@@ -314,6 +321,7 @@ struct ptds {
 #define	CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE		0x0000000000000040	// Waiting on the "any qthread available" semaphore
 #define	CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE	0x0000000000000080	// Waiting on the "This QThread Available" semaphore
 #define	CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD		0x0000000000000100	// Waiting for the previous "QThread Task Complete" semaphore
+#define	CURRENT_STATE_WAITING_THIS_QTHREAD_IO_COMPLETE	0x0000000000000200	// Waiting on the "QThread I/O Complete" semaphore
 
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS 
