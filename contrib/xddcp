@@ -108,13 +108,24 @@ function print_usage() {
     echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
 }
 
+function multilevel_exit_handler() {
+    local errorCode=$1
+    kill $$
+}
+
 #
 # Print out an appropriate error message and exit
 #
 function error_exit() {
     local errorCode=$1
+
+    trap "multilevel_exit_handler $errorCode" EXIT
     error_print $errorCode
+    echo "Exiting with error code $errorCode" >/dev/stderr
     exit $errorCode
+    exit $errorCode
+    exit $errorCode
+    echo "Under no circumstances should this line display" >/dev/stderr
 }
 
 #
@@ -307,7 +318,7 @@ function remote_exec() {
 
     # Local decl must be on seperate line so $? is correct
     local remoteOutput=""
-    remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash  <<EOF
+    remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
 $cmds
 EOF
         )
@@ -317,8 +328,12 @@ EOF
     if [ 255 -eq $destRC ]; then
         echo "INFO: Remote output - $remoteOutput" >/dev/stderr
         error_exit $XDDCP_ERR_CODE_SSH_FAILURE
-    elif [ 0 -ne $destRC -a -z "$remoteOutput" ]; then
-        print_error $destRC
+    elif [ 0 -ne $destRC -a ! -z "$remoteOutput" ]; then
+        echo "INFO: Remote Error: $remoteOutput"
+        error_print $destRC
+        error_exit $XDDCP_ERR_CODE_SSH_ERROR
+    elif [ 0 -ne $destRC ]; then
+        echo "INFO: Remote operation failure, no cause detected"
         error_exit $XDDCP_ERR_CODE_SSH_ERROR
     fi
     echo "$remoteOutput"
@@ -458,7 +473,7 @@ if [ 1 -eq \$port_conflict ]; then
             sleep 1
         fi
     else
-        echo "Requested port \$p is in use" >/dev/stderr
+        echo "Requested port \$p is in use"
         exit ${XDDCP_ERR_CODE_DEST_PORT}
     fi
     used_ports=\$(netstat -nat |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
@@ -576,7 +591,7 @@ function get_source_cmds() {
     if [ 1 == $resumeFlag ]; then
         if [ "enable" == "$resumeOffset" ]; then
             srcRestart="-restart enable"
-        elif [ 0 -le $resumeOffset ]; then
+        elif [ 0 -le "$resumeOffset" ]; then
             echo "INFO: Resuming XDD file transfer at offset: $resumeOffset" >/dev/stderr
             srcRestart="-restart enable -restart offset $resumeOffset"
         else
@@ -673,13 +688,14 @@ function start_destination_xdd() {
 
     # Extract the resume offset from the remote output
     #echo "Output was: $destResult"
+    local rc=1
     if [ 1 == $resumeFlag ]; then
         g_xddcpResumeOffset=$(echo $destResult |rev |cut -d ' ' -f 1 |rev)
         if [ -z "$g_xddcpResumeOffset" ]; then
             error_exit $XDDCP_ERR_CODE_INV_RESTART
         fi
     fi    
-
+    return 0
 }
 
 function start_source_xdd() {
@@ -699,13 +715,18 @@ function start_source_xdd() {
     local srcUser=${13}
 
     # Get source commands and execute
+    local rc=1
     srcCmds=$(get_source_cmds $destHost $path $totalBytes $queueDepth \
         $e2ePort $dioFlag $orderedFlag $resumeFlag $verboseFlag $resumeOffset)
     if [ 1 -eq ${remoteFlag} ]; then
         remote_exec "${srcCmds}" "${srcHost}" "${srcUser}"
+        rc=$?
     else
         local_exec "${srcCmds}"
+        rc=$?
     fi
+
+    return $rc
 }
 
 #
@@ -722,6 +743,7 @@ function xddcp_main() {
     trap 'handle_signal_common 2; trap 2; kill -2 $$' 2 
     trap 'handle_signal_common 3; trap 3; kill -3 $$' 3 
     trap 'handle_signal_common 15; trap 15; kill -15 $$' 15
+    trap exit
 
     # Print a helpful message if user is just typing command to get syntax
     if [ "$1" == "-h" ]; then
@@ -848,7 +870,11 @@ function xddcp_main() {
             "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
             "${orderedFlag}" "${recursiveFlag}" "${resumeFlag}" \
             "${verboseFlag}" "${destRemoteFlag}" "${destHost}" "${destUser}"
-
+        rc=$?
+        if [ 0 -ne $rc ]; then
+           error_exit $rc
+        fi
+ 
         # Wait to ensure the destination side has setup network and accepting
         sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
 
@@ -858,6 +884,10 @@ function xddcp_main() {
             "${orderedFlag}" "${resumeFlag}" "${verboseFlag}" \
             "${g_xddcpResumeOffset}" "${destHost}" \
             "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
+        rc=$?
+        if [ 0 -ne $rc ]; then
+            error_exit $rc
+        fi
 
         echo ""
         echo "Transfer complete.  Verify results with md5sum."
