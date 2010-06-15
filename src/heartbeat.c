@@ -92,6 +92,10 @@ xdd_heartbeat(void *junk) {
 			latest_end_time = 0.0;
 			total_ops_issued = 0;
 			p = xgp->ptdsp[i];
+			if (p->my_pass_start_time == PCLK_MAX) { // Haven't started yet...
+				fprintf(stderr," + WAITING");
+				continue; 
+			}
 			// Get the number of bytes xferred by all QThreads for this Target
 			total_bytes_xferred = p->my_current_bytes_xfered;
 			total_ops_issued = p->my_current_op_count;

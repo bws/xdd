@@ -89,6 +89,9 @@ xdd_e2e_src_send(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
 		p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
 	}
+	
+	// Calculate the Send/Receive time by the time it took the last sendto() to run
+	qp->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);
 
 	if (sent != qp->e2e_iosize) {
 		xdd_e2e_err(qp,"xdd_e2e_src_send","ERROR: could not send data from e2e source\n");
@@ -197,13 +200,21 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	 		qp->e2e_header.recvtime = qp->my_current_net_end_time;
 			if (!qp->e2e_wait_1st_msg) 
 				qp->e2e_wait_1st_msg = qp->e2e_header.recvtime - e2e_wait_1st_msg_start_time;
-			qp->e2e_header.recvtime += xgp->gts_delta;
-			// Time stamp if requested
 			if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 				p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
 				p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
 			}
 
+			// If this is the first packet received by this QThread then record the *end* of this operation as the
+			// *start* of this pass. The reason is that the initial recvfrom() may have been issued long before the
+			// Source side started sending data and we need to ignore that startup delay. 
+			if (qp->first_pass_start_time == LONGLONG_MAX)  { // This is an indication that this is the fist recvfrom() that has completed
+				qp->first_pass_start_time = qp->my_current_net_end_time;
+				qp->my_pass_start_time =  qp->my_current_net_end_time;
+				qp->e2e_sr_time = 0; // The first Send/Receive time is zero.
+			} else { // Calculate the Send/Receive time by the time it took the last recvfrom() to run
+				qp->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);
+			}
 			// Check the status of the last recvfrom()
 			// The normal condition where the recvfrom() call returns the expected amount of data (recvsize)
 			// which is equal to the size of the e2e_header plus the size of the user payload (iosize)

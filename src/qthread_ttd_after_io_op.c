@@ -152,8 +152,6 @@ xdd_raw_after_io_op(ptds_t *qp) {
 void
 xdd_e2e_after_io_op(ptds_t *qp) {
 	ptds_t	*p;			// Pointer to the Target PTDS for this QThread
-	pclk_t	beg_time_tmp;
-	pclk_t	end_time_tmp;
 	pclk_t	now;
 
 
@@ -171,10 +169,7 @@ xdd_e2e_after_io_op(ptds_t *qp) {
 			}
 			qp->my_current_state |= CURRENT_STATE_SRC_SEND;
 
-			pclk_now(&beg_time_tmp);
 			xdd_e2e_src_send(qp);
-			pclk_now(&end_time_tmp);
-			qp->e2e_sr_time = (end_time_tmp - beg_time_tmp); // Time spent sending to the destination machine
 
 			qp->my_current_state &= ~CURRENT_STATE_SRC_SEND;
 		} // End of me being the SOURCE in an End-to-End test 

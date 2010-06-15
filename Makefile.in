@@ -39,7 +39,7 @@ INSTALL = $(XDD_DIR)/contrib/install-sh
 DATESTAMP =	$(shell date +%m%d%y )
 BUILD 	=	$(shell date +%H%M )
 PROJECT =	xdd
-VERSION =	7.0.0.rc15
+VERSION =	7.1.0.rc2
 XDD_VERSION = $(OS).$(VERSION).$(DATESTAMP).Build.$(BUILD)
 XDDVERSION = \"$(XDD_VERSION)\"
 

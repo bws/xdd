@@ -257,6 +257,10 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 				p->last_committed_location = qp->my_current_byte_location;
 				p->last_committed_length = qp->my_current_io_size;
 			}
+			if ( qp->first_pass_start_time < p->first_pass_start_time)  // Record the proper *First* pass start time
+				p->first_pass_start_time = qp->first_pass_start_time;
+			if ( qp->my_pass_start_time < p->my_pass_start_time)  // Record the proper PASS start time
+				p->my_pass_start_time = qp->my_pass_start_time;
 		}
 		// Operation-specific counters
 		switch (qp->my_current_op_type) { 

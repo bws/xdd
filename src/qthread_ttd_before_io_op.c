@@ -190,10 +190,11 @@ xdd_raw_before_io_op(ptds_t *qp) {
  */
 int32_t	
 xdd_e2e_before_io_op(ptds_t *qp) {
-	pclk_t	beg_time_tmp; 	// Beginning time of a data xfer
-	pclk_t	end_time_tmp; 	// End time of a data xfer
+	ptds_t	*p;				// Pointer to parent Taraget PTDS
 	int32_t	status;			// Status of subroutine calls
 
+
+	p = qp->target_ptds;
 
 	// If there is no end-to-end operation then just skip all this...
 	if (!(qp->target_options & TO_ENDTOEND)) 
@@ -225,10 +226,7 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 	// xdd_e2e_dest_recv() will block until there is data to read 
 	qp->my_current_state |= CURRENT_STATE_DEST_RECEIVE;
 
-	pclk_now(&beg_time_tmp);
 	status = xdd_e2e_dest_recv(qp);
-	pclk_now(&end_time_tmp);
-	qp->e2e_sr_time = (end_time_tmp - beg_time_tmp); // Time spent reading from the source machine
 
 	qp->my_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
 
@@ -236,20 +234,6 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 	if (status == -1) 
 		return(-1);
 		
-	// Check the sequence number of the received msg to what we expect it to be
-	// Also note that the msg magic number should not be MAGIQ (end of transmission)
-	if ((qp->e2e_header.sequence != qp->e2e_msg_sequence_number) && (qp->e2e_header.magic != PTDS_E2E_MAGIQ )) {
-		fprintf(xgp->errout,"\n%s: e2e_before_io_op: Target %d QThread %d: ERROR: Sequence Error on msg recvd loc %lld, length %lld seq num is %lld should be %lld\n",
-			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number, 
-			(long long)qp->e2e_header.location,  
-			(long long)qp->e2e_header.length, 
-			(long long)qp->e2e_header.sequence, 
-			(long long)qp->e2e_msg_sequence_number);
-		return(-1);
-	}
-
 	// Check to see of this is the last message in the transmission
 	// If so, then set the "my_pass_ring" so that we exit gracefully
 	if (qp->e2e_header.magic == PTDS_E2E_MAGIQ) 
@@ -262,26 +246,50 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 		fprintf(stderr, "\ne2e_before_io_op: Target %d QThread %d: DEBUG: e2e_msg_sequence_number=%lld, my_current_byte_location=%lld, my_current_io_size=%d\n",
 			qp->my_target_number, qp->my_qthread_number, (long long)qp->e2e_msg_sequence_number, (long long int)qp->my_current_byte_location, qp->my_current_io_size);
 	}
-	// Check to see which message we are on and set up the msg counters properly
-	if (qp->e2e_header.location != qp->my_current_byte_location) {
-		fprintf(xgp->errout,"\n%s: e2e_before_io_op: Target %d QThread %d: ERROR: Byte offset location of msg received is %lld but my current byte location is %lld\n", 
-			xgp->progname,
-			qp->my_target_number, 
-			qp->my_qthread_number,
-			(long long int)qp->e2e_header.location,
-			(long long int)qp->my_current_byte_location); 
-		return(-1);
-	}
 
-	// Check to see which message we are on and set up the msg counters properly
-	if (qp->e2e_header.length != qp->my_current_io_size) {
-		fprintf(xgp->errout,"\n%s: e2e_before_io_op: Target %d QThread %d: WARNING: Length of msg received is %lld but my current io size is %lld\n", 
-			xgp->progname,
-			qp->my_target_number, 
-			qp->my_qthread_number,
-			(long long int)qp->e2e_header.length,
-			(long long int)qp->my_current_io_size); 
+	// Use the hearder.location as the new my_current_byte_location and the e2e_header.length as the new my_current_io_size for this op
+	// This will allow for the use of "no ordering" on the source side of an e2e operation
+	qp->my_current_byte_location = qp->e2e_header.location;
+	qp->my_current_io_size = qp->e2e_header.length;
+    	// If time stamping is on then we need to reset these values
+    	if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
+		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
 	}
+//	// Check the sequence number of the received msg to what we expect it to be
+//	// Also note that the msg magic number should not be MAGIQ (end of transmission)
+//	if ((qp->e2e_header.sequence != qp->e2e_msg_sequence_number) && (qp->e2e_header.magic != PTDS_E2E_MAGIQ )) {
+//		fprintf(xgp->errout,"\n%s: e2e_before_io_op: Target %d QThread %d: ERROR: Sequence Error on msg recvd loc %lld, length %lld seq num is %lld should be %lld\n",
+//			xgp->progname,
+//			qp->my_target_number,
+//			qp->my_qthread_number, 
+//			(long long)qp->e2e_header.location,  
+//			(long long)qp->e2e_header.length, 
+//			(long long)qp->e2e_header.sequence, 
+//			(long long)qp->e2e_msg_sequence_number);
+//		return(-1);
+//	}
+
+
+//	// Check to see which message we are on and set up the msg counters properly
+//	if (qp->e2e_header.location != qp->my_current_byte_location) {
+//		fprintf(xgp->errout,"\n%s: e2e_before_io_op: Target %d QThread %d: ERROR: Byte offset location of msg received is %lld but my current byte location is %lld\n", 
+//			xgp->progname,
+//			qp->my_target_number, 
+//			qp->my_qthread_number,
+//			(long long int)qp->e2e_header.location,
+//			(long long int)qp->my_current_byte_location); 
+//		return(-1);
+//	}
+
+//	// Check to see which message we are on and set up the msg counters properly
+//	if (qp->e2e_header.length != qp->my_current_io_size) {
+//		fprintf(xgp->errout,"\n%s: e2e_before_io_op: Target %d QThread %d: WARNING: Length of msg received is %lld but my current io size is %lld\n", 
+//			xgp->progname,
+//			qp->my_target_number, 
+//			qp->my_qthread_number,
+//			(long long int)qp->e2e_header.length,
+//			(long long int)qp->my_current_io_size); 
+//	}
 	// Record the amount of data received 
 	qp->e2e_data_recvd = qp->e2e_header.length;
 
@@ -356,9 +364,6 @@ xdd_qthread_ttd_before_io_op(ptds_t *qp) {
 	errno = 0;
 	qp->my_error_break = 0;
 
-	// DirectIO Handling
-	xdd_dio_before_io_op(qp);
-
 	// Read-After_Write Processing
 	xdd_raw_before_io_op(qp);
 
@@ -366,6 +371,9 @@ xdd_qthread_ttd_before_io_op(ptds_t *qp) {
 	status = xdd_e2e_before_io_op(qp);
 	if (status == -1)  // Error occurred...
 		return(-1);
+
+	// DirectIO Handling
+	xdd_dio_before_io_op(qp);
 
 	// Throttle Processing
 	xdd_throttle_before_io_op(qp);
