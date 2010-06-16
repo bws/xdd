@@ -265,24 +265,40 @@ xdd_target_ttd_before_pass(ptds_t *p) {
 	// End-to-End setup
 	xdd_e2e_before_pass(p);
 
+	xdd_init_ptds_before_pass(p);
+
 	/* Initialize counters, barriers, clocks, ...etc */
 	p->iosize = p->reqsize * p->block_size;
 
 	/* Get the starting time stamp */
-	if (p->my_current_pass_number == 1) {
-		pclk_now(&p->first_pass_start_time);
-		p->my_pass_start_time = p->first_pass_start_time;
+	if (p->my_current_pass_number == 1) { // For the *first* pass...
+		if ((p->target_options & TO_ENDTOEND) && (p->target_options & TO_E2E_DESTINATION)) {  
+			// Since the Destination Side starts and *waits* for the Source Side, the
+			// actual "first pass start time" is set to a LARGE number so that it later
+			// gets set to the time that the first packet of data was actually received.
+			// That is done by the Results Manager at the end of a pass.
+			p->first_pass_start_time = PCLK_MAX;
+			p->my_pass_start_time = PCLK_MAX;
+		} else { // This is either a non-E2E run or this is the Source Side of an E2E
+			pclk_now(&p->first_pass_start_time);
+			p->my_pass_start_time = p->first_pass_start_time;
+		}
 		// Get the current CPU user and system times 
 		times(&p->my_starting_cpu_times_this_run);
 		memcpy(&p->my_starting_cpu_times_this_pass,&p->my_starting_cpu_times_this_run, sizeof(struct tms));
-	} else { 
-		pclk_now(&p->my_pass_start_time);
+	} else { // For pass number greater than 1
+		if ((p->target_options & TO_ENDTOEND) && (p->target_options & TO_E2E_DESTINATION)) {
+			// Same as above... Pass numbers greater than one will be used when the
+			// multi-file copy support is added
+			p->my_pass_start_time = PCLK_MAX;
+		} else { // This is either a non-E2E run or this is the Source Side of an E2E
+			pclk_now(&p->my_pass_start_time);
+		}
 		times(&p->my_starting_cpu_times_this_pass);
 	}
-	xdd_init_ptds_before_pass(p);
 
 	qp = p->next_qp;
-	while (qp) { 
+	while (qp) { // Set up the pass_start_times for all the QThreads 
 		if (p->my_current_pass_number == 1) {
 			qp->first_pass_start_time = p->first_pass_start_time;
 			qp->my_pass_start_time = qp->first_pass_start_time;
