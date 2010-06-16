@@ -123,7 +123,7 @@ dnl By default, try to add XFS support, only show errors if user requests XFS
 xfs_enabled="yes"
 xfs_override="no"
 AC_ARG_ENABLE([xfs],
-              [  --enable-xfs            Enable XFS preallocation support],
+              [AS_HELP_STRING(--enable-xfs,Enable XFS preallocation support)],
               [xfs_override="$enableval"
                xfs_enabled="$enableval"], [])
 
@@ -142,6 +142,37 @@ elif test "x$xfs_enabled" = "xyes" ; then
         AC_SUBST(CONFIG_XFS_PACKAGE, "-D$xfs_package")
     fi
 fi
+
+
+dnl
+dnl Check for Confidence output ability
+dnl
+confidence_headers="no"
+AC_CHECK_HEADERS([comm.h],
+		[confidence_headers="yes"],
+		[confidence_headers="no"],
+		[#include "types.h"])
+if test "x$confidence_headers" = "xyes" ; then
+	AC_CHECK_HEADERS([measurement.h],
+		[confidence_headers="yes"],
+		[confidence_headers="no"],
+		[#include "types.h"])
+fi
+confidence_libs="yes"
+dnl AC_CHECK_LIB([confmeasure], [measurement_create], [confidence_libs="yes"])
+confidence_enable="no"
+AC_ARG_ENABLE([confidence-output],
+	      [AS_HELP_STRING(--enable-confidence-output,Enable Confidence formatted output files)],
+	      [confidence_enable="yes"])
+if test "x$confidence_enable" = "xyes" ; then
+    if test "x$confidence_headers" = "xno" ; then
+    	AC_MSG_FAILURE("Confidence header 'measurement.h' not found.")
+    elif test "x$confidence_libs" = "xno" ; then
+    	AC_MSG_FAILURE("Confidence library 'libconfmeasure.a' not found.")
+    fi
+    AC_SUBST(CONFIG_CONFIDENCE_ENABLED, "-DCONFIDENCE_ENABLED")
+fi
+
 
 dnl
 dnl Check for Linux Magic numbers
@@ -167,12 +198,9 @@ AC_CHECK_FUNCS([memset])
 dnl
 dnl Sets the compilation options
 dnl
-CONFIG_CFLAGS="-g -Wno-unused -Wall -Werror -ansi -femit-class-debug-always"
-CONFIG_UNSAFE_CFLAGS="-g" 
-CONFIG_LDFLAGS="-g"
-
+CONFIG_CFLAGS="$CFLAGS"
+CONFIG_LDFLAGS="$LDFLAGS $LIBS"
 AC_SUBST(CONFIG_CFLAGS, "$CONFIG_CFLAGS")
-AC_SUBST(CONFIG_UNSAFE_CFLAGS, "$CONFIG_UNSAFE_CFLAGS")
 AC_SUBST(CONFIG_LDFLAGS, "$CONFIG_LDFLAGS")
 
 dnl
@@ -185,3 +213,4 @@ dnl
 dnl Generate output
 dnl
 AC_OUTPUT(Makefile)
+

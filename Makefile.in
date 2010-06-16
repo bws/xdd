@@ -26,6 +26,7 @@ XDD_DIR := @CONFIG_PROJECT_DIR@
 BUILD_DIR := @CONFIG_BUILD_DIR@
 INSTALL_DIR := @prefix@
 XFS_ENABLED_DEF := @CONFIG_XFS_ENABLED@ @CONFIG_XFS_PACKAGE@ @CONFIG_LINUX_MAGIC@
+CONFIDENCE_ENABLED := @CONFIG_CONFIDENCE_ENABLED@
 
 #
 # Configuration
@@ -140,32 +141,34 @@ GT_OBJECTS = $(SRC_DIR)/gettime.o \
 #
 CC = 		gcc
 INCLUDES = -I$(SRC_DIR)
-LIBRARIES =	-lpthread -lrt
-CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -g
+COMMONFLAGS = $(INCLUDES) @CONFIG_CFLAGS@ -DXDD_VERSION=$(XDDVERSION) $(CONFIDENCE_ENABLED)
+COMMONLIBS = @CONFIG_LDFLAGS@
+CFLAGS = $(COMMONFLAGS) -DLINUX -O2 -g
+LIBRARIES =     $(COMMONLIBS) -lpthread -lrt
 
 #
 # Platform specific build settings
 #
 $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
-CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) -g -fno-strict-aliasing -Wall
+CFLAGS = $(COMMONFLAGS) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) -g -fno-strict-aliasing -Wall
 endif
 ifeq '$(OS)' 'Darwin' 
-CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DOSX -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
+CFLAGS = $(COMMONFLAGS) -DOSX -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
 OS = 		OSX
 endif
 ifeq '$(OS)' 'FreeBSD' 
-CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DFREEBSD -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
+CFLAGS = $(COMMONFLAGS) -DFREEBSD -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
 endif
 ifeq '$(OS)' 'Solaris' 
 CC = 		cc
-CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DSOLARIS -g
-LIBRARIES =	-lsocket -lnsl -lpthread  -lxnet -lposix4 -v 
+CFLAGS = $(COMMONFLAGS) -DSOLARIS -g
+LIBRARIES =	$(COMMONLIBS) -lsocket -lnsl -lpthread  -lxnet -lposix4 -v 
 endif
 ifeq '$(OS)' 'AIX'
 CC =            xlc_r
-CFLAGS = $(INCLUDES) -DXDD_VERSION=$(XDDVERSION) -DAIX -D_THREAD_SAFE -g -q64 -qcpluscmt -qthreaded
-LIBRARIES = -lnsl -lpthread  -lxnet -v
+CFLAGS = $(COMMONFLAGS) -DAIX -D_THREAD_SAFE -g -q64 -qcpluscmt -qthreaded
+LIBRARIES = 	$(COMMONLIBS) -lnsl -lpthread  -lxnet -v
 endif
 
 #
