@@ -51,7 +51,7 @@ XDDCP_DEFAULT_QUEUE_DEPTH=4
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
 XDDCP_DEFAULT_TIMESTAMP="$(date -u +'%Y-%m-%d-%H%M%S')-GMT"
-XDDCP_DEFAULT_NETWORK_SLEEP_SECS=1
+XDDCP_DEFAULT_NETWORK_SLEEP_SECS=10
 XDDCP_DEFAULT_XDD="xdd.$(uname)"
 
 # XDDCP Error Codes
@@ -110,7 +110,7 @@ function print_usage() {
 
 function multilevel_exit_handler() {
     local errorCode=$1
-    kill $$
+    #kill $$
 }
 
 #
@@ -466,7 +466,7 @@ if [ 1 -eq \$port_conflict ]; then
     # Attempt to kill any running XDDs and re-check
     if [ 1 -eq $forceFlag ]; then
         xddpid=\$(ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
-        if [ ! -z \"\$xddpid\" ]; then
+        if [ ! -z "\$xddpid" ]; then
             kill \$xddpid 2>/dev/null
             sleep 1
             kill -9 \$xddpid 2>/dev/null
