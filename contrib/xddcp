@@ -25,21 +25,22 @@
 #
 # Notes: XDDCP has only been tested on Linux environments.  The
 # following POSIX utilities are required to utilize XDDCP:
-#    basename
-#    cat
-#    cut
-#    date
-#    dirname
-#    echo
-#    grep
-#    hostname
-#    ps
-#    tr
+#    /bin/basename
+#    /bin/cat
+#    /bin/cut
+#    /bin/date
+#    /bin/echo
+#    /bin/grep
+#    /bin/hostname
+#    /bin/ps
+#    /bin/uname
 #
 # The following other utilities (non-POSIX) are required to utilize XDDCP:
+#    dirname
 #    netstat 
 #    ssh
 #    stat
+#    tr
 #    truncate
 #    xdd.Linux
 #
@@ -50,9 +51,9 @@ XDDCP_DEFAULT_XFER_SIZE=33554432
 XDDCP_DEFAULT_QUEUE_DEPTH=4
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
-XDDCP_DEFAULT_TIMESTAMP="$(date -u +'%Y-%m-%d-%H%M%S')-GMT"
-XDDCP_DEFAULT_NETWORK_SLEEP_SECS=1
-XDDCP_DEFAULT_XDD="xdd.$(uname)"
+XDDCP_DEFAULT_TIMESTAMP="$(/bin/date -u +'%Y-%m-%d-%H%M%S')-GMT"
+XDDCP_DEFAULT_NETWORK_SLEEP_SECS=10
+XDDCP_DEFAULT_XDD="xdd.$(/bin/uname)"
 
 # XDDCP Error Codes
 XDDCP_ERR_CODE_INVALID_ARGS=1
@@ -108,24 +109,15 @@ function print_usage() {
     echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
 }
 
-function multilevel_exit_handler() {
-    local errorCode=$1
-    kill $$
-}
-
 #
 # Print out an appropriate error message and exit
 #
 function error_exit() {
     local errorCode=$1
 
-    trap "multilevel_exit_handler $errorCode" EXIT
+    #trap "multilevel_exit_handler $errorCode" EXIT
     error_print $errorCode
-    echo "Exiting with error code $errorCode" >/dev/stderr
     exit $errorCode
-    exit $errorCode
-    exit $errorCode
-    echo "Under no circumstances should this line display" >/dev/stderr
 }
 
 #
@@ -225,24 +217,24 @@ function parse_endpoint_spec() {
     eval "$remotePathRef=\"\""
     
     # Parse out remote host and file
-    local colon_count=`echo $spec | grep -c ":"`
+    local colon_count=`/bin/echo $spec | grep -c ":"`
     if [ $colon_count -eq 1 ]; then
 
         # Set the remote flag
         eval "$remoteFlagRef=1"
 
         # Set the path
-        eval "$remotePathRef=$(echo $spec | awk -F: '{print $2}')"
+        eval "$remotePathRef=$(/bin/echo $spec | awk -F: '{print $2}')"
 
         # Set the host
-        local _tmp=$(echo $spec | awk -F: '{print $1}')
-        eval "$remoteHostRef=$(echo $spec | awk -F: '{print $1}')"
+        local _tmp=$(/bin/echo $spec | awk -F: '{print $1}')
+        eval "$remoteHostRef=$(/bin/echo $spec | awk -F: '{print $1}')"
         
         # Set the username if it exists
-        local amp_count=$(echo $_tmp |grep -c "@")
+        local amp_count=$(/bin/echo $_tmp |grep -c "@")
         if [ 1 -eq $amp_count ]; then
-            eval "$remoteUserRef=$(echo $_tmp |awk -F@ '{print $1}')"
-            eval "$remoteHostRef=$(echo $_tmp |awk -F@ '{print $2}')"
+            eval "$remoteUserRef=$(/bin/echo $_tmp |awk -F@ '{print $1}')"
+            eval "$remoteHostRef=$(/bin/echo $_tmp |awk -F@ '{print $2}')"
         fi
     else
         eval "$remotePathRef=$spec"
@@ -291,7 +283,7 @@ function check_host_preconditions() {
 #
 function local_exec() {
     local cmds="$1"
-    bash <<EOF
+    /bin/bash <<EOF
 $cmds
 EOF
     
@@ -382,7 +374,7 @@ function get_file_size() {
         echo $(stat -c %s $filename)
     else
         cmd="stat -c %s $filename"
-        $(remote_exec $cmd $host $user)
+        remote_exec $cmd $host $user
     fi
 }
 
@@ -400,11 +392,12 @@ function get_destination_cmds() {
     local dioFlag=${7}
     local forceFlag=${8}
     local orderedFlag=${9}
-    local resumeFlag=${10}
-    local verboseFlag=${11}
+    local recursionFlag=${10}
+    local resumeFlag=${11}
+    local verboseFlag=${12}
 
     # Options that aren't yet settable
-    local srcHost=$(hostname)
+    local srcHost=$(/bin/hostname)
     
     # Construct transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
@@ -415,8 +408,8 @@ function get_destination_cmds() {
     # Other variables
     local e2eLB=$e2ePort
     local e2eUB=$((e2ePort + queueDepth))
-    local srcBase=$(basename $srcFile)
-    local destBase=$(basename $destFile)
+    local srcBase=$(/bin/basename $srcFile)
+    local destBase=$(/bin/basename $destFile)
     local destDirname=$(dirname $destFile)
     local destLog="xdd.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
     local destQD="-queuedepth ${queueDepth}"
@@ -465,8 +458,8 @@ done
 if [ 1 -eq \$port_conflict ]; then
     # Attempt to kill any running XDDs and re-check
     if [ 1 -eq $forceFlag ]; then
-        xddpid=\$(ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
-        if [ ! -z \"\$xddpid\" ]; then
+        xddpid=\$(/bin/ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
+        if [ ! -z "\$xddpid" ]; then
             kill \$xddpid 2>/dev/null
             sleep 1
             kill -9 \$xddpid 2>/dev/null
@@ -488,7 +481,7 @@ fi
 # If the filename uses a relative path, path complement it
 path_char=\$(dirname $destFile |cut -c 1)
 if [ "." == \$path_char ]; then
-    default_dir=\$(pwd)
+    default_dir=\$(/bin/pwd)
     destination_dir="\${default_dir}/${destDirname}"
     destination_file="\${default_dir}/${destFile}"
     destination_log="\${default_dir}/${destLog}"
@@ -522,12 +515,12 @@ if [ 1 == $resumeFlag ]; then
     restart_logfile="\${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}.rst"
 
     # Check for the existence a restart cookie
-    most_recent_restart_cookie=\$(ls \${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.${destBase}.*.rst 2>/dev/null |tail -1)
+    most_recent_restart_cookie=\$(/bin/ls \${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.${destBase}.*.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
        destination_restart="-restart file \${restart_logfile} -restart enable"
     else
-       destination_restart="-restart file \${restart_logfile} -restart enable \$(cat \$most_recent_restart_cookie)"
+       destination_restart="-restart file \${restart_logfile} -restart enable \$(/bin/cat \$most_recent_restart_cookie)"
     fi
 fi
 
@@ -591,6 +584,8 @@ function get_source_cmds() {
     if [ 1 == $resumeFlag ]; then
         if [ "enable" == "$resumeOffset" ]; then
             srcRestart="-restart enable"
+        elif [ "capability" == "$resumeOffset" ]; then
+            error_exit $XDDCP_ERR_CODE_INV_RESTART
         elif [ 0 -le "$resumeOffset" ]; then
             echo "INFO: Resuming XDD file transfer at offset: $resumeOffset" >/dev/stderr
             srcRestart="-restart enable -restart offset $resumeOffset"
@@ -600,9 +595,9 @@ function get_source_cmds() {
     fi
 
     # Construct source XDD settings
-    local srcBase=$(basename ${srcFile})
+    local srcBase=$(/bin/basename ${srcFile})
     local srcQD="-queuedepth ${queueDepth}"
-    local srcLog="xdd.$(hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+    local srcLog="xdd.$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
 
     # Direct I/O option
     if [ 1 -eq $srcDIOFlag ]; then
@@ -675,22 +670,32 @@ function start_destination_xdd() {
     local destHost=${13}
     local destUser=${14}
 
-    # Get source commands and execute
-    destResult=""
-    destCmds=$(get_destination_cmds $destHost $srcPath $destPath \
+    # Get source commands
+    local execRC=1
+    local destResult=""
+    local destCmds=$(get_destination_cmds $destHost $srcPath $destPath \
         $totalBytes $queueDepth $e2ePort $dioFlag $forceFlag $orderedFlag \
         $recursionFlag $resumeFlag $verboseFlag)
-    if [ 1 -eq ${remoteFlag} ]; then
-        destResult=$(remote_exec "${destCmds}" "${destHost}" "${destUser}")
-    else
-        destResult=$(local_exec "${destCmds}")
+    execRC=$?
+    if [ 0 -ne $execRC ]; then
+        exit $execRC
     fi
 
+    # Execute source commands
+    if [ 1 -eq ${remoteFlag} ]; then
+        destResult=$(remote_exec "${destCmds}" "${destHost}" "${destUser}")
+        execRC=$?
+    else
+        destResult=$(local_exec "${destCmds}")
+        execRC=$?
+    fi
+    if [ 0 -ne $execRC ]; then
+        exit $execRC
+    fi
+    
     # Extract the resume offset from the remote output
-    #echo "Output was: $destResult"
-    local rc=1
     if [ 1 == $resumeFlag ]; then
-        g_xddcpResumeOffset=$(echo $destResult |rev |cut -d ' ' -f 1 |rev)
+        g_xddcpResumeOffset=$(/bin/echo $destResult |rev |cut -d ' ' -f 1 |rev)
         if [ -z "$g_xddcpResumeOffset" ]; then
             error_exit $XDDCP_ERR_CODE_INV_RESTART
         fi
@@ -714,19 +719,28 @@ function start_source_xdd() {
     local srcHost=${12}
     local srcUser=${13}
 
-    # Get source commands and execute
-    local rc=1
+    # Get source commands
+    local execRC=1
     srcCmds=$(get_source_cmds $destHost $path $totalBytes $queueDepth \
         $e2ePort $dioFlag $orderedFlag $resumeFlag $verboseFlag $resumeOffset)
-    if [ 1 -eq ${remoteFlag} ]; then
-        remote_exec "${srcCmds}" "${srcHost}" "${srcUser}"
-        rc=$?
-    else
-        local_exec "${srcCmds}"
-        rc=$?
+    execRC=$?
+    if [ 0 -ne $execRC ]; then
+        exit $execRC
     fi
 
-    return $rc
+    # Execute source commands
+    if [ 1 -eq ${remoteFlag} ]; then
+        remote_exec "${srcCmds}" "${srcHost}" "${srcUser}"
+        execRC=$?
+    else
+        local_exec "${srcCmds}"
+        execRC=$?
+    fi
+    if [ 0 -ne $execRC ]; then
+        exit $execRC
+    fi
+
+    return $execRC
 }
 
 #
@@ -838,7 +852,7 @@ function xddcp_main() {
 
     # If using the file list, get all of the source specs
     if [ 1 -eq $fileListFlag ]; then
-        srcFileSpecList=$(cat ${srcFileSpecList})
+        srcFileSpecList=$(/bin/cat ${srcFileSpecList})
     fi
 
     # Process all source file specs

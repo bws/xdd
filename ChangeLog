@@ -5,6 +5,7 @@ XDD Release ChangeLog
 xdd-7.0.0 RC15
 ==============
 * XDD: Supports ordered mode
+* XDD: Default mode is no longer round-robin, but just loosely ordered
 * XDDCP: Truncates file to correct length
 * XDDCP: Checks versions
 * XDDCP: More robust error messages
@@ -14,6 +15,7 @@ xdd-7.0.0 RC15
 * XDDCP: Force mode that kills competing XDDs on destination if the required
          ports are not available
 * XDDCP: Verbose option that logs detailed performance information
+* XDDCP: Detect if the destination side ports are already in use.
 
 xdd-7.0.0 RC14
 ==============
