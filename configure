@@ -650,7 +650,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_xfs
-enable_confidence_output
+enable_confidence
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1272,8 +1272,7 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-xfs            Enable XFS preallocation support
-  --enable-confidence-output
-                          Enable Confidence formatted output files
+  --enable-confidence     Enable Confidence formatted output files
 
 Some influential environment variables:
   CC          C compiler command
@@ -3509,13 +3508,14 @@ fi
 
 
 confidence_headers="no"
-for ac_header in comm.h
+for ac_header in libconfidence.h
 do :
-  ac_fn_c_check_header_compile "$LINENO" "comm.h" "ac_cv_header_comm_h" "#include \"types.h\"
+  ac_fn_c_check_header_compile "$LINENO" "libconfidence.h" "ac_cv_header_libconfidence_h" "#include \"types.h\"
+		 #include \"globalvars.h\"
 "
-if test "x$ac_cv_header_comm_h" = x""yes; then :
+if test "x$ac_cv_header_libconfidence_h" = x""yes; then :
   cat >>confdefs.h <<_ACEOF
-#define HAVE_COMM_H 1
+#define HAVE_LIBCONFIDENCE_H 1
 _ACEOF
  confidence_headers="yes"
 else
@@ -3524,44 +3524,76 @@ fi
 
 done
 
-if test "x$confidence_headers" = "xyes" ; then
-	for ac_header in measurement.h
-do :
-  ac_fn_c_check_header_compile "$LINENO" "measurement.h" "ac_cv_header_measurement_h" "#include \"types.h\"
-"
-if test "x$ac_cv_header_measurement_h" = x""yes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_MEASUREMENT_H 1
-_ACEOF
- confidence_headers="yes"
+confidence_libs="no"
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for confidence_initialize in -lconfidence" >&5
+$as_echo_n "checking for confidence_initialize in -lconfidence... " >&6; }
+if test "${ac_cv_lib_confidence_confidence_initialize+set}" = set; then :
+  $as_echo_n "(cached) " >&6
 else
-  confidence_headers="no"
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lconfidence  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char confidence_initialize ();
+int
+main ()
+{
+return confidence_initialize ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_confidence_confidence_initialize=yes
+else
+  ac_cv_lib_confidence_confidence_initialize=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_confidence_confidence_initialize" >&5
+$as_echo "$ac_cv_lib_confidence_confidence_initialize" >&6; }
+if test "x$ac_cv_lib_confidence_confidence_initialize" = x""yes; then :
+  confidence_libs="yes"
 fi
 
-done
-
-fi
-confidence_libs="yes"
 confidence_enable="no"
-# Check whether --enable-confidence-output was given.
-if test "${enable_confidence_output+set}" = set; then :
-  enableval=$enable_confidence_output; confidence_enable="yes"
+# Check whether --enable-confidence was given.
+if test "${enable_confidence+set}" = set; then :
+  enableval=$enable_confidence; confidence_enable="yes"
 fi
 
 if test "x$confidence_enable" = "xyes" ; then
     if test "x$confidence_headers" = "xno" ; then
-    	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error "\"Confidence header 'measurement.h' not found.\"
-See \`config.log' for more details." "$LINENO" 5; }
-    elif test "x$confidence_libs" = "xno" ; then
-    	{ { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
-$as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
-as_fn_error "\"Confidence library 'libconfmeasure.a' not found.\"
-See \`config.log' for more details." "$LINENO" 5; }
+    	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: \"Confidence headers not found.
+		Add '-I<confidence_dir>' to CFLAGS.
+		Continuing without Confidence enabled...\"" >&5
+$as_echo "$as_me: WARNING: \"Confidence headers not found.
+		Add '-I<confidence_dir>' to CFLAGS.
+		Continuing without Confidence enabled...\"" >&2;}
     fi
-    CONFIG_CONFIDENCE_ENABLED="-DCONFIDENCE_ENABLED"
+    if test "x$confidence_libs" = "xno" ; then
+    	{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: \"Confidence library 'libconfidence.a' not found.
+		Add '-L<confidence_dir> -lm -lconfidence' to LDFLAGS.
+		Continuing without Confidence enabled...\"" >&5
+$as_echo "$as_me: WARNING: \"Confidence library 'libconfidence.a' not found.
+		Add '-L<confidence_dir> -lm -lconfidence' to LDFLAGS.
+		Continuing without Confidence enabled...\"" >&2;}
+    fi
+    if test "x$confidence_headers" = "xyes" ; then
+        if test "x$confidence_libs" = "xyes" ; then
+    	    CONFIG_CONFIDENCE_ENABLED="-DCONFIDENCE_ENABLED"
 
+	fi
+    fi
 fi
 
 

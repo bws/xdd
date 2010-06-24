@@ -145,32 +145,36 @@ fi
 
 
 dnl
-dnl Check for Confidence output ability
+dnl Check for Confidence availability
 dnl
 confidence_headers="no"
-AC_CHECK_HEADERS([comm.h],
+AC_CHECK_HEADERS([libconfidence.h],
 		[confidence_headers="yes"],
 		[confidence_headers="no"],
-		[#include "types.h"])
-if test "x$confidence_headers" = "xyes" ; then
-	AC_CHECK_HEADERS([measurement.h],
-		[confidence_headers="yes"],
-		[confidence_headers="no"],
-		[#include "types.h"])
-fi
-confidence_libs="yes"
-dnl AC_CHECK_LIB([confmeasure], [measurement_create], [confidence_libs="yes"])
+		[#include "types.h"
+		 #include "globalvars.h"])
+confidence_libs="no"
+AC_CHECK_LIB([confidence], [confidence_initialize], [confidence_libs="yes"])
 confidence_enable="no"
-AC_ARG_ENABLE([confidence-output],
-	      [AS_HELP_STRING(--enable-confidence-output,Enable Confidence formatted output files)],
+AC_ARG_ENABLE([confidence],
+	      [AS_HELP_STRING(--enable-confidence,Enable Confidence formatted output files)],
 	      [confidence_enable="yes"])
 if test "x$confidence_enable" = "xyes" ; then
     if test "x$confidence_headers" = "xno" ; then
-    	AC_MSG_FAILURE("Confidence header 'measurement.h' not found.")
-    elif test "x$confidence_libs" = "xno" ; then
-    	AC_MSG_FAILURE("Confidence library 'libconfmeasure.a' not found.")
+    	AC_MSG_WARN("Confidence headers not found.
+		Add '-I<confidence_dir>' to CFLAGS.
+		Continuing without Confidence enabled...")
     fi
-    AC_SUBST(CONFIG_CONFIDENCE_ENABLED, "-DCONFIDENCE_ENABLED")
+    if test "x$confidence_libs" = "xno" ; then
+    	AC_MSG_WARN("Confidence library 'libconfidence.a' not found.
+		Add '-L<confidence_dir> -lm -lconfidence' to LDFLAGS.
+		Continuing without Confidence enabled...")
+    fi
+    if test "x$confidence_headers" = "xyes" ; then
+        if test "x$confidence_libs" = "xyes" ; then
+    	    AC_SUBST(CONFIG_CONFIDENCE_ENABLED, "-DCONFIDENCE_ENABLED")
+	fi
+    fi
 fi
 
 
