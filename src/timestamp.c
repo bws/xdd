@@ -169,7 +169,7 @@ xdd_ts_write(ptds_t *p) {
 	ttp = p->ttp;
 	if ((p->ts_options & TS_DUMP) == 0)  /* dump only if DUMP was specified */
 		return;
-	sprintf(tsfilename,"%s.target.%04d.qthread.%04d.bin",xgp->tsoutput_filename,p->my_target_number,p->my_qthread_number);
+	sprintf(tsfilename,"%s.target.%04d.qthread.%04d.bin",xgp->tsbinary_filename,p->my_target_number,p->my_qthread_number);
 	ttfd = open(tsfilename,O_WRONLY|O_CREAT,0666);
 	if (ttfd < 0) {
 		fprintf(xgp->errout,"%s: cannot open timestamp table output file %s\n", xgp->progname,tsfilename);
