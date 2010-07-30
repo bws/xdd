@@ -205,7 +205,7 @@ function xddmcp_main() {
     for ((i=0; i < $g_connectionCount; i+=1)); do
         xddmcp_partition 5000000000000 $i $g_connectionCount rankOffset rankPartSize
         local channelIdx=${g_connectionChannel[$i]}
-        echo "Start src: ${g_connectionSrc[$i]} ${g_channelThreads[$channelIdx]} ${g_channelDestDIO[$channelIdx]}"
+        echo "Start src: ${g_connectionSrc[$i]} ${g_channelThreads[$channelIdx]} ${g_channelSrcDIO[$channelIdx]}"
     done
 
     # Collect statuses
