@@ -47,8 +47,8 @@
 
 # XDD Configurable global settings
 XDDCP_DEFAULT_E2E_PORT=40010
-XDDCP_DEFAULT_XFER_SIZE=33554432
-XDDCP_DEFAULT_QUEUE_DEPTH=4
+XDDCP_DEFAULT_XFER_SIZE=67108864
+XDDCP_DEFAULT_QUEUE_DEPTH=12
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
 XDDCP_DEFAULT_TIMESTAMP="$(/bin/date -u +'%Y-%m-%d-%H%M%S')-GMT"
@@ -71,6 +71,8 @@ XDDCP_ERR_CODE_VERSION_MATCH=12
 XDDCP_ERR_CODE_NO_REMOTE=13
 XDDCP_ERR_CODE_XFER_FAIL=14
 XDDCP_ERR_CODE_DEST_PORT=15
+XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO=16
+XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO=17
 
 #
 # Global variables
@@ -171,6 +173,12 @@ function error_print() {
             ;;
         $XDDCP_ERR_CODE_DEST_PORT) 
             echo "ERROR: Destination port is in use" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO)
+            echo "ERROR: Destination is raw device, direct I/O is not allowed." >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO)
+            echo "ERROR: Source is raw device, direct I/O is not allowed." >/dev/stderr
             ;;
         \?) 
             echo "ERROR: Unknown error code" >/dev/stderr
@@ -339,8 +347,11 @@ function check_source_file_preconditions() {
 
     # Arguments
     local sourceSideFilename=$1
-    local fileSizeFlag=$2
-    local transferSize=$3
+    local destSideFilename=$2
+    local fileSizeFlag=$3
+    local transferSize=$4
+    local srcDIOFlag=$5
+    local destDIOFlag=$6
 
     # Ensure source side file exists
     if [ ! -r "${sourceSideFilename}" ]; then
@@ -352,12 +363,22 @@ function check_source_file_preconditions() {
     local sourceDir="$(dirname $sourceSideFilename)"
     if [ "$sourceDir" != "/dev" ]; then
         local trueSize=$(stat -c '%s' "$sourceSideFilename")
-        if [ 16777216 -gt $trueSize ]; then
+        if [ $XDDCP_DEFAULT_XFER_SIZE -gt $trueSize ]; then
             error_exit $XDDCP_ERR_CODE_SMALL_FILE
         elif [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
             error_exit $XDDCP_ERR_CODE_XFER_SIZE
         fi
     fi
+
+    # Ensure devices and Direct I/O are not combined
+    local destDir="$(dirname $destSideFilename)"
+    if [ "$sourceDir" = "/dev" -a 0 -ne $srcDIOFlag ]; then
+        error_exit $XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO
+    elif [ "$destDir" = "/dev" -a 0 -ne $destDIOFlag ]; then
+        error_exit $XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO
+    fi
+
+    return 0
 }
 
 #
