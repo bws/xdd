@@ -102,8 +102,9 @@ pclk_now(pclk_t *pclkp) {
     struct timespec current_time;
 
     if(pclk_initialized) {
-        clock_gettime(CLOCK_REALTIME, &current_time);
-        *pclkp = (pclk_t)((((long long int)current_time.tv_sec * BILLION) + (long long int)current_time.tv_nsec) * THOUSAND);
+		clock_gettime(CLOCK_MONOTONIC, &current_time);
+		*pclkp =  (pclk_t)(((long long int)current_time.tv_sec * TRILLION) +
+						   ((long long int)current_time.tv_nsec * THOUSAND));
     } else *pclkp = 0;
     return;
 }
@@ -117,7 +118,8 @@ pclk_now(pclk_t *pclkp) {
 
     if(pclk_initialized) {
         gettimeofday(&current_time, &tz);
-        *pclkp = (pclk_t)((((long long int)current_time.tv_sec * BILLION) + (long long int)current_time.tv_usec) * MILLION));
+		*pclkp =  (pclk_t)(((long long int)current_time.tv_sec * TRILLION) +
+						   ((long long int)current_time.tv_usec * MILLION));
     } else *pclkp = 0;
     return;
 }
