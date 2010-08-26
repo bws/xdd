@@ -278,6 +278,46 @@ function check_host_preconditions() {
     fi
 }
 
+
+#
+# Check preconditions for the transfer
+#
+function check_transfer_preconditions() {
+
+    # Arguments
+    local sourceSideFilename=$1
+    local destSidePathname=$2
+    local srcDIOFlag=$3
+    local destDIOFlag=$4
+    local fileSizeFlag=$5
+    local transferSize=$6
+
+    # Ensure source side file exists
+    if [ ! -r "${sourceSideFilename}" ]; then
+	echo "INFO: Cannot read ${sourceSideFilename}"
+	error_exit $XDDCP_ERR_CODE_SRC_XST
+    fi
+
+    # Ensure file is large enough
+    local sourceDir="$(dirname $sourceSideFilename)"
+    if [ "$sourceDir" != "/dev" ]; then
+        local trueSize=$(stat -c '%s' "$sourceSideFilename")
+        if [ 16777216 -gt $trueSize ]; then
+            error_exit $XDDCP_ERR_CODE_SMALL_FILE
+        elif [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
+            error_exit $XDDCP_ERR_CODE_XFER_SIZE
+        fi
+    fi
+
+    # Ensure DIO is not used with devices
+    local destDir="$(dirname $destSidePathname)"
+    if [ "$sourceDir" = "/dev" -a 1 -eq "$srcDIOFlag" ]; then
+	error_exit $XDDCP_ERR_CODE_SRC_DIO
+    elif [ "$destDir" = "/dev" -a 1 -eq "$destDIOFlag" ]; then
+	error_exit $XDDCP_ERR_CODE_DEST_DIO
+    fi
+}
+
 #
 # Execute xdd commands locally
 #
@@ -329,35 +369,6 @@ EOF
         error_exit $XDDCP_ERR_CODE_SSH_ERROR
     fi
     echo "$remoteOutput"
-}
-
-
-#
-# Check preconditions for the source side file
-#
-function check_source_file_preconditions() {
-
-    # Arguments
-    local sourceSideFilename=$1
-    local fileSizeFlag=$2
-    local transferSize=$3
-
-    # Ensure source side file exists
-    if [ ! -r "${sourceSideFilename}" ]; then
-	echo "INFO: Cannot read ${sourceSideFilename}"
-	error_exit $XDDCP_ERR_CODE_SRC_XST
-    fi
-
-    # Ensure file is large enough
-    local sourceDir="$(dirname $sourceSideFilename)"
-    if [ "$sourceDir" != "/dev" ]; then
-        local trueSize=$(stat -c '%s' "$sourceSideFilename")
-        if [ 16777216 -gt $trueSize ]; then
-            error_exit $XDDCP_ERR_CODE_SMALL_FILE
-        elif [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
-            error_exit $XDDCP_ERR_CODE_XFER_SIZE
-        fi
-    fi
 }
 
 #
@@ -861,6 +872,10 @@ function xddcp_main() {
         # Parse the source side spec
         srcRemoteFlag=0
         parse_endpoint_spec ${srcFileSpec} srcRemoteFlag srcUser srcHost srcPath
+
+	# Check the transfer preconditions
+	check_transfer preconditions "${srcFileSpec}" "${destPath}" \
+	    "${srcDIOFlag}" "${destDIOFlag}" "${fileSizeFlag}"
 
         # Ensure at least one of the sides is remote
         if [ 0 -eq ${destRemoteFlag} -a 0 -eq ${srcRemoteFlag} ]; then
