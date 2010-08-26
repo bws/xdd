@@ -92,7 +92,7 @@ xdd_e2e_src_init(ptds_t *qp) {
 	if ((qp->target_options & TO_RESTART_ENABLE) && (qp->restartp)) { // Check to see if restart was requested
 		// Set the last_committed_location to 0
 		rp = qp->restartp;
-		rp->last_committed_location = 0;
+		rp->last_committed_location = rp->byte_offset;
 		rp->last_committed_length = 0;
 	}
 
@@ -286,7 +286,7 @@ xdd_e2e_dest_init(ptds_t *qp) {
 	if ((qp->target_options & TO_RESTART_ENABLE) && (qp->restartp)) { 
 		// Set the last_committed_location to 0
 		rp = qp->restartp;
-		rp->last_committed_location = 0;
+		rp->last_committed_location = rp->byte_offset;
 		rp->last_committed_length = 0;
 	}
 
@@ -602,3 +602,13 @@ xdd_sockets_init(void) {
 	return(0);
 
 } /* end of xdd_sockets_init() */
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

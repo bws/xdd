@@ -79,8 +79,8 @@ function xddmcp_parse_connection() {
     g_connectionDest[0]="192.168.1.4"
     g_connectionChannelIdx[0]=0
 
-    g_connectionSrc[1]="192.168.1.10"
-    g_connectionDest[1]="192.168.1.11"
+    g_connectionSrc[1]="192.168.1.5"
+    g_connectionDest[1]="192.168.1.6"
     g_connectionChannelIdx[1]=0
 
     # Increment the connection count
@@ -177,6 +177,13 @@ function xddmcp_main() {
     trap 'handle_signal_common; trap 15; kill -15 $$' 15
 
     # Parse arguments
+    if [ 2 -lt  $# ]; then
+	xddmcp_print_usage
+	exit 12
+    fi
+    srcPath=$1
+    destPath=$2
+
     #xddmcp_print_usage
 
     # Locate config
@@ -188,28 +195,44 @@ function xddmcp_main() {
 
     # Parse config
     xddmcp_parse_config $configFile
+    fileSize=$(stat -c '%s' $srcPath)
+
+    # Set preconditions
+    g_xddcpXddVersion=$(${XDDCP_DEFAULT_XDD} -version)
 
     # Start destinations
     local rankOffset=0
     local rankPartSize=0
+    #g_connectionCount=1
     for ((i=0; i < $g_connectionCount; i+=1)); do
-        xddmcp_partition 5000000000000 $i $g_connectionCount rankOffset rankPartSize
+        xddmcp_partition $fileSize $i $g_connectionCount rankOffset rankPartSize
         local channelIdx=${g_connectionChannel[$i]}
         echo "Start dest: ${g_connectionDest[$i]} ${g_channelThreads[$channelIdx]} ${g_channelDestDIO[$channelIdx]}"
+	start_destination_xdd $srcPath $destPath $rankPartSize \
+		${g_channelThreads[$channelIdx]} 40010 \
+		${g_channelDestDIO[$channelIdx]} 0 0 0 0 0 1 \
+		${g_connectionDest[$i]} bws
     done
 
     # Pause to let everything get initialized
-    sleep 0
+    sleep 10
 
     # Start the sources to initiate transfers
     for ((i=0; i < $g_connectionCount; i+=1)); do
-        xddmcp_partition 5000000000000 $i $g_connectionCount rankOffset rankPartSize
+        xddmcp_partition $fileSize $i $g_connectionCount rankOffset rankPartSize
         local channelIdx=${g_connectionChannel[$i]}
         echo "Start src: ${g_connectionSrc[$i]} ${g_channelThreads[$channelIdx]} ${g_channelSrcDIO[$channelIdx]}"
+
+	start_source_xdd $srcPath $rankPartSize \
+		${g_channelThreads[$channelIdx]} 40010 \
+		${g_channelSrcDIO[$channelIdx]} 0 0 0 0 \
+		${g_connectionDest[$i]} 1 \
+		${g_connectionSrc[$i]} bws &
     done
 
     # Collect statuses
-    
+    wait
+
     return 0
 }
 
@@ -223,7 +246,8 @@ function xddmcp_main() {
 # the overload after sourcing the appropriate file(s).
 #
 xddcp_path=$(which xddcp)
-if [ -f $xddcp_path ]; then
+xddcp_path=/ccs/home/bws/sandbox/xdd/contrib/xddcp
+if [ -f "$xddcp_path" ]; then
     exit() { :; }
     source $xddcp_path >/dev/null
     unset -f exit
@@ -232,7 +256,9 @@ else
     exit 1
 fi
 
+# Use a working XDD rather than the current version
+XDDCP_DEFAULT_XDD="/ccs/home/bws/software/xdd-7.0.0.rc14/bin/xdd.$(/bin/uname)"
 
 # Main
-xddmcp_main
+xddmcp_main $*
 exit $?

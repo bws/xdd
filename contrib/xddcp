@@ -47,8 +47,8 @@
 
 # XDD Configurable global settings
 XDDCP_DEFAULT_E2E_PORT=40010
-XDDCP_DEFAULT_XFER_SIZE=33554432
-XDDCP_DEFAULT_QUEUE_DEPTH=4
+XDDCP_DEFAULT_XFER_SIZE=67108864
+XDDCP_DEFAULT_QUEUE_DEPTH=12
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
 XDDCP_DEFAULT_TIMESTAMP="$(/bin/date -u +'%Y-%m-%d-%H%M%S')-GMT"
@@ -71,6 +71,9 @@ XDDCP_ERR_CODE_VERSION_MATCH=12
 XDDCP_ERR_CODE_NO_REMOTE=13
 XDDCP_ERR_CODE_XFER_FAIL=14
 XDDCP_ERR_CODE_DEST_PORT=15
+XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO=16
+XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO=17
+XDDCP_ERR_CODE_DEST_DEV_FILE_SIZE=18
 
 #
 # Global variables
@@ -171,6 +174,15 @@ function error_print() {
             ;;
         $XDDCP_ERR_CODE_DEST_PORT) 
             echo "ERROR: Destination port is in use" >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO)
+            echo "ERROR: Destination is raw device, direct I/O is not allowed." >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO)
+            echo "ERROR: Source is raw device, direct I/O is not allowed." >/dev/stderr
+            ;;
+        $XDDCP_ERR_CODE_SRC_DEV_FILE_SIZE)
+            echo "ERROR: Source is raw device, transfer size must be provided." >/dev/stderr
             ;;
         \?) 
             echo "ERROR: Unknown error code" >/dev/stderr
@@ -287,10 +299,17 @@ function check_transfer_preconditions() {
     # Arguments
     local sourceSideFilename=$1
     local destSidePathname=$2
-    local srcDIOFlag=$3
-    local destDIOFlag=$4
-    local fileSizeFlag=$5
-    local transferSize=$6
+    local srcRemoteFlag=$3
+    local destRemoteFlag=$4
+    local srcDIOFlag=$5
+    local destDIOFlag=$6
+    local fileSizeFlag=$7
+    local transferSize=$8
+
+    # Ensure at least one of the sides is remote
+    if [ 0 -eq ${destRemoteFlag} -a 0 -eq ${srcRemoteFlag} ]; then
+        error_exit $XDDCP_ERR_CODE_NO_REMOTE
+    fi
 
     # Ensure source side file exists
     if [ ! -r "${sourceSideFilename}" ]; then
@@ -299,23 +318,31 @@ function check_transfer_preconditions() {
     fi
 
     # Ensure file is large enough
-    local sourceDir="$(dirname $sourceSideFilename)"
+    local totalBytes="$transferSize"
+    local sourceDir="${sourceSideFilename:0:4}"
     if [ "$sourceDir" != "/dev" ]; then
-        local trueSize=$(stat -c '%s' "$sourceSideFilename")
-        if [ 16777216 -gt $trueSize ]; then
+        local trueSize="$(get_file_size $sourceSideFilename)"
+        if [ $XDDCP_DEFAULT_XFER_SIZE -gt $trueSize ]; then
             error_exit $XDDCP_ERR_CODE_SMALL_FILE
         elif [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
             error_exit $XDDCP_ERR_CODE_XFER_SIZE
         fi
+    elif [ "$sourceDir" = "/dev" ]; then
+	if [ 0 -eq "$fileSizeFlag" ]; then
+	    error_exit $XDDCP_ERR_CODE_SRC_DEV_FILE_SIZE
+	elif [ $XDDCP_DEFAULT_XFER_SIZE -gt "$transferSize" ]; then
+            error_exit $XDDCP_ERR_CODE_XFER_SIZE
+	fi
     fi
 
-    # Ensure DIO is not used with devices
-    local destDir="$(dirname $destSidePathname)"
-    if [ "$sourceDir" = "/dev" -a 1 -eq "$srcDIOFlag" ]; then
-	error_exit $XDDCP_ERR_CODE_SRC_DIO
-    elif [ "$destDir" = "/dev" -a 1 -eq "$destDIOFlag" ]; then
-	error_exit $XDDCP_ERR_CODE_DEST_DIO
+    # Ensure devices and Direct I/O are not combined
+    local destDir="${destSidePathname:0:4}"
+    if [ "$sourceDir" = "/dev" -a 0 -ne $srcDIOFlag ]; then
+        error_exit $XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO
+    elif [ "$destDir" = "/dev" -a 0 -ne $destDIOFlag ]; then
+        error_exit $XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO
     fi
+    return 0
 }
 
 #
@@ -444,14 +471,14 @@ function get_destination_cmds() {
 # Ensure xdd is in the remote path
 \$(hash ${XDDCP_DEFAULT_XDD}) >/dev/null
 if [ 0 -ne \$? ]; then
-    echo "xdd.Linux is not in destination host PATH" >/dev/stderr
+    echo "xdd.Linux is not in destination host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
 # Check that the correct version of XDD is available
 dest_version=\$(${XDDCP_DEFAULT_XDD} -version)
 if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
-    echo "XDD source and destionation version mismatch." >/dev/stderr
+    echo "XDD source and destionation version mismatch."
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
@@ -483,7 +510,7 @@ if [ 1 -eq \$port_conflict ]; then
     used_ports=\$(netstat -nat |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
     for p in \$used_ports; do
         if [ $e2eLB -le \$p -a $e2eUB -gt \$p ]; then
-            echo "Requested port \$p is in use" >/dev/stderr
+            echo "Requested port \$p is in use"
             exit ${XDDCP_ERR_CODE_DEST_PORT}
         fi
     done
@@ -504,13 +531,13 @@ fi
 
 # Ensure destination is writable
 if [ ! -d \$destination_dir ]; then
-    echo "Destination directory does not exist: \$destination_dir" >/dev/stderr
+    echo "Destination directory does not exist: \$destination_dir"
     exit ${XDDCP_ERR_CODE_DEST_XST}
 elif [ -d \$destination_dir -a ! -e \$destination_file -a ! -w \$destination_dir ]; then
-    echo "Destination directory is not writable: \$destination_dir" >/dev/stderr
+    echo "Destination directory is not writable: \$destination_dir"
     exit ${XDDCP_ERR_CODE_DEST_XST}
 elif [ -e \$destination_file -a ! -w \$destination_file ]; then
-    echo "Destination target exists but is not writable: \$destination_file" >/dev/stderr
+    echo "Destination target exists but is not writable: \$destination_file"
     exit ${XDDCP_ERR_CODE_DEST_XST}
 fi
 
@@ -518,7 +545,7 @@ fi
 if [ 1 == $resumeFlag ]; then
     # Ensure sufficient permissions exist to create restart cookie
     if [ ! -w \$destination_dir ]; then
-        echo "Restart option requires write access to: \$destination_dir" >/dev/stderr
+        echo "Restart option requires write access to: \$destination_dir"
         exit ${XDDCP_ERR_CODE_DEST_XST}
     fi
 
@@ -537,15 +564,15 @@ fi
 
 # If insufficient permissions for the log exist, direct to HOME
 if [ ! -w \$destination_dir -a -e \$destination_log -a ! -w \$destination_log ]; then
-    echo "Logfile already exists and is not writable: \$destination_log" >/dev/stderr
+    echo "Logfile already exists and is not writable: \$destination_log" 
     exit ${XDDCP_ERR_CODE_DEST_XST}
 elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
-    home_dir_log="./${destination_log}"
+    home_dir_log="./${destLog}"
     if [ ! -w "./" ]; then
-        echo "Could not create log file as \$destination_log or as \$home_dir_log" >/dev/stderr
+        echo "Could not create log file as \$destination_log or as \$home_dir_log"
         exit ${XDDCP_ERR_CODE_DEST_XST}
     fi
-    echo "Warning: Writing log to: \$home_dir_log" >/dev/stderr
+    echo "Warning: Writing log to: \$home_dir_log"
     destination_log=\$home_dir_log
 fi
 
@@ -557,7 +584,16 @@ if [ -e \$destination_file ]; then
     fi
 fi
 
-${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize ${destQD} -e2e isdestination -e2e dest ${destHost} -e2e port ${e2ePort} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log} 2>&1 &
+# XDD Command
+xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize ${destQD} -e2e isdestination -e2e dest ${destHost} -e2e port ${e2ePort} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log}"
+
+# Log XDD Command
+#if [ 1 -eq $verboseFlag ]; then
+    echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
+#fi
+
+# Invoke XDD
+\${xdd_cmd} >> \${destination_log} 2>&1 &
 
 # Send the restart offset back to the source side via an exit code
 if [ 1 -eq $resumeFlag ]; then
@@ -653,6 +689,9 @@ if [ ! -r "${srcFile}" ]; then
     echo "ERROR: Cannot read source file: ${srcFile}"
     exit ${XDDCP_ERR_CODE_SRC_XST}
 fi
+
+# Add the command to the log file
+echo "Source-side invocation: ${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} ${srcQD} -e2e issource -e2e dest ${destHost} -e2e port ${e2ePort} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct" > ${srcLog}
 
 # Construct local transport endpoint
 ${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} ${srcQD} -e2e issource -e2e dest ${destHost} -e2e port ${e2ePort} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct
@@ -874,13 +913,9 @@ function xddcp_main() {
         parse_endpoint_spec ${srcFileSpec} srcRemoteFlag srcUser srcHost srcPath
 
 	# Check the transfer preconditions
-	check_transfer preconditions "${srcFileSpec}" "${destPath}" \
-	    "${srcDIOFlag}" "${destDIOFlag}" "${fileSizeFlag}"
-
-        # Ensure at least one of the sides is remote
-        if [ 0 -eq ${destRemoteFlag} -a 0 -eq ${srcRemoteFlag} ]; then
-            error_exit $XDDCP_ERR_CODE_NO_REMOTE
-        fi
+	check_transfer_preconditions "${srcFileSpec}" "${destPath}" \
+	    "${srcRemoteFlag}" "${destRemoteFlag}" "${srcDIOFlag}" "${destDIOFlag}" \
+	    "${fileSizeFlag}" "${totalBytes}"
 
         # Determine the source file size
         if [ 0 -eq $fileSizeFlag ]; then

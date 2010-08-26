@@ -2482,6 +2482,11 @@ xddfunc_restart(int32_t argc, char *argv[], uint32_t flags)
 			if (rp == NULL) return(-1);
 			rp->byte_offset = atoll(argv[args_index+1]);
 			rp->flags |= RESTART_FLAG_RESUME_COPY;
+
+			/* Set the last committed location to avoid restart output of
+			   0 if the target does not complete any I/O during first interval 
+			 */
+			p->last_committed_location = rp->byte_offset;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
@@ -2493,6 +2498,11 @@ xddfunc_restart(int32_t argc, char *argv[], uint32_t flags)
 					if (rp == NULL) return(-1);
 					rp->byte_offset = atoll(argv[args_index+1]);
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
+
+					/* Set the last committed location to avoid restart output 
+					   of 0 if the target does not complete any I/O during 
+					   first interval */
+					p->last_committed_location = rp->byte_offset;
 					i++;
 					p = xgp->ptdsp[i];
 				}
