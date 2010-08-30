@@ -59,7 +59,7 @@ function xddmcp_parse_channel() {
     
     # Hardcode the channel info for now
     g_channelNames[$g_channelCount]=usn_xfs
-    g_channelThreads[$g_channelCount]=36
+    g_channelThreads[$g_channelCount]=48
     g_channelDestDIO[$g_channelCount]=1
     g_channelSrcDIO[$g_channelCount]=1
 
