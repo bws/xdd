@@ -225,13 +225,13 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
 		fprintf(stderr,"/%010lldops",(long long int)adjusted_ops);
 	if (xgp->global_options & GO_HB_BYTES)  // display Current number of BYTES transferred 
-		fprintf(stderr,"/%015lldb",(long long int)adjusted_bytes);
+		fprintf(stderr,"/%015lldB",(long long int)adjusted_bytes);
 	if (xgp->global_options & GO_HB_KBYTES)  // display Current number of KILOBYTES transferred 
-		fprintf(stderr,"/%013.1fk",(double)((double)adjusted_bytes / 1024.0) );
+		fprintf(stderr,"/%013.1fKiB",(double)((double)adjusted_bytes / 1024.0) );
 	if (xgp->global_options & GO_HB_MBYTES)  // display Current number of MEGABYTES transferred 
-		fprintf(stderr,"/%010.1fm",(double)((double)adjusted_bytes / (1024.0*1024.0)) );
+		fprintf(stderr,"/%010.1fMiB",(double)((double)adjusted_bytes / (1024.0*1024.0)) );
 	if (xgp->global_options & GO_HB_GBYTES)  // display Current number of GIGABYTES transferred 
-		fprintf(stderr,"/%07.1fg",(double)((double)adjusted_bytes / (1024.0*1024.0*1024.0)) );
+		fprintf(stderr,"/%07.1fGiB",(double)((double)adjusted_bytes / (1024.0*1024.0*1024.0)) );
 	// Bandwidth is calculated on unadjusted bytes regardless of whether or not we are doing a restart
 	if (xgp->global_options & GO_HB_BANDWIDTH) {  // display Current Aggregate BANDWIDTH 
 		if (elapsed != 0.0) {
@@ -239,7 +239,7 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 		} else {
 			d = -1.0;
 		}
-		fprintf(stderr,"/%06.2fmbps",d);
+		fprintf(stderr,"/%06.2fMBps",d);
 	}
 	// IOPS is calculated on unadjusted ops regardless of whether or not we are doing a restart
 	if (xgp->global_options & GO_HB_IOPS){  // display Current Aggregate IOPS 
