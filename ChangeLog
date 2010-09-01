@@ -4,18 +4,23 @@ XDD Release ChangeLog
 
 xdd-7.0.0 RC15
 ==============
-* XDD: Supports ordered mode
-* XDD: Default mode is no longer round-robin, but just loosely ordered
+* XDD: Supports serial ordered thread scheduling
+* XDD: Default mode is now loosely ordered thread scheduling
+* XDD: Strict ordered thread scheduling is no longer available
 * XDDCP: Truncates file to correct length
 * XDDCP: Checks versions
 * XDDCP: More robust error messages
 * XDDCP: Truncates file to correct length
 * XDDCP: Various types of 3rd party and local transfers now work
-* XDDCP: Strict ordering option supported
+* XDDCP: Serial ordering option supported
 * XDDCP: Force mode that kills competing XDDs on destination if the required
          ports are not available
 * XDDCP: Verbose option that logs detailed performance information
 * XDDCP: Detect if the destination side ports are already in use.
+* XDDCP: Disallow -dio when using devices -- it won't work anyway
+* XDDCP: Changing request size back to 16MiB
+* XDDCP: Increasing default thread count to 12.
+* XDDMCP: Adding initial hard-coded test script.
 
 xdd-7.0.0 RC14
 ==============
