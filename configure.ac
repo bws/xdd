@@ -22,7 +22,7 @@ dnl
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
-AC_INIT(XDD,7.0.1.0)
+AC_INIT(XDD,7.0.0.0)
 
 dnl
 dnl Determine source and build directories
