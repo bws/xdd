@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -33,6 +33,13 @@
  * the signal hanler call.
  */
 #include "xdd.h"
+
+/*
+ * Boolean flag indicating whether the user wishes to enter the debugger on
+ * SIGINT (ctrl-c)
+ */
+static int enter_debugger_on_sigint = 0;
+
 /*----------------------------------------------------------------------------*/
 /* xdd_signal_handler() - Routine that gets called when a signal gets caught. 
  * This will call the appropriate routines to shut down gracefully.
@@ -40,13 +47,15 @@
 void
 xdd_signal_handler(int signum, siginfo_t *sip, void *ucp) {
 	ucontext_t	*up;		// Pointer to the ucontext structure
-
 	up = (ucontext_t *)ucp;
-	
+	int enter_debugger = 0;
+        
 	fprintf(xgp->errout,"\n%s: xdd_signal_handler: Received signal %d: ", xgp->progname, signum);
 	switch (signum) {
 		case SIGINT:
 			fprintf(xgp->errout,"SIGINT: Interrupt from keyboard\n");
+                        if (enter_debugger_on_sigint)
+                            enter_debugger = 1;
 			break;
 		case SIGQUIT:
 			fprintf(xgp->errout,"SIGQUIT: Quit from keyboard\n");
@@ -55,19 +64,25 @@ xdd_signal_handler(int signum, siginfo_t *sip, void *ucp) {
 			fprintf(xgp->errout,"SIGABRT: Abort\n");
 			break;
 		case SIGTERM:
-			fprintf(xgp->errout,"SIGTERm: Termination\n");
+			fprintf(xgp->errout,"SIGTERM: Termination\n");
+			break;
+		case SIGUSR1:
+			fprintf(xgp->errout,"SIGUSR1: User requests debug mode\n");
+                        enter_debugger = 1;
 			break;
 		default:
 			fprintf(xgp->errout,"Unknown Signal - terminating\n");
 			break;
 	}
 	fflush(xgp->errout);
-	xgp->canceled += 1;
-	if (xgp->canceled > 3) {
-		fprintf(xgp->errout,"xdd_signal_handler: Starting Debugger\n");
-		xdd_signal_start_debugger();
-	}
 
+        if (enter_debugger) {
+            fprintf(xgp->errout,"xdd_signal_handler: Starting Debugger\n");
+            xdd_signal_start_debugger();
+        }
+        else {
+            exit(signum);
+        }
 } /* end of xdd_signal_handler() */
 
 /*----------------------------------------------------------------------------*/
@@ -76,7 +91,7 @@ xdd_signal_handler(int signum, siginfo_t *sip, void *ucp) {
 int32_t
 xdd_signal_init(void) {
 	int		status;			// status of the sigaction() system call
-
+        char* xdd_debug_env;
 
 	xgp->sa.sa_sigaction = xdd_signal_handler;			// Pointer to the signal handler
  	sigemptyset( &xgp->sa.sa_mask );				// The "empty set" - don't mask any signals
@@ -85,12 +100,19 @@ xdd_signal_init(void) {
 	status += sigaction(SIGQUIT, &xgp->sa, NULL);	// Quit from keyboard 
 	status += sigaction(SIGABRT, &xgp->sa, NULL);	// Abort signal from abort(3)
 	status += sigaction(SIGTERM, &xgp->sa, NULL);	// Termination
+	status += sigaction(SIGUSR1, &xgp->sa, NULL);	// Termination
 
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_signal_init: ERROR initializing signal handler(s)\n",xgp->progname);
 		perror("Reason");
 		return(-1);
 	}
+
+        /* If XDD_DEBUG_ENABLE is set at startup, ctrl-c will enter the debugger
+           rather than cancel the task */
+        if (0 != getenv("XDD_DEBUG_ENABLE"))
+            enter_debugger_on_sigint = 1;
+        
 	return(0);
 
 } /* end of xdd_signal_init() */
@@ -112,3 +134,13 @@ xdd_signal_start_debugger() {
 	}
 
 } // End of xdd_signal_start_debugger()
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

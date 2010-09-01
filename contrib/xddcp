@@ -74,6 +74,9 @@ XDDCP_ERR_CODE_DEST_PORT=15
 XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO=16
 XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO=17
 XDDCP_ERR_CODE_DEST_DEV_FILE_SIZE=18
+XDDCP_ERR_CODE_DEST_DIR_NOT_XST=19
+XDDCP_ERR_CODE_DEST_DIR_NOT_WR=20
+XDDCP_ERR_CODE_DEST_TGT_NOT_WR=21
 
 #
 # Global variables
@@ -184,6 +187,15 @@ function error_print() {
         $XDDCP_ERR_CODE_SRC_DEV_FILE_SIZE)
             echo "ERROR: Source is raw device, transfer size must be provided." >/dev/stderr
             ;;
+	$XDDCP_ERR_CODE_DEST_DIR_NOT_XST)
+	    echo "ERROR: Destination directory does not exist." >/dev/stderr
+	    ;;
+        $XDDCP_ERR_CODE_DEST_DIR_NOT_WR)
+	    echo "ERROR: Destination directory is not writable." >/dev/stderr
+	    ;;
+        $XDDCP_ERR_CODE_DEST_TGT_NOT_WR)
+	    echo "ERROR: Destination target is not writable." >/dev/stderr
+	    ;;
         \?) 
             echo "ERROR: Unknown error code" >/dev/stderr
             ;;
@@ -376,23 +388,24 @@ function remote_exec() {
     fi
 
     # Local decl must be on seperate line so $? is correct
+    local destRC=""
     local remoteOutput=""
     remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
 $cmds
 EOF
         )
-    local destRC=$?
+    destRC=$?
 
     # Check the status of remote operations
     if [ 255 -eq $destRC ]; then
         echo "INFO: Remote output - $remoteOutput" >/dev/stderr
         error_exit $XDDCP_ERR_CODE_SSH_FAILURE
     elif [ 0 -ne $destRC -a ! -z "$remoteOutput" ]; then
-        echo "INFO: Remote Error: $remoteOutput"
+        echo "INFO: Remote RC: $destRC Remote Error: $remoteOutput" >/dev/stderr
         error_print $destRC
         error_exit $XDDCP_ERR_CODE_SSH_ERROR
     elif [ 0 -ne $destRC ]; then
-        echo "INFO: Remote operation failure, no cause detected"
+        echo "INFO: Remote operation failure, no cause detected" >/dev/stderr
         error_exit $XDDCP_ERR_CODE_SSH_ERROR
     fi
     echo "$remoteOutput"
@@ -532,13 +545,13 @@ fi
 # Ensure destination is writable
 if [ ! -d \$destination_dir ]; then
     echo "Destination directory does not exist: \$destination_dir"
-    exit ${XDDCP_ERR_CODE_DEST_XST}
+    exit ${XDDCP_ERR_CODE_DEST_DIR_NOT_XST}
 elif [ -d \$destination_dir -a ! -e \$destination_file -a ! -w \$destination_dir ]; then
     echo "Destination directory is not writable: \$destination_dir"
-    exit ${XDDCP_ERR_CODE_DEST_XST}
+    exit ${XDDCP_ERR_CODE_DEST_DIR_NOT_WR}
 elif [ -e \$destination_file -a ! -w \$destination_file ]; then
     echo "Destination target exists but is not writable: \$destination_file"
-    exit ${XDDCP_ERR_CODE_DEST_XST}
+    exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
 fi
 
 # Perform restart if necessary
@@ -546,7 +559,7 @@ if [ 1 == $resumeFlag ]; then
     # Ensure sufficient permissions exist to create restart cookie
     if [ ! -w \$destination_dir ]; then
         echo "Restart option requires write access to: \$destination_dir"
-        exit ${XDDCP_ERR_CODE_DEST_XST}
+        exit ${XDDCP_ERR_CODE_DEST_DIR_NOT_WR}
     fi
 
     # Create the name for a new restart cookie
@@ -565,12 +578,12 @@ fi
 # If insufficient permissions for the log exist, direct to HOME
 if [ ! -w \$destination_dir -a -e \$destination_log -a ! -w \$destination_log ]; then
     echo "Logfile already exists and is not writable: \$destination_log" 
-    exit ${XDDCP_ERR_CODE_DEST_XST}
+    exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
 elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
     home_dir_log="./${destLog}"
     if [ ! -w "./" ]; then
         echo "Could not create log file as \$destination_log or as \$home_dir_log"
-        exit ${XDDCP_ERR_CODE_DEST_XST}
+        exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
     fi
     echo "Warning: Writing log to: \$home_dir_log"
     destination_log=\$home_dir_log
@@ -731,7 +744,7 @@ function start_destination_xdd() {
         exit $execRC
     fi
 
-    # Execute source commands
+    # Execute destination side commands
     if [ 1 -eq ${remoteFlag} ]; then
         destResult=$(remote_exec "${destCmds}" "${destHost}" "${destUser}")
         execRC=$?
