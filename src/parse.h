@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
  *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Brad Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
  *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
@@ -85,7 +85,7 @@ int xddfunc_minall(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_multipath(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_nobarrier(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_nomemlock(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_strictordering(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_serialordering(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_noproclock(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_numreqs(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_operationdelay(int32_t argc, char *argv[], uint32_t flags);

@@ -83,7 +83,7 @@
 #define TO_VERIFY_CONTENTS     0x0000004000000000ULL  // Verify the contents of the I/O buffer 
 #define TO_VERIFY_LOCATION     0x0000008000000000ULL  // Verify the location of the I/O buffer (first 8 bytes) 
 #define TO_RESTART_ENABLE      0x0000010000000000ULL  // Restart option enabled 
-#define TO_STRICT_ORDERING     0x0000020000000000ULL  // Use Strict Ordering on QThreads
+#define TO_SERIAL_ORDERING     0x0000020000000000ULL  // Use Serial Ordering on QThreads
 #define TO_LOOSE_ORDERING      0x0000040000000000ULL  // Use Loose Ordering on QThreads
 #define TO_NULL_TARGET         0x0000080000000000ULL  // Indicates that the target is effectively /dev/null
 
@@ -146,13 +146,13 @@ struct ptds {
 	uint64_t			bytes_remaining;					// Bytes remaining to be transferred 
 
 	// Target-specific semaphores and associated pointers
-	struct ptds			*next_qthread_to_use;				// This is used by the get_next_available_qthread() to implement strict ordering
+	struct ptds			*next_qthread_to_use;				// This is used by the get_next_available_qthread() to implement serial ordering
 	sem_t				any_qthread_available;				// The xdd_get_next_available_qthread() routine waits on this for any QThread to become available
 	struct ptds			*last_qthread_assigned;				// This is the PTDS of the most recent QThread assigned a task 
 
 	// QThread-specific semaphores and associated pointers
 	sem_t				this_qthread_available;				// The xdd_get_next_available_qthread() routine waits on this for a specific QThread to become available
-	sem_t				qthread_ordering_sem;				// The QThread sets this to release a waiting QThread when Strict or Loose ordering is used
+	sem_t				qthread_ordering_sem;				// The QThread sets this to release a waiting QThread when Serial or Loose ordering is used
 	sem_t				qthread_io_complete;				// The QThread sets this to 1 when it has completed an I/O and resets to 0 when it starts an I/O
 	pthread_mutex_t		this_qthread_is_working;			// Used to serialize the end_of_pass processing in target_pass()
 	pthread_mutex_t		this_qthread_is_available_mutex;	// Used to serialize access to the "this_qthread_is_available" variable

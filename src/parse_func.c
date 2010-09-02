@@ -1378,7 +1378,7 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 } // End of xddfunc_lockstep()
 /*----------------------------------------------------------------------------*/
 // Loose Ordering - Allow loose ordering of QThread I/O
-// Note that Loose Ordering for a Target is mutually exclusive with Strict Ordering
+// Note that Loose Ordering for a Target is mutually exclusive with Serial Ordering
 // Arguments: -looseordering [target #] 
 // aka -lo 
 int
@@ -1398,7 +1398,7 @@ xddfunc_looseordering(int32_t argc, char *argv[], uint32_t flags)
 		if (p == NULL) return(-1);
 
 		p->target_options |= TO_LOOSE_ORDERING;
-		p->target_options &= ~TO_STRICT_ORDERING;
+		p->target_options &= ~TO_SERIAL_ORDERING;
         return(args+1);
     } else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
@@ -1406,7 +1406,7 @@ xddfunc_looseordering(int32_t argc, char *argv[], uint32_t flags)
 				i = 0;
 				while (p) {
 					p->target_options |= TO_LOOSE_ORDERING;
-					p->target_options &= ~TO_STRICT_ORDERING;
+					p->target_options &= ~TO_SERIAL_ORDERING;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -3270,12 +3270,12 @@ xddfunc_stoptrigger(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
-// Strict Ordering - Enforce Strict Ordering on QThread I/O
-// Note that Strict Ordering for a Target is mutually exclusive with Loose Ordering
-// Arguments: -strictordering [target #] 
+// Serial Ordering - Enforce Serial Ordering on QThread I/O
+// Note that Serial Ordering for a Target is mutually exclusive with Loose Ordering
+// Arguments: -serialordering [target #] 
 // aka -nso 
 int
-xddfunc_strictordering(int32_t argc, char *argv[], uint32_t flags)
+xddfunc_serialordering(int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
@@ -3290,7 +3290,7 @@ xddfunc_strictordering(int32_t argc, char *argv[], uint32_t flags)
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
-		p->target_options |= TO_STRICT_ORDERING;
+		p->target_options |= TO_SERIAL_ORDERING;
 		p->target_options &= ~TO_LOOSE_ORDERING;
         return(args+1);
     } else {// Put this option into all PTDSs 
@@ -3298,7 +3298,7 @@ xddfunc_strictordering(int32_t argc, char *argv[], uint32_t flags)
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_STRICT_ORDERING;
+					p->target_options |= TO_SERIAL_ORDERING;
 					p->target_options &= ~TO_LOOSE_ORDERING;
 					i++;
 					p = xgp->ptdsp[i];
@@ -3306,7 +3306,7 @@ xddfunc_strictordering(int32_t argc, char *argv[], uint32_t flags)
 			}
         return(1);
 	}
-} // End of  xddfunc_strictordering()
+} // End of  xddfunc_serialordering()
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_syncio(int32_t argc, char *argv[], uint32_t flags)
