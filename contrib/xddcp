@@ -105,7 +105,7 @@ function print_usage() {
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
-#    echo " -o		- Ordered-mode, write data in sequential order"
+    echo " -o		- Ordered-mode, write data in sequential order [the current default]"
 #    echo " -r		- Copy sub-directories and contents recursively"
     echo " -s		- Use direct I/O on the source end"
     echo " -t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
@@ -837,7 +837,7 @@ function xddcp_main() {
     e2ePort=$XDDCP_DEFAULT_E2E_PORT
     fileListFlag=0
     forceFlag=0
-    orderedFlag=0
+    orderedFlag=1
     queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
     recursiveFlag=0
     resumeFlag=0
