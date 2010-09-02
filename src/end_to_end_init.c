@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -440,9 +440,9 @@ xdd_e2e_set_socket_opts(ptds_t *qp, char *sktname, int skt) {
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
 	}
-	status = setsockopt(skt,level,SO_REUSEADDR,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
+	status = setsockopt(skt,level,SO_REUSEADDR, &optionvalue,sizeof(xgp->e2e_TCP_Win));
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_REUSEPORT: status %d: %s\n", 
+		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_REUSEADDR: status %d: %s\n", 
 			xgp->progname, 
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
