@@ -73,7 +73,7 @@ xdd_qthread(void *pin) {
 	// The subroutine that is called for any particular task will set the "xgp->canceled" flag to
 	// indicate that there was a condition that warrants canceling the entire run
 	while (1) {
-		// Enter the QThread_TargetPass_Wait barrier until we are assigned something to do byte target_pass()
+		// Enter the QThread_TargetPass_Wait barrier until we are assigned something to do byte targetpass()
 		xdd_barrier(&qp->qthread_targetpass_wait_barrier,&qp->occupant,1);
 
 		pthread_mutex_lock(&qp->this_qthread_is_working);
@@ -91,6 +91,11 @@ xdd_qthread(void *pin) {
 				// This indicates that we should clean up and exit this subroutine
 				xdd_qthread_cleanup(qp);
 				return(0);
+			case TASK_REQ_EOF:
+				// Upon completion of xdd_e2e_eof_source_side(), pass_complete will be set for this QThread
+				xdd_e2e_eof_source_side(qp);
+				qp->pass_complete = 1;
+				break;
 			default:
 				// Technically, we should never see this....
 				fprintf(xgp->errout,"%s: xdd_qthread: WARNING: Target number %d name '%s' QThread %d - unknown work request: 0x%x.\n",
@@ -129,10 +134,13 @@ xdd_qthread(void *pin) {
 			}
 		}
 		pthread_mutex_unlock(&qp->this_qthread_is_available_mutex);
-		if (qp->pass_complete) {
-			p->pass_complete = 1;
-			xdd_barrier(&p->targetpass_qthread_passcomplete_barrier,&p->occupant,1);
+
+		// For an E2E operation pass_complete is set by xdd_qthread_io() on the destination side after reading an EOF packet
+		// or on the source side pass_complete will be set after returning from xdd_e2e_eof_source_side().      
+		if (qp->pass_complete) { // If this QThread is done for this pass then enter the targetpass_qthread_passcomplete barrier
+			xdd_barrier(&p->targetpass_qthread_passcomplete_barrier,&p->occupant,0);
 		}
+
 		// Unlock the "working" mutex in case we are doing end-of-pass processing
 		pthread_mutex_unlock(&qp->this_qthread_is_working);
 	

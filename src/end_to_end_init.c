@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Brad Settlemyer, DoE/ORNL
+ *       Bradly Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -49,18 +49,6 @@ xdd_e2e_src_init(ptds_t *qp) {
 	int  		status; // status of various function calls 
 	restart_t	*rp;	// pointer to a restart structure
 
-
-	if (xgp->global_options & GO_DEBUG) {
-		fprintf(xgp->errout,"xdd_e2e_src_init: Target %d QThread %d: Entering\n",
-			qp->my_target_number,
-			qp->my_qthread_number);
-	}
-
-	if (xgp->global_options & GO_DEBUG) {
-		fprintf(xgp->errout,"xdd_e2e_src_init: Target %d QThread %d: Calling xdd_e2e_setup_src_socket\n",
-			qp->my_target_number,
-			qp->my_qthread_number);
-	}
 
 	// Check to make sure that the source target is actually *reading* the data from a file or device
 	if (qp->rwratio < 1.0) { // Something is wrong - the source file/device is not 100% read
@@ -94,12 +82,6 @@ xdd_e2e_src_init(ptds_t *qp) {
 		rp = qp->restartp;
 		rp->last_committed_location = rp->byte_offset;
 		rp->last_committed_length = 0;
-	}
-
-	if (xgp->global_options & GO_DEBUG) {
-		fprintf(xgp->errout,"xdd_e2e_src_init: Target %d QThread %d: Exiting\n",
-			qp->my_target_number,
-			qp->my_qthread_number);
 	}
 
 	return(0);
@@ -174,32 +156,12 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 	qp->e2e_sname.sin_addr.s_addr = htonl(qp->e2e_dest_addr);
 	qp->e2e_sname.sin_port = htons(qp->e2e_dest_port);
 	qp->e2e_snamelen = sizeof(qp->e2e_sname);
-	if ((xgp->global_options & GO_DEBUG)) {
-		fprintf(xgp->errout,"xdd_e2e_setup_src_socket: Target %d QThread %d: about to connect to Destination Hostname %s\tSocket address is 0x%x = %s\tPort %d <0x%x>,TCP SOCK_STREAM\n", 
-			qp->my_target_number,
-			qp->my_qthread_number, 
-			qp->e2e_dest_hostname,
-			qp->e2e_sname.sin_addr.s_addr, 
-			inet_ntoa(qp->e2e_sname.sin_addr),
-			qp->e2e_sname.sin_port,
-			qp->e2e_sname.sin_port);
-	}
 
 	// Connecting to the server....
 	status = connect(qp->e2e_sd, (struct sockaddr *) &qp->e2e_sname, sizeof(qp->e2e_sname));
 	if (status) {
 		xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","error connecting to socket for E2E destination\n");
 		return(-1);
-	}
-	if (xgp->global_options & GO_DEBUG) {
-		fprintf(xgp->errout,"xdd_e2e_setup_src_socket: Target %d QThread %d: Destination Hostname is %s\tSocket address is 0x%x = %s Port %d <0x%x>TCP:SOCK_STREAM\n", 
-			qp->my_target_number,
-			qp->my_qthread_number, 
-			qp->e2e_dest_hostname,
-			qp->e2e_sname.sin_addr.s_addr, 
-			inet_ntoa(qp->e2e_sname.sin_addr),
-			qp->e2e_sname.sin_port,
-			qp->e2e_sname.sin_port);
 	}
 
 	// Convert this back so that we retain the correct information to use with send/recv
@@ -225,11 +187,8 @@ xdd_e2e_dest_init(ptds_t *qp) {
 	restart_t	*rp;	// Pointer to a restart structure used by the restart_monitor()
 
 
-	if (xgp->global_options & GO_DEBUG) {
-		fprintf(xgp->errout,"xdd_e2e_dest_init: Target %d QThread %d: Initializing destination\n",
-			qp->my_target_number,
-			qp->my_qthread_number);
-	}
+	// Turn off LOOSE or STRICT Ordering because it does not work on the Destination Side
+	qp->target_options &= ~(TO_STRICT_ORDERING | TO_LOOSE_ORDERING);
 
 	// Check to make sure that the destination target is actually *writing* the data it receives to a file or device
 	if (qp->rwratio > 0.0) { // Something is wrong - the destination file/device is not 100% write
@@ -384,23 +343,6 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 		}
 	}
 
-	// Misc debugging information
-	if (xgp->global_options & GO_DEBUG) {
-		fprintf(xgp->errout,"xdd_e2e_setup_dest_socket: Target %d QThread %d: Destination hostname is %s, Socket address is 0x%x Port %d <0x%x>TCP:SOCK_STREAM\n", 
-			qp->my_target_number,
-			qp->my_qthread_number,
-			qp->e2e_dest_hostname, 
-			qp->e2e_dest_addr, 
-			qp->e2e_dest_port,
-			qp->e2e_dest_port);
-		fprintf(xgp->errout,"xdd_e2e_setup_dest_socket: Target %d QThread %d: Done preparing for connection request\n",
-			qp->my_target_number,
-			qp->my_qthread_number);
-		fprintf(xgp->errout,"xdd_e2e_setup_dest_socket: Target %d QThread %d: Listenning for connections.....\n",
-			qp->my_target_number,
-			qp->my_thread_number);
-	}
-
 	return(0);
 
 } /* end of xdd_e2e_setup_dest_socket() */
@@ -440,16 +382,12 @@ xdd_e2e_set_socket_opts(ptds_t *qp, char *sktname, int skt) {
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
 	}
-	status = setsockopt(skt,level,SO_REUSEADDR, &optionvalue,sizeof(xgp->e2e_TCP_Win));
+	status = setsockopt(skt,level,SO_REUSEADDR,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_REUSEADDR: status %d: %s\n", 
+		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_REUSEPORT: status %d: %s\n", 
 			xgp->progname, 
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
-	}
-	if (xgp->global_options & GO_DEBUG) {
-			fprintf(xgp->errout,"xdd_e2e_set_socket_opts: Target %d QThread %d: DEBUG: Socket %7s set socket buffer sizes| send %11d, | recv %11d | reuse_addr 1\n",
-				qp->my_target_number, qp->my_qthread_number, sktname, xgp->e2e_TCP_Win, xgp->e2e_TCP_Win); 
 	}
 
 } // End of xdd_e2e_set_socket_opts()
@@ -474,10 +412,6 @@ xdd_e2e_prt_socket_opts(char *sktname, int skt) {
 	getsockopt(skt,level,SO_RCVBUF,(char *)&sockbuf_sizr,&optlen);
 	optlen = sizeof(reuse_addr);
 	getsockopt(skt,level,SO_REUSEADDR,(char *)&reuse_addr,&optlen);
-	if (xgp->global_options & GO_DEBUG ) {
-		fprintf(xgp->errout,"%7s get socket buffer sizes| send %11d, | recv %11d | reuse_addr %5d\n",
-			sktname, sockbuf_sizs, sockbuf_sizr, reuse_addr);
-	}
 } // End of xdd_e2e_prt_socket_opts()
 
 /*----------------------------------------------------------------------*/

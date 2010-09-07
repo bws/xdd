@@ -269,14 +269,16 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		    fprintf(out,"\t\tProcessor, all/any\n");
 	else fprintf(out,"\t\tProcessor, %d\n",p->processor);
 	fprintf(out,"\t\tRead/write ratio, %5.2f READ, %5.2f WRITE\n",p->rwratio*100.0,(1.0-p->rwratio)*100.0);
-	fprintf(out,"\t\tThrottle in %s, %6.2f\n",
+	fprintf(out,"\t\tI/O Operation Ordering is, %s\n",
+		(p->target_options & TO_STRICT_ORDERING)?"Strict":((p->target_options & TO_LOOSE_ORDERING)?"Loose":"None"));
+	fprintf(out,"\t\tThrottle in %s is, %6.2f\n",
 		(p->throttle_type & PTDS_THROTTLE_OPS)?"ops/sec":((p->throttle_type & PTDS_THROTTLE_BW)?"MB/sec":"Delay"), p->throttle);
 	fprintf(out,"\t\tPer-pass time limit in seconds, %d\n",p->time_limit);
 	fprintf(out,"\t\tPass seek randomization, %s", (p->target_options & TO_PASS_RANDOMIZE)?"enabled\n":"disabled\n");
 	fprintf(out,"\t\tFile write synchronization, %s", (p->target_options & TO_SYNCWRITE)?"enabled\n":"disabled\n");
-	fprintf(out, "\t\tBlocksize in bytes, %d\n", p->block_size);
+	fprintf(out,"\t\tBlocksize in bytes, %d\n", p->block_size);
 	fprintf(out,"\t\tRequest size, %d, %d-byte blocks, %d, bytes\n",p->reqsize,p->block_size,p->reqsize*p->block_size);
-	fprintf(out, "\t\tNumber of Operations, %lld\n", (long long int)p->target_ops);
+	fprintf(out,"\t\tNumber of Operations, %lld\n", (long long int)p->target_ops);
 
 	// Total Data Transfer for this TARGET
 	fprintf(out, "\t\tTotal data transfer for this TARGET, ");

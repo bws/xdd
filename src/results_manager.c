@@ -184,11 +184,11 @@ xdd_process_pass_results(void) {
 	ptds_t		*p;		// PTDS pointer of the Target PTDS
 	results_t	*tarp;	// Pointer to the Target Average results structure
 	results_t	*trp;	// Pointer to the Temporary Target Pass results
-	results_t	target_pass_results; // Temporary for target pass results
+	results_t	targetpass_results; // Temporary for target pass results
 
 	xgp->heartbeat_holdoff = 1;
 
-	trp = &target_pass_results;
+	trp = &targetpass_results;
 
 	// Next, display pass results for each Target
 	for (target_number=0; target_number<xgp->number_of_targets; target_number++) {
@@ -206,7 +206,7 @@ xdd_process_pass_results(void) {
 		}
 		
 		// Init the Target Pass Results struct
-		trp = &target_pass_results;
+		trp = &targetpass_results;
 
 		// Get the results from this Target's PTDS and stuff them into a results struct for display
 		xdd_extract_pass_results(trp, p);

@@ -137,7 +137,8 @@ struct ptds {
 	// Target-specific variables
 	xdd_barrier_t		target_qthread_init_barrier;		// Where the Target Thread waits for the QThread to initialize
 
-	xdd_barrier_t		targetpass_qthread_passcomplete_barrier;// The barrier used to sync target_pass() with the last QThread I/O Operation
+	xdd_barrier_t		targetpass_qthread_passcomplete_barrier;// The barrier used to sync targetpass() with all the QThreads at the end of a pass
+	xdd_barrier_t		targetpass_qthread_eofcomplete_barrier;// The barrier used to sync targetpass_eof_desintation_side() with a QThread trying to recv an EOF packet
 
 	pthread_mutex_t 	counter_mutex;  					// Mutex for locking when updating counters
 
@@ -152,22 +153,24 @@ struct ptds {
 
 	// QThread-specific semaphores and associated pointers
 	sem_t				this_qthread_available;				// The xdd_get_next_available_qthread() routine waits on this for a specific QThread to become available
-	sem_t				qthread_ordering_sem;				// The QThread sets this to release a waiting QThread when Strict or Loose ordering is used
-	sem_t				qthread_io_complete;				// The QThread sets this to 1 when it has completed an I/O and resets to 0 when it starts an I/O
-	pthread_mutex_t		this_qthread_is_working;			// Used to serialize the end_of_pass processing in target_pass()
+#define	PTDS_ORDERING_SEMS	4								// Number of unique ordering semaphores 
+	sem_t				qthread_ordering_sem[PTDS_ORDERING_SEMS];	// The QThread sets these to release a waiting QThread when Strict or Loose ordering is used
+	pthread_mutex_t		this_qthread_is_working;			// Used to serialize the end_of_pass processing in targetpass()
 	pthread_mutex_t		this_qthread_is_available_mutex;	// Used to serialize access to the "this_qthread_is_available" variable
 	int32_t				this_qthread_is_available;			// Is set by qthread() to 1 and reset by get_next_available_qthread() to a 0
 	struct ptds			*qthread_to_wait_for;				// Pointer to the QThread to wait for before starting I/O
 
 															// The QThread Wait Barrier is used just by the QThread and the issue_thread
-	xdd_barrier_t		qthread_targetpass_wait_barrier;	// The barrier where the QThread waits for target_pass() to release it with a task to perform
+	xdd_barrier_t		qthread_targetpass_wait_barrier;	// The barrier where the QThread waits for targetpass() to release it with a task to perform
 
 // The task variables
 	char				task_request;						// Type of Task to perform
-#define TASK_REQ_IO			0x01							// Perform an IO Operation 
-#define TASK_REQ_E2E		0x02							// Perform an End-to-End IO Operation 
-#define TASK_REQ_REOPEN		0x03							// Re-Open the target device/file
-#define TASK_REQ_STOP		0x04							// Stop doing work and exit
+#define TASK_REQ_IO				0x01						// Perform an IO Operation 
+#define TASK_REQ_E2E			0x02						// Perform an End-to-End IO Operation 
+#define TASK_REQ_REOPEN			0x03						// Re-Open the target device/file
+#define TASK_REQ_STOP			0x04						// Stop doing work and exit
+#define TASK_REQ_EOF			0x05						// Send an EOF to the Destination or Revceive an EOF from the Source
+#define TASK_REQ_END_OF_PASS	0x06						// Tell QThread to set its pass_complete variable and enter the targetpass_qthread_passcomplete barrier
 	char				task_op;							// Operation to perform
 	uint32_t			task_xfer_size;						// Number of bytes to transfer
 	uint64_t			task_byte_location;					// Offset into the file where this transfer starts
@@ -268,17 +271,16 @@ struct ptds {
 	struct	tms			my_starting_cpu_times_this_pass;// CPU times from times() at the start of this pass
 	struct	tms			my_current_cpu_times;		// CPU times from times()
 	//
-	// Counters  - RESET AT THE START OF EACH PASS
-	int32_t				my_pass_ring;  				// What xdd hears when the time limit is exceeded for a single pass 
 	// Updated by xdd_issue() at at the start of a Task IO request to a QThread
 	int64_t				my_current_byte_location; 	// Current byte location for this I/O operation 
 	int32_t				my_current_io_size; 		// Size of the I/O to be performed
 	int32_t				my_error_break; 			// When set it indicates an error that will cause the xdd_issue() loop to stop
 	char				*my_current_op_str; 		// Pointer to an ASCII string of the I/O operation type - "READ", "WRITE", or "NOOP"
 	int32_t				my_current_op_type; 		// Current I/O operation type - OP_TYPE_READ or OP_TYPE_WRITE
-#define OP_TYPE_READ	0x01						// used with my_current_op_type, set by xdd_issue()
-#define OP_TYPE_WRITE	0x02						// used with my_current_op_type, set by xdd_issue()
-#define OP_TYPE_NOOP	0x03						// used with my_current_op_type, set by xdd_issue()
+#define OP_TYPE_READ	0x01						// used with my_current_op_type
+#define OP_TYPE_WRITE	0x02						// used with my_current_op_type
+#define OP_TYPE_NOOP	0x03						// used with my_current_op_type
+#define OP_TYPE_EOF		0x04						// used with my_current_op_type - indicates End-of-File processing when present in the Time Stamp Table
 	// Updated by the QThread upon completion of an I/O operation
 	int64_t				target_op_number;			// The operation number for the target that this I/O represents
 	int64_t				my_current_op_number;		// Current I/O operation number 
@@ -415,6 +417,8 @@ struct ptds {
 	int32_t				e2e_current_csd; 		// the current csd used by the select call on the destination side
 	int32_t				e2e_next_csd; 			// The next available csd to use 
 	int32_t				e2e_iosize;   			// Number of bytes per End to End request - size of data buffer plus size of E2E Header
+	int32_t				e2e_send_status; 		// Current Send Status
+	int32_t				e2e_recv_status; 		// Current Recv status
 #define PTDS_E2E_MAGIC 	0x07201959 				// The magic number that should appear at the beginning of each message 
 #define PTDS_E2E_MAGIQ 	0x07201960 				// The magic number that should appear in a message signaling destination to quit 
 	xdd_e2e_header_t 	e2e_header;				// Header (actually a trailer) in the data packet of each message sent/received
