@@ -110,12 +110,18 @@ xdd_targetpass(ptds_t *p) {
 	} else { // Non-E2E - normal I/O
 		// This is intended to confirm that all QThreads have completed and funnels them into the 
 		// targetpass_qthread_passcomplete barrier
+//TMR fprintf(stderr,"\ntargetpass: target %d calling targetpass_end_of_pass\n",p->my_target_number);
 		xdd_targetpass_end_of_pass(p);
+//TMR fprintf(stderr,"\ntargetpass: target %d returning from targetpass_end_of_pass\n",p->my_target_number);
 	}
 
+	// Indicate that this Target Thread has now completed its pass
 	p->pass_complete = 1;
+
 	// Enter the EndOfPass barrier and wait for the last QThread to get here
+//TMR fprintf(stderr,"\ntargetpass: target %d entering pass complete barrier\n",p->my_target_number);
 	xdd_barrier(&p->targetpass_qthread_passcomplete_barrier,&p->occupant,1);
+//fprintf(stderr,"\ntargetpass: target %d left pass complete barrier\n",p->my_target_number);
 
 
 	// Things that the Target Thread needs to do after a pass has completed
@@ -144,10 +150,7 @@ xdd_targetpass(ptds_t *p) {
 void
 xdd_targetpass_loop(ptds_t *p) {
 	ptds_t	*qp;
-	ptds_t	*tmpqp;
-	int qmax, qmin;
-	int64_t opmax, opmin;
-	int qavail;
+
 
 		while (p->bytes_remaining) {
 			// Things to do before an I/O is issued
@@ -155,6 +158,7 @@ xdd_targetpass_loop(ptds_t *p) {
 			// Get pointer to next QThread to issue a task to
 			qp = xdd_get_next_available_qthread(p);
 	
+//TMR fprintf(stderr,"\ntargetpass_loop: qp=%p, op=%lld, bytes remaining=%lld\n",qp, (long long int)p->my_current_op_number,(long long int)p->bytes_remaining);
 			// Check to see if we've been canceled - if so, we need to leave this loop
 			if (xgp->canceled) 
 				break;
@@ -169,35 +173,14 @@ xdd_targetpass_loop(ptds_t *p) {
 			p->bytes_remaining -= qp->my_current_io_size;
 			p->last_qthread_assigned = qp;
 
-			if ((p->my_current_op_number > 0) && ((p->my_current_op_number % p->queue_depth) == 0)) {
-					qmin = 0;
-					qmax = 0;
-					opmin = p->target_ops;
-					opmax = -1;
-					qavail = 0;
-					tmpqp = p->next_qp; // first QThread on the chain
-					while (tmpqp) { // Scan the QThreads to determine the one furthest ahead and the one furthest behind
-						if (tmpqp->this_qthread_is_available) {
-							qavail++;
-						} else {
-							if (tmpqp->target_op_number < opmin) {
-								opmin = tmpqp->target_op_number;
-								qmin = tmpqp->my_qthread_number;
-							}
-							if (tmpqp->target_op_number > opmax) {
-								opmax = tmpqp->target_op_number;
-								qmax = tmpqp->my_qthread_number;
-							}
-						}
-						tmpqp = tmpqp->next_qp;
-					}
-			fprintf(stderr,"\n\nopmin %4lld, qmin %4d, opmax %4lld, qmax %4d, separation is %4lld, %4d qthreads busy, %lld percent complete\n\n",
-				(long long int)opmin, qmin, (long long int)opmax, qmax, (long long int)(opmax-opmin+1), p->queue_depth-qavail, (long long int)((opmax*100)/p->target_ops));
-		
-}
+			// E2E Source Side needs to be monitored...
+			if (p->target_options & TO_E2E_SOURCE_MONITOR)
+				xdd_targetpass_e2e_monitor(p);
 	
 			// Release the QThread to let it start working on this task
+//TMR fprintf(stderr,"targetpass_loop: releasing qt to do op %lld...\n",(long long int)p->my_current_op_number-1);
 			xdd_barrier(&qp->qthread_targetpass_wait_barrier,&p->occupant,0);
+//TMR fprintf(stderr,"targetpass_loop: qt to do op %lld has been released\n",(long long int)p->my_current_op_number-1);
 
 		} // End of WHILE loop that transfers data for a single pass
 
@@ -274,42 +257,49 @@ xdd_targetpass_task_setup(ptds_t *qp) {
 /* xdd_targetpass_end_of_pass() - Force all the QThreads to set their pass_complete
  * indicator which causes them to enter the targetpass_qthread_passcomplete
  * barrier.
+ * This subroutine starts with the first QThread on the chain for the specified
+ * Target Thread and walks thru the chain sequentially. This routine will wait
+ * on the "sem_this_qthread_is_working" semaphore which will block until
+ * the QThread issues a sem_post to the "sem_this_qthread_is_working" 
+ * semaphore. At this point we are guaranteed that the QThread has completed
+ * its last assigned I/O task and is ready to perform the END_OF_PASS
+ * task that this routine will assign to it. 
  */
 void
 xdd_targetpass_end_of_pass(ptds_t *p) {
 	ptds_t		*qp;			// QThread pointer 
-	int			status;			// Status of the sem_wait system calls
 
-	// Get pointer to FIRST QThread on the chain
-	qp = p->next_qp;
-	while (qp) {
-		// Wait for this specific QThread to become available
-		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		status = sem_wait(&qp->this_qthread_available);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_targetpass_eof_processing: Target %d: WARNING: Bad status from sem_wait on this_qthread_available semaphore: status=%d, errno=%d\n",
-				xgp->progname,
-				p->my_target_number,
-				status,
-				errno);
-		}
-		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+	// Get the first QThread pointer for this Target
+//TMR fprintf(stderr,"targetpass_end_of_pass: waiting for QThread to become available\n");
+	qp = xdd_get_next_available_qthread(p);
+
+//TMR fprintf(stderr,"targetpass_end_of_pass: GOT IT - QThread %d <%p> is available\n",qp->my_qthread_number,qp);
+	while (qp) { 
+
+//TMR fprintf(stderr,"targetpass_end_of_pass: in the WHILE loop with qp=%p...\n",qp);
+		// Check to see if we've been canceled - if so, we need to leave this loop
+		if (xgp->canceled) 
+			break;
 	
+		// Make sure the QThread does not think the pass is complete
 		qp->task_request = TASK_REQ_END_OF_PASS;
-
-		// This operation will occur in parallel with no dependence on the ordering
 		qp->qthread_to_wait_for = NULL;
-	
+		qp->target_op_number = p->my_current_op_number;
+
 		// Release the QThread to let it start working on this task
+//TMR fprintf(stderr,"\ntargetpass_end_of_pass: Releasing QThread %d <%p> \n",qp->my_qthread_number,qp);
 		xdd_barrier(&qp->qthread_targetpass_wait_barrier,&p->occupant,0);
+//TMR fprintf(stderr,"\ntargetpass_end_of_pass: QThread %d <%p> released \n",qp->my_qthread_number,qp);
 	
-		// Move on to the next QThread
-		qp = qp->next_qp; 		// Address of the next QThread on this Target Thread
-
-	} // End of WHILE loop that transfers data for a single pass
-
+		// Get another QThread and lets keepit roling...
+//TMR fprintf(stderr,"targetpass_end_of_pass: waiting again for next QThread to become available\n");
+		qp = xdd_get_next_available_qthread(p);
+//TMR fprintf(stderr,"targetpass_end_of_pass: GOT NEXT QThread <%p>\n",qp);
+	
+	} // End of WHILE loop
 	// At this point each of the QThreads have been told to enter the targetpass_qthread_passcomplete barrier...
 
+//TMR fprintf(stderr,"targetpass_end_of_pass: ALL DONE! \n");
 	return;
 } /* end of xdd_targetpass_end_of_pass() */
 

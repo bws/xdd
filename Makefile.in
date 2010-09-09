@@ -96,6 +96,8 @@ XDD_SOURCE = $(SRC_DIR)/access_pattern.c \
 	$(SRC_DIR)/target_init.c \
 	$(SRC_DIR)/target_open.c \
 	$(SRC_DIR)/target_pass.c \
+	$(SRC_DIR)/target_pass_e2e_specific.c \
+	$(SRC_DIR)/target_pass_qt_locator.c \
 	$(SRC_DIR)/target_thread.c \
 	$(SRC_DIR)/target_ttd_before_io_op.c \
 	$(SRC_DIR)/target_ttd_after_pass.c \

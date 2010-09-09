@@ -86,6 +86,7 @@
 #define TO_STRICT_ORDERING     0x0000020000000000ULL  // Use Strict Ordering on QThreads
 #define TO_LOOSE_ORDERING      0x0000040000000000ULL  // Use Loose Ordering on QThreads
 #define TO_NULL_TARGET         0x0000080000000000ULL  // Indicates that the target is effectively /dev/null
+#define TO_E2E_SOURCE_MONITOR  0x0000100000000000ULL  // End to End - Source side monitor in target_pass_loop()
 
 // Per Thread Data Structure - one for each thread 
 struct ptds {
@@ -148,16 +149,15 @@ struct ptds {
 
 	// Target-specific semaphores and associated pointers
 	struct ptds			*next_qthread_to_use;				// This is used by the get_next_available_qthread() to implement strict ordering
-	sem_t				any_qthread_available;				// The xdd_get_next_available_qthread() routine waits on this for any QThread to become available
+	sem_t				sem_any_qthread_available;			// The xdd_get_next_available_qthread() routine waits on this for any QThread to become available
 	struct ptds			*last_qthread_assigned;				// This is the PTDS of the most recent QThread assigned a task 
 
 	// QThread-specific semaphores and associated pointers
-	sem_t				this_qthread_available;				// The xdd_get_next_available_qthread() routine waits on this for a specific QThread to become available
-#define	PTDS_ORDERING_SEMS	4								// Number of unique ordering semaphores 
-	sem_t				qthread_ordering_sem[PTDS_ORDERING_SEMS];	// The QThread sets these to release a waiting QThread when Strict or Loose ordering is used
-	pthread_mutex_t		this_qthread_is_working;			// Used to serialize the end_of_pass processing in targetpass()
-	pthread_mutex_t		this_qthread_is_available_mutex;	// Used to serialize access to the "this_qthread_is_available" variable
+	sem_t				sem_this_qthread_is_working;		// This semaphore is used by targetpass_end_of_pass() to wait for a QThread to complete its last I/O operation
+	sem_t				sem_this_qthread_is_available;		// The xdd_get_next_available_qthread() routine waits on this for a specific QThread to become available
+	pthread_mutex_t		mutex_this_qthread_is_available;	// Used to serialize access to the "this_qthread_is_available" variable
 	int32_t				this_qthread_is_available;			// Is set by qthread() to 1 and reset by get_next_available_qthread() to a 0
+	sem_t				sem_qthread_ordering;				// The QThread sets these to release a waiting QThread when Strict or Loose ordering is used
 	struct ptds			*qthread_to_wait_for;				// Pointer to the QThread to wait for before starting I/O
 
 															// The QThread Wait Barrier is used just by the QThread and the issue_thread
@@ -322,8 +322,9 @@ struct ptds {
 #define	CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE			0x0000000000000020	// Indicates that this QThread is Available
 #define	CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE		0x0000000000000040	// Waiting on the "any qthread available" semaphore
 #define	CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE	0x0000000000000080	// Waiting on the "This QThread Available" semaphore
-#define	CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD		0x0000000000000100	// Waiting for the previous "QThread Task Complete" semaphore
-#define	CURRENT_STATE_WAITING_THIS_QTHREAD_IO_COMPLETE	0x0000000000000200	// Waiting on the "QThread I/O Complete" semaphore
+#define	CURRENT_STATE_WAITING_THIS_QTHREAD_WORKING  	0x0000000000000100	// Waiting on the "This QThread Working" semaphore
+#define	CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD		0x0000000000000200	// Waiting for the previous "QThread Task Complete" semaphore
+#define	CURRENT_STATE_WAITING_THIS_QTHREAD_IO_COMPLETE	0x0000000000000400	// Waiting on the "QThread I/O Complete" semaphore
 
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS 

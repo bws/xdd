@@ -211,26 +211,23 @@ xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags) {
 	ptds_t	*qp;
 	int		sem_val;
 	int		status;
-	int		i;
 
 
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
 		p = xgp->ptdsp[target_number];
 		if (p) {
 			sem_val = 0;
-			status = sem_getvalue(&p->any_qthread_available, &sem_val);
-			fprintf(xgp->output,"Target %d any_qthread_available: status of sem_getvalue is %d, sem_val is %d",p->my_target_number, status, sem_val);
+			status = sem_getvalue(&p->sem_any_qthread_available, &sem_val);
+			fprintf(xgp->output,"Target %d sem_any_qthread_available: status of sem_getvalue is %d, sem_val is %d",p->my_target_number, status, sem_val);
 			qp = p->next_qp;
 			while (qp) {
 				sem_val = 0;
-				status = sem_getvalue(&qp->this_qthread_available, &sem_val);
-				fprintf(xgp->output,"Target %d Qthread %d this_qthread_available: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
+				status = sem_getvalue(&qp->sem_this_qthread_is_available, &sem_val);
+				fprintf(xgp->output,"Target %d Qthread %d sem_this_qthread_is_available: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
 				sem_val = 0;
 				if ((qp->target_options & TO_STRICT_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING))  {
-					for (i = 0; i < 2; i++) {
-						status = sem_getvalue(&qp->qthread_ordering_sem[i], &sem_val);
-						fprintf(xgp->output,"Target %d Qthread %d qthread_ordering_sem[%d]: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, i, status, sem_val);
-					}
+					status = sem_getvalue(&qp->sem_qthread_ordering, &sem_val);
+					fprintf(xgp->output,"Target %d Qthread %d sem_qthread_ordering: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
 				}
 				qp = qp->next_qp;
 			}
@@ -308,7 +305,7 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 	if (qp->my_current_state & CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE)
 		fprintf(xgp->output,"    Waiting on the any_qthread_available semaphore\n");
 	if (qp->my_current_state & CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE)
-		fprintf(xgp->output,"    Waiting on the this_qthread_available semaphore\n");
+		fprintf(xgp->output,"    Waiting on the sem_this_qthread_is_available semaphore\n");
 	if (qp->my_current_state & CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD)
 		fprintf(xgp->output,"    Waiting for previous QThread '%d' task complete\n",(qp->qthread_to_wait_for)?qp->qthread_to_wait_for->my_qthread_number:-1);
 	fprintf(xgp->output,"    pass_complete is '%d'\n",qp->pass_complete);

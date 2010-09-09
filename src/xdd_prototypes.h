@@ -314,6 +314,7 @@ int32_t	xdd_target_open_for_os(ptds_t *p);
 // target_pass.c
 int32_t	xdd_targetpass(ptds_t *p);
 void	xdd_targetpass_loop(ptds_t *p);
+void	xdd_targetpass_e2e_monitor(ptds_t *p);
 void	xdd_targetpass_task_setup(ptds_t *qp);
 void 	xdd_targetpass_end_of_pass(ptds_t *p);
 int32_t xdd_targetpass_count_active_qthreads(ptds_t *p);

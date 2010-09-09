@@ -58,6 +58,7 @@ xdd_interactive(void *debugger) {
 	if (debugger) { // This means that we have been called by the signal handler 
 		// In debugger mode, we do not initialize or enter barriers....
 		identity = "DEBUG";
+		xgp->heartbeat_holdoff = 1; // Turn off the heartbeat just in case it is running...
 	} else { // Otherwise, this is just the interactive option
 		// Init the interactive flow control barriers
 		identity = "ICP";

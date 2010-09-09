@@ -205,9 +205,9 @@ xdd_target_init_barriers(ptds_t *p) {
 	}
 
 	// Initialize the semaphores used to control QThread selection
-	status = sem_init(&p->any_qthread_available, 0, 0);
+	status = sem_init(&p->sem_any_qthread_available, 0, 0);
 	if (status) {
-		fprintf(xgp->errout,"%s: xdd_target_init: Target %d: ERROR: Cannot initialize any_qthread_available semaphore.\n",
+		fprintf(xgp->errout,"%s: xdd_target_init: Target %d: ERROR: Cannot initialize sem_any_qthread_available semaphore.\n",
 			xgp->progname, 
 			p->my_target_number);
 		fflush(xgp->errout);

@@ -55,6 +55,7 @@ xdd_qthread_io(ptds_t *qp) {
 	// If this is the Destination Side of an End-to-End (E2E) operation, the xdd_qthread_ttd_before_io_op()
 	// subroutine will perform the "recvfrom()" operation to get the data from the Source Side
 	// of the E2E operation.
+//TMR fprintf(stderr,"qthread: qthread %d, calling qthread_ttd_before_iop %lld...", qp->my_qthread_number, (long long int)qp->target_op_number);
 	status = xdd_qthread_ttd_before_io_op(qp);
 	if (status) { // Must be a problem is status is anything but zero
 		fprintf(xgp->errout,"\n%s: xdd_qthread_io: Target %d QThread %d: ERROR: Canceling run due to previous error\n",
@@ -63,6 +64,7 @@ xdd_qthread_io(ptds_t *qp) {
 			qp->my_qthread_number);
 		xgp->canceled = 1; // Need to terminate early
 	}
+//TMR fprintf(stderr,"done.\n");
 
 
 	// If this is the Destination Side of an E2E operation and this is an End-of-File Packet 
@@ -107,16 +109,22 @@ xdd_qthread_io(ptds_t *qp) {
 	if (qp->target_options & TO_LOOSE_ORDERING) 
 		xdd_qthread_release_next_qthread(qp,0);
 
+//TMR fprintf(stderr,"qthread: qthread %d, calling qthread_io_for_os op %lld, iosize %d ...", qp->my_qthread_number, (long long int)qp->target_op_number, qp->my_current_io_size);
 	// Call the OS-appropriate IO routine to perform the I/O
 	qp->my_current_state |= CURRENT_STATE_IO;
 	xdd_io_for_os(qp);
 	qp->my_current_state &= ~CURRENT_STATE_IO;
+//TMR fprintf(stderr,"done.\n");
 
 	// Update counters and status in this QThread's PTDS
+//TMR fprintf(stderr,"qthread: qthread %d, calling update local counters %lld...", qp->my_qthread_number, (long long int)qp->target_op_number);
 	xdd_qthread_update_local_counters(qp);
+//TMR fprintf(stderr,"done.\n");
 
 	// Update the Target's PTDS counters and timers
+//TMR fprintf(stderr,"qthread: qthread %d, calling update target counters %lld...", qp->my_qthread_number, (long long int)qp->target_op_number);
 	xdd_qthread_update_target_counters(qp);
+//TMR fprintf(stderr,"done.\n");
 
 	// If Loose Ordering is in effect then we need to wait for the Previous QThread to complete
 	// its I/O operation and release us before we continue. This is done to prevent this QThread and
@@ -130,9 +138,7 @@ xdd_qthread_io(ptds_t *qp) {
 	// in which case the Next QThread is waiting for us to release it so that it can continue.
 	// For Strict Ordering, the Next QThread has not issued its I/O operation yet because it is 
 	// waiting for us to release it.
-	if (qp->target_options & TO_LOOSE_ORDERING) 
-		xdd_qthread_release_next_qthread(qp,0);
-	else if (qp->target_options & TO_STRICT_ORDERING) 
+	if ((qp->target_options & TO_LOOSE_ORDERING) || (qp->target_options & TO_STRICT_ORDERING))
 		xdd_qthread_release_next_qthread(qp,0);
 
 	// Check I/O operation completion
@@ -143,7 +149,9 @@ xdd_qthread_io(ptds_t *qp) {
 	// NA:in effect and this is the Source Side of an E2E operation then there are a series of semaphores
 	// NA:that regulate the flow of QThreads issuing their respective sendto() operations that 
 	// NA:send the data to the Destination machine.
+//TMR fprintf(stderr,"qthread: qthread %d, calling qthread_ttd_after_iop %lld...", qp->my_qthread_number, (long long int)qp->target_op_number);
 	xdd_qthread_ttd_after_io_op(qp);
+//TMR fprintf(stderr,"done.\n");
 
 } // End of xdd_qthread_io()
 
@@ -165,7 +173,7 @@ xdd_qthread_wait_for_previous_qthread(ptds_t *qp, int ordering_semaphore_number)
 		qp->my_current_state |= CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD;
 		pthread_mutex_unlock(&qp->my_current_state_mutex);
 //fprintf(stderr,"\nQT %d qthread_to_wait_for is %d,  wait %d\n",qp->my_qthread_number, qp->qthread_to_wait_for->my_qthread_number,waitnumber);
-		status = sem_wait(&qp->qthread_to_wait_for->qthread_ordering_sem[ordering_semaphore_number]);
+		status = sem_wait(&qp->qthread_to_wait_for->sem_qthread_ordering);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_qthread_wait_for_previous_qthread: Target %d QThread %d: ERROR: Bad status from sem_wait: status=%d, errno=%d\n",
 				xgp->progname,
@@ -195,7 +203,7 @@ xdd_qthread_release_next_qthread(ptds_t *qp, int ordering_semaphore_number) {
 
 
 	// Increment the specified "qthread_ordering_sem" semaphore (usually 0 or 1) to let the next QThread run 
-	status = sem_post(&qp->qthread_ordering_sem[ordering_semaphore_number]);
+	status = sem_post(&qp->sem_qthread_ordering);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_release_next_qthread: Target %d QThread %d: ERROR: Bad status from sem_post: status=%d, errno=%d\n",
 			xgp->progname,

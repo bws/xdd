@@ -63,81 +63,86 @@ xdd_get_next_available_qthread(ptds_t *p) {
 		else p->next_qthread_to_use = p->next_qp; // else point to the first QThread in the chain
 		// Wait for this specific QThread to become available
 		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		status = sem_wait(&qp->this_qthread_available);
+		status = sem_wait(&qp->sem_this_qthread_is_available);
 		if (status) {
-			fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_wait on this_qthread_available semaphore: status=%d, errno=%d\n",
+			fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_wait on this_qthread_is_available semaphore: status=%d, errno=%d\n",
 				xgp->progname,
 				p->my_target_number,
 				status,
 				errno);
 		}
 		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		// Reset this variable as well
-		pthread_mutex_lock(&qp->this_qthread_is_available_mutex);
-		qp->this_qthread_is_available = 0; // Mark this QThread Unavailable
-		pthread_mutex_unlock(&qp->this_qthread_is_available_mutex);
 
-	} else { // No Strict Ordering - just wait for any QThread to become available
-		false_scans = 0;
-		qp = 0;
-		while (qp == 0) {
-			p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-			status = sem_wait(&p->any_qthread_available);
-			if (status) {
-				fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
-					xgp->progname,
-					p->my_target_number,
-					status,
-					errno);
+		pthread_mutex_lock(&qp->mutex_this_qthread_is_available);
+		// If this QThread is available *and* pass_complete has NOT been set then we can assign this QThread
+		if ((qp->this_qthread_is_available) && (qp->pass_complete == 0))  { 
+			qp->this_qthread_is_available = 0; // Mark this QThread Unavailable
+			pthread_mutex_unlock(&qp->mutex_this_qthread_is_available);
+		} else {
+			pthread_mutex_unlock(&qp->mutex_this_qthread_is_available);
+			qp = 0;
+		}
+
+		// If the QThread is available and it has not processed its end-of-pass then return the correct QThread pointer
+		// Otherwise, we will return 0 - which should not happen but you never know...
+		return(qp);
+	} 
+	// No Strict Ordering - just wait for any QThread to become available
+	false_scans = 0;
+	qp = 0;
+	while (qp == 0) {
+		p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+		status = sem_wait(&p->sem_any_qthread_available);
+		if (status) {
+			fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
+				xgp->progname,
+				p->my_target_number,
+				status,
+				errno);
+		}
+		p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+		// At this point we know that at least ONE QThread has indicated that it is available. 
+		// The following WHILE loop looks for that "available" QThread and takes the first one it finds
+		// that is available and does NOT have its "pass_complete" variable set.
+		// Any QThread that is "available" -and- has its "pass_complete" variable set to 1 is not 
+		// able to be used for a task. Such a QThread is considered to have "completed" and will be 
+		// counted as a "completed_qthread". When the number of "completed_qthreads" is equal to the
+		// total number of QThreads for this Target Thread, then a NULL QThread pointer is returned
+		// to the caller indicating that all QThreads have completed this pass. 
+
+		// Get the first QThread pointer from this Target
+		qp = p->next_qp;
+		completed_qthreads = 0;
+		while (qp) {
+			pthread_mutex_lock(&qp->mutex_this_qthread_is_available);
+			// If this QThread is available *and* pass_complete has NOT been set then we can assign this QThread
+			if ((qp->this_qthread_is_available) && (qp->pass_complete == 0))  { 
+				qp->this_qthread_is_available = 0; // Mark this QThread Unavailable
+				pthread_mutex_unlock(&qp->mutex_this_qthread_is_available);
+				break; // qp now points to the QThread to use
 			}
-			p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-			// At this point we know that at least ONE QThread has indicated that it is available. 
-			// The following WHILE loop looks for that "available" QThread and takes the first one it finds
-			// that is available and does NOT have its "pass_complete" variable set.
-			// Any QThread that is "available" -and- has its "pass_complete" variable set to 1 is not 
-			// able to be used for a task. Such a QThread is considered to have "completed" and will be 
-			// counted as a "completed_qthread". When the number of "completed_qthreads" is equal to the
-			// total number of QThreads for this Target Thread, then a NULL QThread pointer is returned
-			// to the caller indicating that all QThreads have completed this pass. 
 
-			// Get the first QThread pointer from this Target
-			qp = p->next_qp;
-			completed_qthreads = 0;
-			while (qp) {
-				pthread_mutex_lock(&qp->this_qthread_is_available_mutex);
-				// If this QThread is available *and* pass_complete has NOT been set then we can assign this QThread
-				if ((qp->this_qthread_is_available) && (qp->pass_complete == 0))  { 
-					qp->this_qthread_is_available = 0; // Mark this QThread Unavailable
-					pthread_mutex_unlock(&qp->this_qthread_is_available_mutex);
-					break; // qp now points to the QThread to use
-				}
+			if ((qp->this_qthread_is_available) && (qp->pass_complete == 1))  // This QThread has completed its pass
+				completed_qthreads++;
 
-				if ((qp->this_qthread_is_available) && (qp->pass_complete == 1))  // This QThread has completed its pass
-					completed_qthreads++;
+			// Release the "this_qthread_is_available" lock 
+			pthread_mutex_unlock(&qp->mutex_this_qthread_is_available);
 
-				// Release the "this_qthread_is_available" lock 
-				pthread_mutex_unlock(&qp->this_qthread_is_available_mutex);
-	
-				// Get the next QThread Pointer 
-				qp = qp->next_qp;
-			} // End of WHILE (qp) that scans the QThread Chain looking for the next available QThread
+			// Get the next QThread Pointer 
+			qp = qp->next_qp;
+		} // End of WHILE (qp) that scans the QThread Chain looking for the QThread that said it was Available
 
-			if (qp) 
-				return(qp);
-
-			if ((qp == 0)  && (completed_qthreads == p->queue_depth)) { // When there are no available QThreads because they have all completed their passes then return NULL
-				return(0);
-			} 
-		} // END of WHILE (qp == 0)
-	} // End of QThread locator 
-
-	// At this point:
-	//    The variable "qp" points to a valid QThread  
-	//    That QThread is not doing anything 
-	//    The "this_qthread_is_available_mutex" is unlocked
-	//    The "this_qthread_is_available" variable is 0 for the QThread being returned
-
-
+		// At this point:
+		//    The variable "qp" is either 0 or it points to a valid QThread  
+		//    If "qp" is non-zero then we will break out of this WHILE loop and return it to the caller
+		//    If "qp" is zero *and* the number of QThreads that have completed equals the Queue Depth, that means
+		//        that this is the last QThread to complete in which case we need to return 0 as well. This is the 
+		//        ONLY time we return 0.
+		//    In any event, the "mutex_this_qthread_is_available" will be unlocked
+		if ((qp == 0)  && (completed_qthreads == p->queue_depth)) { // When there are no available QThreads because they have all completed their passes then return NULL
+			return(0);
+		} 
+	} // END of WHILE (qp == 0)
 	return(qp);
 } // End of xdd_get_next_available_qthread()
 

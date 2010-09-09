@@ -29,8 +29,8 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 /*
- * This file contains the subroutines used by target_pass() that are specific
- * to an End-to-End (E2E) operation.
+ * This file contains the subroutines used by target_pass() or targetpass_loop() 
+ * that are specific to an End-to-End (E2E) operation.
  */
 #include "xdd.h"
 
@@ -139,9 +139,9 @@ xdd_targetpass_eof_source_side(ptds_t *p) {
 	while (qp) {
 		// Wait for this specific QThread to become available
 		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		status = sem_wait(&qp->this_qthread_available);
+		status = sem_wait(&qp->sem_this_qthread_is_available);
 		if (status) {
-			fprintf(xgp->errout,"%s: xdd_targetpass_eof_processing: Target %d: WARNING: Bad status from sem_wait on this_qthread_available semaphore: status=%d, errno=%d\n",
+			fprintf(xgp->errout,"%s: xdd_targetpass_eof_processing: Target %d: WARNING: Bad status from sem_wait on sem_this_qthread_is_available semaphore: status=%d, errno=%d\n",
 				xgp->progname,
 				p->my_target_number,
 				status,
@@ -192,4 +192,46 @@ xdd_targetpass_eof_source_side(ptds_t *p) {
 	// each of the Destination Side QThreads will have received the EOF packet.
 
 } // End of xdd_targetpass_eof_source_side()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_targetpass_e2e_monitor() - This subroutine will monitor and display
+ * information about the QThreads that are running on the Source Side of an
+ * E2E operation.
+ * 
+ * This subroutine is called by xdd_targetpass_loop().
+ */
+void
+xdd_targetpass_e2e_monitor(ptds_t *p) {
+	ptds_t	*tmpqp;
+	int qmax, qmin;
+	int64_t opmax, opmin;
+	int qavail;
+
+
+	if ((p->my_current_op_number > 0) && ((p->my_current_op_number % p->queue_depth) == 0)) {
+		qmin = 0;
+		qmax = 0;
+		opmin = p->target_ops;
+		opmax = -1;
+		qavail = 0;
+		tmpqp = p->next_qp; // first QThread on the chain
+		while (tmpqp) { // Scan the QThreads to determine the one furthest ahead and the one furthest behind
+			if (tmpqp->this_qthread_is_available) {
+				qavail++;
+			} else {
+				if (tmpqp->target_op_number < opmin) {
+					opmin = tmpqp->target_op_number;
+					qmin = tmpqp->my_qthread_number;
+				}
+				if (tmpqp->target_op_number > opmax) {
+					opmax = tmpqp->target_op_number;
+					qmax = tmpqp->my_qthread_number;
+				}
+			}
+			tmpqp = tmpqp->next_qp;
+		}
+		fprintf(stderr,"\n\nopmin %4lld, qmin %4d, opmax %4lld, qmax %4d, separation is %4lld, %4d qthreads busy, %lld percent complete\n\n",
+			(long long int)opmin, qmin, (long long int)opmax, qmax, (long long int)(opmax-opmin+1), p->queue_depth-qavail, (long long int)((opmax*100)/p->target_ops));
+	}
+} // End of xdd_targetpass_e2e_monitor();
 
