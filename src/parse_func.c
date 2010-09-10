@@ -2948,6 +2948,44 @@ xddfunc_seek(int32_t argc, char *argv[], uint32_t flags)
     } /* End of the -seek sub options */
 }
 /*----------------------------------------------------------------------------*/
+// Serial Ordering - Enforce Serial Ordering on QThread I/O
+// Note that Serial Ordering for a Target is mutually exclusive with Loose Ordering
+// Arguments: -serialordering [target #] 
+// aka -nso 
+int
+xddfunc_serialordering(int32_t argc, char *argv[], uint32_t flags)
+{
+    int args, i; 
+    int target_number;
+    ptds_t *p;
+
+
+    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+    // At this point the "target_number" is valid
+	if (target_number >= 0) { /* Set this option for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL) return(-1);
+
+		p->target_options |= TO_SERIAL_ORDERING;
+		p->target_options &= ~TO_LOOSE_ORDERING;
+        return(args+1);
+    } else {// Put this option into all PTDSs 
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					p->target_options |= TO_SERIAL_ORDERING;
+					p->target_options &= ~TO_LOOSE_ORDERING;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+        return(1);
+	}
+} // End of  xddfunc_serialordering()
+/*----------------------------------------------------------------------------*/
 int
 xddfunc_setup(int32_t argc, char *argv[], uint32_t flags)
 {
@@ -3328,44 +3366,6 @@ xddfunc_stoptrigger(int32_t argc, char *argv[], uint32_t flags)
         return(0);
 	}
 }
-/*----------------------------------------------------------------------------*/
-// Serial Ordering - Enforce Serial Ordering on QThread I/O
-// Note that Serial Ordering for a Target is mutually exclusive with Loose Ordering
-// Arguments: -serialordering [target #] 
-// aka -nso 
-int
-xddfunc_serialordering(int32_t argc, char *argv[], uint32_t flags)
-{
-    int args, i; 
-    int target_number;
-    ptds_t *p;
-
-
-    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
-    if (args < 0) return(-1);
-
-    // At this point the "target_number" is valid
-	if (target_number >= 0) { /* Set this option for a specific target */
-		p = xdd_get_ptdsp(target_number, argv[0]);
-		if (p == NULL) return(-1);
-
-		p->target_options |= TO_SERIAL_ORDERING;
-		p->target_options &= ~TO_LOOSE_ORDERING;
-        return(args+1);
-    } else {// Put this option into all PTDSs 
-			if (flags & XDD_PARSE_PHASE2) {
-				p = xgp->ptdsp[0];
-				i = 0;
-				while (p) {
-					p->target_options |= TO_SERIAL_ORDERING;
-					p->target_options &= ~TO_LOOSE_ORDERING;
-					i++;
-					p = xgp->ptdsp[i];
-				}
-			}
-        return(1);
-	}
-} // End of  xddfunc_serialordering()
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_syncio(int32_t argc, char *argv[], uint32_t flags)
