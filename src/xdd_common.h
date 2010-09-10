@@ -103,7 +103,7 @@
 #define DEFAULT_MAX_ERRORS_TO_PRINT 10
 #define DEFAULT_XDD_RLIMIT_STACK_SIZE (8192*1024)
 #define DEFAULT_OUTPUT_FORMAT_STRING "+WHAT+PASS+TARGET+QUEUE+BYTESXFERED+OPS+ELAPSEDTIMEPASS+BANDWIDTH+IOPS+LATENCY+PERCENTCPUTIME+OPTYPE+XFERSIZEBYTES "
-
+#define DEFAULT_E2E_TCP_WINDOW_SIZE 16777216
 /* ------------------------------------------------------------------
  * Constants
  * ------------------------------------------------------------------ */

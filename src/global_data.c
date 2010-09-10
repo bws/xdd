@@ -88,7 +88,7 @@ xdd_init_globals(char *progname) {
 	xgp->estimated_end_time = 0;     /* The time at which this run (all passes) should end */
 	xgp->number_of_processors = 0;   /* Number of processors */ 
 	xgp->random_initialized = 0;     /* Random number generator has not been initialized  */
-	xgp->e2e_TCP_Win = 10000000;	 /* e2e TCP Window Size */
+	xgp->e2e_TCP_Win = DEFAULT_E2E_TCP_WINDOW_SIZE;	 /* e2e TCP Window Size */
 	xgp->ActualLocalStartTime = 0;   /* The time to start operations */
 	xgp->XDDMain_Thread = pthread_self();
 	xgp->heartbeat_holdoff = 0;  	/* used by results manager to suspend or cancel heartbeat displays */
