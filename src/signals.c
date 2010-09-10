@@ -91,7 +91,6 @@ xdd_signal_handler(int signum, siginfo_t *sip, void *ucp) {
 int32_t
 xdd_signal_init(void) {
 	int		status;			// status of the sigaction() system call
-        char* xdd_debug_env;
 
 	xgp->sa.sa_sigaction = xdd_signal_handler;			// Pointer to the signal handler
  	sigemptyset( &xgp->sa.sa_mask );				// The "empty set" - don't mask any signals

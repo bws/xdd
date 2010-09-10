@@ -33,6 +33,7 @@
 #define SO_OP_READ  'r'        /**< Read seek entry type */
 #define SO_OP_WRITE_VERIFY 'v' /**< Write-Verify seek entry type */
 #define SO_OP_NOOP  'n'        /**< NOOP seek entry type */
+#define SO_OP_EOF  'e'        /**< EOF seek entry type */
 
 /** A single seek entry */
 struct seek_entries {

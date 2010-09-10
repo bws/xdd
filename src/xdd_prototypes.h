@@ -60,6 +60,8 @@ void	xdd_show_global_data(void);
 // end_to_end.c
 int32_t	xdd_e2e_src_send(ptds_t *qp);
 int32_t	xdd_e2e_dest_recv(ptds_t *qp);
+int32_t xdd_e2e_eof_source_side(ptds_t *qp);
+int32_t xdd_e2e_eof_destination_side(ptds_t *qp);
 
 // end_to_end_init.c
 int32_t	xdd_e2e_src_init(ptds_t *qp);
@@ -107,12 +109,13 @@ void	xdd_interactive_usage(int32_t fullhelp);
 
 // interactive_func.c
 int 	xdd_interactive_exit(int32_t tokens, char *cmdline, uint32_t flags);
+int 	xdd_interactive_goto(int32_t tokens, char *cmdline, uint32_t flags);
 int 	xdd_interactive_help(int32_t tokens, char *cmdline, uint32_t flags);
-int 	xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags);
 int 	xdd_interactive_run(int32_t tokens, char *cmdline, uint32_t flags);
+int 	xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags);
 int 	xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags);
 int 	xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags);
-int 	xdd_interactive_goto(int32_t tokens, char *cmdline, uint32_t flags);
+int		xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_ptds(int32_t tokens, char *cmdline, uint32_t flags);
@@ -183,8 +186,8 @@ int32_t	xdd_qthread_init(ptds_t *qp);
 
 // qthread_io.c
 void	xdd_qthread_io(ptds_t *qp);
-int32_t	xdd_qthread_wait_for_previous_qthread(ptds_t *qp);
-int32_t	xdd_qthread_release_next_qthread(ptds_t *qp);
+int32_t	xdd_qthread_wait_for_previous_qthread(ptds_t *qp, int ordering_semaphore_number);
+int32_t	xdd_qthread_release_next_qthread(ptds_t *qp, int ordering_semaphore_number);
 void	xdd_qthread_update_local_counters(ptds_t *qp);
 void	xdd_qthread_update_target_counters(ptds_t *qp);
 void	xdd_qthread_check_io_status(ptds_t *qp);
@@ -309,9 +312,19 @@ int32_t	xdd_target_existence_check(ptds_t *p);
 int32_t	xdd_target_open_for_os(ptds_t *p);
 
 // target_pass.c
+int32_t	xdd_targetpass(ptds_t *p);
+void	xdd_targetpass_loop(ptds_t *p);
+void	xdd_targetpass_e2e_monitor(ptds_t *p);
+void	xdd_targetpass_task_setup(ptds_t *qp);
+void 	xdd_targetpass_end_of_pass(ptds_t *p);
+int32_t xdd_targetpass_count_active_qthreads(ptds_t *p);
+
+// target_pass_e2e_specific.c
+void 	xdd_targetpass_e2e_loop(ptds_t *p);
+void 	xdd_targetpass_eof_source_side(ptds_t *p);
+
+// target_pass_qt_locator.c
 ptds_t 	*xdd_get_next_available_qthread(ptds_t *p);
-int32_t	xdd_target_pass(ptds_t *p);
-void	xdd_target_pass_task_setup(ptds_t *qp);
 
 // target_thread.c
 void 	*xdd_target_thread(void *pin);

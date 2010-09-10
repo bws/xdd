@@ -122,7 +122,6 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"my_pass_end_time               %lld The time stamp that this pass ended \n",(long long int)p->my_pass_end_time);
 
 	fprintf(xgp->output,"Counters  - RESET AT THE START OF EACH PASS\n");
-	fprintf(xgp->output,"my_pass_ring                   %d What xdd hears when the time limit is exceeded for a single pass \n",p->my_pass_ring);
 
 	fprintf(xgp->output,"Updated by xdd_issue() at at the start of a Task IO request to a QThread\n");
 	fprintf(xgp->output,"my_current_byte_location       %lld Current byte location for this I/O operation \n",(long long int)p->my_current_byte_location);

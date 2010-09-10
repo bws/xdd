@@ -55,20 +55,10 @@ xdd_qthread_init(ptds_t *qp) {
 		fflush(xgp->errout);
 		return(-1);
 	}
-	// The "this_qthread_is_available_mutex" is used by the QThreads and the get_next_available_qthread() subroutines
-	status = pthread_mutex_init(&qp->this_qthread_is_available_mutex, 0);
+	// The "mutex_this_qthread_is_available" is used by the QThreads and the get_next_available_qthread() subroutines
+	status = pthread_mutex_init(&qp->mutex_this_qthread_is_available, 0);
 	if (status) {
-		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot init this_qthread_is_available_mutex \n",
-			xgp->progname, 
-			qp->my_target_number,
-			qp->my_qthread_number);
-		fflush(xgp->errout);
-		return(-1);
-	}
-	// The "this_qthread_is_working" is used by the QThreads and the target_pass() subroutines
-	status = pthread_mutex_init(&qp->this_qthread_is_working, 0);
-	if (status) {
-		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot init this_qthread_is_working \n",
+		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot init mutex_this_qthread_is_available\n",
 			xgp->progname, 
 			qp->my_target_number,
 			qp->my_qthread_number);
@@ -112,13 +102,14 @@ xdd_qthread_init(ptds_t *qp) {
 		return(-1);
 	}
 
-	// Initialize the inter-qthread semaphore - this is a "non-shared" semaphore 
-	// By default this is not used
-	if ((qp->target_options & TO_STRICT_ORDERING) ||
+	// Initialize the qthread ordering semaphores - these are "non-shared" semaphores 
+	// These are only used with the -looseordering and -serialordering options
+	if ((qp->target_options & TO_SERIAL_ORDERING) ||
 		(qp->target_options & TO_LOOSE_ORDERING)) {
-		status = sem_init(&qp->qthread_ordering_sem, 0, 0);
+		status = sem_init(&qp->sem_qthread_ordering, 0, 0);
+
 		if (status) {
-			fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize qthread_ordering_sem semaphore.\n",
+			fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize qthread_ordering semaphore.\n",
 				xgp->progname, 
 				qp->my_target_number,
 				qp->my_qthread_number);
@@ -128,10 +119,21 @@ xdd_qthread_init(ptds_t *qp) {
 	}
 	qp->qthread_to_wait_for = NULL;
 
-	// Init the semaphore used by target_pass() to wait for this qthread to become available
-	status = sem_init(&qp->this_qthread_available, 0, 1);
+	// Init the semaphore used by targetpass_end_of_pass() to wait for this QThread to finish its last I/O op
+	status = sem_init(&qp->sem_this_qthread_is_working, 0, 1);
 	if (status) {
-		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize this_qthread_available semaphore.\n",
+		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize this_qthread_working semaphore.\n",
+			xgp->progname, 
+			qp->my_target_number,
+			qp->my_qthread_number);
+		fflush(xgp->errout);
+		return(-1);
+	}
+
+	// Init the semaphore used by targetpass() to wait for this qthread to become available
+	status = sem_init(&qp->sem_this_qthread_is_available, 0, 1);
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize sem_this_qthread_is_available semaphore.\n",
 			xgp->progname, 
 			qp->my_target_number,
 			qp->my_qthread_number);
@@ -140,19 +142,8 @@ xdd_qthread_init(ptds_t *qp) {
 	}
 	qp->this_qthread_is_available = 1;
 
-	// Init the semaphore used by target_pass() to wait for this qthread to finish at the end of a pass
-	status = sem_init(&qp->qthread_io_complete, 0, 1);
-	if (status) {
-		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize qthread_io_complete semaphore.\n",
-			xgp->progname, 
-			qp->my_target_number,
-			qp->my_qthread_number);
-		fflush(xgp->errout);
-		return(-1);
-	}
 	// Indicate to the Target Thread that this QThread is available
-	qp->my_current_state |= CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE;
-	status = sem_post(&p->any_qthread_available);
+	status = sem_post(&p->sem_any_qthread_available);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
 			xgp->progname,

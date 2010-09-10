@@ -152,26 +152,66 @@ xdd_raw_after_io_op(ptds_t *qp) {
 void
 xdd_e2e_after_io_op(ptds_t *qp) {
 	ptds_t	*p;			// Pointer to the Target PTDS for this QThread
-	pclk_t	now;
 
 
 	p = qp->target_ptds;
 	if ( (qp->my_current_io_status > 0) && (qp->target_options & TO_ENDTOEND) ) {
 		if (qp->target_options & TO_E2E_SOURCE) {
-			// SOURCE - THINGS TO DO - 
+			// Wait for the Previous QThread to release this QThread if Strict or Loose Ordering is in effect.
+			// It is important to note that for Strict Ordering, when we get released by the Previous QThread
+			// we are gauranteed that the previous QThread has completed its sendto() operation. That only means that
+			// the data is at the Destination machine memory and not necessarily on the Destination storage. 
+			// However, for Loose Ordering, we get released just *before* the previous QThread actually performs its sendto() 
+			// operation. Therefore, in order to ensure that the previous QThread's I/O operation actually completes [properly], 
+			// we need to wait again *after* we have completed our sendto() operation for the previous QThread to 
+			// release us *after* it completes its sendto(). 
+//			if ((qp->target_options & TO_STRICT_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) {
+//				xdd_qthread_wait_for_previous_qthread(qp,0);
+//			}
+			
+			// Check to see if we have been canceled - if so, then we need to 
+			// set our "pass_complete" indicator and return without performing this I/O operation.
+			// If there is Loose or Strict Ordering in effect then we need to release the Next QThread
+			// as well. 
+			// Subsequent QThreads will do the same...
+//			if (xgp->canceled) {
+//				// Release the Next QThread if requested
+//				if ((qp->target_options & TO_STRICT_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) 
+//					xdd_qthread_release_next_qthread(qp,0);
+//				qp->pass_complete = 1;
+//				return;
+//			}
+
+			// If Loose Ordering is in effect then release the Next QThread so that it can start
+//			if (qp->target_options & TO_LOOSE_ORDERING) 
+//				xdd_qthread_release_next_qthread(qp,0);
+
+			// Send the data to the Destination machine
 			qp->e2e_header.magic = PTDS_E2E_MAGIC;
-			pclk_now(&now);
-			if (qp->time_limit) { /* times-up, signal DESTINATION to quit */
-				if ((now - qp->my_pass_start_time)  >= (pclk_t)(qp->time_limit*TRILLION)) {
-					qp->e2e_header.magic = PTDS_E2E_MAGIQ;
-					qp->my_pass_ring = 1;
-				}
-			}
 			qp->my_current_state |= CURRENT_STATE_SRC_SEND;
 
 			xdd_e2e_src_send(qp);
 
 			qp->my_current_state &= ~CURRENT_STATE_SRC_SEND;
+
+			
+			// If Loose Ordering is in effect then we need to wait for the Previous QThread to complete
+			// its sendto() operation and release us before we continue. This is done to prevent this QThread and
+			// subsequent QThreads from getting too far ahead of the Previous QThread.
+//			if (qp->target_options & TO_LOOSE_ORDERING) {
+//				xdd_qthread_wait_for_previous_qthread(qp,0);
+//			}
+	
+			// If Loose or Strict Ordering is in effect then we need to release the Next QThread.
+			// For Loose Ordering, the Next QThread has issued its sendto() operation and it may have completed
+			// in which case the Next QThread is waiting for us to release it so that it can continue.
+			// For Strict Ordering, the Next QThread has not issued its sendto() operation yet because it is 
+			// waiting for us to release it.
+//			if (qp->target_options & TO_LOOSE_ORDERING) 
+//				xdd_qthread_release_next_qthread(qp,0);
+//			else if (qp->target_options & TO_STRICT_ORDERING) 
+//				xdd_qthread_release_next_qthread(qp,0);
+
 		} // End of me being the SOURCE in an End-to-End test 
 	} // End of processing a End-to-End
 

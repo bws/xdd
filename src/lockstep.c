@@ -237,7 +237,7 @@ xdd_lockstep_before_io_op(ptds_t *p) {
 				}
 			} else if ((lsp->ls_ms_state & LS_MASTER_FINISHED) && (lsp->ls_ms_state & LS_SLAVE_STOP)) {
 				/* This is the case where the master is finished and we need to stop NOW.
-				 * Therefore, release the lock, set the my_pass_ring to true and break this loop.
+				 * Therefore, release the lock and break this loop.
 				 */
 				lsp->ls_ms_state &= ~LS_SLAVE_WAITING; /* Slave is no longer waiting for anything */
 				if (lsp->ls_ms_state & LS_MASTER_WAITING) {
@@ -249,7 +249,6 @@ xdd_lockstep_before_io_op(ptds_t *p) {
 				} else {
 					pthread_mutex_unlock(&lsp->ls_mutex);
 				}
-				p->my_pass_ring = TRUE;
 				return(1);
 			} else { /* At this point the master is not finished and we need to wait for something to do */
 				if (lsp->ls_ms_state & LS_MASTER_WAITING)

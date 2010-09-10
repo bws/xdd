@@ -80,8 +80,8 @@ xdd_ts_setup(ptds_t *p) {
 	/* If DESKEW is TRUE but the TS option was not requested, then do a DESKEW ts setup */
 	if ((xgp->global_options & GO_DESKEW) && !(p->ts_options & TS_ON)) {
 		p->ts_options |= (TS_ON | TS_ALL | TS_ONESHOT | TS_SUPPRESS_OUTPUT);
-		p->ts_size = xgp->passes * p->total_threads;
-	} else p->ts_size = xgp->passes * p->target_ops;
+		p->ts_size = (xgp->passes + 1) * p->queue_depth;
+	} else p->ts_size = (xgp->passes * p->target_ops) + p->queue_depth;
 	if (p->ts_options & (TS_TRIGTIME | TS_TRIGOP)) 
 		p->ts_options &= ~TS_ALL; /* turn off the "time stamp all operations" flag if a trigger was requested */
 	if (p->ts_options & TS_TRIGTIME) { /* adjust the trigger time to an actual local time */
@@ -92,10 +92,10 @@ xdd_ts_setup(ptds_t *p) {
 	/* Calculate size of the time stamp table and malloc it */
 	if (xgp->global_options & GO_DESKEW) { /* This is a case where the target has time stamping already enabled as well as deskew */
 		/* Make sure the ts table is large enough for the deskew operation */
-		tt_entries = xgp->passes * p->target_ops; /* calculate the size */
+		tt_entries = (xgp->passes * p->target_ops) + p->queue_depth; /* calculate the size */
 	} else {
 		tt_entries = p->ts_size; 
-		if (tt_entries < (xgp->passes * p->target_ops)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
+		if (tt_entries < ((xgp->passes * p->target_ops) + p->queue_depth)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
 			if (((p->ts_options & TS_WRAP) == 0) &&
 				((p->ts_options & TS_ONESHOT) == 0) &&
 				(!(xgp->global_options & GO_DESKEW))) {
@@ -244,7 +244,7 @@ xdd_ts_reports(ptds_t *p) {
 	if(p->ts_options & TS_SUPPRESS_OUTPUT)
 		return;
 	if (p->pass_complete == 0) {
-		fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d thread %d has not yet completed! Results beyond this point are unpredicatable!\n",
+		fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d thread %d has not yet completed! Results beyond this point are unpredictable!\n",
 						xgp->progname, p->my_target_number, p->my_qthread_number);
 		fflush(xgp->errout);
 	}
@@ -366,6 +366,7 @@ xdd_ts_reports(ptds_t *p) {
 					case SO_OP_WRITE: opc="w"; break;
 					case SO_OP_WRITE_VERIFY: opc="v"; break;
 					case SO_OP_NOOP: opc="n"; break;
+					case SO_OP_EOF: opc="e"; break;
 					default: opc="r"; break;
 				}
 

@@ -200,7 +200,6 @@ xdd_init_ptds_before_pass(ptds_t *p) {
 
 	// Init all the pass-related variables to 0
 	p->my_elapsed_pass_time = 0;
-	p->my_pass_ring = 0;
 	p->my_first_op_start_time = 0;
 	p->my_accumulated_op_time = 0; 
 	p->my_accumulated_read_op_time = 0;
@@ -238,7 +237,7 @@ xdd_init_ptds_before_pass(ptds_t *p) {
 } // End of xdd_init_ptds_before_pass()
  
 /*----------------------------------------------------------------------------*/
-/* xdd_target_ttd_before_pass() - This subroutine is called by target_pass()
+/* xdd_target_ttd_before_pass() - This subroutine is called by targetpass()
  * inside the Target Thread and will do all the things to do (ttd)  
  * before entering the inner-most loop that does all the I/O operations
  * that constitute a "pass".

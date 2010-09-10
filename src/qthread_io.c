@@ -50,7 +50,12 @@ void
 xdd_qthread_io(ptds_t *qp) {
 	int32_t		status;			// Status of various subroutine calls
 
+
 	// Do the things that need to get done before the I/O is started
+	// If this is the Destination Side of an End-to-End (E2E) operation, the xdd_qthread_ttd_before_io_op()
+	// subroutine will perform the "recvfrom()" operation to get the data from the Source Side
+	// of the E2E operation.
+//TMR fprintf(stderr,"qthread: qthread %d, calling qthread_ttd_before_iop %lld...", qp->my_qthread_number, (long long int)qp->target_op_number);
 	status = xdd_qthread_ttd_before_io_op(qp);
 	if (status) { // Must be a problem is status is anything but zero
 		fprintf(xgp->errout,"\n%s: xdd_qthread_io: Target %d QThread %d: ERROR: Canceling run due to previous error\n",
@@ -59,46 +64,94 @@ xdd_qthread_io(ptds_t *qp) {
 			qp->my_qthread_number);
 		xgp->canceled = 1; // Need to terminate early
 	}
+//TMR fprintf(stderr,"done.\n");
 
-	// Wait for the previous QThread I/O operation to complete if Strict Ordering or Loose Ordering is in effect
-	if ((qp->target_options & TO_STRICT_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) {
-		xdd_qthread_wait_for_previous_qthread(qp);
+
+	// If this is the Destination Side of an E2E operation and this is an End-of-File Packet 
+	// there is no data to write to the storage so we just set our "pass_complete" indicator and 
+	// return to qthread().
+	// If there is Loose or Serial Ordering in effect then we need to release the Next QThread
+	// as well. 
+	if ((qp->target_options & TO_E2E_DESTINATION) && (qp->e2e_header.magic == PTDS_E2E_MAGIQ)) { 
+		// Release the next QThread I/O and exit - nothing more to do...
+		if ((qp->target_options & TO_SERIAL_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) 
+			xdd_qthread_release_next_qthread(qp,0);
+		qp->pass_complete = 1;
+		return;
+	}
+		
+	// Wait for the Previous QThread to release this QThread if Serial or Loose Ordering is in effect.
+	// It is important to note that for Serial Ordering, when we get released by the Previous QThread
+	// we are gauranteed that the previous QThread has completed its I/O operation. 
+	// However, for Loose Ordering, we get released just *before* the previous QThread actually performs its I/O 
+	// operation. Therefore, in order to ensure that the previous QThread's I/O operation actually completes [properly], 
+	// we need to wait again *after* we have completed our I/O operation for the previous QThread to 
+	// release us *after* it completes its operation. 
+	// Man I hope this works...
+	if ((qp->target_options & TO_SERIAL_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) {
+		xdd_qthread_wait_for_previous_qthread(qp,0);
 	}
 	
 	// Check to see if we have been canceled - if so, then we need to 
-	// release the next I/O and just return without performing this I/O.
+	// set our "pass_complete" indicator and return without performing this I/O operation.
+	// If there is Loose or Serial Ordering in effect then we need to release the Next QThread
+	// as well. 
 	// Subsequent QThreads will do the same...
 	if (xgp->canceled) {
-		// Release the next QThread I/O if requested
-		xdd_qthread_release_next_qthread(qp);
+		// Release the Next QThread I/O if requested
+		if ((qp->target_options & TO_SERIAL_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) 
+			xdd_qthread_release_next_qthread(qp,0);
+		qp->pass_complete = 1;
 		return;
 	}
 
-	// Release the next QThread I/O at this point if Loose Ordering is in effect
+	// If Loose Ordering is in effect then release the Next QThread so that it can start
 	if (qp->target_options & TO_LOOSE_ORDERING) 
-		xdd_qthread_release_next_qthread(qp);
+		xdd_qthread_release_next_qthread(qp,0);
 
+//TMR fprintf(stderr,"qthread: qthread %d, calling qthread_io_for_os op %lld, iosize %d ...", qp->my_qthread_number, (long long int)qp->target_op_number, qp->my_current_io_size);
 	// Call the OS-appropriate IO routine to perform the I/O
 	qp->my_current_state |= CURRENT_STATE_IO;
-
 	xdd_io_for_os(qp);
-
 	qp->my_current_state &= ~CURRENT_STATE_IO;
+//TMR fprintf(stderr,"done.\n");
 
 	// Update counters and status in this QThread's PTDS
+//TMR fprintf(stderr,"qthread: qthread %d, calling update local counters %lld...", qp->my_qthread_number, (long long int)qp->target_op_number);
 	xdd_qthread_update_local_counters(qp);
+//TMR fprintf(stderr,"done.\n");
 
 	// Update the Target's PTDS counters and timers
+//TMR fprintf(stderr,"qthread: qthread %d, calling update target counters %lld...", qp->my_qthread_number, (long long int)qp->target_op_number);
 	xdd_qthread_update_target_counters(qp);
+//TMR fprintf(stderr,"done.\n");
 
-	// Release the next QThread I/O at this point if Strict Ordering is in effect
-	if (qp->target_options & TO_STRICT_ORDERING) 
-		xdd_qthread_release_next_qthread(qp);
+	// If Loose Ordering is in effect then we need to wait for the Previous QThread to complete
+	// its I/O operation and release us before we continue. This is done to prevent this QThread and
+	// subsequent QThreads from getting too far ahead of the Previous QThread.
+	if (qp->target_options & TO_LOOSE_ORDERING) {
+		xdd_qthread_wait_for_previous_qthread(qp,0);
+	}
+	
+	// If Loose or Serial Ordering is in effect then we need to release the Next QThread.
+	// For Loose Ordering, the Next QThread has issued its I/O operation and it may have completed
+	// in which case the Next QThread is waiting for us to release it so that it can continue.
+	// For Serial Ordering, the Next QThread has not issued its I/O operation yet because it is 
+	// waiting for us to release it.
+	if ((qp->target_options & TO_LOOSE_ORDERING) || (qp->target_options & TO_SERIAL_ORDERING))
+		xdd_qthread_release_next_qthread(qp,0);
 
 	// Check I/O operation completion
+	// If this is the Source Side of an End-to-End (E2E) operation, the xdd_qthread_ttd_after_io_op()
+	// subroutine will perform the "sendto()" operation to send the data that was just read from storage
+	// over to the Destination Side of the E2E operation. 
+	// NA:Note that if Loose or Serial Ordering is
+	// NA:in effect and this is the Source Side of an E2E operation then there are a series of semaphores
+	// NA:that regulate the flow of QThreads issuing their respective sendto() operations that 
+	// NA:send the data to the Destination machine.
+//TMR fprintf(stderr,"qthread: qthread %d, calling qthread_ttd_after_iop %lld...", qp->my_qthread_number, (long long int)qp->target_op_number);
 	xdd_qthread_ttd_after_io_op(qp);
-
-	qp->qthread_to_wait_for = NULL; // Clear this out
+//TMR fprintf(stderr,"done.\n");
 
 } // End of xdd_qthread_io()
 
@@ -110,7 +163,7 @@ xdd_qthread_io(ptds_t *qp) {
  * Return value of 0 is good, -1 indicates there was an error
  */
 int32_t
-xdd_qthread_wait_for_previous_qthread(ptds_t *qp) {
+xdd_qthread_wait_for_previous_qthread(ptds_t *qp, int ordering_semaphore_number) {
 	int32_t 	status;
 
 
@@ -119,7 +172,8 @@ xdd_qthread_wait_for_previous_qthread(ptds_t *qp) {
 		pthread_mutex_lock(&qp->my_current_state_mutex);
 		qp->my_current_state |= CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD;
 		pthread_mutex_unlock(&qp->my_current_state_mutex);
-		status = sem_wait(&qp->qthread_to_wait_for->qthread_ordering_sem);
+//fprintf(stderr,"\nQT %d qthread_to_wait_for is %d,  wait %d\n",qp->my_qthread_number, qp->qthread_to_wait_for->my_qthread_number,waitnumber);
+		status = sem_wait(&qp->qthread_to_wait_for->sem_qthread_ordering);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_qthread_wait_for_previous_qthread: Target %d QThread %d: ERROR: Bad status from sem_wait: status=%d, errno=%d\n",
 				xgp->progname,
@@ -144,12 +198,12 @@ xdd_qthread_wait_for_previous_qthread(ptds_t *qp) {
  * Return value of 0 is good, -1 indicates there was an error
  */
 int32_t
-xdd_qthread_release_next_qthread(ptds_t *qp) {
+xdd_qthread_release_next_qthread(ptds_t *qp, int ordering_semaphore_number) {
 	int32_t 	status;
 
 
-	// Increment the "qthread_ordering_sem" semaphore to let the next QThread run if necessary
-	status = sem_post(&qp->qthread_ordering_sem);
+	// Increment the specified "qthread_ordering_sem" semaphore (usually 0 or 1) to let the next QThread run 
+	status = sem_post(&qp->sem_qthread_ordering);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_release_next_qthread: Target %d QThread %d: ERROR: Bad status from sem_post: status=%d, errno=%d\n",
 			xgp->progname,
@@ -284,9 +338,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 		} // End of SWITCH
 	}
 	p->my_current_error_count += qp->my_current_error_count;
-	if (p->bytes_completed >= p->target_bytes_to_xfer_per_pass) {  // This means that this was the last I/O operation and we are DONE
-		qp->pass_complete = 1;
-	}
+
 	pthread_mutex_unlock(&p->counter_mutex);
 	// UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED
 

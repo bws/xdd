@@ -835,6 +835,27 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		}
 		xgp->global_options |= GO_ENDTOEND;
 		return(args_index+1);
+	} else if ((strcmp(argv[args_index], "sourcemonitor") == 0) ||
+	    (strcmp(argv[args_index], "srcmon") == 0)) { 
+		// Monitor the Source Side in target_pass_loop()
+		args_index++;
+		if (target_number >= 0) {
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			p->target_options |= TO_E2E_SOURCE_MONITOR;
+		} else {  /* set option for all targets */
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					p->target_options |= TO_E2E_SOURCE_MONITOR;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+		}
+		xgp->global_options |= GO_ENDTOEND;
+		return(args_index);
 	} else {
 		fprintf(stderr,"%s: Invalid End-to-End option %s\n",xgp->progname, argv[args_index]);
 		return(0);
@@ -1604,6 +1625,44 @@ xddfunc_nomemlock(int32_t argc, char *argv[], uint32_t flags)
 		xgp->global_options |= GO_NOMEMLOCK;
     return(1);
 }
+/*----------------------------------------------------------------------------*/
+// No Ordering - Turn off Loose and Serial ordering of QThread I/O
+// aka -no 
+int
+xddfunc_noordering(int32_t argc, char *argv[], uint32_t flags)
+{
+    int args, i; 
+    int target_number;
+    ptds_t *p;
+
+
+    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+    // At this point the "target_number" is valid
+	if (target_number >= 0) { 
+		/* Unset the Loose and Serial Ordering Opetions for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL) return(-1);
+
+		p->target_options &= ~TO_LOOSE_ORDERING;
+		p->target_options &= ~TO_SERIAL_ORDERING;
+        return(args+1);
+    } else {// Put this option into all PTDSs 
+			/* Unset the Loose and Serial Ordering Opetions for all targets */
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					p->target_options &= ~TO_LOOSE_ORDERING;
+					p->target_options &= ~TO_SERIAL_ORDERING;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+        return(1);
+	}
+} // End of  xddfunc_looseordering()
 /*----------------------------------------------------------------------------*/
 // Set the no process lock flag
 int

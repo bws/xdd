@@ -77,7 +77,6 @@ xdd_target_thread(void *pin) {
 
 	// If this is a dry run then just exit at this point
 	if (xgp->global_options & GO_DRYRUN) {
-		// xdd_target_cleanup() ????? TMR-TTD
 		return(0);
 	}
 
@@ -85,7 +84,8 @@ xdd_target_thread(void *pin) {
 	p->my_current_pass_number = 1;
 	while (1) {
 		// Perform a single pass
-		xdd_target_pass(p);
+		p->pass_complete = 0;
+		xdd_targetpass(p);
 
 		// Check to see if we got canceled
 		if (xgp->canceled) 

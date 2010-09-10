@@ -171,12 +171,21 @@ xdd_target_init_barriers(ptds_t *p) {
 	// the accumulated status should be zero. Any barrier that is not properly initialized is cause
 	// for exiting XDD altogether. 
 	status = 0;
+
 	// The Target_QThread Initialization barrier
 	sprintf(tmpname,"T%04d:target_qthread_init_barrier",p->my_target_number);
 	status += xdd_init_barrier(&p->target_qthread_init_barrier,2, tmpname);
+
 	// The Target Pass barrier
 	sprintf(tmpname,"T%04d>targetpass_qthread_passcomplete_barrier",p->my_target_number);
-	status += xdd_init_barrier(&p->targetpass_qthread_passcomplete_barrier,2,tmpname);
+	status += xdd_init_barrier(&p->targetpass_qthread_passcomplete_barrier,p->queue_depth+1,tmpname);
+
+	// The Target Pass E2E EOF Complete barrier - only initialized when an End-to-End operation is running
+	if (p->target_options & TO_ENDTOEND) {
+		sprintf(tmpname,"T%04d>targetpass_qthread_eofcomplete_barrier",p->my_target_number);
+		status += xdd_init_barrier(&p->targetpass_qthread_eofcomplete_barrier,2,tmpname);
+	}
+
 	// The Target Start Trigger barrier 
 	if (p->target_options & TO_WAITFORSTART) { // If we are expecting a Start Trigger then we need to init the starttrigger barrier
 		sprintf(tmpname,"T%04d>target_target_starttrigger_barrier",p->my_target_number);
@@ -196,9 +205,9 @@ xdd_target_init_barriers(ptds_t *p) {
 	}
 
 	// Initialize the semaphores used to control QThread selection
-	status = sem_init(&p->any_qthread_available, 0, 0);
+	status = sem_init(&p->sem_any_qthread_available, 0, 0);
 	if (status) {
-		fprintf(xgp->errout,"%s: xdd_target_init: Target %d: ERROR: Cannot initialize any_qthread_available semaphore.\n",
+		fprintf(xgp->errout,"%s: xdd_target_init: Target %d: ERROR: Cannot initialize sem_any_qthread_available semaphore.\n",
 			xgp->progname, 
 			p->my_target_number);
 		fflush(xgp->errout);

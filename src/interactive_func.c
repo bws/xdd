@@ -83,7 +83,9 @@ xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags) {
 	while ((*cp != TAB) && (*cp != SPACE) && (*cp != '\0')) cp++;
 	while ((*cp == TAB) || (*cp == SPACE) || (*cp == '\0')) cp++;
 	fprintf(xgp->output,"show: cp=%s\n",cp);
-	if (strcmp(cp, "ptds") == 0) 
+	if (strcmp(cp, "barrier") == 0) 
+		xdd_interactive_show_barrier(tokens, cp, flags);
+	else if (strcmp(cp, "ptds") == 0) 
 		xdd_interactive_show_ptds(tokens, cp, flags);
 	else if (strcmp(cp, "qtptds") == 0) 
 		xdd_interactive_show_qtptds(tokens, cp, flags);
@@ -97,10 +99,8 @@ xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags) {
 		xdd_interactive_show_global_data(tokens, cp, flags);
 	else if (strcmp(cp, "data") == 0) 
 		xdd_interactive_show_rwbuf(tokens, cp, flags);
-	else if (strcmp(cp, "barrier") == 0) 
-		xdd_interactive_show_barrier(tokens, cp, flags);
 	else { // Show a list of what one can show
-		fprintf(xgp->output,"show: please specify: ptds, trace, global, barrier, or data\n");
+		fprintf(xgp->output,"show: please specify: barrier, ptds, qtptds, qtsem, qtstate, trace, global, or data\n");
 	}
 
 	return(0);
@@ -217,16 +217,18 @@ xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags) {
 		p = xgp->ptdsp[target_number];
 		if (p) {
 			sem_val = 0;
-			status = sem_getvalue(&p->any_qthread_available, &sem_val);
-			fprintf(xgp->output,"Target %d any_qthread_available: status of sem_getvalue is %d, sem_val is %d",p->my_target_number, status, sem_val);
+			status = sem_getvalue(&p->sem_any_qthread_available, &sem_val);
+			fprintf(xgp->output,"Target %d sem_any_qthread_available: status of sem_getvalue is %d, sem_val is %d",p->my_target_number, status, sem_val);
 			qp = p->next_qp;
 			while (qp) {
 				sem_val = 0;
-				status = sem_getvalue(&qp->this_qthread_available, &sem_val);
-				fprintf(xgp->output,"Target %d Qthread %d this_qthread_available: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
+				status = sem_getvalue(&qp->sem_this_qthread_is_available, &sem_val);
+				fprintf(xgp->output,"Target %d Qthread %d sem_this_qthread_is_available: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
 				sem_val = 0;
-				status = sem_getvalue(&qp->qthread_ordering_sem, &sem_val);
-				fprintf(xgp->output,"Target %d Qthread %d qthread_ordering_sem: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
+				if ((qp->target_options & TO_SERIAL_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING))  {
+					status = sem_getvalue(&qp->sem_qthread_ordering, &sem_val);
+					fprintf(xgp->output,"Target %d Qthread %d sem_qthread_ordering: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
+				}
 				qp = qp->next_qp;
 			}
 		} else {
@@ -286,21 +288,40 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 			(long long int)tmp,
 			(long long int)qp->my_current_op_end_time);
 	}
-	if (qp->my_current_state & CURRENT_STATE_DEST_RECEIVE)
-		fprintf(xgp->output,"    Destination Side of an E2E - waiting to receive data from Source\n");
-	if (qp->my_current_state & CURRENT_STATE_SRC_SEND)
-		fprintf(xgp->output,"    Source Side of an E2E - waiting to send data to Destination\n");
+	if (qp->my_current_state & CURRENT_STATE_DEST_RECEIVE) 
+		fprintf(xgp->output,"    Destination Side of an E2E - waiting to receive data from Source, target op number %lld, location %lld, length %lld, recvfrom status is %d\n", 
+			(long long int)qp->target_op_number, 
+			(long long int)qp->e2e_header.location, 
+			(long long int)qp->e2e_header.length, 
+			qp->e2e_recv_status);
+	if (qp->my_current_state & CURRENT_STATE_SRC_SEND) 
+		fprintf(xgp->output,"    Source Side of an E2E - waiting to send data to Destination, target op number %lld, location %lld, length %lld, sendto status is %d\n", 
+			(long long int)qp->target_op_number, 
+			(long long int)qp->e2e_header.location, 
+			(long long int)qp->e2e_header.length, 
+			qp->e2e_send_status);
 	if (qp->my_current_state & CURRENT_STATE_BARRIER)
 		fprintf(xgp->output,"    Inside barrier '%s'\n",qp->current_barrier->name);
-	if (qp->my_current_state & CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE)
-		fprintf(xgp->output,"    This QThread is Available\n");
 	if (qp->my_current_state & CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE)
 		fprintf(xgp->output,"    Waiting on the any_qthread_available semaphore\n");
 	if (qp->my_current_state & CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE)
-		fprintf(xgp->output,"    Waiting on the this_qthread_available semaphore\n");
+		fprintf(xgp->output,"    Waiting on the sem_this_qthread_is_available semaphore\n");
 	if (qp->my_current_state & CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD)
 		fprintf(xgp->output,"    Waiting for previous QThread '%d' task complete\n",(qp->qthread_to_wait_for)?qp->qthread_to_wait_for->my_qthread_number:-1);
-}
+	fprintf(xgp->output,"    pass_complete is '%d'\n",qp->pass_complete);
+	if (qp->this_qthread_is_available)
+		fprintf(xgp->output,"    This QThread is Available\n");
+	if (qp->target_options & TO_ENDTOEND) { // Check to see if this is in an E2E operation and if EOF has been sent or received
+		if (qp->target_options & TO_E2E_SOURCE) { // This is the Source Side
+			if (qp->pass_complete) // Pass Complete means that the EOF has been sent
+				fprintf(xgp->output,"    Source QThread %d has sent EOF to Deestination\n",qp->my_qthread_number);
+		} else { // Must be the Destination Side
+			if (qp->pass_complete) // Pass Complete means that the EOF has been received
+				fprintf(xgp->output,"    Destination QThread %d has received EOF from Source\n",qp->my_qthread_number);
+		}
+	}
+} // End of xdd_interactive_display_state_info()
+
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show_qptds()
  * Display the PTDS of the QThreads 
@@ -401,3 +422,25 @@ xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags) {
 
 } // End of xdd_interactive_show_barrier()
 
+/*----------------------------------------------------------------------------*/
+/* xdd_interactive_timestamp_report()
+ * Generate the time stamp report 
+ */
+int
+xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags) {
+	int		target_number;
+	ptds_t	*p;
+
+	// Process TimeStamp reports for the -ts option
+	for (target_number=0; target_number<xgp->number_of_targets; target_number++) { 
+		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+		/* Display and write the time stamping information if requested */
+		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+			if (p->ts_current_entry > p->ttp->tt_size) 
+				p->ttp->numents = p->ttp->tt_size;
+			else p->ttp->numents = p->ts_current_entry;
+			xdd_ts_reports(p);  /* generate reports if requested */
+		}
+	} // End of processing TimeStamp reports
+	return(0);
+} // End of xdd_interactive_timestamp_report()
