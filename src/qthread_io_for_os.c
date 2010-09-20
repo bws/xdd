@@ -78,7 +78,7 @@ xdd_io_for_os(ptds_t *qp) {
 		// Time stamp if requested
 		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 			p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
-			p->ttp->tte[qp->ts_current_entry].bytes_xferred = qp->my_current_io_status;
+			p->ttp->tte[qp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
 		}
 	} else if (qp->my_current_op_type == OP_TYPE_READ) {  // READ Operation
 		qp->my_current_op_str = "READ";
@@ -100,7 +100,7 @@ xdd_io_for_os(ptds_t *qp) {
 		// Time stamp if requested
 		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 			p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
-			p->ttp->tte[qp->ts_current_entry].bytes_xferred = qp->my_current_io_status;
+			p->ttp->tte[qp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
 		}
 	
 		if (p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
@@ -124,7 +124,7 @@ xdd_io_for_os(ptds_t *qp) {
 		// Time stamp if requested
 		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 			p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
-			p->ttp->tte[qp->ts_current_entry].bytes_xferred = qp->my_current_io_status;
+			p->ttp->tte[qp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
 		}
 	} // End of NOOP operation
 		

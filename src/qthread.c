@@ -74,14 +74,13 @@ xdd_qthread(void *pin) {
 	// indicate that there was a condition that warrants canceling the entire run
 	while (1) {
 		// Enter the QThread_TargetPass_Wait barrier until we are assigned something to do byte targetpass()
-		xdd_barrier(&qp->qthread_targetpass_wait_barrier,&qp->occupant,1);
+		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&qp->occupant,1);
 
 		// Look at Task request 
 		switch (qp->task_request) {
 			case TASK_REQ_IO:
 				// Perform the requested I/O operation
 				xdd_qthread_io(qp);
-//TMR fprintf(stderr,"qthread: target %d qthread %d, finished io %lld\n",qp->my_target_number, qp->my_qthread_number,(long long int)qp->target_op_number);
 				break;
 			case TASK_REQ_REOPEN:
 				// Reopen the target as requested
@@ -92,14 +91,8 @@ xdd_qthread(void *pin) {
 				xdd_qthread_cleanup(qp);
 				return(0);
 			case TASK_REQ_EOF:
-				// Upon completion of xdd_e2e_eof_source_side(), pass_complete will be set for this QThread
+				// E2E Source Side only - send EOF packets to Destination 
 				xdd_e2e_eof_source_side(qp);
-				qp->pass_complete = 1;
-				break;
-			case TASK_REQ_END_OF_PASS:
-				// Used by targetpass_loop() to make sure all QThreads have finished and enter the targetpass_qthread_pass_complete barrier
-				qp->pass_complete = 1;
-//TMR fprintf(stderr,"qthread: qthread %d, task req end of pass\n", qp->my_qthread_number);
 				break;
 			default:
 				// Technically, we should never see this....
@@ -112,14 +105,12 @@ xdd_qthread(void *pin) {
 				break;
 		} // End of SWITCH stmnt that determines the TASK
 
-//TMR if (qp->pass_complete) fprintf(stderr,"qthread: qthread %d, locking this_thread_is_available\n",qp->my_qthread_number);
-		pthread_mutex_lock(&qp->mutex_this_qthread_is_available);
-//TMR if (qp->pass_complete) fprintf(stderr,"qthread: qthread %d, this_thread_is_available locked\n",qp->my_qthread_number);
 		// Mark this QThread Available
-		qp->this_qthread_is_available = 1;
-		if ((p->target_options & TO_SERIAL_ORDERING) || 
-			(p->target_options & TO_LOOSE_ORDERING)) { // Release the QThread Locator which might be waiting if we are using Serial or Loose Ordering 
-			status = sem_post(&qp->sem_this_qthread_is_available);
+		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
+		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
+		if (qp->qthread_target_sync & QTSYNC_TARGET_WAITING) {
+			// Release the target that is waiting on this QThread
+			status = sem_post(&qp->this_qthread_is_available_sem);
 			if (status) {
 				fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on this_qthread_is_available semaphore: status=%d, errno=%d\n",
 					xgp->progname,
@@ -128,28 +119,23 @@ xdd_qthread(void *pin) {
 					status,
 					errno);
 			}
-		} else { // No ordering
-			// Release the QThread Locator which might be waiting for any avaiable QThread
-			status = sem_post(&p->sem_any_qthread_available);
-			if (status) {
-				fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on sem_any_qthread_available semaphore: status=%d, errno=%d\n",
-					xgp->progname,
-					qp->my_target_number,
-					qp->my_qthread_number,
-					status,
-					errno);
-			}
+			// Turn off the TARGET_WAITING Flag
+			qp->qthread_target_sync &= ~QTSYNC_TARGET_WAITING; 
 		}
-//TMR if (qp->pass_complete) fprintf(stderr,"qthread: qthread %d, unlocking this_thread_is_available\n",qp->my_qthread_number);
-		pthread_mutex_unlock(&qp->mutex_this_qthread_is_available);
 
-		// For an E2E operation pass_complete is set by xdd_qthread_io() on the destination side after reading an EOF packet
-		// or on the source side pass_complete will be set after returning from xdd_e2e_eof_source_side().      
-		if (qp->pass_complete) { // If this QThread is done for this pass then enter the targetpass_qthread_passcomplete barrier
-//TMR fprintf(stderr,"qthread: target %d <%p> qthread %d <%p>, entering pass complete barrier\n",qp->my_target_number, p, qp->my_qthread_number,qp);
-			xdd_barrier(&p->targetpass_qthread_passcomplete_barrier,&qp->occupant,0);
-//TMR fprintf(stderr,"qthread: target %d qthread %d, left pass complete barrier\n",qp->my_target_number, qp->my_qthread_number);
+		// Release the QThread Locator which might be waiting for ANY avaiable QThread
+		status = sem_post(&p->any_qthread_available_sem);
+		if (status) {
+			fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on sem_any_qthread_available semaphore: status=%d, errno=%d\n",
+				xgp->progname,
+				qp->my_target_number,
+				qp->my_qthread_number,
+				status,
+				errno);
 		}
+
+		// Unlock the qthread-target synchronization mutex
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 
 	} // end of WHILE loop 
 

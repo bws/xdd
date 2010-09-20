@@ -164,6 +164,8 @@ int32_t
 xdd_target_init_barriers(ptds_t *p) {
 	int32_t		status;								// Status of subroutine calls
 	char		tmpname[XDD_BARRIER_NAME_LENGTH];	// Used to create unique names for the barriers
+	int			tot_size;							// Size in bytes of the Target Offset Table
+	int			i;
 
 
 	// The following initialization calls are all done with accumulated status for ease of coding.
@@ -205,15 +207,45 @@ xdd_target_init_barriers(ptds_t *p) {
 	}
 
 	// Initialize the semaphores used to control QThread selection
-	status = sem_init(&p->sem_any_qthread_available, 0, 0);
+	status = sem_init(&p->any_qthread_available_sem, 0, 0);
 	if (status) {
-		fprintf(xgp->errout,"%s: xdd_target_init: Target %d: ERROR: Cannot initialize sem_any_qthread_available semaphore.\n",
+		fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot initialize any_qthread_available semaphore.\n",
 			xgp->progname, 
 			p->my_target_number);
 		fflush(xgp->errout);
 		return(-1);
 	}
-	p->next_qthread_to_use = p->next_qp; // Point to the first QThread on the chain
+
+	// Initialize the Target Offset Table and associated semaphores
+	tot_size =  sizeof(tot_t) + (p->queue_depth * sizeof(tot_entry_t));
+#if (LINUX || SOLARIS || AIX || OSX)
+	p->totp = (struct tot *)valloc(tot_size);
+#else
+	p->totp = (struct tot *)malloc(tot_size);
+#endif  
+	if (p->totp == 0) {
+		fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot allocate %d bytes of memory for the Target Offset Table\n",
+			xgp->progname,p->my_target_number, tot_size);
+		perror("Reason");
+		return(-1);
+	}
+	p->totp->tot_entries = p->queue_depth;
+	// Initialize all the semaphores in the ToT
+	for (i = 0; i < p->totp->tot_entries; i++) {
+		status = sem_init(&p->totp->tot_entry[i].tot_sem, 0, 0);
+		// The "tot_mutex" is used by the QThreads when updating information in the TOT Entry
+		status += pthread_mutex_init(&p->totp->tot_entry[i].tot_mutex, 0);
+		if (status) {
+			fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot initialize semaphore/mutex %d in Target Offset Table.\n",
+				xgp->progname, 
+				p->my_target_number,i);
+			fflush(xgp->errout);
+			return(-1);
+		}
+		p->totp->tot_entry[i].tot_byte_location = -1;
+		p->totp->tot_entry[i].tot_io_size = 0;
+	} // End of FOR loop that inits the semaphores in the ToT
+
 	return(0);
 } // End of xdd_target_init_barriers()
 
@@ -231,6 +263,9 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 	int32_t		status;		// Status of subtroutine calls
 
 
+
+	if (xgp->global_options & GO_VERBOSE) 
+			fprintf(xgp->errout,"\n");
 
 	// Now let's start up all the QThreads for this target
 	qp = p->next_qp; // This is the first QThread
@@ -254,6 +289,13 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 		}
 		/* Wait for the previous thread to initialize before creating the next one */
 		xdd_barrier(&p->target_qthread_init_barrier,&p->occupant,1);
+		if (xgp->global_options & GO_VERBOSE) {
+			fprintf(xgp->errout,"\r%s: xdd_target_init_start_qthreads: Target %d QThread %d of %d started ",
+				xgp->progname,
+				p->my_target_number,
+				q,
+				p->queue_depth);
+		}
 
 		// If the QThread initialization fails, then everything needs to stop right now.
 		if (xgp->abort == 1) { 
@@ -267,6 +309,13 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 		// Get next QThread pointer
 		qp = qp->next_qp;
 	} // End of FOR loop that starts all qthreads for this target
+
+	if (xgp->global_options & GO_VERBOSE) {
+		fprintf(xgp->errout,"\n%s: xdd_target_init_start_qthreads: Target %d ALL %d QThreads started\n",
+			xgp->progname,
+			p->my_target_number,
+			p->queue_depth);
+	}
 
 	return(0);
 

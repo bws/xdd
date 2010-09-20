@@ -18,41 +18,36 @@
 /* Principal Author:
  *      Tom Ruwart (tmruwart@ioperformance.com)
  * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
+ *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
+ *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
+ *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
  * Oak Ridge National Labs, Department of Energy and Department of Defense
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-/*
- * This file contains the subroutines that support the Target threads.
+
+/** typedef unsigned long long iotimer_t; */
+struct tot_entry {
+	pthread_mutex_t		tot_mutex;					// Mutex that is locked when updating items in this entry
+	sem_t				tot_sem;					// Semaphore that is posted by the QThread that is processing it
+	pclk_t				tot_wait;					// Time that another QThread starts to wait on this
+	pclk_t				tot_post;					// Time that the responsible QThread posts this semaphore
+	pclk_t				tot_update;					// Time that the responsible QThread updates the byte_location and io_size
+	int64_t				tot_byte_location;			// Byte Location that was just processed
+	int32_t				tot_io_size;				// Size of I/O in bytes that was just processed
+};
+typedef struct tot_entry tot_entry_t;
+
+/**
+ * Time stamp Trace Table Header - this gets written out before
+ * the time stamp trace table data 
  */
-#include "xdd.h"
-
-/*----------------------------------------------------------------------------*/
-/* xdd_target_thread_cleanup() - Perform termination processing of this 
- * this Target thread.
- * Return Values: 0 is good, -1 indicates an error but what are ya gonna do?
- * 
- */
-void
-xdd_target_thread_cleanup(ptds_t *p) {
-	ptds_t	*qp;		// Pointer to a QThread PTDS
-	
-	qp = p->next_qp;
-	while (qp) {
-		qp->task_request = TASK_REQ_STOP;
-		p->occupant.occupant_type |= XDD_OCCUPANT_TYPE_CLEANUP;
-		// Release this QThread
-		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
-
-		// get the next PTDS in this chain
-		qp = qp->next_qp;
-	}
-
-} // End of xdd_target_thread_cleanup()
+struct tot {
+	int 				tot_entries;  				// Number of tot entries
+	struct 				tot_entry tot_entry[1]; 	// The ToT
+};
+typedef struct tot tot_t;
 

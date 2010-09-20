@@ -186,8 +186,8 @@ int32_t	xdd_qthread_init(ptds_t *qp);
 
 // qthread_io.c
 void	xdd_qthread_io(ptds_t *qp);
-int32_t	xdd_qthread_wait_for_previous_qthread(ptds_t *qp, int ordering_semaphore_number);
-int32_t	xdd_qthread_release_next_qthread(ptds_t *qp, int ordering_semaphore_number);
+int32_t	xdd_qthread_wait_for_previous_io(ptds_t *qp);
+int32_t	xdd_qthread_release_next_io(ptds_t *qp);
 void	xdd_qthread_update_local_counters(ptds_t *qp);
 void	xdd_qthread_update_target_counters(ptds_t *qp);
 void	xdd_qthread_check_io_status(ptds_t *qp);
@@ -320,11 +320,15 @@ void 	xdd_targetpass_end_of_pass(ptds_t *p);
 int32_t xdd_targetpass_count_active_qthreads(ptds_t *p);
 
 // target_pass_e2e_specific.c
-void 	xdd_targetpass_e2e_loop(ptds_t *p);
-void 	xdd_targetpass_eof_source_side(ptds_t *p);
+void	xdd_targetpass_e2e_loop_dst(ptds_t *p);
+void	xdd_targetpass_e2e_loop_src(ptds_t *p);
+void	xdd_targetpass_e2e_task_setup_src(ptds_t *qp);
+void	xdd_targetpass_e2e_eof_src(ptds_t *p);
+void	xdd_targetpass_e2e_monitor(ptds_t *p);
 
 // target_pass_qt_locator.c
-ptds_t 	*xdd_get_next_available_qthread(ptds_t *p);
+ptds_t	*xdd_get_specific_qthread(ptds_t *p, int32_t q);
+ptds_t	*xdd_get_any_available_qthread(ptds_t *p);
 
 // target_thread.c
 void 	*xdd_target_thread(void *pin);

@@ -38,6 +38,7 @@
 #include "read_after_write.h"
 #include "end_to_end.h"
 #include "parse.h"
+#include "target_offset_table.h"
 
 #define HOSTNAMELENGTH 1024
 
@@ -103,7 +104,6 @@ struct ptds {
 	int32_t   			my_pid;   			// My process ID 
 	int32_t   			total_threads; 		// Total number of threads -> target threads + QThreads 
 	int32_t   			run_complete; 		// 0 = thread has not completed yet, 1= completed this run
-	int32_t   			pass_complete; 		// 0 = thread has not completed yet, 1= completed this pass
 #ifdef WIN32
 	HANDLE   			fd;    				// File HANDLE for the target device/file 
 #else
@@ -148,29 +148,26 @@ struct ptds {
 	uint64_t			bytes_remaining;					// Bytes remaining to be transferred 
 
 	// Target-specific semaphores and associated pointers
-	struct ptds			*next_qthread_to_use;				// This is used by the get_next_available_qthread() to implement strict ordering
-	sem_t				sem_any_qthread_available;			// The xdd_get_next_available_qthread() routine waits on this for any QThread to become available
-	struct ptds			*last_qthread_assigned;				// This is the PTDS of the most recent QThread assigned a task 
+	tot_t				*totp;								// Pointer to the target_offset_table for this target
+	sem_t				any_qthread_available_sem;			// The xdd_get_any_available_qthread() routine waits on this for any QThread to become available
 
 	// QThread-specific semaphores and associated pointers
-	sem_t				sem_this_qthread_is_working;		// This semaphore is used by targetpass_end_of_pass() to wait for a QThread to complete its last I/O operation
-	sem_t				sem_this_qthread_is_available;		// The xdd_get_next_available_qthread() routine waits on this for a specific QThread to become available
-	pthread_mutex_t		mutex_this_qthread_is_available;	// Used to serialize access to the "this_qthread_is_available" variable
-	int32_t				this_qthread_is_available;			// Is set by qthread() to 1 and reset by get_next_available_qthread() to a 0
-	sem_t				sem_qthread_ordering;				// The QThread sets these to release a waiting QThread when Serial or Loose ordering is used
-	struct ptds			*qthread_to_wait_for;				// Pointer to the QThread to wait for before starting I/O
+	pthread_mutex_t		qthread_target_sync_mutex;			// Used to serialize access to the QThread-Target Synchronization flags
+	int32_t				qthread_target_sync;				// Flags used to synchronize a QThread with its Target
+#define	QTSYNC_AVAILABLE			0x00000001				// This QThread is available for a task, set by qthread, reset by xdd_get_specific_qthread.
+#define	QTSYNC_BUSY					0x00000002				// This QThread is busy
+#define	QTSYNC_TARGET_WAITING		0x00000004				// The parent Target is waiting for this QThread to become available, set by xdd_get_specific_qthread, reset by qthread.
+#define	QTSYNC_EOF_RECEIVED			0x00000008				// This QThread received an EOF packet from the Source Side of an E2E Operation
+	sem_t				this_qthread_is_available_sem;		// xdd_get_specific_qthread() routine waits on this for any QThread to become available
 
-															// The QThread Wait Barrier is used just by the QThread and the issue_thread
-	xdd_barrier_t		qthread_targetpass_wait_barrier;	// The barrier where the QThread waits for targetpass() to release it with a task to perform
+	xdd_barrier_t		qthread_targetpass_wait_for_task_barrier;	// The barrier where the QThread waits for targetpass() to release it with a task to perform
 
 // The task variables
 	char				task_request;						// Type of Task to perform
 #define TASK_REQ_IO				0x01						// Perform an IO Operation 
-#define TASK_REQ_E2E			0x02						// Perform an End-to-End IO Operation 
-#define TASK_REQ_REOPEN			0x03						// Re-Open the target device/file
-#define TASK_REQ_STOP			0x04						// Stop doing work and exit
-#define TASK_REQ_EOF			0x05						// Send an EOF to the Destination or Revceive an EOF from the Source
-#define TASK_REQ_END_OF_PASS	0x06						// Tell QThread to set its pass_complete variable and enter the targetpass_qthread_passcomplete barrier
+#define TASK_REQ_REOPEN			0x02						// Re-Open the target device/file
+#define TASK_REQ_STOP			0x03						// Stop doing work and exit
+#define TASK_REQ_EOF			0x04						// Send an EOF to the Destination or Revceive an EOF from the Source
 	char				task_op;							// Operation to perform
 	uint32_t			task_xfer_size;						// Number of bytes to transfer
 	uint64_t			task_byte_location;					// Offset into the file where this transfer starts
@@ -319,12 +316,10 @@ struct ptds {
 #define	CURRENT_STATE_DEST_RECEIVE						0x0000000000000004	// Waiting to receive data - Destination side of an E2E operation
 #define	CURRENT_STATE_SRC_SEND							0x0000000000000008	// Waiting for "send" to send data - Source side of an E2E operation
 #define	CURRENT_STATE_BARRIER							0x0000000000000010	// Waiting inside a barrier
-#define	CURRENT_STATE_THIS_QTHREAD_IS_AVAILABLE			0x0000000000000020	// Indicates that this QThread is Available
-#define	CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE		0x0000000000000040	// Waiting on the "any qthread available" semaphore
-#define	CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE	0x0000000000000080	// Waiting on the "This QThread Available" semaphore
-#define	CURRENT_STATE_WAITING_THIS_QTHREAD_WORKING  	0x0000000000000100	// Waiting on the "This QThread Working" semaphore
-#define	CURRENT_STATE_WAITING_FOR_PREVIOUS_QTHREAD		0x0000000000000200	// Waiting for the previous "QThread Task Complete" semaphore
-#define	CURRENT_STATE_WAITING_THIS_QTHREAD_IO_COMPLETE	0x0000000000000400	// Waiting on the "QThread I/O Complete" semaphore
+#define	CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE		0x0000000000000020	// Waiting on the "any qthread available" semaphore
+#define	CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE	0x0000000000000040	// Waiting on the "This QThread Available" semaphore
+#define	CURRENT_STATE_WAITING_FOR_PREVIOUS_IO			0x0000000000000080	// Waiting on the previous I/O op semaphore
+#define	CURRENT_STATE_PASS_COMPLETE						0x0000000000000100	// Indicates that this Target Thread has completed a pass
 
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS 

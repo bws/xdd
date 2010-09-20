@@ -108,7 +108,7 @@ xdd_heartbeat(void *junk) {
 			// From that we can calculate the estimated BW for the target as a whole 
 
 			p = xgp->ptdsp[i];
-			if (p->pass_complete) {
+			if (p->my_current_state & CURRENT_STATE_PASS_COMPLETE) {
 				now = p->my_pass_end_time;
 				prior_activity_index = activity_index;
 				activity_index = 4;
@@ -261,7 +261,7 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 	}
 	// Estimated time is based on "unadjusted bytes" otherwise the ETC would be skewed
 	if (xgp->global_options & GO_HB_ET) {  // display Estimated Time to Completion
-		if (p->pass_complete) 
+		if (p->my_current_state & CURRENT_STATE_PASS_COMPLETE) 
 			d = 0.0;
 		else if (ops > 0) {
 			// Estimate the time to completion -> ((total_ops/ops_completed)*elapsed_time - elapsed)

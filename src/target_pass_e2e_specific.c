@@ -35,15 +35,16 @@
 #include "xdd.h"
 
 /*----------------------------------------------------------------------------*/
-/* xdd_targetpass_e2e_loop() - This subroutine will manage assigning tasks to
+/* xdd_targetpass_e2e_loop_dst() - This subroutine will manage assigning tasks to
  * QThreads during an E2E operation but only on the destination side of an
  * E2E operation. 
  * Called from xdd_targetpass()
  * 
  */
 void
-xdd_targetpass_e2e_loop(ptds_t *p) {
+xdd_targetpass_e2e_loop_dst(ptds_t *p) {
 	ptds_t	*qp;
+	int		q;
 
 	// The idea is to keep all the QThreads busy reading whatever is sent to them
 	// from their respective QThreads on the Source Side.
@@ -65,11 +66,10 @@ xdd_targetpass_e2e_loop(ptds_t *p) {
 	// At that point this routine will return.
 
 	// Get the first QThread pointer for this Target
-	qp = xdd_get_next_available_qthread(p);
+	qp = xdd_get_any_available_qthread(p);
 
 	//////////////////////////// BEGIN I/O LOOP FOR ENTIRE PASS ///////////////////////////////////////////
 	while (qp) { 
-
 
 		// Check to see if we've been canceled - if so, we need to leave this loop
 		if (xgp->canceled) 
@@ -97,23 +97,168 @@ xdd_targetpass_e2e_loop(ptds_t *p) {
 			p->ttp->tte[qp->ts_current_entry].op_type = OP_TYPE_WRITE;
 			p->ttp->tte[qp->ts_current_entry].op_number = -1; 		// to be filled in after data received
 			p->ttp->tte[qp->ts_current_entry].byte_location = -1; 	// to be filled in after data received
-			p->ttp->tte[qp->ts_current_entry].bytes_xferred = 0; 	// to be filled in after data received
+			p->ttp->tte[qp->ts_current_entry].disk_xfer_size = 0; 	// to be filled in after data received
+			p->ttp->tte[qp->ts_current_entry].net_xfer_size = 0; 	// to be filled in after data received
 		}
 
 		// Release the QThread to let it start working on this task
-		xdd_barrier(&qp->qthread_targetpass_wait_barrier,&p->occupant,0);
+		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
 	
-		// Update the pointers/counters in the Target PTDS to get ready for the next I/O operation
-		//p->last_qthread_assigned = qp;
-
 		p->my_current_op_number++;
 		// Get another QThread and lets keepit roling...
-		qp = xdd_get_next_available_qthread(p);
+		qp = xdd_get_any_available_qthread(p);
 	
 	} // End of WHILE loop
 	//////////////////////////// END OF I/O LOOP FOR ENTIRE PASS ///////////////////////////////////////////
 
-} // End of xdd_targetpass_e2e_loop()
+	// Check to see if we've been canceled - if so, we need to leave 
+	if (xgp->canceled) {
+		fprintf(xgp->errout,"\n%s: xdd_targetpass_e2e_loop_src: Target %d: ERROR: Canceled!\n",
+			xgp->progname,
+			p->my_target_number);
+		return;
+	}
+	// Wait for all QThreads to complete their most recent task
+	// The easiest way to do this is to get the QThread pointer for each
+	// QThread specifically and then reset it's "busy" bit to 0.
+	for (q = 0; q < p->queue_depth; q++) {
+		qp = xdd_get_specific_qthread(p,q);
+		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
+		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+		// Check to see if we've been canceled - if so, we need to leave 
+		if (xgp->canceled) {
+			fprintf(xgp->errout,"\n%s: xdd_targetpass_e2e_loop_src: Target %d: ERROR: Canceled!\n",
+				xgp->progname,
+				p->my_target_number);
+			break;
+		}
+	}
+
+	return;
+
+} // End of xdd_targetpass_e2e_loop_dst()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_targetpass_e2e_loop_src() - This subroutine will assign tasks to QThreads until
+ * all bytes have been processed. It will then issue an End-of-Data Task to 
+ * all QThreads one at a time. The End-of-Data Task will send an End-of-Data
+ * packet to the Destination Side so that those QThreads know that there
+ * is no more data to receive.
+ * 
+ * This subroutine is called by xdd_targetpass().
+ */
+void
+xdd_targetpass_e2e_loop_src(ptds_t *p) {
+	ptds_t	*qp;
+	int		q;
+
+
+	while (p->bytes_remaining) {
+		// Things to do before an I/O is issued
+		xdd_target_ttd_before_io_op(p);
+		// Get pointer to next QThread to issue a task to
+		qp = xdd_get_any_available_qthread(p);
+
+		// Check to see if we've been canceled - if so, we need to leave this loop
+		if (xgp->canceled) 
+			break;
+
+		// Set up the task for the QThread
+		xdd_targetpass_e2e_task_setup_src(qp);
+
+		// Update the pointers/counters in the Target PTDS to get ready for the next I/O operation
+		p->my_current_byte_location += qp->my_current_io_size;
+		p->my_current_op_number++;
+		p->bytes_issued += qp->my_current_io_size;
+		p->bytes_remaining -= qp->my_current_io_size;
+
+		// E2E Source Side needs to be monitored...
+		if (p->target_options & TO_E2E_SOURCE_MONITOR)
+			xdd_targetpass_e2e_monitor(p);
+
+		// Release the QThread to let it start working on this task
+		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
+
+	} // End of WHILE loop that transfers data for a single pass
+
+	// Check to see if we've been canceled - if so, we need to leave 
+	if (xgp->canceled) {
+		fprintf(xgp->errout,"\n%s: xdd_targetpass_e2e_loop_src: Target %d: ERROR: Canceled!\n",
+			xgp->progname,
+			p->my_target_number);
+		return;
+	}
+
+	// Assign each of the QThreads an End-of-Data Task
+	xdd_targetpass_e2e_eof_src(p);
+
+	// Wait for all QThreads to complete their most recent task
+	// The easiest way to do this is to get the QThread pointer for each
+	// QThread specifically and then reset it's "busy" bit to 0.
+	for (q = 0; q < p->queue_depth; q++) {
+		qp = xdd_get_specific_qthread(p,q);
+		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
+		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+	}
+
+
+	return;
+
+} // End of xdd_targetpass_e2e_loop_src()
+/*----------------------------------------------------------------------------*/
+/* xdd_targetpass_e2e_task_setup_src() - This subroutine will set up the task info for an I/O
+ */
+void
+xdd_targetpass_e2e_task_setup_src(ptds_t *qp) {
+	ptds_t	*p;
+
+	p = qp->target_ptds;
+	// Assign an IO task to this qthread
+	qp->task_request = TASK_REQ_IO;
+
+	qp->e2e_msg_sequence_number = p->e2e_msg_sequence_number;
+	p->e2e_msg_sequence_number++;
+
+	if (p->seekhdr.seeks[p->my_current_op_number].operation == SO_OP_READ) // READ Operation
+		qp->my_current_op_type = OP_TYPE_READ;
+	else qp->my_current_op_type = OP_TYPE_NOOP;
+
+	// Figure out the transfer size to use for this I/O
+	// It will be either the normal I/O size (p->iosize) or if this is the
+	// end of this file then the last transfer could be less than the
+	// normal I/O size. 
+	if (p->bytes_remaining < p->iosize)
+		qp->my_current_io_size = p->bytes_remaining;
+	else qp->my_current_io_size = p->iosize;
+
+	// Set the location to seek to 
+	qp->my_current_byte_location = p->my_current_byte_location;
+
+	// Remember the operation number for this target
+	qp->target_op_number = p->my_current_op_number;
+	if (p->my_current_op_number == 0) 
+		pclk_now(&p->my_first_op_start_time);
+
+   	// If time stamping is on then assign a time stamp entry to this QThread
+   	if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
+		qp->ts_current_entry = p->ts_current_entry;	
+		p->ts_current_entry++;
+		if (p->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
+			if (p->ts_current_entry == p->ts_size)
+				p->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
+		} else if (p->ts_options & TS_WRAP) {
+			p->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
+		}
+		p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
+		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
+		p->ttp->tte[qp->ts_current_entry].op_type = qp->my_current_op_type;
+		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
+		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
+	}
+
+} // End of xdd_targetpass_e2e_task_setup_src()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_targetpass_eof_source_side() - This subroutine will manage End-Of-File
@@ -130,30 +275,14 @@ xdd_targetpass_e2e_loop(ptds_t *p) {
  *
  */
 void
-xdd_targetpass_eof_source_side(ptds_t *p) {
+xdd_targetpass_e2e_eof_src(ptds_t *p) {
 	ptds_t	*qp;
-	int			status;			// Status of the sem_wait system calls
+	int		q;
 
-	// Get pointer to FIRST QThread on the chain
-	qp = p->next_qp;
-	while (qp) {
-		// Wait for this specific QThread to become available
-		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		status = sem_wait(&qp->sem_this_qthread_is_available);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_targetpass_eof_processing: Target %d: WARNING: Bad status from sem_wait on sem_this_qthread_is_available semaphore: status=%d, errno=%d\n",
-				xgp->progname,
-				p->my_target_number,
-				status,
-				errno);
-		}
-		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-	
+	for (q = 0; q < p->queue_depth; q++) {
+		qp = xdd_get_specific_qthread(p,q);
 		qp->task_request = TASK_REQ_EOF;
 
-		// Make sure the QThread does not think the pass is complete
-		qp->pass_complete = 0;
-	
    		// If time stamping is on then assign a time stamp entry to this QThread
    		if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
 			qp->ts_current_entry = p->ts_current_entry;	
@@ -171,26 +300,10 @@ xdd_targetpass_eof_source_side(ptds_t *p) {
 		p->ttp->tte[qp->ts_current_entry].byte_location = -1;
 		}
 	
-		// Set up the correct QThread to wait for if Serial or Loose ordering is in effect
-		if ((p->target_options & TO_SERIAL_ORDERING) || 
-			(p->target_options & TO_LOOSE_ORDERING)) { 
-			qp->qthread_to_wait_for = p->last_qthread_assigned;
-		} else { // No ordering restrictions 
-			qp->qthread_to_wait_for = NULL;
-		}
-	
 		// Release the QThread to let it start working on this task
-		xdd_barrier(&qp->qthread_targetpass_wait_barrier,&p->occupant,0);
+		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
 	
-		// Move on to the next QThread
-		qp = qp->next_qp; 		// Address of the next QThread on this Target Thread
-
-	} // End of WHILE loop that transfers data for a single pass
-
-	// At this point each of the QThreads on the Source Side should have sent an
-	// EOF packet to each of the corresponding QThreads on the Destination Side and
-	// each of the Destination Side QThreads will have received the EOF packet.
-
+	}
 } // End of xdd_targetpass_eof_source_side()
 
 /*----------------------------------------------------------------------------*/
@@ -216,9 +329,7 @@ xdd_targetpass_e2e_monitor(ptds_t *p) {
 		qavail = 0;
 		tmpqp = p->next_qp; // first QThread on the chain
 		while (tmpqp) { // Scan the QThreads to determine the one furthest ahead and the one furthest behind
-			if (tmpqp->this_qthread_is_available) {
-				qavail++;
-			} else {
+			if (tmpqp->qthread_target_sync & QTSYNC_BUSY) {
 				if (tmpqp->target_op_number < opmin) {
 					opmin = tmpqp->target_op_number;
 					qmin = tmpqp->my_qthread_number;
@@ -227,6 +338,8 @@ xdd_targetpass_e2e_monitor(ptds_t *p) {
 					opmax = tmpqp->target_op_number;
 					qmax = tmpqp->my_qthread_number;
 				}
+			} else {
+				qavail++;
 			}
 			tmpqp = tmpqp->next_qp;
 		}

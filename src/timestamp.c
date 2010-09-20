@@ -99,7 +99,7 @@ xdd_ts_setup(ptds_t *p) {
 			if (((p->ts_options & TS_WRAP) == 0) &&
 				((p->ts_options & TS_ONESHOT) == 0) &&
 				(!(xgp->global_options & GO_DESKEW))) {
-				fprintf(xgp->errout,"%s: ***NOTICE*** The size specified for ime stamp table for target %d is too small - enabling time stamp wrapping to compensate\n",xgp->progname,p->my_target_number);
+				fprintf(xgp->errout,"%s: ***NOTICE*** The size specified for timestamp table for target %d is too small - enabling time stamp wrapping to compensate\n",xgp->progname,p->my_target_number);
 				fflush(xgp->errout);
 				p->ts_options |= TS_WRAP;
 			}
@@ -243,7 +243,7 @@ xdd_ts_reports(ptds_t *p) {
 #endif
 	if(p->ts_options & TS_SUPPRESS_OUTPUT)
 		return;
-	if (p->pass_complete == 0) {
+	if (!(p->my_current_state & CURRENT_STATE_PASS_COMPLETE)) {
 		fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d thread %d has not yet completed! Results beyond this point are unpredictable!\n",
 						xgp->progname, p->my_target_number, p->my_qthread_number);
 		fflush(xgp->errout);
@@ -296,8 +296,8 @@ xdd_ts_reports(ptds_t *p) {
 		(long long)ttp->res,
 		(long long)ttp->delta);
 
-	fprintf(p->tsfp,"QThread,RWNOp,Pass,OP,Location,Distance,DiskStart,DiskEnd,DiskIOTime,NetStart,NetEnd,NetTime,RelativeTime,LoopTime,DiskRate,NetRate\n");
-	fprintf(p->tsfp,"Number,OpType,Number,Number,Bytes,Blocks,TimeStamp,TimeStamp,milliseconds,TimeStamp,TimeStamp,milliseconds,milliseconds,milliseconds,MBytes/sec,MBytes/sec\n");
+	fprintf(p->tsfp,"QThread,RWNOp,Pass,OP,Location,IOSize,Distance,DiskStart,DiskEnd,DiskIOTime,NetIOSize,NetStart,NetEnd,NetTime,RelativeTime,LoopTime,DiskRate,NetRate\n");
+	fprintf(p->tsfp,"Number,OpType,Number,Number,Bytes,Bytes,Blocks,TimeStamp,TimeStamp,milliseconds,Bytes,TimeStamp,TimeStamp,milliseconds,milliseconds,milliseconds,MBytes/sec,MBytes/sec\n");
 	fflush(p->tsfp);
 		}
 		/* Scan the time stamp table and calculate the numbers */
@@ -375,10 +375,12 @@ xdd_ts_reports(ptds_t *p) {
 				fprintf(p->tsfp,"%d,",ttp->tte[i].pass_number); 
 				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].op_number); 
 				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].byte_location); 
+				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].disk_xfer_size); 
 				fprintf(p->tsfp,"%lld,",(long long)distance[i]);  
 				fprintf(p->tsfp,"%llu,",(unsigned long long)disk_start_ts);  
 				fprintf(p->tsfp,"%llu,",(unsigned long long)disk_end_ts); 
 				fprintf(p->tsfp,"%15.5f,",disk_fio_time/1000000000.0); 
+				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].net_xfer_size); 
 				fprintf(p->tsfp,"%llu,",(unsigned long long)net_start_ts);  
 				fprintf(p->tsfp,"%llu,",(unsigned long long)net_end_ts); 
 				fprintf(p->tsfp,"%15.5f,",net_fio_time/1000000000.0); 

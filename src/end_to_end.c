@@ -76,6 +76,7 @@ xdd_e2e_src_send(ptds_t *qp) {
 	pclk_now(&qp->my_current_net_end_time);
 	// Time stamp if requested
 	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+		p->ttp->tte[qp->ts_current_entry].net_xfer_size = qp->e2e_iosize;
 		p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
 		p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
 	}
@@ -103,7 +104,6 @@ xdd_e2e_src_send(ptds_t *qp) {
 int32_t
 xdd_e2e_dest_recv(ptds_t *qp) {
 	int 	status; 		// status of select() function call
-	int 	rcvd;			// Cumulative number of bytes received if multiple recvfrom() invocations are necessary
 	int		recvsize; 		// The number of bytes to receive for this invocation of recvfrom()
 	int		headersize; 	// Size of the E2E Header
 	int		maxmit;			// Maximum TCP transmission size
@@ -160,34 +160,12 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	 */
 	for (qp->e2e_current_csd = 0; qp->e2e_current_csd < FD_SETSIZE; qp->e2e_current_csd++) { // Process all CSDs that are ready
 		if (FD_ISSET(qp->e2e_csd[qp->e2e_current_csd], &qp->e2e_readset)) { /* Process this csd */
-			/* Receive the destination's current location and length.
-		 	 * When the destination closes the socket we get a read
-		 	 * indication.  Treat any short send or receive as
-		 	 * a failed connection and silently clean up.
-		 	 */
-			rcvd = 0;
-			recvsize = 0;
+			recvsize = qp->e2e_iosize > maxmit ? maxmit : qp->e2e_iosize;
 			pclk_now(&qp->my_current_net_start_time);
-			while (rcvd < qp->e2e_iosize) {
-				recvsize = (qp->e2e_iosize-rcvd) > maxmit ? maxmit : (qp->e2e_iosize-rcvd);
-				qp->e2e_recv_status = recvfrom(qp->e2e_csd[qp->e2e_current_csd], (char *) qp->rwbuf+rcvd, recvsize, MSG_WAITALL,NULL,NULL);
-				if (qp->e2e_recv_status < 0) { 
-					fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: ERROR: Error on recvfrom, status=%d\n",
-						xgp->progname,
-						qp->my_target_number,
-						qp->my_qthread_number,
-						qp->e2e_recv_status);
-					break;
-				} else if (qp->e2e_recv_status == 0) { // Broken connection? Source Side shut down
-					break;
-				} else if (qp->e2e_recv_status == headersize) { // This could be an EOF msg from the Source Side
-					break;
-				}
-				// Otherwise, figure out how much data we got and go back for more if necessary
-				rcvd += qp->e2e_recv_status;
-			} // End of WHILE loop that received incoming data from the source machine
-
+			// This is where the data is actually received...
+			qp->e2e_recv_status = recvfrom(qp->e2e_csd[qp->e2e_current_csd], (char *) qp->rwbuf, recvsize, MSG_WAITALL,NULL,NULL);
 			pclk_now(&qp->my_current_net_end_time);
+
 			if (!qp->e2e_wait_1st_msg) 
 				qp->e2e_wait_1st_msg = qp->my_current_net_end_time - e2e_wait_1st_msg_start_time;
 			if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
@@ -212,7 +190,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 			//    (1) Transfer of a normal packet of data plus the header 
 			//    (2) Transfer of just the header with no data - this should be an End-of-File packet from the Source side
 			//        and will have the header.magic number set to MAGIQ indicating that it is an EOF packet.
-			if (rcvd == qp->e2e_iosize) {  // This is the total amount of data we should have received (data+header)
+			if (qp->e2e_recv_status == qp->e2e_iosize) {  // This is the total amount of data we should have received (data+header)
 				/* Copy meta data into destinations e2e_header struct */
 				memcpy(&qp->e2e_header, qp->rwbuf+qp->iosize, sizeof(qp->e2e_header));
 	 			qp->e2e_header.recvtime = qp->my_current_net_end_time; // This needs to be the net_end_time from this side of the operation
@@ -269,9 +247,13 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 
    			// If time stamping is on then we need to reset these values
    			if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
+				p->ttp->tte[qp->ts_current_entry].net_xfer_size = qp->e2e_recv_status;
 				p->ttp->tte[qp->ts_current_entry].byte_location = qp->e2e_header.location;
-				p->ttp->tte[qp->ts_current_entry].bytes_xferred = qp->e2e_header.length;
+				p->ttp->tte[qp->ts_current_entry].disk_xfer_size = qp->e2e_header.length;
 				p->ttp->tte[qp->ts_current_entry].op_number = qp->e2e_header.sequence;
+				if (qp->e2e_header.magic == PTDS_E2E_MAGIQ)
+					 p->ttp->tte[qp->ts_current_entry].op_type = SO_OP_EOF;
+				else p->ttp->tte[qp->ts_current_entry].op_type = SO_OP_WRITE;
 			}
 
 			// Check the send/receive times for sanity
@@ -308,7 +290,6 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	int		maxmit;		// Maximum TCP transmission size
 
 
-
 	maxmit = MAXMIT_TCP;
 	headersize = sizeof(xdd_e2e_header_t);
 	p = qp->target_ptds;
@@ -326,6 +307,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	sent = 0;
 	while (sent < headersize) {
 		sendsize = (headersize-sent) > maxmit ? maxmit : (headersize-sent);
+
 		qp->e2e_send_status = sendto(qp->e2e_sd,(char *)&qp->e2e_header, sendsize, 0, (struct sockaddr *)&qp->e2e_sname, sizeof(struct sockaddr_in));
 		sent += qp->e2e_send_status;
 	}

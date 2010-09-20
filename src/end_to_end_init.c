@@ -78,9 +78,9 @@ xdd_e2e_src_init(ptds_t *qp) {
 
 	// Restart processing if necessary
 	if ((qp->target_options & TO_RESTART_ENABLE) && (qp->restartp)) { // Check to see if restart was requested
-		// Set the last_committed_location to 0
+		// Set the last_committed_byte_location to 0
 		rp = qp->restartp;
-		rp->last_committed_location = rp->byte_offset;
+		rp->last_committed_byte_location = rp->byte_offset;
 		rp->last_committed_length = 0;
 	}
 
@@ -187,9 +187,6 @@ xdd_e2e_dest_init(ptds_t *qp) {
 	restart_t	*rp;	// Pointer to a restart structure used by the restart_monitor()
 
 
-	// Turn off LOOSE or SERIAL Ordering because it does not work on the Destination Side
-	qp->target_options &= ~(TO_SERIAL_ORDERING | TO_LOOSE_ORDERING);
-
 	// Check to make sure that the destination target is actually *writing* the data it receives to a file or device
 	if (qp->rwratio > 0.0) { // Something is wrong - the destination file/device is not 100% write
 		fprintf(xgp->errout,"%s: xdd_e2e_dest_init: Target %d QThread %d: Error - E2E destination file/device '%s' is not being *written*: rwratio=%5.2f is not valid\n",
@@ -243,9 +240,9 @@ xdd_e2e_dest_init(ptds_t *qp) {
 
 	// Check to see if restart was requested
 	if ((qp->target_options & TO_RESTART_ENABLE) && (qp->restartp)) { 
-		// Set the last_committed_location to 0
+		// Set the last_committed_byte_location to 0
 		rp = qp->restartp;
-		rp->last_committed_location = rp->byte_offset;
+		rp->last_committed_byte_location = rp->byte_offset;
 		rp->last_committed_length = 0;
 	}
 
@@ -375,6 +372,15 @@ xdd_e2e_set_socket_opts(ptds_t *qp, char *sktname, int skt) {
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
 	}
+//	xgp->e2e_SO_Linger.l_onoff = 1; // Enable Linger
+//	xgp->e2e_SO_Linger.l_linger = 180; // Number of seconds to linger
+//	status = setsockopt(skt,level,SO_LINGER,(char *)&xgp->e2e_SO_Linger,sizeof(xgp->e2e_SO_Linger));
+//	if (status < 0) {
+//		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_LINGER: status %d: %s\n", 
+//			xgp->progname, 
+//			qp->my_target_number, qp->my_qthread_number, status, 
+//			strerror(errno));
+//	}
 	status = setsockopt(skt,level,SO_RCVBUF,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_RCVBUF: status %d: %s\n", 

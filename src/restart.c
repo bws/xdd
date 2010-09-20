@@ -131,9 +131,9 @@ xdd_restart_write_restart_file(restart_t *rp) {
 		perror("Reason");
 	}
 	
-	// Issue a write operation for the stuff
-	fprintf(rp->fp,"-restart offset %llu\n", 
-		(unsigned long long int)rp->last_committed_location);
+	// Put the ASCII text offset information into the restart file
+	fprintf(rp->fp,"-restart offset %lld\n", 
+		(long long int)rp->byte_offset);
 
 	// Flush the file for safe keeping
 	fflush(rp->fp);
@@ -168,17 +168,16 @@ void *
 xdd_restart_monitor(void *junk) {
 	int				target_number;			// Used as a counter
 	ptds_t			*current_ptds;			// The current Target Thread PTDS
-	uint64_t 		check_counter;			// The current number of times that we have checked on the progress of a copy
+	int64_t 		check_counter;			// The current number of times that we have checked on the progress of a copy
 	xdd_occupant_t	barrier_occupant;		// Used by the xdd_barrier() function to track who is inside a barrier
 	restart_t		*rp;
 	int				status;					// Status of mutex init/lock/unlock calls
-
-
-
-#ifdef DEBUG
-	uint64_t separation;
-#endif
+	tot_entry_t		*tep;					// Pointer to an entry in the Target Offset Table
+	int				te;						// TOT Entry number
+	int64_t			lowest_offset;			// Lowest Offset in bytes 
 	
+
+
 
 	// Initialize stuff
 	if (xgp->global_options & GO_REALLYVERBOSE)
@@ -219,6 +218,10 @@ xdd_restart_monitor(void *junk) {
 		// Sleep for the specified period of time
 		sleep(xgp->restart_frequency);
 
+		// If it is time to leave then leave - the qthread cleanup will take care of closing the restart files
+		if (xgp->abort | xgp->canceled) 
+			break;
+
 		check_counter++;
 		// Check all targets
 		for (target_number=0; target_number < xgp->number_of_targets; target_number++) {
@@ -237,9 +240,47 @@ xdd_restart_monitor(void *junk) {
 				continue;
 			} else {
 				// Put the "Last Committed Block" information in the restart structure...
-				rp->last_committed_location = current_ptds->last_committed_location;
-				rp->last_committed_length = current_ptds->last_committed_length;
-				rp->last_committed_op = current_ptds->last_committed_op;
+				// Scan the Target Offset Table (TOT) for the *lowest* committed offset 
+				// then add N blocks to that number where N = number of TOT entries
+				// to produce the *byte_offset* which is where to start writing 
+				// data into the file when restarted.
+				lowest_offset = LONGLONG_MAX;
+				for (te = 0; te < current_ptds->totp->tot_entries; te++) {
+					tep = &current_ptds->totp->tot_entry[te];
+					if (tep->tot_byte_location < 0) {
+						// A byte_location of -1 indicates that this TOT Entry has not been updated yet.
+						// Thus the number of bytes of data processed up to this point is equal to
+						// te-1 times the iosize. 
+						if (te == 0) { // No restart offset is available yet
+							// The *byte_offset* is the offset into the file where the first new byte should be written
+							rp->byte_offset = 0;
+							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
+							rp->last_committed_byte_location = -1;
+							rp->last_committed_length = -1;
+							rp->last_committed_op = -1;
+						} else { // Restart point is te times the iosize
+							// The *byte_offset* is the offset into the file where the first new byte should be written
+							rp->byte_offset = (long long int)te * (long long int)current_ptds->iosize;
+							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
+							rp->last_committed_byte_location = (long long int)(te - 1) * (long long int)current_ptds->iosize;
+							rp->last_committed_length = (long long int)current_ptds->iosize;
+							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_ptds->iosize;
+						}
+						break;
+					} else {
+						// Check to see if this is the lowest-numbered offset and use it as the restart point if it is.
+						if (tep->tot_byte_location < lowest_offset) {
+							lowest_offset = tep->tot_byte_location;
+							// The *byte_offset* is the offset into the file where the first new byte should be written
+							rp->byte_offset = tep->tot_byte_location + (long long int)((long long int)current_ptds->iosize * (long long int)current_ptds->totp->tot_entries);
+							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
+							rp->last_committed_byte_location = tep->tot_byte_location + ((long long int)current_ptds->iosize *(long long int)(current_ptds->totp->tot_entries-1));
+							rp->last_committed_length = (long long int)tep->tot_io_size;
+							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_ptds->iosize;
+						}
+					}
+					
+				} // End of FOR loop that scans the TOT for the restart offset to use
 	
 				// ...and write it to the restart file and sync sync sync
 				if (current_ptds->target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side

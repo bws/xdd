@@ -36,9 +36,9 @@ struct tte {
 	short 		pass_number;  	// Pass Number
 	char 		op_type;  		// operation: write=2, read=1, no-op=0
 	char 		filler1; 		// Alignment
-	int32_t 	filler2; 		// Alignment
-	int32_t		bytes_xferred;	// Number of bytes transferred for this op
 	int32_t		qthread_number;	// My QThread Number
+	int32_t		disk_xfer_size;	// Number of bytes transferred to/from disk
+	int32_t 	net_xfer_size; 	// Number of bytes transferred to/from network
 	int64_t 	op_number; 		// Operation number
 	int64_t 	byte_location; 	// Location in bytes - aka Offset into the device/file
 	pclk_t 		disk_start;  	// The starting time stamp of the disk operation

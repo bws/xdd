@@ -49,7 +49,6 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->my_qthread_number = 0; // Set upon creation
 	p->my_pid = getpid(); // Set upon creation
 	p->my_thread_id = 0; // This is set later by the actual thread 
-	p->pass_complete = 0; // set upon creation
 	p->pm1 = 0; // set upon creation
 	p->rwbuf = 0; // set during rwbuf allocation
 	p->rwbuf_shmid = -1; // set upon creation of a shared memory segment

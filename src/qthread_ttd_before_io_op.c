@@ -227,7 +227,6 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 		
 	// Check to see of this is the last message in the transmission
 	if (qp->e2e_header.magic == PTDS_E2E_MAGIQ)  { // This must be the End of the File
-		qp->pass_complete = 1;
 		return(0);
 	}
 

@@ -343,7 +343,7 @@ xdd_func_t  xdd_func[] = {
             1,  
             "  -noordering [target <target#>]\n",  
             {"    Will turn off Loose and Strict Ordering of QThreads for all targets or a specified target. Default is No Ordering\n", 
-             "    see also: -strictordering or -looseordering\n",
+             "    see also: -serialordering or -looseordering\n",
 			0,0,0},
 			0},
     {"noproclock", "noplock",

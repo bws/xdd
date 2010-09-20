@@ -52,7 +52,6 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"my_thread_id,     %d My system thread ID (like a process ID) \n",p->my_thread_id);  	
 	fprintf(xgp->output,"my_pid,           %d My process ID \n",p->my_pid);   			
 	fprintf(xgp->output,"total_threads,    %d Total number of threads -> target threads + QThreads \n",p->total_threads); 	
-	fprintf(xgp->output,"pass_complete,    %d - 0 = thread has not completed yet, 1= completed this pass \n",p->pass_complete); 	
 	fprintf(xgp->output,"fd,               %d File Descriptor for the target device/file \n",p->fd);
 	fprintf(xgp->output,"target_open_flags,0x%8x Flags used during open processing of a target \n",(unsigned int)p->target_open_flags);
 	fprintf(xgp->output,"rwbuf           0x%p The re-aligned I/O buffers \n",p->rwbuf);

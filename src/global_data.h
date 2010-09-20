@@ -111,6 +111,7 @@ struct xdd_global_data {
 	char			random_initialized;     			/* Random number generator has been initialized */
 	char			canceled;       					/* Program canceled by user */
 	int 			e2e_TCP_Win;						/* TCP Window Size - used by e2e */
+	struct linger	e2e_SO_Linger;						/* Used by the SO_LINGER Socket Option - used by e2e */
 	struct sigaction sa;								/* Used by the signal handlers to determine what to do */
 /* information needed to access the Global Time Server */
 	in_addr_t		gts_addr;               			/* Clock Server IP address */

@@ -35,114 +35,133 @@
 #include "xdd.h"
 
 /*----------------------------------------------------------------------------*/
-/* xdd_get_next_available_qthread() - This subroutine will scan the list of
- * QThreads and return one of two values:
- *      (1) A pointer to a QThread that is available to be assigned a task
- *      (2) A NULL pointer if this is the Destination Side of an E2E operation
- *          -and- ALL the QThreads have received their EOF packet indicated
- *			by the "pass_complete" variable being set to 1.
- * Under most conditions this subroutine will block until a QThread becomes 
- * available except for the E2E Destination Side case mentioned above. 
- * The input parameter is a pointer to the Target Thread PTDS that owns 
- * the chain of QThreads to be scanned.
- * This subroutine is called by target_pass_loop() or target_pass_e2e_loop().
+/* xdd_get_specific_qthread() - This subroutine will locate the specified
+ * QThread and wait for it to become available then return its pointer.
+ * This subroutine is called by xdd_target_pass()
  */
 ptds_t *
-xdd_get_next_available_qthread(ptds_t *p) {
+xdd_get_specific_qthread(ptds_t *p, int32_t q) {
 	ptds_t		*qp;					// Pointer to a QThread PTDS
 	int			status;					// Status of the sem_wait system calls
-	int			false_scans;			// Number of times we looked at the QP Chain expecting to find an available QThread but did not
-	int			completed_qthreads;		// Number of QThreads that have completed their passes
+	int			i;
 
 
-	if ((p->target_options & TO_SERIAL_ORDERING) || 
-		(p->target_options & TO_LOOSE_ORDERING)) { // Serial or Loose Ordering requires us to wait for a "specific" QThread to become available
-		qp = p->next_qthread_to_use;
-		if (qp->next_qp) // Is there another QThread on this chain after the current one?
-			p->next_qthread_to_use = qp->next_qp; // point to the next QThread in the chain
-		else p->next_qthread_to_use = p->next_qp; // else point to the first QThread in the chain
-		// Wait for this specific QThread to become available
+	// Sanity Check
+	if (q >= p->queue_depth) { // This should *NEVER* happen - famous last words...
+		fprintf(xgp->errout,"%s: xdd_get_specified_qthread: Target %d: INTERNAL ERROR: Specified QThread is out of range: q=%d\n",
+			xgp->progname,
+			p->my_target_number,
+			q);
+		exit(1);
+	}
+	
+	// Locate the pointer to the requested QThread PTDS
+	// The QThreads are on an ordered linked list anchored on the Target Thread PTDS with QThread being the first one on the list
+	qp = p->next_qp;
+	for (i=0; i<q; i++) 
+		qp = qp->next_qp;
+
+
+	// qp should now point to the desired QThread
+
+	// Wait for this specific QThread to become available
+	pthread_mutex_lock(&qp->qthread_target_sync_mutex);
+	if (qp->qthread_target_sync & QTSYNC_BUSY) { 
+		// Set the "target waiting" bit, unlock the mutex, and lets wait for this QThread to become available - i.e. not busy
+		qp->qthread_target_sync |= QTSYNC_TARGET_WAITING;
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		status = sem_wait(&qp->sem_this_qthread_is_available);
+		status = sem_wait(&qp->this_qthread_is_available_sem);
 		if (status) {
-			fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_wait on this_qthread_is_available semaphore: status=%d, errno=%d\n",
+			fprintf(xgp->errout,"%s: xdd_get_specified_qthread: Target %d: WARNING: Bad status from sem_wait on this_qthread_is_available semaphore: status=%d, errno=%d\n",
 				xgp->progname,
 				p->my_target_number,
 				status,
 				errno);
 		}
 		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
+		qp->qthread_target_sync |= QTSYNC_BUSY; // Indicate that this QThread is now busy
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+		// Upon waking up from this sem_wait(), this QThread should now be available
+	} else {
+		qp->qthread_target_sync |= QTSYNC_BUSY; // Indicate that this QThread is now busy
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+	}
 
-		pthread_mutex_lock(&qp->mutex_this_qthread_is_available);
-		// If this QThread is available *and* pass_complete has NOT been set then we can assign this QThread
-		if ((qp->this_qthread_is_available) && (qp->pass_complete == 0))  { 
-			qp->this_qthread_is_available = 0; // Mark this QThread Unavailable
-			pthread_mutex_unlock(&qp->mutex_this_qthread_is_available);
-		} else {
-			pthread_mutex_unlock(&qp->mutex_this_qthread_is_available);
-			qp = 0;
-		}
+	// At this point we have a pointer to the specified QThread
+	return(qp);
 
-		// If the QThread is available and it has not processed its end-of-pass then return the correct QThread pointer
-		// Otherwise, we will return 0 - which should not happen but you never know...
-		return(qp);
-	} 
-	// No Serial Ordering - just wait for any QThread to become available
-	false_scans = 0;
+} // End of  xdd_get_specific_qthread()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_get_any_available_qthread() - This subroutine will scan the list of
+ * QThreads and return a pointer to a QThread that is available to be assigned a task.
+ * This subroutine is called by xdd_target_pass()
+ */
+ptds_t *
+xdd_get_any_available_qthread(ptds_t *p) {
+	ptds_t		*qp;					// Pointer to a QThread PTDS
+	int			status;					// Status of the sem_wait system calls
+	int			eof;					// Number of QThreads that have reached End-of-File on the destination side of an E2E operation
+
+	// Just wait for any QThread to become available
+	eof = 0;
 	qp = 0;
 	while (qp == 0) {
 		p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-		status = sem_wait(&p->sem_any_qthread_available);
+		status = sem_wait(&p->any_qthread_available_sem);
 		if (status) {
-			fprintf(xgp->errout,"%s: xdd_get_next_available_qthread: Target %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
+			fprintf(xgp->errout,"%s: xdd_get_any_available_qthread: Target %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
 				xgp->progname,
 				p->my_target_number,
 				status,
 				errno);
 		}
 		p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-		// At this point we know that at least ONE QThread has indicated that it is available. 
-		// The following WHILE loop looks for that "available" QThread and takes the first one it finds
-		// that is available and does NOT have its "pass_complete" variable set.
-		// Any QThread that is "available" -and- has its "pass_complete" variable set to 1 is not 
-		// able to be used for a task. Such a QThread is considered to have "completed" and will be 
-		// counted as a "completed_qthread". When the number of "completed_qthreads" is equal to the
-		// total number of QThreads for this Target Thread, then a NULL QThread pointer is returned
-		// to the caller indicating that all QThreads have completed this pass. 
+		// At this point we know that at least ONE QThread has indicated that it is not busy. 
+		// The following WHILE loop looks for the QThread that is not busy,
+		// marks it "BUSY", and returns that QThread pointer (qp).
 
 		// Get the first QThread pointer from this Target
 		qp = p->next_qp;
-		completed_qthreads = 0;
 		while (qp) {
-			pthread_mutex_lock(&qp->mutex_this_qthread_is_available);
-			// If this QThread is available *and* pass_complete has NOT been set then we can assign this QThread
-			if ((qp->this_qthread_is_available) && (qp->pass_complete == 0))  { 
-				qp->this_qthread_is_available = 0; // Mark this QThread Unavailable
-				pthread_mutex_unlock(&qp->mutex_this_qthread_is_available);
-				break; // qp now points to the QThread to use
+			pthread_mutex_lock(&qp->qthread_target_sync_mutex);
+			if (qp->qthread_target_sync & QTSYNC_BUSY)  { 
+				pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+				qp = qp->next_qp;
+				continue;
+			}
+			// If this is the Destination Side of an E2E then check to see if this target has received its EOF
+			if ((qp->target_options & TO_E2E_DESTINATION) && 
+				(qp->qthread_target_sync & QTSYNC_EOF_RECEIVED)) {
+				eof++;
+				if (eof == p->queue_depth) { // This means that all QThreads have received the EOF packets - return 0
+					pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+					return(0);
+				}
+				// This particular QThread has received its EOF so it cannot be used at the moment
+				pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+				qp = qp->next_qp;
+				continue;
 			}
 
-			if ((qp->this_qthread_is_available) && (qp->pass_complete == 1))  // This QThread has completed its pass
-				completed_qthreads++;
-
-			// Release the "this_qthread_is_available" lock 
-			pthread_mutex_unlock(&qp->mutex_this_qthread_is_available);
-
-			// Get the next QThread Pointer 
-			qp = qp->next_qp;
+			// Got a QThread - mark it BUSY
+			qp->qthread_target_sync |= QTSYNC_BUSY; // Indicate that this QThread is now busy
+			pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+			break; // qp now points to the QThread to use
 		} // End of WHILE (qp) that scans the QThread Chain looking for the QThread that said it was Available
 
 		// At this point:
 		//    The variable "qp" is either 0 or it points to a valid QThread  
 		//    If "qp" is non-zero then we will break out of this WHILE loop and return it to the caller
-		//    If "qp" is zero *and* the number of QThreads that have completed equals the Queue Depth, that means
-		//        that this is the last QThread to complete in which case we need to return 0 as well. This is the 
-		//        ONLY time we return 0.
-		//    In any event, the "mutex_this_qthread_is_available" will be unlocked
-		if ((qp == 0)  && (completed_qthreads == p->queue_depth)) { // When there are no available QThreads because they have all completed their passes then return NULL
-			return(0);
-		} 
-	} // END of WHILE (qp == 0)
+		//    If "qp" is zero then display an error message and go wait for another QThread to become available
+		if ((qp == 0) & !(p->target_options & TO_E2E_DESTINATION)) { // When there are no available QThreads - This should *never* happen - famous last words!
+			fprintf(xgp->errout,"%s: xdd_get_any_available_qthread: Target %d: INTERNAL ERROR: Looking for *any qthread available* but did not find one... - going to go wait for another one...\n",
+				xgp->progname,
+				p->my_target_number);
+		}
+	} // END of WHILE that looks for *any qthread available*
 	return(qp);
-} // End of xdd_get_next_available_qthread()
+} // End of xdd_get_any_available_qthread()
 

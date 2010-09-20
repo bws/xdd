@@ -38,8 +38,6 @@
  * One Target thread is started for each Target device or file by the xdd_target_start() subroutine.
  * Each Target thread will subsequently start 1 to N QThreads where N is the queue depth
  * for the specific target. 
- * The QThreads initialize themselves one at a time serially and set their "AVAILABLE" 
- * flag in their "current_state" variable.
  * When the Target thread is released it will get QThreads that are Available 
  * and give each one a single location to access, an operation
  * to perform (read or write), the amount of data to transfer, and the global clock
@@ -84,7 +82,6 @@ xdd_target_thread(void *pin) {
 	p->my_current_pass_number = 1;
 	while (1) {
 		// Perform a single pass
-		p->pass_complete = 0;
 		xdd_targetpass(p);
 
 		// Check to see if we got canceled
@@ -101,6 +98,34 @@ xdd_target_thread(void *pin) {
 			else if (p->my_current_pass_number == xgp->passes) /* Otherwise if we just finished the last pass, we need to keep going */
 				xgp->passes++;
 		}
+
+		// If this is the Destination side of an E2E then set the RESTART SUCCESSFUL COMPLETION
+		// flag in the restart structure if there is one...
+		if (p->target_options & TO_E2E_DESTINATION) {
+			if( p->restartp) {
+				pthread_mutex_lock(&p->restartp->restart_lock);
+				p->restartp->flags |= RESTART_FLAG_SUCCESSFUL_COMPLETION;
+				if (p->restartp->fp) {
+					// Display an appropriate Successful Completion in the restart file and close it
+					// Seek to the beginning of the file 
+					status = fseek(p->restartp->fp, 0L, SEEK_SET);
+					if (status < 0) {
+						fprintf(xgp->errout,"%s: Target %d: WARNING: Seek to beginning of restart file %s failed\n",
+							xgp->progname,
+							p->my_target_number,
+							p->restartp->restart_filename);
+						perror("Reason");
+					}
+					
+					// Put the Normal Completion information into the restart file
+					fprintf(p->restartp->fp,"File Copy Operation completed successfully.\n");
+					fprintf(p->restartp->fp,"%lld bytes written to file %s\n",(long long int)p->my_current_bytes_xfered,p->target_full_pathname);
+					fflush(p->restartp->fp);
+					fclose(p->restartp->fp);
+				}
+				pthread_mutex_unlock(&p->restartp->restart_lock);
+			} 
+		} // End of IF clause that deals with a restart file if there is one
 
 		// Check to see if we completed all passes in this run
  		if (p->my_current_pass_number >= xgp->passes)
@@ -122,6 +147,9 @@ xdd_target_thread(void *pin) {
 
 	} /* end of FOR loop p->my_current_pass_number */
 
+	// If this is an E2E operation and we had gotten canceled - just return
+	if ((p->target_options & TO_ENDTOEND) && (xgp->canceled))
+		exit(2); 
 	
 	// Indicate that this run has completed
 	xgp->run_complete = 1; // This is the "global" run_complete
