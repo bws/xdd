@@ -122,6 +122,7 @@ XDD_HEADERS = $(HDR_DIR)/access_pattern.h \
 	$(HDR_DIR)/sg.h \
 	$(HDR_DIR)/sg_err.h \
 	$(HDR_DIR)/sg_include.h \
+	$(HDR_DIR)/target_offset_table.h \
 	$(HDR_DIR)/timestamp.h \
 	$(HDR_DIR)/xdd.h \
 	$(HDR_DIR)/xdd_common.h \
