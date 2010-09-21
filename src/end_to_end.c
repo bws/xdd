@@ -104,6 +104,7 @@ xdd_e2e_src_send(ptds_t *qp) {
 int32_t
 xdd_e2e_dest_recv(ptds_t *qp) {
 	int 	status; 		// status of select() function call
+	int 	rcvd_so_far;	// Cumulative number of bytes received if multiple recvfrom() invocations are necessary
 	int		recvsize; 		// The number of bytes to receive for this invocation of recvfrom()
 	int		headersize; 	// Size of the E2E Header
 	int		maxmit;			// Maximum TCP transmission size
@@ -160,14 +161,27 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	 */
 	for (qp->e2e_current_csd = 0; qp->e2e_current_csd < FD_SETSIZE; qp->e2e_current_csd++) { // Process all CSDs that are ready
 		if (FD_ISSET(qp->e2e_csd[qp->e2e_current_csd], &qp->e2e_readset)) { /* Process this csd */
-			recvsize = qp->e2e_iosize > maxmit ? maxmit : qp->e2e_iosize;
+			rcvd_so_far = 0;
+			recvsize = 0;
 			pclk_now(&qp->my_current_net_start_time);
-			// This is where the data is actually received...
-			qp->e2e_recv_status = recvfrom(qp->e2e_csd[qp->e2e_current_csd], (char *) qp->rwbuf, recvsize, MSG_WAITALL,NULL,NULL);
+			while (rcvd_so_far < qp->e2e_iosize) {
+				recvsize = (qp->e2e_iosize-rcvd_so_far) > maxmit ? maxmit : (qp->e2e_iosize-rcvd_so_far);
+				qp->e2e_recv_status = recvfrom(qp->e2e_csd[qp->e2e_current_csd], (char *) qp->rwbuf+rcvd_so_far, recvsize, MSG_WAITALL,NULL,NULL);
+				// Check for other conditions that will get us out of this loop
+				if ((qp->e2e_recv_status <= 0) || 
+					(qp->e2e_recv_status == headersize)) 
+					break;
+				// Otherwise, figure out how much data we got and go back for more if necessary
+				rcvd_so_far += qp->e2e_recv_status;
+			} // End of WHILE loop that received incoming data from the source machine
+
 			pclk_now(&qp->my_current_net_end_time);
 
+			// This will record the amount of time that we waited from the time we started until we got the first packet
 			if (!qp->e2e_wait_1st_msg) 
 				qp->e2e_wait_1st_msg = qp->my_current_net_end_time - e2e_wait_1st_msg_start_time;
+
+			// Timestamp this operation if requested
 			if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 				p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
 				p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;

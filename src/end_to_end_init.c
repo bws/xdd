@@ -372,15 +372,6 @@ xdd_e2e_set_socket_opts(ptds_t *qp, char *sktname, int skt) {
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
 	}
-//	xgp->e2e_SO_Linger.l_onoff = 1; // Enable Linger
-//	xgp->e2e_SO_Linger.l_linger = 180; // Number of seconds to linger
-//	status = setsockopt(skt,level,SO_LINGER,(char *)&xgp->e2e_SO_Linger,sizeof(xgp->e2e_SO_Linger));
-//	if (status < 0) {
-//		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_LINGER: status %d: %s\n", 
-//			xgp->progname, 
-//			qp->my_target_number, qp->my_qthread_number, status, 
-//			strerror(errno));
-//	}
 	status = setsockopt(skt,level,SO_RCVBUF,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_RCVBUF: status %d: %s\n", 
