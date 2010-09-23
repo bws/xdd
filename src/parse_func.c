@@ -714,14 +714,19 @@ xddfunc_dryrun(int32_t argc, char *argv[], uint32_t flags)
 //				issource
 //				isdestination
 // 
-/*----------------------------------------------------------------------------*/
 int
 xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 {	
-	int i;
-	int args, args_index; 
-	int target_number;
-	ptds_t *p;
+	int 	i,j;
+	int 	args, args_index; 
+	int 	target_number;
+	ptds_t 	*p;
+	char	*hostname, *base_port, *port_count;
+	char	*cp, *sp;
+	int		base_port_number;
+	int		number_of_ports;
+	int 	len;
+	char	cmdline[256];
 
 
 	if (argc <= 1) {
@@ -743,24 +748,146 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 			return(0);
 		}
 	}
-	/* At this point "args_index" indexes to the -e2e "option" argument */
 	if ((strcmp(argv[args_index], "destination") == 0) ||
 	    (strcmp(argv[args_index], "dest") == 0) ||
 	    (strcmp(argv[args_index], "host") == 0)) { 
 		/* Record the name of the "destination" host name for the -e2e option */
-		args_index++;
+		// Address can be in one of several forms based on:
+		//     IP:base_port,#ports 
+		// where IP is the IP address or hostname
+		// "base_port" is the base port number to use
+		// and "#ports" is the number of ports to use starting
+		//    with the previously specified "base_port"
+		// These are hierarchical and only the IP address is required.
+		// Hence if just IP:base_port is specified then it is assumed
+		// to use only that port for that address.
+		// If only the IP address is specified then the base port
+		// specified by the "-e2e port #" option is used as the base
+		// port number and the number of ports is derived from the queue depth.
+		// 
+		// Incr args_index to point to the "address" argument
+			args_index++;
+			strcpy(cmdline,argv[args_index]);
+			hostname = base_port = port_count = 0;
+			number_of_ports = 0;
+			base_port_number = 0;
+	
+			cp = cmdline;
+			sp = cp;
+			hostname = sp;
+			len = 0;
+			while(*cp) {     
+				if (*cp == ':') {
+					// The hostname/address is everything up to this point
+					hostname = sp;
+					*cp = '\0'; // Null terminate
+					cp++;
+					break;
+				}
+				if (isspace(*cp) && (len == 0))  { // skip preceeding white space
+					cp++;
+					sp = cp;
+					continue;
+				}
+				if (isspace(*cp)) { // embedded white space marks the end of just the hostname 
+					// The hostname/address is everything up to this point
+					hostname = sp;
+					*cp = '\0'; // Null terminate
+					cp = 0; // Indicate that there is nothing after this
+					break;
+				}
+				cp++;
+				len++;
+			} // End of WHILE loop that parses the "address" or "hostname"
+		
+			// Lets get the base port number if specified
+			sp = cp;
+			base_port = sp;
+			len = 0;
+			while(*cp) {     
+				if (*cp == ',') {
+					// The base_port number is everything up to this point
+					base_port = sp;
+					*cp = '\0'; // Null terminate
+					cp++;
+					break;
+				}
+				if (isspace(*cp) && (len == 0))  { // skip preceeding white space
+					cp++;
+					sp = cp;
+					continue;
+				}
+				if (isspace(*cp)) { // embedded white space marks the end of just the hostname 
+					// The hostname/address is everything up to this point
+					base_port = sp;
+					*cp = '\0'; // Null terminate
+					cp = 0; // Indicate that there is nothing after this
+					break;
+				}
+				cp++;
+				len++;
+			}
+			if (*base_port == '\0')
+				base_port = 0; // Indicates that a base port was not specified
+	
+			// Lets get the number of ports if specified
+			sp = cp;
+			port_count = sp;
+			len = 0;
+			while(*cp) {     
+				if (isspace(*cp)) { // embedded white space marks the end of just the hostname 
+					// The hostname/address is everything up to this point
+					port_count = sp;
+					*cp = '\0'; // Null terminate
+					cp = 0; // Indicate that there is nothing after this
+					break;
+				}
+				cp++;
+				len++;
+			}
+			if (*port_count == '\0')
+					port_count = 0; // Indicates that port_count was not specified
+		///////////// Done parsing the address:base_port,port_count
+	
+		// Now we need to put the address and base_port and number of ports into the PTDS for this Target or all Targets
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
 			if (p == NULL) return(-1);
 			p->target_options |= TO_ENDTOEND;
-			p->e2e_dest_hostname = argv[args_index];
+			strcpy(p->e2e_address_table[p->e2e_address_table_next_entry].hostname, hostname); 
+
+			if (base_port) { // Set the requested Port Number and possible Port Count
+				p->e2e_address_table[p->e2e_address_table_next_entry].base_port = atoi(base_port); 
+				if (port_count) 
+				 	p->e2e_address_table[p->e2e_address_table_next_entry].port_count = atoi(port_count); 
+				else p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+			} else {  // Set a default Port number and count 
+				p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+				p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+			} 
+			p->e2e_address_table_port_count += p->e2e_address_table[p->e2e_address_table_next_entry].port_count;
+			p->e2e_address_table_next_entry++;
+			p->e2e_address_table_host_count++;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
+//fprintf(stderr,"parse_func: endtoend: ate %d hostname %s\n",p->e2e_address_table_next_entry,hostname);
 					p->target_options |= TO_ENDTOEND;
-					p->e2e_dest_hostname = argv[args_index];
+					strcpy(p->e2e_address_table[p->e2e_address_table_next_entry].hostname, hostname); 
+					if (base_port) { // Set the requested Port Number and possible Port Count
+						p->e2e_address_table[p->e2e_address_table_next_entry].base_port = atoi(base_port); 
+						if (port_count) 
+				 			p->e2e_address_table[p->e2e_address_table_next_entry].port_count = atoi(port_count); 
+						else p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+					} else {  // Set a default Port number and count 
+						p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+						p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+					} // End of IF stmnt that sets the Port/NPorts
+					p->e2e_address_table_port_count += p->e2e_address_table[p->e2e_address_table_next_entry].port_count;
+					p->e2e_address_table_host_count++;
+					p->e2e_address_table_next_entry++;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -812,22 +939,54 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		}
 		xgp->global_options |= GO_ENDTOEND;
 		return(args_index);
-	} else if (strcmp(argv[args_index], "port") == 0) { /* set the port number to use for -e2e */
+	} else if ((strcmp(argv[args_index], "port") == 0) ||  /* set the base port number to use for -e2e */
+		(strcmp(argv[args_index], "baseport") == 0)) { 
 		args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
 			if (p == NULL) return(-1);
 			p->target_options |= TO_ENDTOEND;
-			p->e2e_dest_base_port = atoi(argv[args_index]);
-			p->e2e_dest_port = p->e2e_dest_base_port;
+			base_port_number = atoi(argv[args_index]);
+			for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
+				p->e2e_address_table[j].base_port = base_port_number;
+			// Set the base_port number in each of the currently specified e2e_address_table entries
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
+				base_port_number = atoi(argv[args_index]);
 				while (p) {
 					p->target_options |= TO_ENDTOEND;
-					p->e2e_dest_base_port = atoi(argv[args_index]);
-					p->e2e_dest_port = p->e2e_dest_base_port;
+					// Set the base_port number in each of the currently specified e2e_address_table entries
+					for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
+						p->e2e_address_table[j].base_port = base_port_number;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+		}
+		xgp->global_options |= GO_ENDTOEND;
+		return(args_index+1);
+	} else if (strcmp(argv[args_index], "portcount") == 0) {  /* set the port count in each address table entry  */
+		args_index++;
+		if (target_number >= 0) {
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			p->target_options |= TO_ENDTOEND;
+			number_of_ports = atoi(argv[args_index]);
+			for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
+				p->e2e_address_table[j].port_count = number_of_ports;
+			// Set the base_port number in each of the currently specified e2e_address_table entries
+		} else {  /* set option for all targets */
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				number_of_ports = atoi(argv[args_index]);
+				while (p) {
+					p->target_options |= TO_ENDTOEND;
+					// Set the base_port number in each of the currently specified e2e_address_table entries
+					for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
+						p->e2e_address_table[j].port_count = number_of_ports;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -4124,6 +4283,11 @@ xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags)
     return(0);
 } // end of xddfunc_invalid_option() 
  
+/*----------------------------------------------------------------------------*/
+void
+xddfunc_currently_undefined_option(char *sp) {
+fprintf(xgp->errout,"The '%s' option is currently undefined\n",sp);
+} // End of xddfunc_currently_undefined_option()
 /*
  * Local variables:
  *  indent-tabs-mode: t

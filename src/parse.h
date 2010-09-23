@@ -142,6 +142,7 @@ int xddfunc_unverbose(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_verbose(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_version(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags);
+void xddfunc_currently_undefined_option(char *sp);
  
 /*
  * Local variables:

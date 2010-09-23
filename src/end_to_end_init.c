@@ -134,7 +134,6 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 	}
 
 	qp->e2e_dest_addr = ntohl(((struct in_addr *) qp->e2e_dest_hostent->h_addr)->s_addr);
-	qp->e2e_dest_port += qp->my_qthread_number; // Add the thread number to the base port to handle queuedepths > 1.
 
 	// The socket type is SOCK_STREAM because this is a TCP connection 
 	type = SOCK_STREAM;
@@ -145,9 +144,6 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 		xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","ERROR: error openning socket\n");
 		return(-1);
 	}
-	sprintf(msg,"xdd_e2e_setup_src_socket: Target %d QThread %d: Just created socket, getting ready to bind",
-		qp->my_target_number,
-		qp->my_qthread_number);
 	(void) xdd_e2e_set_socket_opts (qp,msg,qp->e2e_sd);
 
 	/* Now build the "name" of the DESTINATION machine socket thingy and connect to it. */
@@ -292,7 +288,6 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 
 	// Translate the address to a 32-bit number
 	qp->e2e_dest_addr = ntohl(((struct in_addr *) qp->e2e_dest_hostent->h_addr)->s_addr);
-	qp->e2e_dest_port += qp->my_qthread_number; // Add the thread number to the base port to handle queuedepths > 1.
 
 	// Set the "type" of socket being requested: for TCP, type=SOCK_STREAM 
 	type = SOCK_STREAM;
@@ -303,11 +298,6 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket","ERROR: error openning socket\n");
 		return(-1);
 	}
-	sprintf(msg,"xdd_e2e_setup_dest_socket: Target %d QThread %d: socket addr 0x%08x port %d created ",
-		qp->my_target_number,
-		qp->my_qthread_number,
-		qp->e2e_dest_addr, 
-		qp->e2e_dest_port);
 
 	(void) xdd_e2e_set_socket_opts (qp,msg,qp->e2e_sd);
 

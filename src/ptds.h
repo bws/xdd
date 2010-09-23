@@ -28,6 +28,7 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#define HOSTNAMELENGTH 1024
 #ifdef WIN32
 #include "nt_unix_compat.h"
 #endif
@@ -40,7 +41,6 @@
 #include "parse.h"
 #include "target_offset_table.h"
 
-#define HOSTNAMELENGTH 1024
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS
 #define TO_READAFTERWRITE      0x0000000000000001ULL  // Read-After-Write - the -raw option 
@@ -431,6 +431,10 @@ struct ptds {
 	pclk_t				e2e_first_packet_received_this_run;// Time that the first packet was received by the destination from the source
 	pclk_t				e2e_last_packet_received_this_run;// Time that the last packet was received by the destination from the source
 	pclk_t				e2e_sr_time; 			// Time spent sending or receiving data for End-to-End operation
+	int32_t				e2e_address_table_host_count;	// Cumulative number of hosts represented in the e2e address table
+	int32_t				e2e_address_table_port_count;	// Cumulative number of ports represented in the e2e address table
+	int32_t				e2e_address_table_next_entry;	// Next available entry in the e2e_address_table
+	xdd_e2e_ate_t		e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]; // Used by E2E to stripe over multiple IP Addresses
 	// ------------------ End of the End to End (E2E) stuff --------------------------------------
 	//
 	// The following "raw_" members are for the ReadAfterWrite (-raw) option

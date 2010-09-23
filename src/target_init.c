@@ -69,6 +69,8 @@ xdd_target_init(ptds_t *p) {
 	p->my_thread_id = p->my_pid;
 #endif
 
+
+
 	// Check to see that the target is valid and can be opened properly
 	status = xdd_target_open(p);
 	if (status) 
@@ -94,6 +96,7 @@ xdd_target_init(ptds_t *p) {
 		xgp->abort = 1;
 		return(-1);
 	}
+
 	xdd_init_seek_list(p);
 
 	// Set up the timestamp table - Note: This must be done *after* the seek list is initialized
@@ -258,21 +261,32 @@ xdd_target_init_barriers(ptds_t *p) {
  */
 int32_t
 xdd_target_init_start_qthreads(ptds_t *p) {
-	ptds_t		*qp;		// Pointer to the QThread PTDS
-	int32_t		q;			// QThread Number
-	int32_t		status;		// Status of subtroutine calls
+	ptds_t		*qp;					// Pointer to the QThread PTDS
+	int32_t		q;						// QThread Number
+	int32_t		status;					// Status of subtroutine calls
+	int32_t		e2e_addr_index;			// index into the e2e address table
+	int32_t		e2e_addr_port;			// Port number in the e2e address table
 
-
-
-	if (xgp->global_options & GO_VERBOSE) 
-			fprintf(xgp->errout,"\n");
 
 	// Now let's start up all the QThreads for this target
 	qp = p->next_qp; // This is the first QThread
+	e2e_addr_index = 0;
+	e2e_addr_port = 0;
 	for (q = 0; q < p->queue_depth; q++ ) {
 		// Start a QThread and wait for it to initialize
 		qp->my_target_number = p->my_target_number;
 		qp->my_qthread_number = q;
+		if (p->target_options & TO_ENDTOEND) {
+			qp->e2e_dest_hostname = p->e2e_address_table[e2e_addr_index].hostname;
+			qp->e2e_dest_port = p->e2e_address_table[e2e_addr_index].base_port + e2e_addr_port;
+			e2e_addr_port++;
+			if (e2e_addr_port == p->e2e_address_table[e2e_addr_index].port_count) {
+				e2e_addr_index++;
+				e2e_addr_port = 0;
+			}
+		if (xgp->global_options & GO_REALLYVERBOSE)
+			fprintf(stderr,"Target Init: Target %d: assigning hostname %s port %d to qthread %d\n",p->my_target_number, qp->e2e_dest_hostname, qp->e2e_dest_port, qp->my_qthread_number);
+		}
 		status = pthread_create(&qp->qthread, NULL, xdd_qthread, qp);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_target_init_start_qthreads: ERROR: Cannot create qthread %d for target number %d name '%s' - Error number %d\n",
@@ -289,8 +303,8 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 		}
 		/* Wait for the previous thread to initialize before creating the next one */
 		xdd_barrier(&p->target_qthread_init_barrier,&p->occupant,1);
-		if (xgp->global_options & GO_VERBOSE) {
-			fprintf(xgp->errout,"\r%s: xdd_target_init_start_qthreads: Target %d QThread %d of %d started ",
+		if (xgp->global_options & GO_REALLYVERBOSE) {
+			fprintf(xgp->errout,"\r%s: xdd_target_init_start_qthreads: Target %d QThread %d of %d started\n",
 				xgp->progname,
 				p->my_target_number,
 				q,

@@ -48,6 +48,7 @@ xdd_qthread(void *pin) {
 	qp = (ptds_t *)pin; 
 	p = qp->target_ptds;	// This is the pointer to this QThread's Target PTDS
 
+//fprintf(stderr,"Qthread: dest_hostname=%s\n",qp->e2e_dest_hostname);
 	status = xdd_qthread_init(qp);
 	if (status != 0) {
 		fprintf(xgp->errout,"%s: xdd_qthread: Aborting target due to previous initialization failure for Target number %d name '%s' QThread %d.\n",
