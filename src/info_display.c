@@ -368,14 +368,18 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		// Display info
 		fprintf(out,"\t\tEnd-to-End ACTIVE: this target is the %s side\n",
 			(p->target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
-		fprintf(out,"\t\tEnd-to-End Destination Address is %s using port %d",
-			p->e2e_dest_hostname, p->e2e_dest_port);
-		if (p->queue_depth > 1) {
-			fprintf(out," of ports %d thru %d", 
-				(p->e2e_dest_port - p->my_qthread_number), 
-				((p->e2e_dest_port - p->my_qthread_number) + p->queue_depth - 1));
+		// Display all the hostname:base_port,port_count entries in the e2e_address_table
+		for (i = 0; i < p->e2e_address_table_host_count; i++) {
+			fprintf(out,"\t\tEnd-to-End Destination Address %d of %d '%s' base port %d for %d ports [ports %d - %d]\n",
+				i+1,
+				p->e2e_address_table_host_count,
+				p->e2e_address_table[i].hostname,
+				p->e2e_address_table[i].base_port,
+				p->e2e_address_table[i].port_count,
+				p->e2e_address_table[i].base_port,
+				p->e2e_address_table[i].base_port + p->e2e_address_table[i].port_count -1);
 		}
-		fprintf(out,"\n");
+
 		// Check for RESTART and setup restart structure if required
 		if (p->target_options & TO_RESTART_ENABLE) { 
 			// Set up the restart structure in this PTDS
