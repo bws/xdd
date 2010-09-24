@@ -44,6 +44,13 @@ xdd_qthread_init(ptds_t *qp) {
 
 	// Get the target Thread PTDS address as well
 	p = qp->target_ptds;
+#if (AIX)
+	qp->my_thread_id = thread_self();
+#elif (LINUX)
+	qp->my_thread_id = syscall(SYS_gettid);
+#else
+	qp->my_thread_id = qp->my_pid;
+#endif
 
 	// The "my_current_state_mutex" is used by the QThreads when checking or updating the state info
 	status = pthread_mutex_init(&qp->my_current_state_mutex, 0);

@@ -40,9 +40,9 @@
  */
 void *
 xdd_qthread(void *pin) {
-	int32_t  	status;
-	ptds_t		*qp;	// Pointer to this QThread's PTDS
-	ptds_t		*p;		// Pointer to this QThread's Target PTDS
+	int32_t  		status; 	// Status of various system calls
+	ptds_t			*qp;		// Pointer to this QThread's PTDS
+	ptds_t			*p;			// Pointer to this QThread's Target PTDS
 
 
 	qp = (ptds_t *)pin; 
@@ -105,6 +105,29 @@ xdd_qthread(void *pin) {
 					qp->task_request);
 				break;
 		} // End of SWITCH stmnt that determines the TASK
+		
+		
+// Time stamp if requested
+//		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+//			// Record the amount of system and user time used so far...
+//			status = getrusage(RUSAGE_THREAD, &usage);
+//			errno_save = errno;
+//			if (status) {
+//				fprintf(xgp->errout,"%s: xdd_qthread: WARNING: Target number %d name '%s' QThread %d - calle to getrusage failed\n",
+//					xgp->progname,
+//					qp->my_target_number,
+//					qp->target_full_pathname,
+//					qp->my_qthread_number);
+//				errno = errno_save;
+//				perror("Reason");
+//			}
+//			p->ttp->tte[qp->ts_current_entry].usage_utime.tv_sec  = usage.ru_utime.tv_sec;
+//			p->ttp->tte[qp->ts_current_entry].usage_utime.tv_usec = usage.ru_utime.tv_usec;
+//			p->ttp->tte[qp->ts_current_entry].usage_stime.tv_sec  = usage.ru_stime.tv_sec;
+//			p->ttp->tte[qp->ts_current_entry].usage_stime.tv_usec = usage.ru_stime.tv_usec;
+//			p->ttp->tte[qp->ts_current_entry].nvcsw = usage.ru_nvcsw;
+//			p->ttp->tte[qp->ts_current_entry].nivcsw = usage.ru_nivcsw;
+//		}
 
 		// Mark this QThread Available
 		pthread_mutex_lock(&qp->qthread_target_sync_mutex);

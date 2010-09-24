@@ -873,7 +873,6 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-//fprintf(stderr,"parse_func: endtoend: ate %d hostname %s\n",p->e2e_address_table_next_entry,hostname);
 					p->target_options |= TO_ENDTOEND;
 					strcpy(p->e2e_address_table[p->e2e_address_table_next_entry].hostname, hostname); 
 					if (base_port) { // Set the requested Port Number and possible Port Count
@@ -4105,13 +4104,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 		args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			p->ts_options |= (TS_ON | TS_ALL);
+			p->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= (TS_ON | TS_ALL);
+					p->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -4122,13 +4121,13 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "append") == 0) { /* set the time stamp Append Output File  reporting option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
-			p->ts_options |= ((TS_ON | TS_ALL) | TS_APPEND);
+			p->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= ((TS_ON | TS_ALL) | TS_APPEND);
+					p->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 					i++;
 					p = xgp->ptdsp[i];
 				}

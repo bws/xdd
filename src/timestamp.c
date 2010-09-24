@@ -296,8 +296,71 @@ xdd_ts_reports(ptds_t *p) {
 		(long long)ttp->res,
 		(long long)ttp->delta);
 
-	fprintf(p->tsfp,"QThread,RWNOp,Pass,OP,Location,IOSize,Distance,DiskStart,DiskEnd,DiskIOTime,NetIOSize,NetStart,NetEnd,NetTime,RelativeTime,LoopTime,DiskRate,NetRate\n");
-	fprintf(p->tsfp,"Number,OpType,Number,Number,Bytes,Bytes,Blocks,TimeStamp,TimeStamp,milliseconds,Bytes,TimeStamp,TimeStamp,milliseconds,milliseconds,milliseconds,MBytes/sec,MBytes/sec\n");
+	// Print a header line with the Quantities as they appear across the page
+	fprintf(p->tsfp,"QThread");
+	fprintf(p->tsfp,",RWNOp");
+	fprintf(p->tsfp,",Pass");
+	fprintf(p->tsfp,",OP");
+	fprintf(p->tsfp,",Location");
+	fprintf(p->tsfp,",Distance");
+	fprintf(p->tsfp,",IOSize");
+	fprintf(p->tsfp,",DiskCPUStart");
+	fprintf(p->tsfp,",DiskCPUEnd");
+	fprintf(p->tsfp,",DiskStart");
+	fprintf(p->tsfp,",DiskEnd");
+	fprintf(p->tsfp,",DiskIOTime");
+	fprintf(p->tsfp,",DiskRate");
+	fprintf(p->tsfp,",RelativeTime");
+	fprintf(p->tsfp,",LoopTime");
+	fprintf(p->tsfp,",UserTime");
+	fprintf(p->tsfp,",UserTime");
+	fprintf(p->tsfp,",SystemTime");
+	fprintf(p->tsfp,",SystemTime");
+	fprintf(p->tsfp,",VoluntaryContextSw");
+	fprintf(p->tsfp,",InvoluntaryContextSw");
+	if (p->target_options & TO_ENDTOEND) {
+		fprintf(p->tsfp,",NetIOSize");
+		fprintf(p->tsfp,",NetCPUStart");
+		fprintf(p->tsfp,",NetCPUEnd");
+		fprintf(p->tsfp,",NetStart");
+		fprintf(p->tsfp,",NetEnd");
+		fprintf(p->tsfp,",NetTime");
+		fprintf(p->tsfp,",NetRate");
+	}
+	fprintf(p->tsfp,"\n");
+
+	// Print the UNITS of the above quantities
+	fprintf(p->tsfp,"Number");
+	fprintf(p->tsfp,",OpType");
+	fprintf(p->tsfp,",Number");
+	fprintf(p->tsfp,",Number");
+	fprintf(p->tsfp,",Bytes");
+	fprintf(p->tsfp,",Blocks");
+	fprintf(p->tsfp,",Bytes");
+	fprintf(p->tsfp,",Number");
+	fprintf(p->tsfp,",Number");
+	fprintf(p->tsfp,",TimeStamp");
+	fprintf(p->tsfp,",TimeStamp");
+	fprintf(p->tsfp,",milliseconds");
+	fprintf(p->tsfp,",MBytes/sec");
+	fprintf(p->tsfp,",milliseconds");
+	fprintf(p->tsfp,",milliseconds");
+	fprintf(p->tsfp,",seconds");
+	fprintf(p->tsfp,",microseconds");
+	fprintf(p->tsfp,",seconds");
+	fprintf(p->tsfp,",microseconds");
+	fprintf(p->tsfp,",Number");
+	fprintf(p->tsfp,",Number");
+	if (p->target_options & TO_ENDTOEND) {
+		fprintf(p->tsfp,",Bytes");
+		fprintf(p->tsfp,",Number");
+		fprintf(p->tsfp,",Number");
+		fprintf(p->tsfp,",TimeStamp");
+		fprintf(p->tsfp,",TimeStamp");
+		fprintf(p->tsfp,",milliseconds");
+		fprintf(p->tsfp,",MBytes/sec");
+	}
+	fprintf(p->tsfp,"\n");
 	fflush(p->tsfp);
 		}
 		/* Scan the time stamp table and calculate the numbers */
@@ -375,21 +438,27 @@ xdd_ts_reports(ptds_t *p) {
 				fprintf(p->tsfp,"%d,",ttp->tte[i].pass_number); 
 				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].op_number); 
 				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].byte_location); 
-				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].disk_xfer_size); 
 				fprintf(p->tsfp,"%lld,",(long long)distance[i]);  
+				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].disk_xfer_size); 
+				fprintf(p->tsfp,"%d,",  ttp->tte[i].disk_processor_start); 
+				fprintf(p->tsfp,"%d,",  ttp->tte[i].disk_processor_end); 
 				fprintf(p->tsfp,"%llu,",(unsigned long long)disk_start_ts);  
 				fprintf(p->tsfp,"%llu,",(unsigned long long)disk_end_ts); 
 				fprintf(p->tsfp,"%15.5f,",disk_fio_time/1000000000.0); 
-				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].net_xfer_size); 
-				fprintf(p->tsfp,"%llu,",(unsigned long long)net_start_ts);  
-				fprintf(p->tsfp,"%llu,",(unsigned long long)net_end_ts); 
-				fprintf(p->tsfp,"%15.5f,",net_fio_time/1000000000.0); 
+				fprintf(p->tsfp,"%15.5f,",disk_irate);
 				fprintf(p->tsfp,"%15.5f,",frelative_time/1000000000.0); 
 				fprintf(p->tsfp,"%15.5f,",floop_time/1000000000.0);
-				fprintf(p->tsfp,"%15.5f,",disk_irate);
-				fprintf(p->tsfp,"%15.3f",net_irate);
+				if (p->target_options & TO_ENDTOEND) {
+					fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].net_xfer_size); 
+					fprintf(p->tsfp,"%d,",  ttp->tte[i].net_processor_start); 
+					fprintf(p->tsfp,"%d,",  ttp->tte[i].net_processor_end); 
+					fprintf(p->tsfp,"%llu,",(unsigned long long)net_start_ts);  
+					fprintf(p->tsfp,"%llu,",(unsigned long long)net_end_ts); 
+					fprintf(p->tsfp,"%15.5f,",net_fio_time/1000000000.0); 
+					fprintf(p->tsfp,"%15.3f",net_irate);
+				}
 				fprintf(p->tsfp,"\n");
-			fflush(p->tsfp);
+				fflush(p->tsfp);
 			}
 		} /* end of FOR loop that scans time stamp table */
 			if (p->ts_options & TS_DETAILED)  /* Print the detailed report trailer */
