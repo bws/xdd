@@ -318,8 +318,11 @@ struct ptds {
 #define	CURRENT_STATE_BARRIER							0x0000000000000010	// Waiting inside a barrier
 #define	CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE		0x0000000000000020	// Waiting on the "any qthread available" semaphore
 #define	CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE	0x0000000000000040	// Waiting on the "This QThread Available" semaphore
-#define	CURRENT_STATE_WAITING_FOR_PREVIOUS_IO			0x0000000000000080	// Waiting on the previous I/O op semaphore
-#define	CURRENT_STATE_PASS_COMPLETE						0x0000000000000100	// Indicates that this Target Thread has completed a pass
+#define	CURRENT_STATE_PASS_COMPLETE						0x0000000000000080	// Indicates that this Target Thread has completed a pass
+#define	CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE	0x0000000000000100	// QThread is waiting for the TOT lock in order to update the block number
+#define	CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE	0x0000000000000200	// QThread is waiting for the TOT lock in order to release the next I/O
+#define	CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS		0x0000000000000400	// QThread is waiting for the TOT lock to set the "wait" time stamp
+#define	CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO		0x0000000000000800	// Waiting on the previous I/O op semaphore
 
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS 

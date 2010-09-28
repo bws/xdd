@@ -29,6 +29,7 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
+#define TOT_MULTIPLIER 20
 /** typedef unsigned long long iotimer_t; */
 struct tot_entry {
 	pthread_mutex_t		tot_mutex;					// Mutex that is locked when updating items in this entry
@@ -38,6 +39,7 @@ struct tot_entry {
 	pclk_t				tot_update;					// Time that the responsible QThread updates the byte_location and io_size
 	int64_t				tot_byte_location;			// Byte Location that was just processed
 	int32_t				tot_io_size;				// Size of I/O in bytes that was just processed
+	int32_t				tot_qthread_number;			// Number of the QThread that last updated this TOT Entry
 };
 typedef struct tot_entry tot_entry_t;
 

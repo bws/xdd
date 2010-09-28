@@ -152,9 +152,12 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
-	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->queue_depth) - 1;
+//TMR	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->queue_depth) - 1;
+//TMR	if (tot_offset < 0) 
+//TMR		tot_offset = p->queue_depth - 1; // The last TOT_ENTRY
+	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
 	if (tot_offset < 0) 
-		tot_offset = p->queue_depth - 1; // The last QThread
+		tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
 	
 	if (qp->target_options & TO_E2E_DESTINATION) {
 		if (qp->my_current_op_number == 0)
@@ -166,10 +169,12 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 
 
 	tep = &p->totp->tot_entry[tot_offset];
+	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS;
 	pthread_mutex_lock(&tep->tot_mutex);
+	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS;
 	pclk_now(&tep->tot_wait);
 	pthread_mutex_unlock(&tep->tot_mutex);
-	qp->my_current_state |= CURRENT_STATE_WAITING_FOR_PREVIOUS_IO;
+	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO;
 	status = sem_wait(&tep->tot_sem);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_wait_for_previous_io: Target %d QThread %d: ERROR: Bad status from sem_wait: status=%d, errno=%d, target_op_number=%lld, tot_offset=%d\n",
@@ -182,7 +187,7 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 			tot_offset);
 		return(-1);	
 	}
-	qp->my_current_state &= ~CURRENT_STATE_WAITING_FOR_PREVIOUS_IO;
+	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO;
 
 	return(0);
 } // End of xdd_qthread_wait_for_previous_io()
@@ -203,12 +208,15 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 
 
 	p = qp->target_ptds;
-	tot_offset = (qp->my_current_byte_location/p->iosize) % p->queue_depth;
+//TMR	tot_offset = (qp->my_current_byte_location/p->iosize) % p->queue_depth;
+	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
 
 	tep = &p->totp->tot_entry[tot_offset];
+	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE;
 	pthread_mutex_lock(&tep->tot_mutex);
+	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE;
 	pclk_now(&tep->tot_post);
 	
 	// Increment the specified semaphore to let the next QThread run 
@@ -309,16 +317,33 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	// Since the TOT is a resource owned by the Target Thread and shared by the QThreads
 	// it will be updated here.
 	// Calculate the TOT Offset
-	tot_offset = (qp->my_current_byte_location/p->iosize) % p->queue_depth;
+//TMR	tot_offset = (qp->my_current_byte_location/p->iosize) % p->queue_depth;
+	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 	// Get a pointer to the correct TOT Entry
 	tep = &p->totp->tot_entry[tot_offset];
 	// LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK
 	// Lock this entry 
+	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
 	pthread_mutex_lock(&tep->tot_mutex);
+	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
 	// Record the update time, byte_location, and io_size for this I/O
-	pclk_now(&tep->tot_update);
-	tep->tot_byte_location = qp->my_current_byte_location;
-	tep->tot_io_size = qp->my_current_io_size;
+	if (tep->tot_byte_location >= qp->my_current_byte_location) {
+		fprintf(xgp->errout, "%s: qthread_io: Target %d QThread %d: INTERNAL ERROR: TOT Collision at entry %d byte location is %lld [block %lld] my byte location is %lld [block %lld] last updated by qthread %d\n",
+			xgp->progname,
+			qp->my_target_number,
+			qp->my_qthread_number,
+			tot_offset,
+			(long long int)tep->tot_byte_location,
+			(long long int)(tep->tot_byte_location / (long long int)(p->iosize)),
+			(long long)qp->my_current_byte_location,
+			(long long int)(qp->my_current_byte_location / (long long int)(p->iosize)),
+			tep->tot_qthread_number);
+	} else {
+		pclk_now(&tep->tot_update);
+		tep->tot_qthread_number = qp->my_qthread_number;
+		tep->tot_byte_location = qp->my_current_byte_location;
+		tep->tot_io_size = qp->my_current_io_size;
+	}
 	// Unlock this entry 
 	pthread_mutex_unlock(&tep->tot_mutex);
 	// UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED

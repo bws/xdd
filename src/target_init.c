@@ -220,7 +220,7 @@ xdd_target_init_barriers(ptds_t *p) {
 	}
 
 	// Initialize the Target Offset Table and associated semaphores
-	tot_size =  sizeof(tot_t) + (p->queue_depth * sizeof(tot_entry_t));
+	tot_size =  sizeof(tot_t) + (TOT_MULTIPLIER * p->queue_depth * sizeof(tot_entry_t));
 #if (LINUX || SOLARIS || AIX || OSX)
 	p->totp = (struct tot *)valloc(tot_size);
 #else
@@ -232,7 +232,7 @@ xdd_target_init_barriers(ptds_t *p) {
 		perror("Reason");
 		return(-1);
 	}
-	p->totp->tot_entries = p->queue_depth;
+	p->totp->tot_entries = TOT_MULTIPLIER * p->queue_depth;
 	// Initialize all the semaphores in the ToT
 	for (i = 0; i < p->totp->tot_entries; i++) {
 		status = sem_init(&p->totp->tot_entry[i].tot_sem, 0, 0);

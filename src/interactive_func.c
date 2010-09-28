@@ -218,12 +218,12 @@ xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags) {
 		if (p) {
 			sem_val = 0;
 			status = sem_getvalue(&p->any_qthread_available_sem, &sem_val);
-			fprintf(xgp->output,"Target %d any_qthread_available_sem: status of sem_getvalue is %d, sem_val is %d",p->my_target_number, status, sem_val);
+			fprintf(xgp->output,"Target %d any_qthread_available_sem: status of sem_getvalue is %d, sem_val is %d\n",p->my_target_number, status, sem_val);
 			qp = p->next_qp;
 			while (qp) {
 				sem_val = 0;
 				status = sem_getvalue(&qp->this_qthread_is_available_sem, &sem_val);
-				fprintf(xgp->output,"Target %d Qthread %d this_qthread_is_available_sem: status of sem_getvalue is %d, sem_val is %d",qp->my_target_number, qp->my_qthread_number, status, sem_val);
+				fprintf(xgp->output,"Target %d Qthread %d this_qthread_is_available_sem: status of sem_getvalue is %d, sem_val is %d\n",qp->my_target_number, qp->my_qthread_number, status, sem_val);
 				qp = qp->next_qp;
 			}
 		} else {
@@ -268,8 +268,12 @@ void
 xdd_interactive_display_state_info(ptds_t *qp) {
 	int64_t		tmp;
 	pclk_t		now;		// Current time
+	int32_t		tot_offset; // Offset into TOT
+	tot_entry_t	*tep;
+	ptds_t		*p;			// Pointer to the parent Target Thread's PTDS
 
 
+	p = qp->target_ptds;
 	pclk_now(&now);		// Current time
 	fprintf(xgp->output,"    Current State is 0x%08x\n",qp->my_current_state);
 	if (qp->my_current_state & CURRENT_STATE_INIT)
@@ -303,6 +307,55 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 		fprintf(xgp->output,"    Waiting on the sem_this_qthread_is_available semaphore\n");
 	if (qp->qthread_target_sync & QTSYNC_BUSY)
 		fprintf(xgp->output,"    This QThread is BUSY\n");
+	if (qp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE) {
+		tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
+		tep = &p->totp->tot_entry[tot_offset];
+		fprintf(xgp->output,"    Waiting for TOT lock to update TOT Offset %d: \n",tot_offset);
+		fprintf(xgp->output,"    Current byte location in entry at TOT Offset %d is %lld  or block %lld which is a delta of %lld blocks\n",
+			tot_offset,
+			(long long int)tep->tot_byte_location,
+			(long long int)(tep->tot_byte_location / p->iosize),
+			(long long int)((long long int)(qp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+	}
+	if (qp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE) {
+		tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
+		tep = &p->totp->tot_entry[tot_offset];
+		fprintf(xgp->output,"    Waiting for TOT lock to release TOT Offset %d: \n",tot_offset);
+		fprintf(xgp->output,"    Current byte location in entry at TOT Offset %d is %lld  or block %lld which is a delta of %lld blocks\n",
+			tot_offset,
+			(long long int)tep->tot_byte_location,
+			(long long int)(tep->tot_byte_location / p->iosize),
+			(long long int)((long long int)(qp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+	}
+	if (qp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS) {
+		tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
+		if (tot_offset < 0) 
+			tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
+		tep = &p->totp->tot_entry[tot_offset];
+		fprintf(xgp->output,"    Waiting for TOT lock to time stamp TOT Offset %d before waiting\n",
+			tot_offset);
+		fprintf(xgp->output,"    Current byte location in entry at TOT Offset %d is %lld  or block %lld which is a delta of %lld blocks\n",
+			tot_offset,
+			(long long int)tep->tot_byte_location,
+			(long long int)(tep->tot_byte_location / p->iosize),
+			(long long int)((long long int)(qp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+	}
+	if (qp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO) {
+		tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
+		if (tot_offset < 0) 
+			tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
+		tep = &p->totp->tot_entry[tot_offset];
+		fprintf(xgp->output,"    Waiting for previous I/O at TOT Offset %d, my current byte offset %lld, my current block offset %lld, waiting for block %lld \n",
+			tot_offset,
+			(long long int)qp->my_current_byte_location,
+			(long long int)(qp->my_current_byte_location / p->iosize),
+			(long long int)((long long int)(qp->my_current_byte_location - p->iosize) / p->iosize));
+		fprintf(xgp->output,"    Current byte location in entry at TOT Offset %d is %lld  or block %lld which is a delta of %lld blocks\n",
+			tot_offset,
+			(long long int)tep->tot_byte_location,
+			(long long int)(tep->tot_byte_location / p->iosize),
+			(long long int)((long long int)(qp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+	}
 } // End of xdd_interactive_display_state_info()
 
 /*----------------------------------------------------------------------------*/
