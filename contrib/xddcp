@@ -47,8 +47,8 @@
 
 # XDD Configurable global settings
 XDDCP_DEFAULT_E2E_PORT=40010
-XDDCP_DEFAULT_XFER_SIZE=16777216
-XDDCP_DEFAULT_QUEUE_DEPTH=12
+XDDCP_DEFAULT_XFER_SIZE=33554432
+XDDCP_DEFAULT_QUEUE_DEPTH=8
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
 XDDCP_DEFAULT_TIMESTAMP="$(/bin/date -u +'%Y-%m-%d-%H%M%S')-GMT"
@@ -442,7 +442,7 @@ function get_destination_cmds() {
     local e2ePort=${6}
     local dioFlag=${7}
     local forceFlag=${8}
-    local orderedFlag=${9}
+    local serialOrderedFlag=${9}
     local recursionFlag=${10}
     local resumeFlag=${11}
     local verboseFlag=${12}
@@ -470,9 +470,10 @@ function get_destination_cmds() {
         local destDIO="-dio"
     fi
 
-    # Strict ordering option
-    if [ 1 -eq $orderedFlag ]; then
-        local orderedOpt="-serialordering"
+    # Thread ordering option
+    local orderedOpt="-noordering"
+    if [ 1 -eq $serialOrderedFlag ]; then
+        orderedOpt="-serialordering"
     fi
 
     # Verbose option
@@ -628,7 +629,7 @@ function get_source_cmds() {
     local queueDepth=${4}
     local e2ePort=${5}
     local srcDIOFlag=${6}
-    local orderedFlag=${7}
+    local serialOrderedFlag=${7}
     local resumeFlag=${8}
     local verboseFlag=${9}
     local resumeOffset=${10}
@@ -664,9 +665,10 @@ function get_source_cmds() {
         local srcDIO="-dio"
     fi
 
-    # Strict ordering option
-    if [ 1 -eq $orderedFlag ]; then
-        local orderedOpt="-serialordering"
+    # Thread ordering option
+    local orderedOpt="-looseordering"
+    if [ 1 -eq $serialOrderedFlag ]; then
+        orderedOpt="-serialordering"
     fi
 
     # Verbose option
@@ -837,7 +839,7 @@ function xddcp_main() {
     e2ePort=$XDDCP_DEFAULT_E2E_PORT
     fileListFlag=0
     forceFlag=0
-    orderedFlag=1
+    orderedFlag=0
     queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
     recursiveFlag=0
     resumeFlag=0
