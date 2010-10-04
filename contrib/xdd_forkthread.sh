@@ -1,31 +1,65 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This script has the options to perform a fork thread style test
 # At present, it is completely hard coded.  It could be altered to
 # provide a more useful interface.  It assumes the data file exists.
 #
-# Note:  The seed argument ensures that different random offsets are
+# Note:  The default seed ensures that different random offsets are
 #  chosen for each invocation.
 #
-xdd_exe=xdd.Linux
-data_file=/data/xfs/${USER}/ft.file
 
-$xdd_exe -op read \
-     -targets 1 $data_file \
-     -targets 1 $data_file \
-     -blocksize 16384 \
-     -reqsize 1 \
-     -seek range 16384000 \
-     -seek random \
-     -seek seed `date +%s` \
-     -verbose \
-     -heartbeat 1 \
-     -numreqs 8192 \
-     -verify contents \
-     -qd 4 \
-     -ts detailed \
-     -dio \
-     -targetoffset 317 \
-     -qthreadinfo \
-     -ts output xdd.ft.dio \
-     -csvout xdd.ft.dio.csv
+#
+# Global constants
+#
+DEFAULT_IO_SIZE=16384
+DEFAULT_IOP_COUNT=100
+DEFAULT_PROCESS_COUNT=1
+DEFAULT_SEED=$(/bin/date +%s)
+DEFAULT_THREAD_COUNT=1
+DEFAULT_TIMESTAMP=$(/bin/date )
+XDD_EXE=$(which xdd.Linux)
+
+
+#
+# Print usage
+#
+function print_usage() {
+    echo "Usage: xdd_forkthread.sh FILE"
+}
+
+#
+# Main
+#
+function main() {
+
+
+    local dataFile=$1
+    if [ -z "$dataFile" ]; then
+        print_usage
+        exit 1
+    fi
+
+    local fileSize=$(/usr/bin/stat -c %s $dataFile)
+    local ioSize=$DEFAULT_IO_SIZE
+    local iopCount=$DEFAULT_IOP_COUNT
+    local targetCount=$DEFAULT_PROCESS_COUNT
+    local threadCount=$DEFAULT_THREAD_COUNT
+    local randomSeed=$DEFAULT_SEED
+    local seekRange=$((fileSize/ioSize))
+
+    $XDD_EXE -op read -target $dataFile \
+        -reqsize $ioSize -blocksize 1 -numreqs $iopCount \
+        -seek random -seek seed $randomSeed -seek range $fileSize \
+        -dio -qd $threadCount \
+	-heartbeat 1 -verbose -ts detailed -qthreadinfo
+#        -ts output xdd-forkthread.tsout \
+#        -csvout xdd-forkthread.csv
+
+    return 0
+}
+
+#
+# Invoke main
+#
+main $*
+exit $?
