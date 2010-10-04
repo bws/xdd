@@ -302,6 +302,11 @@ xdd_process_run_results(void) {
 		crp->delimiter = ',';
 		xdd_results_display(crp);
 	}
+	if (xgp->combined_output) { // Display to CSV file if requested
+		crp->output = xgp->combined_output;
+		crp->delimiter = ',';
+		xdd_results_display(crp);
+	}
 
 	// Process TimeStamp reports for the -ts option
 	for (target_number=0; target_number<xgp->number_of_targets; target_number++) { 
