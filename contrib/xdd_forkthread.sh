@@ -18,7 +18,7 @@ DEFAULT_SEED=$(/bin/date +%s)
 DEFAULT_THREAD_COUNT=4
 DEFAULT_TIMESTAMP=$(/bin/date )
 XDD_EXE=$(which xdd.Linux)
-DATE_STAMP=`/bin/date +%M.%D.%Y.%h.%m.%s`
+DATE_STAMP=`/bin/date +%m.%d.%y.%H.%M.%S`
 
 #
 # Print usage
