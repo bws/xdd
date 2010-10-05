@@ -38,7 +38,7 @@
  * Boolean flag indicating whether the user wishes to enter the debugger on
  * SIGINT (ctrl-c)
  */
-static int enter_debugger_on_sigint = 0;
+static int enter_debugger_on_sigint = 1;
 
 /*----------------------------------------------------------------------------*/
 /* xdd_signal_handler() - Routine that gets called when a signal gets caught. 

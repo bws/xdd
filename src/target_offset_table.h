@@ -34,12 +34,14 @@
 struct tot_entry {
 	pthread_mutex_t		tot_mutex;					// Mutex that is locked when updating items in this entry
 	sem_t				tot_sem;					// Semaphore that is posted by the QThread that is processing it
-	pclk_t				tot_wait;					// Time that another QThread starts to wait on this
-	pclk_t				tot_post;					// Time that the responsible QThread posts this semaphore
-	pclk_t				tot_update;					// Time that the responsible QThread updates the byte_location and io_size
+	pclk_t				tot_wait_ts;					// Time that another QThread starts to wait on this
+	pclk_t				tot_post_ts;					// Time that the responsible QThread posts this semaphore
+	pclk_t				tot_update_ts;					// Time that the responsible QThread updates the byte_location and io_size
 	int64_t				tot_byte_location;			// Byte Location that was just processed
 	int32_t				tot_io_size;				// Size of I/O in bytes that was just processed
-	int32_t				tot_qthread_number;			// Number of the QThread that last updated this TOT Entry
+	int32_t				tot_wait_qthread_number;			// Number of the QThread that is waiting for this TOT entry to be posted
+	int32_t				tot_post_qthread_number;			// Number of the QThread that posted this TOT entry 
+	int32_t				tot_update_qthread_number;			// Number of the QThread that last updated this TOT Entry
 };
 typedef struct tot_entry tot_entry_t;
 

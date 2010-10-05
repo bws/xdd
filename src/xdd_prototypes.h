@@ -123,6 +123,9 @@ void	xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_display_state_info(ptds_t *qp);
 void	xdd_interactive_show_qtptds(int32_t tokens, char *cmdline, uint32_t flags);
+void	xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags);
+void	xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags);
+void	xdd_interactive_show_tot_display_fields(ptds_t *p, FILE *fp);
 void	xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags);
 

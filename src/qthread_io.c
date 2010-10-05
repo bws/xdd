@@ -152,9 +152,6 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
-//TMR	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->queue_depth) - 1;
-//TMR	if (tot_offset < 0) 
-//TMR		tot_offset = p->queue_depth - 1; // The last TOT_ENTRY
 	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
 	if (tot_offset < 0) 
 		tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
@@ -172,7 +169,8 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS;
 	pthread_mutex_lock(&tep->tot_mutex);
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS;
-	pclk_now(&tep->tot_wait);
+	pclk_now(&tep->tot_wait_ts);
+	tep->tot_wait_qthread_number = qp->my_qthread_number;
 	pthread_mutex_unlock(&tep->tot_mutex);
 	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO;
 	status = sem_wait(&tep->tot_sem);
@@ -208,7 +206,6 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 
 
 	p = qp->target_ptds;
-//TMR	tot_offset = (qp->my_current_byte_location/p->iosize) % p->queue_depth;
 	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
@@ -217,8 +214,10 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE;
 	pthread_mutex_lock(&tep->tot_mutex);
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE;
-	pclk_now(&tep->tot_post);
+	tep->tot_post_qthread_number = qp->my_qthread_number;
+	pclk_now(&tep->tot_post_ts);
 	
+	pthread_mutex_unlock(&tep->tot_mutex); //TMR
 	// Increment the specified semaphore to let the next QThread run 
 	status = sem_post(&tep->tot_sem);
 	if (status) {
@@ -230,10 +229,10 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 			errno,
 			(long long int)qp->target_op_number,
 			tot_offset);
-		pthread_mutex_unlock(&tep->tot_mutex);
+//TMR		pthread_mutex_unlock(&tep->tot_mutex);
 		return(-1);
 	}
-	pthread_mutex_unlock(&tep->tot_mutex);
+//TMR	pthread_mutex_unlock(&tep->tot_mutex);
 	return(0);
 } // End of xdd_qthread_release_next_io()
 
@@ -317,7 +316,6 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	// Since the TOT is a resource owned by the Target Thread and shared by the QThreads
 	// it will be updated here.
 	// Calculate the TOT Offset
-//TMR	tot_offset = (qp->my_current_byte_location/p->iosize) % p->queue_depth;
 	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 	// Get a pointer to the correct TOT Entry
 	tep = &p->totp->tot_entry[tot_offset];
@@ -337,10 +335,10 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 			(long long int)(tep->tot_byte_location / (long long int)(p->iosize)),
 			(long long)qp->my_current_byte_location,
 			(long long int)(qp->my_current_byte_location / (long long int)(p->iosize)),
-			tep->tot_qthread_number);
+			tep->tot_update_qthread_number);
 	} else {
-		pclk_now(&tep->tot_update);
-		tep->tot_qthread_number = qp->my_qthread_number;
+		pclk_now(&tep->tot_update_ts);
+		tep->tot_update_qthread_number = qp->my_qthread_number;
 		tep->tot_byte_location = qp->my_current_byte_location;
 		tep->tot_io_size = qp->my_current_io_size;
 	}

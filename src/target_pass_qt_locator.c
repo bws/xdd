@@ -106,7 +106,6 @@ xdd_get_any_available_qthread(ptds_t *p) {
 	int			eof;					// Number of QThreads that have reached End-of-File on the destination side of an E2E operation
 
 	// Just wait for any QThread to become available
-	eof = 0;
 	qp = 0;
 	while (qp == 0) {
 		p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
@@ -125,6 +124,7 @@ xdd_get_any_available_qthread(ptds_t *p) {
 
 		// Get the first QThread pointer from this Target
 		qp = p->next_qp;
+		eof = 0;
 		while (qp) {
 			pthread_mutex_lock(&qp->qthread_target_sync_mutex);
 			if (qp->qthread_target_sync & QTSYNC_BUSY)  { 
@@ -155,7 +155,9 @@ xdd_get_any_available_qthread(ptds_t *p) {
 		// At this point:
 		//    The variable "qp" is either 0 or it points to a valid QThread  
 		//    If "qp" is non-zero then we will break out of this WHILE loop and return it to the caller
-		//    If "qp" is zero then display an error message and go wait for another QThread to become available
+		//    If "qp" is zero it could be due to one of the following:
+		//    	(1) All the QThreads are currently busy which is odd because at least one of them set the "any_qthread_available" semaphore...
+		//    	(2) All QThreads are either BUSY or have received their EOF packet - this is normal - keep waiting for all the others to receive their EOF
 		if ((qp == 0) & !(p->target_options & TO_E2E_DESTINATION)) { // When there are no available QThreads - This should *never* happen - famous last words!
 			fprintf(xgp->errout,"%s: xdd_get_any_available_qthread: Target %d: INTERNAL ERROR: Looking for *any qthread available* but did not find one... - going to go wait for another one...\n",
 				xgp->progname,
