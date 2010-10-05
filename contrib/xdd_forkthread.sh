@@ -12,10 +12,10 @@
 # Global constants
 #
 DEFAULT_IO_SIZE=16384
-DEFAULT_IOP_COUNT=100
+DEFAULT_IOP_COUNT=1024
 DEFAULT_PROCESS_COUNT=1
 DEFAULT_SEED=$(/bin/date +%s)
-DEFAULT_THREAD_COUNT=128
+DEFAULT_THREAD_COUNT=4
 DEFAULT_TIMESTAMP=$(/bin/date )
 XDD_EXE=$(which xdd.Linux)
 
@@ -24,7 +24,7 @@ XDD_EXE=$(which xdd.Linux)
 # Print usage
 #
 function print_usage() {
-    echo "Usage: xdd_forkthread.sh FILE"
+    echo "Usage: xdd_forkthread.sh [-p PROCS -t THREADS -s SEED -o [1|0]] -f FILE"
 }
 
 function get_random_seed() {
@@ -36,44 +36,78 @@ function get_random_seed() {
 #
 function main() {
 
+    #
+    # Set the fork-thread parameters
+    #
+    local blockSize=1024
+    local dioFlag=1
+    local filename=""
+    local ioSize=$((DEFAULT_IO_SIZE/1024))
+    local iopCount=$DEFAULT_IOP_COUNT
+    local processCount=$DEFAULT_PROCESS_COUNT
+    local threadCount=$DEFAULT_THREAD_COUNT
+    local randomSeed=$(get_random_seed)
 
-    local dataFile=$1
-    if [ -z "$dataFile" ]; then
+    while getopts ":p:t:f:r:s:o:v" option; do
+        case $option in
+            p) 
+                processCount=$OPTARG
+                ;;
+            t) 
+                threadCount=$OPTARG
+                ;;
+            f) 
+                filename=$OPTARG
+                ;;
+	    r) 
+                iopCount=$OPTARG
+                ;;
+	    s) 
+                randomSeed=$OPTARG
+                ;;
+	    o) 
+                dioFlag=$OPTARG 
+                ;;
+	    v) 
+                verboseFlag=1
+                ;;
+            \?)
+                echo "INFO: Unsupported option: -$OPTARG" >/dev/stderr 
+		exit 1
+                ;;
+        esac
+    done
+
+    # Validate input
+    if [ -z "$filename" ]; then
         print_usage
         exit 1
     fi
 
     #
-    # Seed the BASH random number facility
+    # Calculate seek range
     #
-    RANDOM=$DEFAULT_RANDOM_SEED
+    local fileSize=$(/usr/bin/stat -c %s $filename)
+    local seekRange=$(((fileSize-ioSize)/1024))
 
     #
-    # Set the fork-thread parameters
+    # Perform IOP tests
     #
-    local fileSize=$(/usr/bin/stat -c %s $dataFile)
-    local ioSize=$DEFAULT_IO_SIZE
-    local iopCount=$DEFAULT_IOP_COUNT
-    local processCount=$DEFAULT_PROCESS_COUNT
-    local threadCount=$DEFAULT_THREAD_COUNT
-    local seekRange=$((fileSize-ioSize))
-
-    for ((i=0; i<$processCount; i++)); do
-
-	# Set process specific fork-thread parameters
-	local randomSeed=$(get_random_seed)
-
-        $XDD_EXE -op read -target $dataFile \
-            -reqsize $ioSize -blocksize 1 -numreqs $iopCount \
-            -seek random -seek seed $randomSeed -seek range $seekRange \
-            -dio -qd $threadCount \
-	    -heartbeat 1 -verbose -ts detailed -qthreadinfo
-#        -ts output xdd-forkthread.tsout \
-#        -csvout xdd-forkthread.csv
-    done
+    $XDD_EXE -op read -target $filename \
+        -reqsize $ioSize -blocksize $blockSize -numreqs $iopCount \
+        -seek random -seek seed $randomSeed -seek range $seekRange \
+        -dio -qd $threadCount \
+	-heartbeat 1 -verbose -ts detailed -qthreadinfo \
+        -ts output xdd-forkthread.tsout \
+        -csvout xdd-forkthread.csv
 
     return 0
 }
+
+#
+# Seed BASH's random number generator
+#
+RANDOM=$DEFAULT_RANDOM_SEED
 
 #
 # Invoke main
