@@ -169,7 +169,7 @@ xdd_ts_write(ptds_t *p) {
 	ttp = p->ttp;
 	if ((p->ts_options & TS_DUMP) == 0)  /* dump only if DUMP was specified */
 		return;
-	sprintf(tsfilename,"%s.target.%04d.qthread.%04d.bin",xgp->tsbinary_filename,p->my_target_number,p->my_qthread_number);
+	sprintf(tsfilename,"%s.target.%04d.bin",xgp->tsbinary_filename,p->my_target_number);
 	ttfd = open(tsfilename,O_WRONLY|O_CREAT,0666);
 	if (ttfd < 0) {
 		fprintf(xgp->errout,"%s: cannot open timestamp table output file %s\n", xgp->progname,tsfilename);
@@ -244,14 +244,14 @@ xdd_ts_reports(ptds_t *p) {
 	if(p->ts_options & TS_SUPPRESS_OUTPUT)
 		return;
 	if (!(p->my_current_state & CURRENT_STATE_PASS_COMPLETE)) {
-		fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d thread %d has not yet completed! Results beyond this point are unpredictable!\n",
-						xgp->progname, p->my_target_number, p->my_qthread_number);
+		fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d has not yet completed! Results beyond this point are unpredictable!\n",
+						xgp->progname, p->my_target_number);
 		fflush(xgp->errout);
 	}
 		ttp = p->ttp;
 		/* Open the correct output file */
 		if (xgp->tsoutput_filename != 0) {
-			sprintf(filename,"%s.target.%04d.qthread.%04d.csv",xgp->tsoutput_filename,p->my_target_number,p->my_qthread_number);
+			sprintf(filename,"%s.target.%04d.csv",xgp->tsoutput_filename,p->my_target_number);
 			if (p->ts_options && TS_APPEND)
 				p->tsfp = fopen(filename, "a");
 			else p->tsfp = fopen(filename, "w");
@@ -263,7 +263,7 @@ xdd_ts_reports(ptds_t *p) {
 		} else p->tsfp = stdout;
 		/* Print the information in the TS header if this is not STDOUT */
 			if (p->tsfp != stdout ) {
-				fprintf(p->tsfp,"Target and Qthread number for this report, %d, %d\n",p->my_target_number,p->my_qthread_number);
+				fprintf(p->tsfp,"Target number for this report, %d, %d\n",p->my_target_number);
 				xdd_options_info(p->tsfp);
 				fflush(p->tsfp);
 				xdd_system_info(p->tsfp);
@@ -366,8 +366,8 @@ xdd_ts_reports(ptds_t *p) {
 				loop_time = 0;
 			} else {
 				if (ttp->blocksize == 0) {
-					fprintf(xgp->errout,"%s: ALERT! ts_reports encounterd a blocksize of zero for target %d thread %d, setting it to %d\n",
-						xgp->progname, p->my_target_number, p->my_qthread_number, p->block_size);
+					fprintf(xgp->errout,"%s: ALERT! ts_reports encounterd a blocksize of zero for target %d, setting it to %d\n",
+						xgp->progname, p->my_target_number, p->block_size);
 					fflush(xgp->errout);
 					ttp->blocksize = p->block_size;
 				}
@@ -455,8 +455,8 @@ xdd_ts_reports(ptds_t *p) {
 			fflush(p->tsfp);
 		if (p->ts_options & TS_SUMMARY) {  /* Generate just the summary report */
 			if (ttp->numents == 0) {
-				fprintf(xgp->errout,"%s: ALERT! ts_reports encounterd a numents of zero for target %d thread %d, skipping\n",
-					xgp->progname, p->my_target_number, p->my_qthread_number);
+				fprintf(xgp->errout,"%s: ALERT! ts_reports encounterd a numents of zero for target %d, skipping\n",
+					xgp->progname, p->my_target_number);
 				fflush(xgp->errout);
 				mean_distance = -1;
 				mean_iotime = -1;
