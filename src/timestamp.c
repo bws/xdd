@@ -312,12 +312,6 @@ xdd_ts_reports(ptds_t *p) {
 	fprintf(p->tsfp,",DiskRate");
 	fprintf(p->tsfp,",RelativeTime");
 	fprintf(p->tsfp,",LoopTime");
-	fprintf(p->tsfp,",UserTime");
-	fprintf(p->tsfp,",UserTime");
-	fprintf(p->tsfp,",SystemTime");
-	fprintf(p->tsfp,",SystemTime");
-	fprintf(p->tsfp,",VoluntaryContextSw");
-	fprintf(p->tsfp,",InvoluntaryContextSw");
 	if (p->target_options & TO_ENDTOEND) {
 		fprintf(p->tsfp,",NetIOSize");
 		fprintf(p->tsfp,",NetCPUStart");
@@ -345,12 +339,6 @@ xdd_ts_reports(ptds_t *p) {
 	fprintf(p->tsfp,",MBytes/sec");
 	fprintf(p->tsfp,",milliseconds");
 	fprintf(p->tsfp,",milliseconds");
-	fprintf(p->tsfp,",seconds");
-	fprintf(p->tsfp,",microseconds");
-	fprintf(p->tsfp,",seconds");
-	fprintf(p->tsfp,",microseconds");
-	fprintf(p->tsfp,",Number");
-	fprintf(p->tsfp,",Number");
 	if (p->target_options & TO_ENDTOEND) {
 		fprintf(p->tsfp,",Bytes");
 		fprintf(p->tsfp,",Number");
@@ -426,11 +414,12 @@ xdd_ts_reports(ptds_t *p) {
 				net_start_ts = ttp->tte[i].net_start + ttp->delta;
 				net_end_ts = ttp->tte[i].net_end + ttp->delta;
 				switch (ttp->tte[i].op_type) {
+					case SO_OP_READ: opc="r"; break;
 					case SO_OP_WRITE: opc="w"; break;
 					case SO_OP_WRITE_VERIFY: opc="v"; break;
 					case SO_OP_NOOP: opc="n"; break;
 					case SO_OP_EOF: opc="e"; break;
-					default: opc="r"; break;
+					default: opc="-"; break;
 				}
 
 				fprintf(p->tsfp,"%d,",ttp->tte[i].qthread_number);

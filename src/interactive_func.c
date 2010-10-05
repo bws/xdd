@@ -93,6 +93,10 @@ xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags) {
 		xdd_interactive_show_qtsem(tokens, cp, flags);
 	else if (strcmp(cp, "qtstate") == 0) 
 		xdd_interactive_show_qtstate(tokens, cp, flags);
+	else if (strcmp(cp, "tot") == 0) 
+		xdd_interactive_show_tot(tokens, cp, flags);
+	else if (strcmp(cp, "printtot") == 0) 
+		xdd_interactive_show_print_tot(tokens, cp, flags);
 	else if (strcmp(cp, "trace") == 0) 
 		xdd_interactive_show_trace(tokens, cp, flags);
 	else if (strcmp(cp, "global") == 0) 
@@ -395,6 +399,118 @@ void
 xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags) {
 
 } // End of xdd_interactive_show_trace()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_interactive_show_tot()
+ * Display the data in the target_offset_table for a specific target
+ */
+void
+xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags) {
+	int		target_number;
+	ptds_t	*p;
+
+	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
+		p = xgp->ptdsp[target_number];
+		if (p)  {
+			xdd_interactive_show_tot_display_fields(p,xgp->output);
+		} else {
+			fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
+		}
+	}
+
+} // End of  xdd_interactive_show_tot()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_interactive_show_print_tot()
+ * Display the data in the target_offset_table for a specific target
+ */
+void
+xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags) {
+	int		target_number;
+	ptds_t	*p;
+
+	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
+		p = xgp->ptdsp[target_number];
+		if (p)  {
+			if (xgp->csvoutput == 0) {
+				fprintf(xgp->errout,"No CSV file specified to write the TOT information to, sending to standard out\n");
+				xdd_interactive_show_tot_display_fields(p,xgp->output);
+			} else { 
+				xdd_interactive_show_tot_display_fields(p,xgp->csvoutput);
+			}
+		} else {
+			fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
+		}
+	}
+} // End of  xdd_interactive_show_print_tot()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_interactive_show_tot_display_fields()
+ * Display the data in the target_offset_table for a specific target
+ */
+void
+xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
+	char		*tot_mutex_state;
+	int32_t		tot_offset; // Offset into TOT
+	tot_entry_t	*tep;		// Pointer to a TOT Entry
+	int			sem_val;
+	int			status;
+	int			save_errno;
+	int64_t		tot_block;
+
+	tep = &p->totp->tot_entry[0];
+
+	fprintf(fp,"Target %d has %d TOT Entries, queue depth of %d and a TOT Multiplier of %d\n",
+		p->my_target_number, 
+		p->totp->tot_entries, 
+		p->queue_depth, 
+		TOT_MULTIPLIER);
+	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,QThread,SemVal,Mutex State\n");
+	for (tot_offset = 0; tot_offset < p->totp->tot_entries; tot_offset++) {
+		tep = &p->totp->tot_entry[tot_offset];
+		status = sem_getvalue(&tep->tot_sem, &sem_val);
+		if (status) {
+			save_errno = errno;
+			fprintf(fp,"Error getting semaphore value for tot_sem at offset %d in the TOT\n",tot_offset);
+			errno = save_errno;
+			perror("Reason");
+			sem_val = -1;
+		}
+		status = pthread_mutex_trylock(&tep->tot_mutex);
+		if (status == 0) {
+			tot_mutex_state = "unlocked";
+			pthread_mutex_unlock(&tep->tot_mutex);
+		} else { // Must have been locked...
+			if (errno == EBUSY) 
+				tot_mutex_state = "LOCKED";
+			else {
+				save_errno = errno;
+				fprintf(fp,"Error on pthread_mutex_trylock at offset %d in the TOT\n",tot_offset);
+				errno = save_errno;
+				perror("Reason");
+				tot_mutex_state = "UNKNOWN";
+			}
+		}
+			
+		if (tep->tot_io_size) 
+			tot_block = (long long int)((long long int)tep->tot_byte_location / tep->tot_io_size);
+		else  tot_block = -1;
+		fprintf(fp,"%5d,%lld,%lld,%lld,%lld,%lld,%lld,%d,%d,%d,%s\n",
+			tot_offset,
+			(long long int)tep->tot_wait,
+			(long long int)tep->tot_post,
+			(long long int)(tep->tot_post - (long long int)tep->tot_wait),
+			(long long int)tep->tot_update,
+			(long long int)tep->tot_byte_location,
+			(long long int)tot_block,
+			tep->tot_io_size,
+			tep->tot_qthread_number,
+			sem_val,
+			tot_mutex_state);
+	} // End of FOR loop that displays all the TOT entries
+
+} // End of xdd_interactive_show_tot_display_fields()
+
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show_barrier()

@@ -152,9 +152,6 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
-//TMR	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->queue_depth) - 1;
-//TMR	if (tot_offset < 0) 
-//TMR		tot_offset = p->queue_depth - 1; // The last TOT_ENTRY
 	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
 	if (tot_offset < 0) 
 		tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
@@ -208,7 +205,6 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 
 
 	p = qp->target_ptds;
-//TMR	tot_offset = (qp->my_current_byte_location/p->iosize) % p->queue_depth;
 	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
@@ -317,7 +313,6 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	// Since the TOT is a resource owned by the Target Thread and shared by the QThreads
 	// it will be updated here.
 	// Calculate the TOT Offset
-//TMR	tot_offset = (qp->my_current_byte_location/p->iosize) % p->queue_depth;
 	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 	// Get a pointer to the correct TOT Entry
 	tep = &p->totp->tot_entry[tot_offset];
