@@ -89,12 +89,12 @@ function main() {
     #
     local fileSize=$(/usr/bin/stat -c %s $filename)
     local seekRange=$(((fileSize-ioSize)/1024))
-
+    local totalIops=$((iopCount*threadCount))
     #
     # Perform IOP tests
     #
     $XDD_EXE -op read -target $filename \
-        -reqsize $ioSize -blocksize $blockSize -numreqs $iopCount \
+        -reqsize $ioSize -blocksize $blockSize -numreqs $totalIops \
         -seek random -seek seed $randomSeed -seek range $seekRange \
         -dio -qd $threadCount \
 	-heartbeat 1 -verbose -ts detailed -qthreadinfo \
