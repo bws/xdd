@@ -325,7 +325,8 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	pthread_mutex_lock(&tep->tot_mutex);
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
 	// Record the update time, byte_location, and io_size for this I/O
-	if (tep->tot_byte_location >= qp->my_current_byte_location) {
+	if ((p->target_options & (TO_SERIAL_ORDERING | TO_LOOSE_ORDERING)) &&  
+		(tep->tot_byte_location >= qp->my_current_byte_location)) { // This means there is a real collision
 		fprintf(xgp->errout, "%s: qthread_io: Target %d QThread %d: INTERNAL ERROR: TOT Collision at entry %d byte location is %lld [block %lld] my byte location is %lld [block %lld] last updated by qthread %d\n",
 			xgp->progname,
 			qp->my_target_number,
@@ -336,7 +337,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 			(long long)qp->my_current_byte_location,
 			(long long int)(qp->my_current_byte_location / (long long int)(p->iosize)),
 			tep->tot_update_qthread_number);
-	} else {
+	}  else { // Only update if there was no collision or if there is no ordering in which case collisons do not matter
 		pclk_now(&tep->tot_update_ts);
 		tep->tot_update_qthread_number = qp->my_qthread_number;
 		tep->tot_byte_location = qp->my_current_byte_location;
