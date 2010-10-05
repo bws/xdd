@@ -89,7 +89,7 @@ function main() {
     #
     local fileSize=$(/usr/bin/stat -c %s $filename)
     local seekRange=$(((fileSize-ioSize)/1024))
-
+    local totalIops=$((iopCount*threadCount))
     #
     # Perform IOP tests
     #
@@ -98,7 +98,7 @@ function main() {
 	-target $filename \
         -reqsize $ioSize \
 	-blocksize $blockSize \
-	-numreqs $iopCount \
+	-numreqs $totalIops \
         -seek random \
 	-seek seed $randomSeed \
 	-seek range $seekRange \
