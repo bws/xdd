@@ -18,7 +18,7 @@ DEFAULT_SEED=$(/bin/date +%s)
 DEFAULT_THREAD_COUNT=4
 DEFAULT_TIMESTAMP=$(/bin/date )
 XDD_EXE=$(which xdd.Linux)
-
+DATE_STAMP=`/bin/date +%m.%d.%y.%H.%M.%S`
 
 #
 # Print usage
@@ -93,13 +93,24 @@ function main() {
     #
     # Perform IOP tests
     #
-    $XDD_EXE -op read -target $filename \
-        -reqsize $ioSize -blocksize $blockSize -numreqs $totalIops \
-        -seek random -seek seed $randomSeed -seek range $seekRange \
-        -dio -qd $threadCount \
-	-heartbeat 1 -verbose -ts detailed -qthreadinfo \
-        -ts output xdd-forkthread.tsout \
-        -csvout xdd-forkthread.csv
+    FN="xdd-forkthread.reqsize.${ioSize}.blocksize.${blockSize}.numreqs.${iopCount}.qd.${threadCount}.sr.${seekRange}.ds.${DATE_STAMP}"
+    $XDD_EXE -op read \
+	-target $filename \
+        -reqsize $ioSize \
+	-blocksize $blockSize \
+	-numreqs $totalIops \
+        -seek random \
+	-seek seed $randomSeed \
+	-seek range $seekRange \
+        -dio \
+	-qd $threadCount \
+	-heartbeat 1 \
+	-heartbeat ops \
+	-heartbeat pct \
+	-verbose \
+	-qthreadinfo \
+        -ts output ${FN} \
+        -csvout ${FN}.csv
 
     return 0
 }
