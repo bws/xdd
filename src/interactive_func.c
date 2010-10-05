@@ -465,7 +465,7 @@ xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
 		p->totp->tot_entries, 
 		p->queue_depth, 
 		TOT_MULTIPLIER);
-	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,QThread,SemVal,Mutex State\n");
+	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitQT,PostQT,UpdateQT,SemVal,Mutex State\n");
 	for (tot_offset = 0; tot_offset < p->totp->tot_entries; tot_offset++) {
 		tep = &p->totp->tot_entry[tot_offset];
 		status = sem_getvalue(&tep->tot_sem, &sem_val);
@@ -495,16 +495,18 @@ xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
 		if (tep->tot_io_size) 
 			tot_block = (long long int)((long long int)tep->tot_byte_location / tep->tot_io_size);
 		else  tot_block = -1;
-		fprintf(fp,"%5d,%lld,%lld,%lld,%lld,%lld,%lld,%d,%d,%d,%s\n",
+		fprintf(fp,"%5d,%lld,%lld,%lld,%lld,%lld,%lld,%d,%d,%d,%d,%d,%s\n",
 			tot_offset,
-			(long long int)tep->tot_wait,
-			(long long int)tep->tot_post,
-			(long long int)(tep->tot_post - (long long int)tep->tot_wait),
-			(long long int)tep->tot_update,
+			(long long int)tep->tot_wait_ts,
+			(long long int)tep->tot_post_ts,
+			(long long int)(tep->tot_post_ts - (long long int)tep->tot_wait_ts),
+			(long long int)tep->tot_update_ts,
 			(long long int)tep->tot_byte_location,
 			(long long int)tot_block,
 			tep->tot_io_size,
-			tep->tot_qthread_number,
+			tep->tot_wait_qthread_number,
+			tep->tot_post_qthread_number,
+			tep->tot_update_qthread_number,
 			sem_val,
 			tot_mutex_state);
 	} // End of FOR loop that displays all the TOT entries

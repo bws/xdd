@@ -169,7 +169,8 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS;
 	pthread_mutex_lock(&tep->tot_mutex);
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS;
-	pclk_now(&tep->tot_wait);
+	pclk_now(&tep->tot_wait_ts);
+	tep->tot_wait_qthread_number = qp->my_qthread_number;
 	pthread_mutex_unlock(&tep->tot_mutex);
 	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO;
 	status = sem_wait(&tep->tot_sem);
@@ -213,8 +214,10 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE;
 	pthread_mutex_lock(&tep->tot_mutex);
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE;
-	pclk_now(&tep->tot_post);
+	tep->tot_post_qthread_number = qp->my_qthread_number;
+	pclk_now(&tep->tot_post_ts);
 	
+	pthread_mutex_unlock(&tep->tot_mutex); //TMR
 	// Increment the specified semaphore to let the next QThread run 
 	status = sem_post(&tep->tot_sem);
 	if (status) {
@@ -226,10 +229,10 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 			errno,
 			(long long int)qp->target_op_number,
 			tot_offset);
-		pthread_mutex_unlock(&tep->tot_mutex);
+//TMR		pthread_mutex_unlock(&tep->tot_mutex);
 		return(-1);
 	}
-	pthread_mutex_unlock(&tep->tot_mutex);
+//TMR	pthread_mutex_unlock(&tep->tot_mutex);
 	return(0);
 } // End of xdd_qthread_release_next_io()
 
@@ -332,10 +335,10 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 			(long long int)(tep->tot_byte_location / (long long int)(p->iosize)),
 			(long long)qp->my_current_byte_location,
 			(long long int)(qp->my_current_byte_location / (long long int)(p->iosize)),
-			tep->tot_qthread_number);
+			tep->tot_update_qthread_number);
 	} else {
-		pclk_now(&tep->tot_update);
-		tep->tot_qthread_number = qp->my_qthread_number;
+		pclk_now(&tep->tot_update_ts);
+		tep->tot_update_qthread_number = qp->my_qthread_number;
 		tep->tot_byte_location = qp->my_current_byte_location;
 		tep->tot_io_size = qp->my_current_io_size;
 	}
