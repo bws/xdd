@@ -109,6 +109,58 @@ xdd_status_after_io_op(ptds_t *qp) {
 } // End of xdd_status_after_io_op(qp) 
 
 /*----------------------------------------------------------------------------*/
+/* xdd_dio_after_io_op - This subroutine will check several conditions to 
+ * make sure that DIO will work for this particular I/O operation. 
+ * If any of the DIO conditions are not met then DIO is turned off for this 
+ * operation and all subsequent operations by this QThread. 
+ *
+ * This subroutine is called under the context of a QThread.
+ *
+ */
+void
+xdd_dio_after_io_op(ptds_t *qp) {
+	int		status;
+	int             pagesize;
+
+	// Check to see if DIO is enable for this I/O - return if no DIO required
+	if (!(qp->target_options & TO_DIO)) {
+		return;
+	}
+	// If this is an SG device with DIO turned on for whatever reason then just exit
+	if (qp->target_options & TO_SGIO) {
+		return;
+	}
+	// Check to see if this I/O location is aligned on the proper boundary
+	pagesize = getpagesize();
+
+	// If the current I/O transfer size is an integer multiple of the page size *AND*
+	// if the current byte location (aka offset into the file/device) is an integer multiple
+	// of the page size then this I/O operation is fine - just return.
+	if ((qp->my_current_io_size % pagesize == 0) && 
+		(qp->my_current_byte_location % pagesize) == 0) {
+	    return;
+	}
+
+	// Close non-DIO access, and switch back to DIO
+	close(qp->fd);
+	qp->fd = 0;
+
+	// Reopen the shallow copy of the target thread's fd
+	status = xdd_target_shallow_open(qp);
+	    
+	// Otherwise, the file was opened without direct I/O for this qthread, close it now
+	if (status != 0 ) { // error openning target 
+	    fprintf(xgp->errout,"%s: xdd_dio_after_io_op: ERROR: Target %d QThread %d: Reopen of target '%s' failed\n",
+		    xgp->progname,
+		    qp->my_target_number,
+		    qp->my_qthread_number,
+		    qp->target_full_pathname);
+	    fflush(xgp->errout);
+	    xgp->canceled = 1;
+	}
+} // End of xdd_dio_after_io_op()
+
+/*----------------------------------------------------------------------------*/
 /* xdd_raw_after_io_op() - This subroutine will do 
  * all the processing necessary for a read-after-write operation.
  * This subroutine is called by the xdd_qthread_ttd_after_io_op() for every I/O.
@@ -264,6 +316,9 @@ xdd_qthread_ttd_after_io_op(ptds_t *qp) {
 
 	// I/O Operation Status Checking
 	xdd_status_after_io_op(qp);
+
+	// DirectIO Handling
+	xdd_dio_after_io_op(qp);
 
 	// Read-After_Write Processing
 	xdd_raw_after_io_op(qp);

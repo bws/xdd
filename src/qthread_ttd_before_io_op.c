@@ -67,10 +67,9 @@ xdd_dio_before_io_op(ptds_t *qp) {
 		return;
 	}
 
-	// Otherwise, it is necessary to close and reopen this target file with DirectIO disabaled
+	// Otherwise, it is necessary to open this target file with DirectIO disabaled
+        qp->my_current_pass_number = qp->target_ptds->my_current_pass_number;
 	qp->target_options &= ~TO_DIO;
-	close(qp->fd);
-	qp->fd = 0;
 	status = xdd_target_open(qp);
 	if (status != 0 ) { /* error openning target */
 		fprintf(xgp->errout,"%s: xdd_dio_before_io_op: ERROR: Target %d QThread %d: Reopen of target '%s' failed\n",
@@ -81,10 +80,8 @@ xdd_dio_before_io_op(ptds_t *qp) {
 		fflush(xgp->errout);
 		xgp->canceled = 1;
 	}
-	// Actually turn DIO back on in case there are more passes
-	if (xgp->passes > 1) 
-		qp->target_options |= TO_DIO;
 
+        qp->target_options |= TO_DIO;
 } // End of xdd_dio_before_io_op()
 
 /*----------------------------------------------------------------------------*/

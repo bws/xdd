@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -42,17 +42,7 @@
 void
 xdd_io_for_os(ptds_t *qp) {
 	ptds_t		*p;			// Pointer to the parent Target's PTDS
-
-
 	p = qp->target_ptds;
-	// In Linux the -D_FILE_OFFSET_BITS=64 makes the off_t type be a 64-bit integer 
-	// We only do the lseek 
-	//        - if this is NOT and SGIO operation... SGIO will do its own seek -AND-
-	//        - if this is a NOT a NULL target...  we cannot do a seek on a NULL target
-	// Either one of those conditions (SGIO or a NULL Target) means we do not have to do the lseek
-	if (!(qp->target_options & TO_SGIO) && !(qp->target_options & TO_NULL_TARGET))  { 
-		lseek(qp->fd, (off_t)qp->my_current_byte_location, SEEK_SET);
-	}
 
 	// Record the starting time for this write op
 	pclk_now(&qp->my_current_op_start_time);
@@ -74,7 +64,13 @@ xdd_io_for_os(ptds_t *qp) {
 		} else { // Issue the actual operation
 			if ((qp->target_options & TO_SGIO)) 
 			 	qp->my_current_io_status = xdd_sg_io(qp,'w'); // Issue the SGIO operation 
-			else qp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->my_current_io_size);// Issue a normal write operation
+			else if (!(qp->target_options & TO_NULL_TARGET))
+                            qp->my_current_io_status = pwrite(qp->fd,
+                                                               qp->rwbuf,
+                                                               qp->my_current_io_size,
+                                                               (off_t)qp->my_current_byte_location); // Issue a positioned write operation
+                        else qp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->my_current_io_size); // Issue a normal write() op
+
 		}
 	} else if (qp->my_current_op_type == OP_TYPE_READ) {  // READ Operation
 		qp->my_current_op_str = "READ";
@@ -84,7 +80,14 @@ xdd_io_for_os(ptds_t *qp) {
 		} else { // Issue the actual operation
 			if ((qp->target_options & TO_SGIO)) 
 			 	qp->my_current_io_status = xdd_sg_io(qp,'r'); // Issue the SGIO operation 
-			else qp->my_current_io_status = read(qp->fd, qp->rwbuf, qp->my_current_io_size);// Issue a normal read() operation
+			else if (!(qp->target_options & TO_NULL_TARGET))
+                            qp->my_current_io_status = pread(qp->fd,
+                                                               qp->rwbuf,
+                                                               qp->my_current_io_size,
+                                                               (off_t)qp->my_current_byte_location);// Issue a positioned read operation
+			else qp->my_current_io_status = read(qp->fd,
+                                                              qp->rwbuf,
+                                                              qp->my_current_io_size);// Issue a normal read() operation
 		}
 	
 		if (p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
@@ -262,3 +265,13 @@ xdd_io_for_os(ptds_t *p) {
 		p->my_io_status = bytesxferred;
 } // End of xdd_io_for_os()
 #endif
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

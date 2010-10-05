@@ -200,6 +200,7 @@ void	xdd_io_for_os(ptds_t *p);
 // qthread_ttd_after_io_op.c
 void	xdd_threshold_after_io_op(ptds_t *qp);
 void	xdd_status_after_io_op(ptds_t *qp);
+void	xdd_dio_after_io_op(ptds_t *qp);
 void	xdd_raw_after_io_op(ptds_t *qp);
 void	xdd_e2e_after_io_op(ptds_t *qp);
 void	xdd_extended_stats(ptds_t *qp);
@@ -307,6 +308,7 @@ int32_t	xdd_target_init_start_qthreads(ptds_t *p);
 // target_open.c
 int32_t	xdd_target_open(ptds_t *p);
 void	xdd_target_reopen(ptds_t *p);
+int32_t	xdd_target_shallow_open(ptds_t *p);
 void	xdd_target_name(ptds_t *p);
 int32_t	xdd_target_existence_check(ptds_t *p);
 int32_t	xdd_target_open_for_os(ptds_t *p);

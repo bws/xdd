@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -85,7 +85,11 @@ xdd_qthread(void *pin) {
 				break;
 			case TASK_REQ_REOPEN:
 				// Reopen the target as requested
+#ifdef LINUX
+                            // No-op with shared file handles
+#else
 				xdd_target_reopen(qp);
+#endif
 				break;
 			case TASK_REQ_STOP:
 				// This indicates that we should clean up and exit this subroutine
@@ -164,3 +168,13 @@ xdd_qthread(void *pin) {
 	} // end of WHILE loop 
 
 } /* end of xdd_qthread() */
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

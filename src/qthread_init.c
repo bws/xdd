@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -74,8 +74,13 @@ xdd_qthread_init(ptds_t *qp) {
 	}
 	qp->qthread_target_sync = 0;
 
+#ifdef LINUX
+        // Copy the file descriptor from the target thread (requires pread/pwrite support)
+        status = xdd_target_shallow_open(qp);
+#else
 	// Open the target device/file
 	status = xdd_target_open(qp);
+#endif
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Failed to open Target named '%s'\n",
 			xgp->progname,
@@ -84,7 +89,7 @@ xdd_qthread_init(ptds_t *qp) {
 			qp->target_full_pathname);
 		return(-1);
 	}
-
+        
 	// Get a RW buffer
 	qp->rwbuf = xdd_init_io_buffers(qp);
 	if (qp->rwbuf == 0) {
@@ -166,3 +171,12 @@ xdd_qthread_init(ptds_t *qp) {
 
 } // End of xdd_qthread_init()
  
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

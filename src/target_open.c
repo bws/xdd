@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -102,9 +102,7 @@ xdd_target_reopen(ptds_t *p) {
 #else
 	close(p->fd);
 #endif
-	if (p->target_options & TO_CREATE_NEW_FILES) { // Create a new file name for this target
-		sprintf(p->target_extension,"%08d",p->my_current_pass_number+1);
-	}
+
 	// Check to see if this is the last pass - in which case do not create a new file because it will not get used
 	if (p->my_current_pass_number == xgp->passes)
 		return;
@@ -129,6 +127,57 @@ xdd_target_reopen(ptds_t *p) {
 } // End of xdd_target_reopen()
 
 /*----------------------------------------------------------------------------*/
+/* xdd_target_shallow_open() - Do all necessary sanity checks, but instead of
+ * doing the open, simply copy the file dscriptor from the target thread.
+ * Only works for qthreads spwned from a target thread that has already
+ * opened the file, and OS that support pread/pwrite.
+ * Otherwise, a -1 returned to indicate there was an error. 
+ */
+int32_t
+xdd_target_shallow_open(ptds_t *p) {
+	int32_t		status;		// Status of the open call
+
+
+	// If this is a NULL target then don't bother openning it
+	if (p->target_options & TO_NULL_TARGET)
+		return(0);
+
+        /* Ensure the invoking client is a qthread with an already opened target thread */
+        if (0 == p->target_ptds)
+            return(-1);
+        
+	/* create the fully qualified target name */
+	xdd_target_name(p);
+
+	// Check to see if this target really exists and record what kind of target it is
+	status = xdd_target_existence_check(p);
+	if (status < 0)
+		return(-1);
+
+	pclk_now(&p->open_start_time); // Record the starting time of the open
+
+        /* Retrieve the settings from the parent thread */
+        p->fd = p->target_ptds->fd;
+        p->target_open_flags = p->target_ptds->target_open_flags;
+
+	pclk_now(&p->open_end_time); // Record the ending time of the open
+
+	// Check the status of the OPEN operation to see if it worked
+	if (p->fd < 0) {
+			fprintf(xgp->errout,"%s: xdd_target_open: ERROR: Could not shallow open target number %d name %s\n",
+				xgp->progname,
+				p->my_target_number,
+				p->target_full_pathname);
+			fflush(xgp->errout);
+			perror("reason");
+			return(-1);
+	}
+        
+	return(0);
+
+} // End of xdd_target_shallow_open()
+
+/*----------------------------------------------------------------------------*/
 /* xdd_target_name() - Generate the name of the target for the given PTDS
  */
 void
@@ -137,6 +186,11 @@ xdd_target_name(ptds_t *p) {
 	char 		target_full_pathname[MAX_TARGET_NAME_LENGTH]; /* target directory + target name */
 
 
+	/* Set the extension to correspond with the current pass number */
+	if (p->target_options & TO_CREATE_NEW_FILES) { // Create a new file name for this target
+		sprintf(p->target_extension,"%08d",p->my_current_pass_number);
+	}
+	
 	/* create the fully qualified target name */
 	memset(target_full_pathname,0,sizeof(target_full_pathname));
 	if (strlen(p->target_directory) > 0)
@@ -571,3 +625,13 @@ xdd_target_open_for_os(ptds_t *p) {
 	return(hfile);
 } // End of xdd_target_open_for_windows()
 #endif
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

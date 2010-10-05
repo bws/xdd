@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -79,7 +79,6 @@ xdd_target_thread(void *pin) {
 	}
 
 	/* Start the main pass loop */
-	p->my_current_pass_number = 1;
 	while (1) {
 		// Perform a single pass
 		xdd_targetpass(p);
@@ -135,6 +134,9 @@ xdd_target_thread(void *pin) {
 		if (xgp->pass_delay > 0)
 			sleep(xgp->pass_delay);
 
+                /* Increment pass number and start work for next pass */
+                p->my_current_pass_number++;
+
 		/* Close current file, create a new target file, and open the new (or existing) file is requested */
 		if ((p->target_options & TO_CREATE_NEW_FILES) || 
 		    (p->target_options & TO_REOPEN) || 
@@ -142,9 +144,6 @@ xdd_target_thread(void *pin) {
 			// Tell all QThreads to close and reopen the new file
 			xdd_target_reopen(p);
 		}
-
-		p->my_current_pass_number++;
-
 	} /* end of FOR loop p->my_current_pass_number */
 
 	// If this is an E2E operation and we had gotten canceled - just return
@@ -185,3 +184,13 @@ xdd_target_thread(void *pin) {
 
     return(0);
 } /* end of xdd_target_thread() */
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

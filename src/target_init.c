@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -70,6 +70,8 @@ xdd_target_init(ptds_t *p) {
 #endif
 
 
+        // Set the pass number
+        p->my_current_pass_number = 1;
 
 	// Check to see that the target is valid and can be opened properly
 	status = xdd_target_open(p);
@@ -334,3 +336,13 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 	return(0);
 
 } // End of xdd_target_init_start_qthreads()
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

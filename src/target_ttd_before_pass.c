@@ -197,7 +197,8 @@ xdd_e2e_before_pass(ptds_t *p) {
  */
 void 
 xdd_init_ptds_before_pass(ptds_t *p) {
-
+    int i;
+    
 	// Init all the pass-related variables to 0
 	p->my_elapsed_pass_time = 0;
 	p->my_first_op_start_time = 0;
@@ -315,3 +316,13 @@ xdd_target_ttd_before_pass(ptds_t *p) {
 	return(0);
 		
 } // End of xdd_target_ttd_before_pass()
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */
