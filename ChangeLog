@@ -9,8 +9,7 @@ xdd-7.0.0 RC16
 	Linux
 * XDDCP: Default ordering is loose on source, no-ordering on destination
 * XDDCP: Serial ordering is available on both source and destination with -o
-* Contrib:  XDD forkthread supports options now, but it seems to have a race
-	condition of some sort as well.
+* Contrib:  XDD forkthread supports options now.
 
 xdd-7.0.0 RC15
 ==============

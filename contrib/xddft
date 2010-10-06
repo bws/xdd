@@ -11,6 +11,7 @@
 #
 # Global constants
 #
+DEFAULT_DIO_FLAG=1
 DEFAULT_IO_SIZE=16384
 DEFAULT_IOP_COUNT=1024
 DEFAULT_PROCESS_COUNT=1
@@ -24,7 +25,19 @@ DATE_STAMP=`/bin/date +%m.%d.%y.%H.%M.%S`
 # Print usage
 #
 function print_usage() {
-    echo "Usage: xdd_forkthread.sh [-p PROCS -t THREADS -s SEED -o [1|0]] -f FILE"
+    echo "xddft [OPTIONS] FILE"
+    echo ""
+    echo "FILE         - data file to access with fork-thread access pattern"
+    echo ""
+    echo "OPTIONS: "
+    echo " -f FILE     - alternative specification for FILE"
+    echo " -h          - Display this message"
+    echo " -p procs    - number of processes to start (not supported) [Default: $DEFAULT_PROCESS_COUNT]"
+    echo " -t threads  - number of threads per process [Default: $DEFAULT_THREAD_COUNT]"
+    echo " -s SEED     - random seed to use [Default: $DEFAULT_SEED]"
+    echo " -r count    - number of 16KiB IOPS per thread to perform [Default: $DEFAULT_IOP_COUNT]"
+    echo " -o [0|1]    - Dis/enable direct I/O [Default: $DEFAULT_DIO_FLAG]"
+    echo "NOTE: 'xdd.Linux' must be in your PATH env!!"    
 }
 
 function get_random_seed() {
@@ -40,7 +53,7 @@ function main() {
     # Set the fork-thread parameters
     #
     local blockSize=1024
-    local dioFlag=1
+    local dioFlag=$DEFAULT_DIO_FLAG
     local filename=""
     local ioSize=$((DEFAULT_IO_SIZE/1024))
     local iopCount=$DEFAULT_IOP_COUNT
@@ -48,8 +61,12 @@ function main() {
     local threadCount=$DEFAULT_THREAD_COUNT
     local randomSeed=$(get_random_seed)
 
-    while getopts ":p:t:f:r:s:o:v" option; do
+    while getopts ":hp:t:f:r:s:o:v" option; do
         case $option in
+	    h)
+		print_usage
+		exit 0
+		;;
             p) 
                 processCount=$OPTARG
                 ;;
@@ -77,25 +94,53 @@ function main() {
                 ;;
         esac
     done
+    shift $((OPTIND-1))
 
-    # Validate input
-    if [ -z "$filename" ]; then
+    # Retrieve file specified just on command line without flag
+    if [ -z "$filename" -a -z "$1" ]; then
         print_usage
         exit 1
+    elif [ ! -z "$filename" -a ! -z "$1" ]; then
+	echo "ERROR: Cannot specify FILE and -f FILE simultaneously." >/dev/stderr
+	exit 2
+    elif [ -z "$filename" ]; then
+	filename=$1
+    fi
+
+    # Ensure file can be read and has non-zero size
+    if [ ! -r "$filename" ]; then
+	echo "ERROR: Unable to read $filename" >/dev/stderr
+	exit 3
+    fi
+
+    # Ensure file has size larger than 1024
+    local fileSize=$(/usr/bin/stat -c %s $filename)
+    if [ $ioSize -gt $fileSize ]; then
+	echo "ERROR: $filename size is $fileSize is not larger than $ioSize" >/dev/stderr
+	exit 4
+    fi
+
+    # Ensure the DIO flag is set to 0 or 1
+    if [ 0 -ne "$dioFlag" -a 1 -ne "$dioFlag" ]; then
+	echo "ERROR: DIO flag must be specified as 0 or 1" >/dev/stderr
+	exit 5
     fi
 
     #
-    # Calculate seek range
+    # Configure XDD parameters
     #
-    local fileSize=$(/usr/bin/stat -c %s $filename)
     local seekRange=$(((fileSize-ioSize)/1024))
     local totalIops=$((iopCount*threadCount))
-    local totalIops=$iopCount
+
+    local dioOption="-dio"
+    if [ 0 == "$dioFlag" ]; then
+       dioOption=""
+    fi
+    FN="xddft.reqsize.${ioSize}.blocksize.${blockSize}.numreqs.${iopCount}.qd.${threadCount}.sr.${seekRange}.ds.${DATE_STAMP}"
 
     #
     # Perform IOP tests
     #
-    FN="xdd-forkthread.reqsize.${ioSize}.blocksize.${blockSize}.numreqs.${iopCount}.qd.${threadCount}.sr.${seekRange}.ds.${DATE_STAMP}"
     $XDD_EXE -op read \
 	-target $filename \
         -reqsize $ioSize \
@@ -104,7 +149,7 @@ function main() {
         -seek random \
 	-seek seed $randomSeed \
 	-seek range $seekRange \
-        -dio \
+        ${dioOption} \
 	-qd $threadCount \
 	-heartbeat 1 \
 	-heartbeat ops \
