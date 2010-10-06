@@ -263,7 +263,7 @@ xdd_ts_reports(ptds_t *p) {
 		} else p->tsfp = stdout;
 		/* Print the information in the TS header if this is not STDOUT */
 			if (p->tsfp != stdout ) {
-				fprintf(p->tsfp,"Target number for this report, %d, %d\n",p->my_target_number);
+				fprintf(p->tsfp,"Target number for this report, %d\n",p->my_target_number);
 				xdd_options_info(p->tsfp);
 				fflush(p->tsfp);
 				xdd_system_info(p->tsfp);
