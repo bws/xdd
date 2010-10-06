@@ -1,8 +1,10 @@
 #!/bin/bash
 #
-# This script has the options to perform a fork thread style test
-# At present, it is completely hard coded.  It could be altered to
-# provide a more useful interface.  It assumes the data file exists.
+# Implement the fork-thread access pattern with XDD.  Create a 
+# user-specified number of threads, and have each thread perform
+# random offset 16KiB reads.  Currently the -p option is not really
+# supported.  Not sure if we should provide something like that with
+# multiple target threads or provide a true forking implementation.
 #
 # Note:  The default seed ensures that different random offsets are
 #  chosen for each invocation.
