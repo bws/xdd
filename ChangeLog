@@ -2,6 +2,9 @@
 XDD Release ChangeLog
 -----------------------
 
+xdd-7.0.0 RC17
+==============
+
 xdd-7.0.0 RC16
 ==============
 * XDD: Several bug fixes with thread ordering
