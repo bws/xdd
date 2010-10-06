@@ -33,3 +33,16 @@ To disable XFS preallocation, use the following instead:
 > ./configure --disable-xfs
 
 The defaults have been tested on Fedora 12, Scientific Linux, and Suse only.
+
+Qdepth/Thread count advisory
+--
+In XDD, the number of threads is often governed by the queue depth option
+or the thread count option.  The number of threads than may be created is
+system dependent.  For example, on my laptop I can only create 916 threads
+before the system returns a "resource busy or unavailable" error.  Its
+not just a simple memory limitation necessarily either (i.e. reducing the
+pthread stack size doesn't automatically increase the number of threads you
+can create).  In general, the number of threads that can be initialized
+by XDD is limited by the system rather than XDD.  This is mainly interesting
+when using fork-thread type access patterns.
+
