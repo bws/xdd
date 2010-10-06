@@ -133,6 +133,13 @@ xdd_ts_setup(ptds_t *p) {
 		p->ts_options &= ~TS_ON;
 	}
 	xdd_ts_overhead(p->ttp);
+
+        /* Set the XDD Version into the timestamp header */
+        p->ttp->magic = 0xDEADBEEF;
+        p->ttp->major = XDD_VERSION_MAJOR;
+        p->ttp->minor = XDD_VERSION_MINOR;
+        p->ttp->revision = XDD_VERSION_REV;
+        
 	/* init entries in the trace table header */
 	p->ttp->res = cycleval;
 	p->ttp->reqsize = p->iosize;

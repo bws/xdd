@@ -7,9 +7,11 @@ xdd-7.0.0 RC16
 * XDD: Several bug fixes with thread ordering
 * XDD: Qthreads now use file descriptor from target thread if possible on
 	Linux
+* XDD: Timestamp binary format is now versioned
 * XDDCP: Default ordering is loose on source, no-ordering on destination
 * XDDCP: Serial ordering is available on both source and destination with -o
-* Contrib:  XDD forkthread supports options now.
+* XDDFT:  XDD forkthread supports options now.
+* XDDFT:  XDD forkthread installs with rest of XDD.
 
 xdd-7.0.0 RC15
 ==============
