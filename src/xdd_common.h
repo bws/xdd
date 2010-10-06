@@ -107,7 +107,6 @@
 /* ------------------------------------------------------------------
  * Constants
  * ------------------------------------------------------------------ */
-
 #define BACKLOG SOMAXCONN /* Pending request limit for listen() */
 
 /* Default flag values */

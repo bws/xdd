@@ -269,7 +269,7 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 	int32_t		e2e_addr_index;			// index into the e2e address table
 	int32_t		e2e_addr_port;			// Port number in the e2e address table
 
-
+	
 	// Now let's start up all the QThreads for this target
 	qp = p->next_qp; // This is the first QThread
 	e2e_addr_index = 0;

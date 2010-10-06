@@ -90,6 +90,8 @@ function main() {
     local fileSize=$(/usr/bin/stat -c %s $filename)
     local seekRange=$(((fileSize-ioSize)/1024))
     local totalIops=$((iopCount*threadCount))
+    local totalIops=$iopCount
+
     #
     # Perform IOP tests
     #
