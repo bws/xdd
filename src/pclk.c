@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL
  *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
+ *       Brad Settlemyer, DoE/ORNL
  *       Russell Cattelan, Digital Elves
  *       Alex Elder
  * Funding and resources provided by:
@@ -35,10 +35,16 @@
 /* Includes */
 /* -------- */
 #include <stdio.h>
-#if (LINUX)
+#include <unistd.h>
+#include <sys/time.h>
+
+/* Depends on defs from unistd.h */
+#if (LINUX) && (_POSIX_TIMERS) 
 #include <time.h> /* pclk_t, prototype compatibility */
 #endif
+
 #include "pclk.h" /* pclk_t, prototype compatibility */
+
 /* --------------- */
 /* Private globals */
 /* --------------- */
@@ -99,12 +105,20 @@ pclk_now(pclk_t *pclkp) {
 #elif (LINUX)
 void
 pclk_now(pclk_t *pclkp) {
-    struct timespec current_time;
 
     if(pclk_initialized) {
-		clock_gettime(CLOCK_MONOTONIC, &current_time);
-		*pclkp =  (pclk_t)(((long long int)current_time.tv_sec * TRILLION) +
+#ifdef _POSIX_MONOTONIC_CLOCK
+        struct timespec current_time;
+        clock_gettime(CLOCK_MONOTONIC, &current_time);
+        *pclkp =  (pclk_t)(((long long int)current_time.tv_sec * TRILLION) +
 						   ((long long int)current_time.tv_nsec * THOUSAND));
+#else
+        struct timeval current_time;
+        struct timezone tz;
+        gettimeofday(&current_time, &tz);
+        *pclkp =  (pclk_t)(((long long int)current_time.tv_sec * TRILLION) +
+						   ((long long int)current_time.tv_usec * MILLION));
+#endif
     } else *pclkp = 0;
     return;
 }
@@ -124,3 +138,13 @@ pclk_now(pclk_t *pclkp) {
     return;
 }
 #endif
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */
