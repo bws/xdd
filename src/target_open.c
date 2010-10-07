@@ -103,9 +103,6 @@ xdd_target_reopen(ptds_t *p) {
 	close(p->fd);
 #endif
 
-	// Check to see if this is the last pass - in which case do not create a new file because it will not get used
-	if (p->my_current_pass_number == xgp->passes)
-		return;
 	// If we need to "recreate" the file for each pass then we should delete it here before we re-open it 
 	if (p->target_options & TO_RECREATE)	
 #ifdef WIN32
