@@ -1,0 +1,6 @@
+To run the acceptance tests for XDD, you must first create a test_config based
+on the contents of test_config.example.  Then, simply run:
+
+./run_all_tests.sh
+
+Test output is stored in the output directory.
