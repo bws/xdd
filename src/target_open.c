@@ -146,16 +146,11 @@ xdd_target_shallow_open(ptds_t *p) {
 	/* create the fully qualified target name */
 	xdd_target_name(p);
 
-	// Check to see if this target really exists and record what kind of target it is
-	status = xdd_target_existence_check(p);
-	if (status < 0)
-		return(-1);
-
 	pclk_now(&p->open_start_time); // Record the starting time of the open
 
-        /* Retrieve the settings from the parent thread */
-        p->fd = p->target_ptds->fd;
-        p->target_open_flags = p->target_ptds->target_open_flags;
+    /* Retrieve the settings from the parent thread */
+    p->fd = p->target_ptds->fd;
+    p->target_open_flags = p->target_ptds->target_open_flags;
 
 	pclk_now(&p->open_end_time); // Record the ending time of the open
 
