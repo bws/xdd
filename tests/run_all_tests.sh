@@ -62,13 +62,13 @@ test_log=$XDDTEST_OUTPUT_DIR/test_$datestamp.log
 
 echo "Beginning acceptance test . . ." >$test_log
 for test in $all_tests; do
-  echo "$test . . ."
+  echo -n "$test . . ."
   $test &> $test_log
     if [ $? -ne 0 ]; then
-        echo "[FAIL] Test $test failed.  See $test_log." >/dev/stderr
+        echo -e "\r[FAIL] Test $test failed.  See $test_log." >/dev/stderr
         failed_test=1
     else
-        echo "[PASS] Test $test passed." >/dev/stderr
+        echo -e "\r[PASS] Test $test passed." >/dev/stderr
     fi
 done
 echo "Test output available in $test_log." >/dev/stderr
