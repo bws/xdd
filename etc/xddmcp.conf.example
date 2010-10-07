@@ -1,0 +1,9 @@
+[channels]
+usn_gige_xfs "-t 24 -s -d"
+usn_10g_xfs "-t 24 -s -d"
+
+[connections]
+pod7            --> usn_gige_xfs --> pod9
+pod7:pod7-10g   --> usn_10g_xfs  --> pod9:pod9-10g
+pod10           --> usn_gige_xfs --> pod11
+pod10:pod10-10g --> usn_10g_xfs  --> pod11:pod11-10g

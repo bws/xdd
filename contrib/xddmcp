@@ -23,7 +23,9 @@ g_channelDestDIO[0]=0
 
 g_connectionCount=0
 g_connectionSrc[0]=""
+g_connectionSrcIface[0]=""
 g_connectionDest[0]=""
+g_connectionDestIface[0]=""
 g_connectionChannelIdx[0]=0
 
 #
@@ -181,12 +183,43 @@ function xddmcp_main() {
 	xddmcp_print_usage
 	exit 12
     fi
+
+    # Parse options
+    local configFile=""
+    local resumeFlag=0
+    local verboseFlag=0
+
+    while getopts ":ac:hv" option; do
+        case $option in
+            a) 
+                resumeFlag=1
+                ;;
+	    c) 
+                configFile=$OPTARG
+                ;;
+	    h) 
+                print_usage 
+                return 0
+                ;;
+	    v) 
+                verboseFlag=1
+                ;;
+            \?)
+                echo "INFO: Unsupported option: -$OPTARG" >/dev/stderr 
+                error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+                ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    #
+    # Get the source and destination paths
+    #
     srcPath=$1
     destPath=$2
 
-    #xddmcp_print_usage
-
     # Locate config
+    configFile=$(xddmcp_locate_config_file $configFile)
     configFile=$HOME/xddmcp.conf
     if [ ! -r "$configFile" ]; then
         echo "Can't find config: $configFile"
@@ -208,14 +241,14 @@ function xddmcp_main() {
         xddmcp_partition $fileSize $i $g_connectionCount rankOffset rankPartSize
         local channelIdx=${g_connectionChannel[$i]}
         echo "Start dest: ${g_connectionDest[$i]} ${g_channelThreads[$channelIdx]} ${g_channelDestDIO[$channelIdx]}"
-	start_destination_xdd $srcPath $destPath $rankPartSize \
-		${g_channelThreads[$channelIdx]} 40010 \
-		${g_channelDestDIO[$channelIdx]} 0 0 0 0 0 1 \
-		${g_connectionDest[$i]} bws
+#	start_destination_xdd $srcPath $destPath $rankPartSize \
+#		${g_channelThreads[$channelIdx]} 40010 \
+#		${g_channelDestDIO[$channelIdx]} 0 0 0 0 0 1 \
+#		${g_connectionDest[$i]} bws
     done
 
     # Pause to let everything get initialized
-    sleep 10
+#    sleep 10
 
     # Start the sources to initiate transfers
     for ((i=0; i < $g_connectionCount; i+=1)); do
@@ -223,11 +256,11 @@ function xddmcp_main() {
         local channelIdx=${g_connectionChannel[$i]}
         echo "Start src: ${g_connectionSrc[$i]} ${g_channelThreads[$channelIdx]} ${g_channelSrcDIO[$channelIdx]}"
 
-	start_source_xdd $srcPath $rankPartSize \
-		${g_channelThreads[$channelIdx]} 40010 \
-		${g_channelSrcDIO[$channelIdx]} 0 0 0 0 \
-		${g_connectionDest[$i]} 1 \
-		${g_connectionSrc[$i]} bws &
+#	start_source_xdd $srcPath $rankPartSize \
+#		${g_channelThreads[$channelIdx]} 40010 \
+#		${g_channelSrcDIO[$channelIdx]} 0 0 0 0 \
+#		${g_connectionDest[$i]} 1 \
+#		${g_connectionSrc[$i]} bws &
     done
 
     # Collect statuses
