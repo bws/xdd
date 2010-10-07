@@ -1,0 +1,28 @@
+#
+# Set variables to control test configuration
+#
+
+#
+# Executables to use
+#
+XDDTEST_XDD_EXE=../bin/xdd.Linux
+XDDTEST_XDDCP_EXE=../contrib/xddcp
+XDDTEST_XDDFT_EXE=../contrib/xddft
+
+#
+# Mounts to use for testing
+#
+XDDTEST_LOCAL_MOUNT=/media/ExtDisk1/scratch
+XDDTEST_SOURCE_MOUNT=/media/ExtDisk1/scratch
+XDDTEST_DEST_MOUNT=/media/ExtDisk2/scratch
+
+#
+# Test results directory
+#
+XDDTEST_OUTPUT_DIR=./output
+
+#
+# Hosts to use for E2E transfers
+#
+XDDTEST_E2E_SOURCE=localhost
+XDDTEST_E2E_DEST=localhost

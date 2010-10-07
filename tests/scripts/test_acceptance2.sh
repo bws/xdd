@@ -2,37 +2,31 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the output results of -createnewfiles
+# Validate the output results of -createnewfiles on unaligned files with dio
+# enabled
 #
 
-# Locations
-xdd=xdd.Linux
-log_file=acceptance1.log
-data_file=acceptance1.dat
+#
+# Source the test configuration environment
+#
+source ./test_config
 
-# Perform pre-test cleanup
-echo "Beginning Acceptance Test 1 . . ."
-rm -f $data_file.*
+# Perform pre-test 
+echo "Beginning Acceptance Test 2 . . ."
+test_dir=$XDDTEST_LOCAL_MOUNT/acceptance2
+rm -rf $test_dir
+mkdir -p $test_dir
 
-# ReqSize 4096, Bytes 1GiB, Targets 1, QueueDepth 4, Passes 10
-$xdd -id 64-TASK-RANDOM-READ-4K-DATA
--op read
--blocksize 1024
--reqsize 4
--mbytes 512
--targets 64 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapp
- er/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1 /dev/mapper/lun0p1
--seek random
--seek range 1610612736
--seek seed 456
--verbose
- >& $log_file
+# ReqSize 4096, Bytes 1GiB, Targets 1, QueueDepth 4, Passes 4
+data_file=$test_dir/test
+$XDDTEST_XDD_EXE -op write -reqsize 4096 -bytes 100000000 -targets 1 $data_file -qd 4 -createnewfiles -passes 4 -datapattern random -dio
 
 # Validate output
 test_passes=1
-correct_size=1073741824
+correct_size=100000000
 
-for f in `ls $data_file.*`; do 
+data_files="$data_file.00000001 $data_file.00000002 $data_file.00000003 $data_file.00000004"
+for f in $data_files; do 
   file_size=`stat -c %s $f`
   if [ "$correct_size" != "$file_size" ]; then
     test_passes=0
@@ -41,11 +35,13 @@ for f in `ls $data_file.*`; do
 done
 
 # Perform post-test cleanup
-rm $data_file.*
+rm -rf $test_dir
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance Test 2 - Createnewfiles Size Check: PASSED."
+  echo "Acceptance Test 2: PASSED."
+  exit 0
 else
-  echo "Acceptance Test 2 - Createnewfiles Size Check: FAILED."
+  echo "Acceptance Test 2: FAILED."
+  exit 1
 fi
