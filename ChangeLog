@@ -4,6 +4,7 @@ XDD Release ChangeLog
 
 xdd-7.0.0 RC17
 ==============
+* XDD: Fix bug introduced with not performing the last pass in a -passes run
 
 xdd-7.0.0 RC16
 ==============

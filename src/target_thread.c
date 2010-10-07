@@ -134,8 +134,8 @@ xdd_target_thread(void *pin) {
 		if (xgp->pass_delay > 0)
 			sleep(xgp->pass_delay);
 
-                /* Increment pass number and start work for next pass */
-                p->my_current_pass_number++;
+        /* Increment pass number and start work for next pass */
+        p->my_current_pass_number++;
 
 		/* Close current file, create a new target file, and open the new (or existing) file is requested */
 		if ((p->target_options & TO_CREATE_NEW_FILES) || 
