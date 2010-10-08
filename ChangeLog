@@ -2,6 +2,10 @@
 XDD Release ChangeLog
 -----------------------
 
+xdd-7.0.0 RC18
+==============
+* XDD: Add in configure check for sched_getcpu() support.
+
 xdd-7.0.0 RC17
 ==============
 * XDD: Fix bug introduced with not performing the last pass in a -passes run
