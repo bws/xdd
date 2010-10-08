@@ -102,6 +102,10 @@ extern int h_errno; // For socket calls
 #define XFS_SUPER_MAGIC 0x58465342
 #endif
 
+#ifdef UTMPX_SUPPORT
+#include <utmpx.h>
+#endif
+
 /*
  * Local variables:
  *  indent-tabs-mode: t

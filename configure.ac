@@ -88,6 +88,11 @@ dnl
 AC_TYPE_SIZE_T
 
 dnl
+dnl Checks for library functions.
+dnl
+AC_CHECK_FUNCS([memset])
+
+dnl
 dnl Check if XFS support should be enabled
 dnl
 xfs_header_support="no"
@@ -101,25 +106,10 @@ if test "x$xfs_header_support" = "xyes" ; then
                     [])
 fi
 
-xfs_magic_support="no"
-if test "x$xfs_header_support" = "xyes" ; then
-    AC_CHECK_HEADER([linux/magic.h],
-                    [AC_CHECK_DECL(XFS_SUPER_MAGIC,
-                                   [xfs_magic_support="yes"], [], [],
-				   [[#include <linux/magic.h>]])],
-                    [])
-    
-fi
-dnl if test "x$xfs_header_support" = "xyes" ; then
-dnl     AC_CHECK_HEADER([xfs/xfs_fs.h],
-dnl                     [xfs_header_support="yes"],
-dnl                     [xfs_header_support="no"])
-dnl fi
-
-xfs_lib_support="yes"
-#AC_SEARCH_LIBS([xfsctl], [handle], xfs_lib_support=yes)
-
+dnl
 dnl By default, try to add XFS support, only show errors if user requests XFS
+dnl
+xfs_lib_support="yes"
 xfs_enabled="yes"
 xfs_override="no"
 AC_ARG_ENABLE([xfs],
@@ -127,7 +117,6 @@ AC_ARG_ENABLE([xfs],
               [xfs_override="$enableval"
                xfs_enabled="$enableval"], [])
 
-dnl echo $xfs_enabled $xfs_override
 if test "x$xfs_override" = "xyes" ; then
     if test "x$xfs_header_support" = "xno" ; then
         AC_MSG_FAILURE("XFS headers not found.")
@@ -142,41 +131,6 @@ elif test "x$xfs_enabled" = "xyes" ; then
         AC_SUBST(CONFIG_XFS_PACKAGE, "-D$xfs_package")
     fi
 fi
-
-
-dnl
-dnl Check for Confidence availability
-dnl
-confidence_headers="no"
-AC_CHECK_HEADERS([libconfidence.h],
-		[confidence_headers="yes"],
-		[confidence_headers="no"],
-		[#include "types.h"
-		 #include "globalvars.h"])
-confidence_libs="no"
-AC_CHECK_LIB([confidence], [confidence_initialize], [confidence_libs="yes"])
-confidence_enable="no"
-AC_ARG_ENABLE([confidence],
-	      [AS_HELP_STRING(--enable-confidence,Enable Confidence formatted output files)],
-	      [confidence_enable="yes"])
-if test "x$confidence_enable" = "xyes" ; then
-    if test "x$confidence_headers" = "xno" ; then
-    	AC_MSG_WARN("Confidence headers not found.
-		Add '-I<confidence_dir>' to CFLAGS.
-		Continuing without Confidence enabled...")
-    fi
-    if test "x$confidence_libs" = "xno" ; then
-    	AC_MSG_WARN("Confidence library 'libconfidence.a' not found.
-		Add '-L<confidence_dir> -lm -lconfidence' to LDFLAGS.
-		Continuing without Confidence enabled...")
-    fi
-    if test "x$confidence_headers" = "xyes" ; then
-        if test "x$confidence_libs" = "xyes" ; then
-    	    AC_SUBST(CONFIG_CONFIDENCE_ENABLED, "-DCONFIDENCE_ENABLED")
-	fi
-    fi
-fi
-
 
 dnl
 dnl Check for Linux Magic numbers
@@ -194,10 +148,24 @@ if test "x$magic_header_support" = "xyes" ; then
     AC_SUBST(CONFIG_LINUX_MAGIC, "-DMAGIC_XFS_SUPPORT")
 fi
 
+
 dnl
-dnl Checks for library functions.
+dnl Check for sched_getcpu availability
 dnl
-AC_CHECK_FUNCS([memset])
+utmpx_headers="no"
+sched_getcpu_support="no"
+AC_CHECK_HEADERS([utmpx.h],
+		 [utmpx_headers="yes"],
+		 [utmpx_headers="no"])
+
+AC_TRY_LINK([#define _GNU_SOURCE
+             #include <utmpx.h>],
+	    [sched_getcpu();],
+	    [sched_getcpu_support="yes"])
+if test "x$utmpx_headers" = "xyes" -a "x$sched_getcpu_support" = "xyes" ; then
+   AC_SUBST(CONFIG_UTMPX_ENABLED, "-DUTMPX_SUPPORT")
+fi
+
 
 dnl
 dnl Sets the compilation options
