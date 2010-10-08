@@ -49,11 +49,7 @@ xdd_io_for_os(ptds_t *qp) {
 	// Time stamp if requested
 	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 		p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
-#ifdef UTMPX_SUPPORT
-		p->ttp->tte[qp->ts_current_entry].disk_processor_start = sched_getcpu();
-#else
-		p->ttp->tte[qp->ts_current_entry].disk_processor_start = -1;		
-#endif
+		p->ttp->tte[qp->ts_current_entry].disk_processor_start = xdd_get_processor();
 	}
 
 	/* Do the deed .... */
@@ -113,11 +109,7 @@ xdd_io_for_os(ptds_t *qp) {
 	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 		p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
 		p->ttp->tte[qp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
-#ifdef UTMPX_SUPPORT
-		p->ttp->tte[qp->ts_current_entry].disk_processor_end = sched_getcpu();
-#else
-		p->ttp->tte[qp->ts_current_entry].disk_processor_end = -1;		
-#endif
+		p->ttp->tte[qp->ts_current_entry].disk_processor_end = xdd_get_processor();
 	}
 		
 } // End of xdd_io_for_linux()

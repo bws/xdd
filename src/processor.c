@@ -136,3 +136,21 @@ xdd_processor(ptds_t *p) {
 	return;
 #endif
 } /* end of xdd_processor() */
+/*----------------------------------------------------------------------------*/
+/* xdd_get_processor() - Get the processor number that this is current running on.
+ * This routine exists because there is no commonly defined routine that does
+ * this. It is supposed to be sched_getcpu() but that is not implemented by
+ * all OS versions.
+ * This subroutine will return an integer from 0 to N-1 where N is the number
+ * of processors on this system. If there is no subroutine for getting this
+ * information then a -1 will be returned.
+ */
+int
+xdd_get_processor() {
+
+#ifdef UTMPX_SUPPORT
+		return( sched_getcpu() );
+#else
+		return(-1);
+#endif
+} // End of xdd_get_processor()

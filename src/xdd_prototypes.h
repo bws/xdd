@@ -171,6 +171,7 @@ int32_t	xdd_target_preallocate(ptds_t *p);
 
 // processor.c
 void	xdd_processor(ptds_t *p);
+int		xdd_get_processor(void);
 
 // ptds.c
 void	xdd_init_new_ptds(ptds_t *p, int32_t n);

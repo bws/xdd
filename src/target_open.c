@@ -132,16 +132,14 @@ xdd_target_reopen(ptds_t *p) {
  */
 int32_t
 xdd_target_shallow_open(ptds_t *p) {
-	int32_t		status;		// Status of the open call
-
 
 	// If this is a NULL target then don't bother openning it
 	if (p->target_options & TO_NULL_TARGET)
 		return(0);
 
-        /* Ensure the invoking client is a qthread with an already opened target thread */
-        if (0 == p->target_ptds)
-            return(-1);
+	/* Ensure the invoking client is a qthread with an already opened target thread */
+	if (0 == p->target_ptds)
+		return(-1);
         
 	/* create the fully qualified target name */
 	xdd_target_name(p);
@@ -156,13 +154,13 @@ xdd_target_shallow_open(ptds_t *p) {
 
 	// Check the status of the OPEN operation to see if it worked
 	if (p->fd < 0) {
-			fprintf(xgp->errout,"%s: xdd_target_open: ERROR: Could not shallow open target number %d name %s\n",
-				xgp->progname,
-				p->my_target_number,
-				p->target_full_pathname);
+		fprintf(xgp->errout,"%s: xdd_target_open: ERROR: Could not shallow open target number %d name %s\n",
+			xgp->progname,
+			p->my_target_number,
+			p->target_full_pathname);
 			fflush(xgp->errout);
-			perror("reason");
-			return(-1);
+		perror("reason");
+		return(-1);
 	}
         
 	return(0);

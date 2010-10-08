@@ -197,7 +197,6 @@ xdd_e2e_before_pass(ptds_t *p) {
  */
 void 
 xdd_init_ptds_before_pass(ptds_t *p) {
-    int i;
     
 	// Init all the pass-related variables to 0
 	p->my_elapsed_pass_time = 0;
