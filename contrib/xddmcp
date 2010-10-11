@@ -20,31 +20,31 @@ XDDMCP_ORDER_STRICT_ID=4
 # Error codes
 #
 XDDMCP_INVALID_CMD_LINE=1
-XDDMCP_INVALID_FLOW_SPEC=2
-XDDMCP_INVALID_NET_SPEC=3
-XDDMCP_INVALID_STORAGE_SPEC=4
-XDDMCP_INVALID_CONFIG_SYNTAX=5
+XDDMCP_INVALID_CONFIG=2
+XDDMCP_INVALID_FLOW_SPEC=3
+XDDMCP_INVALID_NET_SPEC=4
+XDDMCP_INVALID_STORAGE_SPEC=5
+XDDMCP_INVALID_CONFIG_SYNTAX=6
 
 #
 # Global variables
 #
-g_storageCount=0
-g_storageNames[0]=0
-g_storageDIO[0]=0
-g_storageOrdering[0]=0
+declare -a g_hostNames[0]=0
+declare -a g_hostIfaces[0]=0
 
-g_networkCount=0
-g_networkNames[0]=0
-g_networkThreads[0]=0
+declare -a g_networkNames[0]=0
+declare -a g_networkThreads[0]=0
 
-g_flowCount=0
-g_flowSrcHost[0]=""
-g_flowSrcIface[0]=""
-g_flowSrcStorageId[0]=""
-g_flowNetworkId[0]=""
-g_flowDestHost[0]=""
-g_flowDestIface[0]=""
-g_flowDestStorageId[0]=""
+declare -a g_storageNames[0]=0
+declare -a g_storageDIO[0]=0
+declare -a g_storageOrdering[0]=0
+
+declare -i g_flowCount=0
+declare -a g_flowSrcHostId[0]
+declare -a g_flowSrcStorageId[0]
+declare -a g_flowNetworkId[0]
+declare -a g_flowDestHostId[0]
+declare -a g_flowDestStorageId[0]
 
 #
 # Print out the usage information
@@ -85,6 +85,9 @@ function xddmcp_include_xddcp() {
         echo "ERROR: Could not find xddcp"
         exit 1
     fi
+
+    # Set XDDCP use preconditions
+    g_xddcpXddVersion=$(${XDDCP_DEFAULT_XDD} -version)
 }
 
 #
@@ -109,6 +112,20 @@ function xddmcp_locate_config_file() {
 }
 
 #
+# Parse a xddmcp host entry
+#
+function xddmcp_parse_host_entry() {
+    local hostName=$1
+    local hostSpec=$2
+
+    # Setup the host data
+    declare -i idx=${#g_hostNames[@]}
+    g_hostNames[$idx]=$hostName
+    g_hostIfaces[$idx]=$hostSpec    
+    return 0
+}
+
+#
 # Parse a xddmcp network entry
 #
 function xddmcp_parse_network_entry() {
@@ -123,11 +140,9 @@ function xddmcp_parse_network_entry() {
     fi
 
     # Setup the channel data
-    g_networkNames[$g_networkCount]=$networkName
-    g_networkThreads[$g_networkCount]=$threads
-    
-    # Increment the channel count
-    g_networkCount=$((g_networkCount + 1))
+    declare -i idx=${#g_networkNames[@]}
+    g_networkNames[$idx]=$networkName
+    g_networkThreads[$idx]=$threads    
     return 0
 }
 
@@ -162,12 +177,10 @@ function xddmcp_parse_storage_entry() {
 
     # Setup the storage data
     #echo "Channel $channelName: $threads $srcDIO $destDIO"
-    g_storageNames[$g_storageCount]=$storageName
-    g_storageDIO[$g_storageCount]=$dioFlag
-    g_storageOrdering[$g_storageCount]=$orderId
-    
-    # Increment the storage count
-    g_storageCount=$((g_storageCount + 1))
+    declare -i idx=${#g_storageNames[@]}
+    g_storageNames[$idx]=$storageName
+    g_storageDIO[$idx]=$dioFlag
+    g_storageOrdering[$idx]=$orderId
     return 0
 }
 
@@ -182,7 +195,8 @@ function xddmcp_parse_flow_entry() {
     # Source storage id
     local srcStore=$token
     declare -i srcStoreId=-1
-    for ((i=0; i<$g_storageCount; i+=1)); do
+    declare -i storageCount=${#g_storageNames[@]}
+    for ((i=0; i<$storageCount; i+=1)); do
 	if [ "$srcStore" = "${g_storageNames[$i]}" ]; then
 	    srcStoreId=$i
 	    break
@@ -195,16 +209,18 @@ function xddmcp_parse_flow_entry() {
     
     # Skip ->
 
-    # Determine if the first token has an interface or not
-    local srcSpec=$(echo $connectionSpec |cut -f 2 -d ' ')
-    declare -i colonCount=$(echo $destSpec |grep -c :)
-    local srcHost=$srcSpec
-    local srcIface=$srcHost
-    if [ 1 -eq $colonCount ]; then
-	srcHost=$(echo $srcSpec |cut -f 1 -d ':')
-	srcIface=$(echo $srcSpec |cut -f 2 -d ':')
-    elif [ 0 -ne $colonCount ]; then
-	echo "Invalid destination specification: $destSpec" >/dev/stderr
+    # Source host id
+    local srcHost=$(echo $connectionSpec |cut -f 2 -d ' ')
+    declare -i srcHostId=-1
+    declare -i hostCount=${#g_storageNames[@]}
+    for ((i=0; i<$hostCount; i+=1)); do
+	if [ "$srcHost" = "${g_hostNames[$i]}" ]; then
+	    srcHostId=$i
+	    break
+	fi
+    done
+    if [ -1 -eq $srcHostId ]; then
+	echo "ERROR: Unknown source host name: $srcHost" >/dev/stderr
 	exit $XDDMCP_INVALID_FLOW_SPEC
     fi
 
@@ -213,7 +229,8 @@ function xddmcp_parse_flow_entry() {
     # Parse determine network
     local networkName=$(echo $connectionSpec |cut -f 4 -d ' ')
     declare -i networkId=-1
-    for ((i=0; i<$g_networkCount; i+=1)); do
+    declare -i networkCount=${#g_networkNames[@]}
+    for ((i=0; i<$networkCount; i+=1)); do
 	if [ "$networkName" = "${g_networkNames[$i]}" ]; then
 	    networkId=$i
 	    break
@@ -227,15 +244,16 @@ function xddmcp_parse_flow_entry() {
     # Skip ->
 
     # Determine if host has an interface of not
-    local destSpec=$(echo $connectionSpec |cut -f 6 -d ' ')
-    declare -i colonCount=$(echo $destSpec |grep -c :)
-    local destHost=$destSpec
-    local destIface=$destHost
-    if [ 1 -eq $colonCount ]; then
-	destHost=$(echo $destSpec |cut -f 1 -d ':')
-	destIface=$(echo $destSpec |cut -f 2 -d ':')
-    elif [ 0 -ne $colonCount ]; then
-	echo "ERROR: Invalid destination specification: $destSpec" >/dev/stderr
+    local destHost=$(echo $connectionSpec |cut -f 6 -d ' ')
+    declare -i destHostId=-1
+    for ((i=0; i<$hostCount; i+=1)); do
+	if [ "$destHost" = "${g_hostNames[$i]}" ]; then
+	    destHostId=$i
+	    break
+	fi
+    done
+    if [ -1 -eq $destHostId ]; then
+	echo "ERROR: Unknown destination host name: $destHost" >/dev/stderr
 	exit $XDDMCP_INVALID_FLOW_SPEC
     fi
 
@@ -244,7 +262,7 @@ function xddmcp_parse_flow_entry() {
     # Determine the destination store
     local destStore=$(echo $connectionSpec |cut -f 8 -d ' ')
     declare -i destStoreId=-1
-    for ((i=0; i<$g_storageCount; i+=1)); do
+    for ((i=0; i<$storageCount; i+=1)); do
 	if [ "$destStore" = "${g_storageNames[$i]}" ]; then
 	    destStoreId=$i
 	    break
@@ -256,16 +274,16 @@ function xddmcp_parse_flow_entry() {
     fi
 
     # Construct the connection
-    g_flowSrc[$g_connectionCount]=$srcHost
-    g_flowSrcIface[$g_connectionCount]=$srcIface
-    g_flowSrcStorageId[$g_connectionCount]=$channelId
-    g_flowDest[$g_connectionCount]=$destHost
-    g_flowDestIface[$g_connectionCount]=$destIface
-    g_flowDestStorageId[$g_connectionCount]=$channelId
-    g_flowNetworkId[$g_connectionCount]=$channelId
+    declare -i idx=$g_flowCount
+    g_flowSrcStorageId[$idx]=$srcStoreId
+    g_flowSrcHostId[$idx]=$srcHostId
+    g_flowNetworkId[$idx]=$networkId
+    g_flowDestHostId[$idx]=$destHostId
+    g_flowDestStorageId[$idx]=$destStoreId
+    #echo "Added flow: ${g_flowSrcStorageId[$idx]} ${g_flowSrcHostId[$idx]} ${g_flowNetworkId[$idx]} ${g_flowDestHostId[$idx]} ${g_flowDestStorageId[$idx]}"
 
     # Increment the connection count
-    g_connectionCount=$((g_connectionCount + 1))
+    g_flowCount=$((g_flowCount + 1))
     return 0
 }
 
@@ -288,9 +306,12 @@ function xddmcp_parse_config() {
             continue
         elif [ "[" == "$first_char" ]; then
             state=$tok0
-            if [ "[flows]" == "$state" -o "[network]" == "$state" -o "[storage]" == "$state" ]; then
+            if [ "[flows]" == "$state" -o "[network]" == "$state" -o "[storage]" == "$state" -o "[host]" == "$state" ]; then
                 res=0
             fi
+        elif [ "[host]" == "$state" -a ! -z "$tok0" ]; then
+            xddmcp_parse_host_entry "$tok0" "$remainder"
+            res=$?
         elif [ "[flows]" == "$state" -a ! -z "$tok0" ]; then
             xddmcp_parse_flow_entry "$tok0" "$remainder"
             res=$?
@@ -417,20 +438,39 @@ function xddmcp_main() {
 
     # Parse config
     xddmcp_parse_config $configFile
-    exit 0
-    fileSize=$(stat -c '%s' $srcPath)
 
-    # Set preconditions
-    g_xddcpXddVersion=$(${XDDCP_DEFAULT_XDD} -version)
+    # Check source file preconditions
+    declare -i fileSize=0
+    if [ -r $srcPath ]; then
+	fileSize=$(stat -c '%s' $srcPath)
+    fi
+    if [ 0 -ge $fileSize ]; then
+	echo "ERROR: Insufficient file size $fileSize for: $srcPath"
+	exit $XDDMCP_INVALID_CONFIG
+    fi
 
     # Start destinations
     local rankOffset=0
     local rankPartSize=0
     #g_connectionCount=1
-    for ((i=0; i < $g_connectionCount; i+=1)); do
-        xddmcp_partition $fileSize $i $g_connectionCount rankOffset rankPartSize
-        local channelIdx=${g_connectionChannel[$i]}
-        echo "Start dest: ${g_connectionDest[$i]} ${g_channelThreads[$channelIdx]} ${g_channelDestDIO[$channelIdx]}"
+    for ((i=0; i < $g_flowCount; i+=1)); do
+        xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
+
+	# Get the destination host
+	declare -i destHostId=${g_flowDestHostId[$i]}
+	local destHost=${g_hostNames[$destHostId]}
+	local destIfaces=${g_hostIfaces[$destHostId]}
+
+	# Get the number of network threads
+	declare -i networkId=${g_flowNetworkId[$i]}
+	declare -i threadCount=${g_networkThreads[$networkId]}
+
+	# Get the storage DIO flag and ordering
+	declare -i storageId=${g_flowDestStorageId[$i]}
+	declare -i dioFlag=${g_storageDIO[$storageId]}
+	declare -i orderId=${g_storageOrdering[$storageId]}
+
+        echo "Start dest: $destHost $destIfaces $threadCount $dioFlag $orderId $rankOffset $rankPartSize"
 #	start_destination_xdd $srcPath $destPath $rankPartSize \
 #		${g_channelThreads[$channelIdx]} 40010 \
 #		${g_channelDestDIO[$channelIdx]} 0 0 0 0 0 1 \
@@ -441,10 +481,24 @@ function xddmcp_main() {
 #    sleep 10
 
     # Start the sources to initiate transfers
-    for ((i=0; i < $g_connectionCount; i+=1)); do
-        xddmcp_partition $fileSize $i $g_connectionCount rankOffset rankPartSize
-        local channelIdx=${g_connectionChannel[$i]}
-        echo "Start src: ${g_connectionSrc[$i]} ${g_channelThreads[$channelIdx]} ${g_channelSrcDIO[$channelIdx]}"
+    for ((i=0; i < $g_flowCount; i+=1)); do
+        xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
+
+	# Get the source host
+	declare -i srcHostId=${g_flowSrcHostId[$i]}
+	local host=${g_hostNames[$srcHostId]}
+	local ifaces=${g_hostIfaces[$srcHostId]}
+
+	# Get the number of network threads
+	declare -i networkId=${g_flowNetworkId[$i]}
+	declare -i threadCount=${g_networkThreads[$networkId]}
+
+	# Get the storage DIO flag and ordering
+	declare -i storageId=${g_flowSrcStorageId[$i]}
+	declare -i dioFlag=${g_storageDIO[$storageId]}
+	declare -i orderId=${g_storageOrdering[$storageId]}
+
+        echo "Start source: $host $ifaces $threadCount $dioFlag $orderId $rankOffset $rankPartSize"
 
 #	start_source_xdd $srcPath $rankPartSize \
 #		${g_channelThreads[$channelIdx]} 40010 \
