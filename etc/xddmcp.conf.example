@@ -1,9 +1,47 @@
-[channels]
-usn_gige_xfs "-t 24 -s -d"
-usn_10g_xfs "-t 24 -s -d"
+#
+# A sample config file for xddmcp.  XDDMCP reads config files in order from
+# the following locations:
+#
+#  -c <config file>
+#  $XDDMCP_CONFIG_FILE
+#  ~/.xddmcp.conf
+#  /etc/xddmcp.conf
+#
+#
+#
 
-[connections]
-pod7            --> usn_gige_xfs --> pod9
-pod7:pod7-10g   --> usn_10g_xfs  --> pod9:pod9-10g
-pod10           --> usn_gige_xfs --> pod11
-pod10:pod10-10g --> usn_10g_xfs  --> pod11:pod11-10g
+#
+# Storage specifications
+#
+# <storage> [options]
+#
+# Valid options: [dio] [loose|strict|none]
+#
+[storage]
+itrend_xfs_src dio loose
+itrend_xfs_dest dio none
+dtn_lustre_src none
+dtn_lustre_dest none
+
+#
+# Network Specifications
+#
+# <network> [options]
+#
+# Valid options: num_threads
+#
+[network]
+lan_gige 1
+usn_10g 8
+
+#
+# Data Transfer Flow specifications
+#
+# <storage> -> <host[:iface]> -> <network> -> <host[:iface]> -> <storage>
+#
+[flows]
+itrend_xfs_src -> pod7 -> lan_gige -> pod9 -> itrend_xfs_dest
+itrend_xfs_src -> pod10 -> lan_gige -> pod11 -> itrend_xfs_dest
+itrend_xfs_src -> pod7:pod7-10g -> lan_gige -> pod9:pod9-10g -> itrend_xfs_dest
+itrend_xfs_src -> pod7:pod7-10g -> lan_gige -> pod9:pod9-10g -> itrend_xfs_dest
+

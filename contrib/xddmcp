@@ -11,22 +11,40 @@
 # Global constants
 #
 XDDMCP_DEFAULT_CONFIG=".xddmcprc"
+XDDMCP_ORDER_LOOSE_ID=1
+XDDMCP_ORDER_NONE_ID=2
+XDDMCP_ORDER_SERIAL_ID=3
+XDDMCP_ORDER_STRICT_ID=4
+
+#
+# Error codes
+#
+XDDMCP_INVALID_CMD_LINE=1
+XDDMCP_INVALID_FLOW_SPEC=2
+XDDMCP_INVALID_NET_SPEC=3
+XDDMCP_INVALID_STORAGE_SPEC=4
+XDDMCP_INVALID_CONFIG_SYNTAX=5
 
 #
 # Global variables
 #
-g_channelCount=0
-g_channelNames[0]=0
-g_channelThreads[0]=0
-g_channelSrcDIO[0]=0
-g_channelDestDIO[0]=0
+g_storageCount=0
+g_storageNames[0]=0
+g_storageDIO[0]=0
+g_storageOrdering[0]=0
 
-g_connectionCount=0
-g_connectionSrc[0]=""
-g_connectionSrcIface[0]=""
-g_connectionDest[0]=""
-g_connectionDestIface[0]=""
-g_connectionChannelIdx[0]=0
+g_networkCount=0
+g_networkNames[0]=0
+g_networkThreads[0]=0
+
+g_flowCount=0
+g_flowSrcHost[0]=""
+g_flowSrcIface[0]=""
+g_flowSrcStorageId[0]=""
+g_flowNetworkId[0]=""
+g_flowDestHost[0]=""
+g_flowDestIface[0]=""
+g_flowDestStorageId[0]=""
 
 #
 # Print out the usage information
@@ -35,60 +53,219 @@ function xddmcp_print_usage() {
     echo "xddmcp [OPTIONS] source_file destination_file [size]"
     echo ""
     echo "source_file       - complete /filepath/name for source file on source host"
-    echo "destination_file  - complete /filepath/name for destination file on destination host"
+    echo "destination_file  - complete /filepath/name for destination file on "
+    echo "                    destination host"
     echo "size              - number of bytes to transfer [Default: size of source file]"
     echo ""
     echo "OPTIONS: "
-    echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
+    echo " -a		- Resume transfer if it was only partially completed "
+    echo "                and the -a flag was specified"
     echo " -c <file>    - Provide an xddmcp config file"
     echo " -h		- Print out usage information"
-    echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
+    echo "NOTE: 'xdd.Linux' must be in your PATH on both source and destination hosts!!"
 }
 
 #
-# Parse a xddmcp channel
+# Add xddcp functions to namespace
 #
-function xddmcp_parse_channel() {
-    local channelSpec=$1
+function xddmcp_include_xddcp() {
 
-    local channelName=$(echo $channelSpec |cut -f 1)
+    # This is done to reuse the transfer functions of xddcp.  It's slightly messy, 
+    # but if you are reading the source to *this* script, then you are already in 
+    # the weeds and signed up for understanding complexity.  We overload exit 
+    # because trap EXIT doesn't prevent an enventual call to exit.  We then unset 
+    # the overload after sourcing the appropriate file(s).
+    #
+    xddcp_path=$(which xddcp)
+    if [ -f "$xddcp_path" ]; then
+        exit() { :; }
+        source $xddcp_path >/dev/null
+        unset -f exit
+    else
+        echo "ERROR: Could not find xddcp"
+        exit 1
+    fi
+}
+
+#
+# Locate xddmcp config file from several possible locations
+#
+function xddmcp_locate_config_file() {
+    local configFile=$1
+
+    if [ -z "$configFile" ]; then
+	# Check environment variable
+	if [ ! -z "$XDD_CONFIG_FILE" -a -f "$XDD_CONFIG_FILE" ]; then
+	    configFile=$XDD_CONFIG_FILE
+	# Check home directory
+	elif [ -f "$HOME/xddmcp.conf" ]; then
+	    configFile=$HOME/xddmcp.conf
+	# Check /etc
+	elif [ -f /etc/xddmcp.conf ]; then
+	    configFile=/etc/xddmcp.conf
+	fi
+    fi
+    echo "$configFile"
+}
+
+#
+# Parse a xddmcp network entry
+#
+function xddmcp_parse_network_entry() {
+    local networkName=$1
+    local networkSpec=$2
+
+    # Parse thread count and DIO out of channel spec
+    declare -i threads=$(echo $networkSpec |cut -f 1);
+    if [ 1 -gt "$threads" ]; then
+	echo "ERROR: Invalid thread count."
+	exit $XDDMCP_INVALID_NET_SPEC
+    fi
 
     # Setup the channel data
-    #g_channelNames[$g_channelCount]=$channelName
-    #g_channelThreads[$g_channelCount]=4
-    #g_channelDestDIO[$g_channelCount]=1
-    #g_channelSrcDIO[$g_channelCount]=1
+    g_networkNames[$g_networkCount]=$networkName
+    g_networkThreads[$g_networkCount]=$threads
     
-    # Hardcode the channel info for now
-    g_channelNames[$g_channelCount]=usn_xfs
-    g_channelThreads[$g_channelCount]=48
-    g_channelDestDIO[$g_channelCount]=1
-    g_channelSrcDIO[$g_channelCount]=1
-
     # Increment the channel count
-    g_channelCount=$((g_channelCount + 1))
+    g_networkCount=$((g_networkCount + 1))
     return 0
 }
 
 #
-# Parse a xddmcp connection
+# Parse a xddmcp storage entry
 #
-function xddmcp_parse_connection() {
-    local connectionSpec=$1
+function xddmcp_parse_storage_entry() {
+    local storageName=$1
+    local storageOpts=$2
 
-    # Hard code the connections
-    g_connectionSrc[0]="192.168.1.3"
-    g_connectionDest[0]="192.168.1.4"
-    g_connectionChannelIdx[0]=0
+    # Parse DIO flag out
+    local dioFlag=$(echo $storageOpts |grep -c -i dio)
+    if [ 1 -lt $dioFlag ]; then
+	dioFlag=1
+    fi
 
-    g_connectionSrc[1]="192.168.1.5"
-    g_connectionDest[1]="192.168.1.6"
-    g_connectionChannelIdx[1]=0
+    # Parse thread ordering
+    local orderId=$XDDMCP_ORDER_NONE_ID
+    declare -u orderString=$(echo $storageOpts |grep -o -i -e "(loose|strict|none)")
+    if [ -z "$orderString" ]; then
+	orderId=$XDDMCP_ORDER_NONE_ID
+    elif [ "LOOSE" = "$orderString" ]; then
+	orderId=$XDDMCP_ORDER_LOOSE_ID
+    elif [ "NONE" = "$orderString" ]; then
+	orderId=$XDDMCP_ORDER_NONE_ID
+    elif [ "SERIAL" = "$orderString" ]; then
+	orderId=$XDDMCP_ORDER_SERIAL_ID
+    else
+	echo "ERROR: Unsupported ordering option: $orderString"
+	exit $XDDMCP_INVALID_STORAGE_SPEC
+    fi
+
+    # Setup the storage data
+    #echo "Channel $channelName: $threads $srcDIO $destDIO"
+    g_storageNames[$g_storageCount]=$storageName
+    g_storageDIO[$g_storageCount]=$dioFlag
+    g_storageOrdering[$g_storageCount]=$orderId
+    
+    # Increment the storage count
+    g_storageCount=$((g_storageCount + 1))
+    return 0
+}
+
+#
+# Parse a xddmcp flow entry
+#
+function xddmcp_parse_flow_entry() {
+    local token=$1
+    local connectionSpec=$2
+    #echo "Flow: $token $connectionSpec"
+    
+    # Source storage id
+    local srcStore=$token
+    declare -i srcStoreId=-1
+    for ((i=0; i<$g_storageCount; i+=1)); do
+	if [ "$srcStore" = "${g_storageNames[$i]}" ]; then
+	    srcStoreId=$i
+	    break
+	fi
+    done
+    if [ -1 -eq $srcStoreId ]; then
+	echo "ERROR: Unknown source storage name: $srcStore" >/dev/stderr
+	exit $XDDMCP_INVALID_FLOW_SPEC
+    fi
+    
+    # Skip ->
+
+    # Determine if the first token has an interface or not
+    local srcSpec=$(echo $connectionSpec |cut -f 2 -d ' ')
+    declare -i colonCount=$(echo $destSpec |grep -c :)
+    local srcHost=$srcSpec
+    local srcIface=$srcHost
+    if [ 1 -eq $colonCount ]; then
+	srcHost=$(echo $srcSpec |cut -f 1 -d ':')
+	srcIface=$(echo $srcSpec |cut -f 2 -d ':')
+    elif [ 0 -ne $colonCount ]; then
+	echo "Invalid destination specification: $destSpec" >/dev/stderr
+	exit $XDDMCP_INVALID_FLOW_SPEC
+    fi
+
+    # Skip ->
+
+    # Parse determine network
+    local networkName=$(echo $connectionSpec |cut -f 4 -d ' ')
+    declare -i networkId=-1
+    for ((i=0; i<$g_networkCount; i+=1)); do
+	if [ "$networkName" = "${g_networkNames[$i]}" ]; then
+	    networkId=$i
+	    break
+	fi
+    done
+    if [ -1 -eq $networkId ]; then
+	echo "ERROR: Unknown network name: $networkName" >/dev/stderr
+	exit $XDDMCP_INVALID_FLOW_SPEC
+    fi
+    
+    # Skip ->
+
+    # Determine if host has an interface of not
+    local destSpec=$(echo $connectionSpec |cut -f 6 -d ' ')
+    declare -i colonCount=$(echo $destSpec |grep -c :)
+    local destHost=$destSpec
+    local destIface=$destHost
+    if [ 1 -eq $colonCount ]; then
+	destHost=$(echo $destSpec |cut -f 1 -d ':')
+	destIface=$(echo $destSpec |cut -f 2 -d ':')
+    elif [ 0 -ne $colonCount ]; then
+	echo "ERROR: Invalid destination specification: $destSpec" >/dev/stderr
+	exit $XDDMCP_INVALID_FLOW_SPEC
+    fi
+
+    # Skip ->
+
+    # Determine the destination store
+    local destStore=$(echo $connectionSpec |cut -f 8 -d ' ')
+    declare -i destStoreId=-1
+    for ((i=0; i<$g_storageCount; i+=1)); do
+	if [ "$destStore" = "${g_storageNames[$i]}" ]; then
+	    destStoreId=$i
+	    break
+	fi
+    done
+    if [ -1 -eq $destStoreId ]; then
+	echo "ERROR: Unknown storage name for destination: $srcStore" >/dev/stderr
+	exit $XDDMCP_INVALID_FLOW_SPEC
+    fi
+
+    # Construct the connection
+    g_flowSrc[$g_connectionCount]=$srcHost
+    g_flowSrcIface[$g_connectionCount]=$srcIface
+    g_flowSrcStorageId[$g_connectionCount]=$channelId
+    g_flowDest[$g_connectionCount]=$destHost
+    g_flowDestIface[$g_connectionCount]=$destIface
+    g_flowDestStorageId[$g_connectionCount]=$channelId
+    g_flowNetworkId[$g_connectionCount]=$channelId
 
     # Increment the connection count
     g_connectionCount=$((g_connectionCount + 1))
-    g_connectionCount=2
-
     return 0
 }
 
@@ -107,20 +284,21 @@ function xddmcp_parse_config() {
         lp=$((lp + 1))
         local res=1
         local first_char=$(echo "$tok0"| cut -c1)
-        echo "Token: $tok0"
         if [ "#" == "$first_char" -o -z "$tok0" ]; then
             continue
         elif [ "[" == "$first_char" ]; then
             state=$tok0
-            echo "Setting state to: $state"
-            if [ "[connections]" == "$state" -o "[channels]" == "$state" ]; then
+            if [ "[flows]" == "$state" -o "[network]" == "$state" -o "[storage]" == "$state" ]; then
                 res=0
             fi
-        elif [ "[connections]" == "$state" -a ! -z "$tok0" ]; then
-            xddmcp_parse_connection "$tok0" "$remainder"
+        elif [ "[flows]" == "$state" -a ! -z "$tok0" ]; then
+            xddmcp_parse_flow_entry "$tok0" "$remainder"
             res=$?
-        elif [ "[channels]" == "$state"  -a ! -z "$tok0" ]; then
-            xddmcp_parse_channel "$tok0" "$remainder"
+        elif [ "[network]" == "$state"  -a ! -z "$tok0" ]; then
+            xddmcp_parse_network_entry "$tok0" "$remainder"
+            res=$?
+        elif [ "[storage]" == "$state"  -a ! -z "$tok0" ]; then
+            xddmcp_parse_storage_entry "$tok0" "$remainder"
             res=$?
         fi
 
@@ -179,7 +357,7 @@ function xddmcp_main() {
     trap 'handle_signal_common; trap 15; kill -15 $$' 15
 
     # Parse arguments
-    if [ 2 -lt  $# ]; then
+    if [ 2 -gt $# ]; then
 	xddmcp_print_usage
 	exit 12
     fi
@@ -218,16 +396,28 @@ function xddmcp_main() {
     srcPath=$1
     destPath=$2
 
+    #
+    # Validate supplied arguments
+    #
+    if [ -z "$srcPath" ]; then
+	echo "ERROR: Invalid source path specified."
+	exit 1
+    elif [ -z "$destPath" ]; then
+	echo "ERROR: Invalid destination path specified."
+	exit 1
+    fi
+
     # Locate config
     configFile=$(xddmcp_locate_config_file $configFile)
-    configFile=$HOME/xddmcp.conf
     if [ ! -r "$configFile" ]; then
-        echo "Can't find config: $configFile"
+        echo "Can't read config: $configFile"
         exit -1
     fi
+    echo "INFO: Using config: $configFile"
 
     # Parse config
     xddmcp_parse_config $configFile
+    exit 0
     fileSize=$(stat -c '%s' $srcPath)
 
     # Set preconditions
@@ -272,25 +462,10 @@ function xddmcp_main() {
 #
 # Include xddcp script source
 #
-# This is done to reuse the transfer functions of xddcp.  It's slightly messy, 
-# but if you are reading the source to *this* script, then you are already in 
-# the weeds and signed up for understanding complexity.  We overload exit 
-# because trap EXIT doesn't prevent an enventual call to exit.  We then unset 
-# the overload after sourcing the appropriate file(s).
-#
-xddcp_path=$(which xddcp)
-xddcp_path=/ccs/home/bws/sandbox/xdd/contrib/xddcp
-if [ -f "$xddcp_path" ]; then
-    exit() { :; }
-    source $xddcp_path >/dev/null
-    unset -f exit
-else
-    echo "ERROR: Could not find xddcp"
-    exit 1
-fi
+xddmcp_include_xddcp
 
 # Use a working XDD rather than the current version
-XDDCP_DEFAULT_XDD="/ccs/home/bws/software/xdd-7.0.0.rc14/bin/xdd.$(/bin/uname)"
+#XDDCP_DEFAULT_XDD="/ccs/home/bws/software/xdd-7.0.0.rc14/bin/xdd.$(/bin/uname)"
 
 # Main
 xddmcp_main $*
