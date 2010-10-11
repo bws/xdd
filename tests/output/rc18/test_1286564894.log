@@ -1,0 +1,99 @@
+Beginning Acceptance Test 2 . . .
+IOIOIOIOIOIOIOIOIOIOI XDD version Linux.7.0.0-rc18.100810.Build.1507 based on Linux.7.0.0-rc18.100810.Build.1231 IOIOIOIOIOIOIOIOIOIOIOI
+xdd - I/O Performance Inc., US DoE/DoD Extreme Scale Systems Center <ESSC> at Oak Ridge National Labs <ORNL> - Copyright 1992-2010
+
+XDD DISCLAIMER:
+ *** >>>> WARNING <<<<
+ *** THIS PROGRAM CAN DESTROY DATA
+ *** USE AT YOUR OWN RISK
+ *** IOPERFORMANCE and/or THE AUTHORS ARE NOT LIABLE FOR
+ *** >>>> ANYTHING BAD <<<<
+ **** THAT HAPPENS WHEN YOU RUN THIS PROGRAM
+     ...although we will take credit for anything good that happens
+     but we are not *liable* for that either.
+
+
+Starting time for this run, Fri Oct  8 15:10:32 2010
+
+ID for this run, 'No ID Specified'
+Maximum Process Priority, disabled
+Passes, 4
+Pass Delay in seconds, 0
+Maximum Error Threshold, 0
+Target Offset, 0
+I/O Synchronization, 0
+Total run-time limit in seconds, 0
+Heartbeat 0 
+Output file name, stdout
+CSV output file name, 
+Error output file name, stderr
+Pass synchronization barriers, enabled
+Number of Targets, 1
+Number of I/O Threads, 5
+
+Computer Name, localhost.localdomain, User Name, bws
+OS release and version, Linux 2.6.34.7-56.fc13.x86_64 #1 SMP Wed Sep 15 03:36:55 UTC 2010
+Machine hardware type, x86_64
+Number of processors on this system, 2
+Page size in bytes, 4096
+Number of physical pages, 1018782
+Megabytes of physical memory, 3979
+Clock Ticks per second, 100
+Seconds before starting, 0
+../bin/xdd.Linux: xdd_target_existence_check: NOTICE: target number 0 name /media/ExtDisk1/scratch/acceptance2/test.00000001 does not exist so it will be created.
+../bin/xdd.Linux: xdd_target_existence_check: WARNING: Target number 0 name /media/ExtDisk1/scratch/acceptance2/test.00000001 must be a regular file when used with the -dio flag
+	Target number, 0
+	Fully qualified target pathname, '/media/ExtDisk1/scratch/acceptance2/test.00000001'
+		Target directory, "./"
+		Process ID, 32081
+		Thread ID, 32082
+		Processor, all/any
+		Read/write ratio,  0.00 READ, 100.00 WRITE
+		I/O Operation Ordering is, None
+		Throttle in MB/sec is,   0.00
+		Per-pass time limit in seconds, 0
+		Pass seek randomization, disabled
+		File write synchronization, disabled
+		Blocksize in bytes, 1024
+		Request size, 4096, 1024-byte blocks, 4194304, bytes
+		Number of Operations, 24
+		Total data transfer for this TARGET, 
+			100000000, 1024-byte Blocks
+			      100000000,     Bytes
+			          97656.250, KBytes
+			             95.367, MBytes
+			              0.093, GBytes
+			              0.000, TBytes
+		Start offset,   0
+		Pass offset,   0
+		Seek Range,  
+			1073741824, 1024-byte Blocks
+			     1073741824,     Bytes
+			        1048576.000, KBytes
+			           1024.000, MBytes
+			              1.000, GBytes
+			              0.001, TBytes
+		Seek pattern, sequential
+		Flushwrite interval, 0
+		I/O memory buffer is a normal memory buffer
+		I/O memory buffer alignment in bytes, 4096
+		Data pattern in buffer,random 		Data buffer verification is disabled.
+		Direct I/O, enabled
+		Preallocation, 0
+		Queue Depth, 4
+		Timestamping, disabled
+		Delete file, disabled
+
+----------------------All targets should start now-------------------------
+  ../bin/xdd.Linux: xdd_target_existence_check: NOTICE: target number 0 name /media/ExtDisk1/scratch/acceptance2/test.00000002 does not exist so it will be created.
+../bin/xdd.Linux: xdd_target_existence_check: WARNING: Target number 0 name /media/ExtDisk1/scratch/acceptance2/test.00000002 must be a regular file when used with the -dio flag
+../bin/xdd.Linux: xdd_target_existence_check: NOTICE: target number 0 name /media/ExtDisk1/scratch/acceptance2/test.00000003 does not exist so it will be created.
+../bin/xdd.Linux: xdd_target_existence_check: WARNING: Target number 0 name /media/ExtDisk1/scratch/acceptance2/test.00000003 must be a regular file when used with the -dio flag
+../bin/xdd.Linux: xdd_target_existence_check: NOTICE: target number 0 name /media/ExtDisk1/scratch/acceptance2/test.00000004 does not exist so it will be created.
+../bin/xdd.Linux: xdd_target_existence_check: WARNING: Target number 0 name /media/ExtDisk1/scratch/acceptance2/test.00000004 must be a regular file when used with the -dio flag
+ What               Pass  Target   Queue     Bytes_Xfered         Ops     Elapsed  Bandwidth       IOPS   Latency   Pct_CPU  Op_Type    Xfer_Size 
+    UNITS>>      Number  Number  Number            Bytes        #ops     seconds   MBytes/s      Ops/s  millisec   percent     text        bytes 
+ COMBINED             4       1       4        400000000          96      19.279     20.748      4.979    50.203     1.089    write      4194304 
+Ending time for this run, Fri Oct  8 15:10:51 2010
+ This run terminated normally
+Acceptance Test 2: PASSED.

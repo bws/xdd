@@ -64,6 +64,9 @@ xdd_e2e_src_send(ptds_t *qp) {
 	// The message header for this data packet is placed after the user data in the buffer
 	memcpy(qp->rwbuf+qp->iosize,&qp->e2e_header, sizeof(qp->e2e_header));
 
+	if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+		p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
+
 	// Note: the qp->e2e_iosize is the size of the data field plus the size of the header
 	maxmit = MAXMIT_TCP;
 	sent = 0;
@@ -79,6 +82,7 @@ xdd_e2e_src_send(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].net_xfer_size = qp->e2e_iosize;
 		p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
 		p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
+		p->ttp->tte[qp->ts_current_entry].net_processor_end = xdd_get_processor();
 	}
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
@@ -161,6 +165,8 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	 */
 	for (qp->e2e_current_csd = 0; qp->e2e_current_csd < FD_SETSIZE; qp->e2e_current_csd++) { // Process all CSDs that are ready
 		if (FD_ISSET(qp->e2e_csd[qp->e2e_current_csd], &qp->e2e_readset)) { /* Process this csd */
+			if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+				p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
 			rcvd_so_far = 0;
 			recvsize = 0;
 			pclk_now(&qp->my_current_net_start_time);
@@ -185,6 +191,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 			if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 				p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
 				p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
+				p->ttp->tte[qp->ts_current_entry].net_processor_end = xdd_get_processor();
 			}
 
 			// If this is the first packet received by this QThread then record the *end* of this operation as the
