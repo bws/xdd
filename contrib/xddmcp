@@ -306,7 +306,8 @@ function xddmcp_parse_config() {
             continue
         elif [ "[" == "$first_char" ]; then
             state=$tok0
-            if [ "[flows]" == "$state" -o "[network]" == "$state" -o "[storage]" == "$state" -o "[host]" == "$state" ]; then
+            if [ "[flows]" == "$state" -o "[network]" == "$state" \
+		-o "[storage]" == "$state" -o "[host]" == "$state" ]; then
                 res=0
             fi
         elif [ "[host]" == "$state" -a ! -z "$tok0" ]; then
@@ -483,6 +484,11 @@ function xddmcp_main() {
     # Start the sources to initiate transfers
     for ((i=0; i < $g_flowCount; i+=1)); do
         xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
+
+	# Get the destination host
+	declare -i destHostId=${g_flowDestHostId[$i]}
+	local destHost=${g_hostNames[$destHostId]}
+	local destIfaces=${g_hostIfaces[$destHostId]}
 
 	# Get the source host
 	declare -i srcHostId=${g_flowSrcHostId[$i]}
