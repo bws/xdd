@@ -254,6 +254,7 @@ fullinstall:
 	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime
 	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
 	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
+	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
 
 doc:
 	doxygen doc/Doxyfile

@@ -10,6 +10,7 @@
 #
 # Global constants
 #
+XDDMCP_CONNECT_DELAY_SECS=0
 XDDMCP_DEFAULT_CONFIG=".xddmcprc"
 XDDMCP_ORDER_LOOSE_ID=1
 XDDMCP_ORDER_NONE_ID=2
@@ -73,7 +74,7 @@ function xddmcp_include_xddcp() {
     # This is done to reuse the transfer functions of xddcp.  It's slightly messy, 
     # but if you are reading the source to *this* script, then you are already in 
     # the weeds and signed up for understanding complexity.  We overload exit 
-    # because trap EXIT doesn't prevent an enventual call to exit.  We then unset 
+    # because trap EXIT doesn't prevent an eventual call to exit.  We then unset 
     # the overload after sourcing the appropriate file(s).
     #
     xddcp_path=$(which xddcp)
@@ -364,6 +365,89 @@ function xddmcp_partition() {
 }
 
 #
+# Start destination sides
+#
+function xddmcp_start_destinations() {
+    local fileSize=$1
+
+    # Start destinations
+    local rankOffset=0
+    local rankPartSize=0
+    for ((i=0; i < $g_flowCount; i+=1)); do
+        xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
+
+	# Get the destination host
+	declare -i destHostId=${g_flowDestHostId[$i]}
+	local destHost=${g_hostNames[$destHostId]}
+	local destIfaces=${g_hostIfaces[$destHostId]}
+
+	# Get the number of network threads
+	declare -i networkId=${g_flowNetworkId[$i]}
+	declare -i threadCount=${g_networkThreads[$networkId]}
+
+	# Get the storage DIO flag and ordering
+	declare -i storageId=${g_flowDestStorageId[$i]}
+	declare -i dioFlag=${g_storageDIO[$storageId]}
+	declare -i orderId=${g_storageOrdering[$storageId]}
+
+	# Flag settings
+	local forceFlag=0
+	local orderedFlag=0
+	local recursionFlag=0
+	local resumeFlag=0
+	local verboseFlag=0
+	local remoteFlag=1
+
+        echo "Start dest: $destHost $destIfaces $threadCount $dioFlag $orderId $rankOffset $rankPartSize"
+	start_destination_xdd $srcPath $destPath $rankPartSize $threadCount \
+	    40010 $dioFlag $forceFlag $orderedFlag $recursionFlag $resumeFlag \
+	    $verboseFlag $remoteFlag $destHost bws $destIfaces
+    done
+}
+
+#
+# Start source sides
+#
+function xddmcp_start_sources() {
+    local fileSize=$1
+
+    # Start the sources to initiate transfers
+    local rankOffset=0
+    local rankPartSize=0
+    for ((i=0; i < $g_flowCount; i+=1)); do
+        xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
+
+	# Get the destination host
+	declare -i destHostId=${g_flowDestHostId[$i]}
+	local destHost=${g_hostNames[$destHostId]}
+	local destIfaces=${g_hostIfaces[$destHostId]}
+
+	# Get the source host
+	declare -i srcHostId=${g_flowSrcHostId[$i]}
+	local host=${g_hostNames[$srcHostId]}
+	local ifaces=${g_hostIfaces[$srcHostId]}
+
+	# Get the number of network threads
+	declare -i networkId=${g_flowNetworkId[$i]}
+	declare -i threadCount=${g_networkThreads[$networkId]}
+
+	# Get the storage DIO flag and ordering
+	declare -i storageId=${g_flowSrcStorageId[$i]}
+	declare -i dioFlag=${g_storageDIO[$storageId]}
+	declare -i orderId=${g_storageOrdering[$storageId]}
+
+        echo "Start source: $host $ifaces $threadCount $dioFlag $orderId $rankOffset $rankPartSize"
+
+#	start_source_xdd $srcPath $rankPartSize \
+#		${g_channelThreads[$channelIdx]} 40010 \
+#		${g_channelSrcDIO[$channelIdx]} 0 0 0 0 \
+#		${g_connectionDest[$i]} 1 \
+#		${g_connectionSrc[$i]} bws &
+    done
+
+}
+
+#
 # Main
 #
 function xddmcp_main() {
@@ -451,67 +535,13 @@ function xddmcp_main() {
     fi
 
     # Start destinations
-    local rankOffset=0
-    local rankPartSize=0
-    #g_connectionCount=1
-    for ((i=0; i < $g_flowCount; i+=1)); do
-        xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
-
-	# Get the destination host
-	declare -i destHostId=${g_flowDestHostId[$i]}
-	local destHost=${g_hostNames[$destHostId]}
-	local destIfaces=${g_hostIfaces[$destHostId]}
-
-	# Get the number of network threads
-	declare -i networkId=${g_flowNetworkId[$i]}
-	declare -i threadCount=${g_networkThreads[$networkId]}
-
-	# Get the storage DIO flag and ordering
-	declare -i storageId=${g_flowDestStorageId[$i]}
-	declare -i dioFlag=${g_storageDIO[$storageId]}
-	declare -i orderId=${g_storageOrdering[$storageId]}
-
-        echo "Start dest: $destHost $destIfaces $threadCount $dioFlag $orderId $rankOffset $rankPartSize"
-#	start_destination_xdd $srcPath $destPath $rankPartSize \
-#		${g_channelThreads[$channelIdx]} 40010 \
-#		${g_channelDestDIO[$channelIdx]} 0 0 0 0 0 1 \
-#		${g_connectionDest[$i]} bws
-    done
+    xddmcp_start_destinations $fileSize
 
     # Pause to let everything get initialized
-#    sleep 10
+    sleep $XDDMCP_CONNECT_DELAY_SECS
 
-    # Start the sources to initiate transfers
-    for ((i=0; i < $g_flowCount; i+=1)); do
-        xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
-
-	# Get the destination host
-	declare -i destHostId=${g_flowDestHostId[$i]}
-	local destHost=${g_hostNames[$destHostId]}
-	local destIfaces=${g_hostIfaces[$destHostId]}
-
-	# Get the source host
-	declare -i srcHostId=${g_flowSrcHostId[$i]}
-	local host=${g_hostNames[$srcHostId]}
-	local ifaces=${g_hostIfaces[$srcHostId]}
-
-	# Get the number of network threads
-	declare -i networkId=${g_flowNetworkId[$i]}
-	declare -i threadCount=${g_networkThreads[$networkId]}
-
-	# Get the storage DIO flag and ordering
-	declare -i storageId=${g_flowSrcStorageId[$i]}
-	declare -i dioFlag=${g_storageDIO[$storageId]}
-	declare -i orderId=${g_storageOrdering[$storageId]}
-
-        echo "Start source: $host $ifaces $threadCount $dioFlag $orderId $rankOffset $rankPartSize"
-
-#	start_source_xdd $srcPath $rankPartSize \
-#		${g_channelThreads[$channelIdx]} 40010 \
-#		${g_channelSrcDIO[$channelIdx]} 0 0 0 0 \
-#		${g_connectionDest[$i]} 1 \
-#		${g_connectionSrc[$i]} bws &
-    done
+    # Start sources
+    xddmcp_start_sources $fileSize
 
     # Collect statuses
     wait
@@ -523,9 +553,6 @@ function xddmcp_main() {
 # Include xddcp script source
 #
 xddmcp_include_xddcp
-
-# Use a working XDD rather than the current version
-#XDDCP_DEFAULT_XDD="/ccs/home/bws/software/xdd-7.0.0.rc14/bin/xdd.$(/bin/uname)"
 
 # Main
 xddmcp_main $*

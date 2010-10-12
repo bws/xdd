@@ -52,7 +52,7 @@ pod11 pod11 pod11-10g
 #
 # Data Transfer Flow specifications
 #
-# <storage> -> <host[:iface]> -> <network> -> <host[:iface]> -> <storage>
+# <storage> -> <host> -> <network> -> <host> -> <storage>
 #
 [flows]
 itrend_xfs_src -> pod7 -> usn_10g -> pod9 -> itrend_xfs_dest

@@ -37,6 +37,7 @@
 #
 # The following other utilities (non-POSIX) are required to utilize XDDCP:
 #    dirname
+#    host
 #    netstat 
 #    ssh
 #    stat
@@ -435,17 +436,18 @@ function get_file_size() {
 function get_destination_cmds() {
     #echo "get_destination_cmds Args: $@" >/dev/stderr
     local destHost=${1}
-    local srcFile=${2}
-    local destFile=${3}
-    local totalBytes=${4}
-    local queueDepth=${5}
-    local e2ePort=${6}
-    local dioFlag=${7}
-    local forceFlag=${8}
-    local serialOrderedFlag=${9}
-    local recursionFlag=${10}
-    local resumeFlag=${11}
-    local verboseFlag=${12}
+    local destIfaces=${2}
+    local destIfaceThreads=${3}
+    local srcFile=${4}
+    local destFile=${5}
+    local totalBytes=${6}
+    local e2ePort=${7}
+    local dioFlag=${8}
+    local forceFlag=${9}
+    local serialOrderedFlag=${10}
+    local recursionFlag=${11}
+    local resumeFlag=${12}
+    local verboseFlag=${13}
 
     # Options that aren't yet settable
     local srcHost=$(/bin/hostname)
@@ -457,13 +459,23 @@ function get_destination_cmds() {
     let "reqsize   = $xfer / $blocksize"
 
     # Other variables
-    local e2eLB=$e2ePort
-    local e2eUB=$((e2ePort + queueDepth))
     local srcBase=$(/bin/basename $srcFile)
     local destBase=$(/bin/basename $destFile)
     local destDirname=$(dirname $destFile)
     local destLog="xdd.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
     local destQD="-queuedepth ${queueDepth}"
+
+    # Construct the e2e destinations
+    local e2eDestinations=""
+    declare idx=0
+    for iface in $destIfaces; do
+	idx+=1
+	tcount=$(/bin/echo $destIfaceThreads |cut -f $idx -d ' ')
+	e2eDestinations="$e2eDestination -e2e dest ${iface}:${e2ePort},${tcount}" 
+    done
+    if [ -z "$e2eDestinations" ]; then
+	/bin/echo "ERROR: No destination interfaces specified"
+    fi
 
     # Direct I/O option
     if [ 1 -eq $dioFlag ]; then
@@ -497,16 +509,23 @@ if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
 fi
 
 # Check that ports are available for binding
-port_conflict=0
-used_ports=\$(netstat -nat |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
-for p in \$used_ports; do
-    if [ $e2eLB -le \$p -a $e2eUB -gt \$p ]; then
-        port_conflict=1
-        break
-    fi
+declare -i port_conflict=0
+declare -i tcount_idx=0
+for iface in $destIfaces; do
+    tcount_idx+=1
+    tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+    e2eLB=$e2ePort
+    e2eUB=\$((e2eLB+tcount))
+    used_ports=\$(netstat -nat |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+    for p in \$used_ports; do
+        if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
+            port_conflict=1
+            break
+        fi
+    done
 done
 
-# If a port conflict, user may want to kill running XDD's and retry
+# If a port conflict exists, user may want to kill running XDD's and retry
 if [ 1 -eq \$port_conflict ]; then
     # Attempt to kill any running XDDs and re-check
     if [ 1 -eq $forceFlag ]; then
@@ -521,12 +540,20 @@ if [ 1 -eq \$port_conflict ]; then
         echo "Requested port \$p is in use"
         exit ${XDDCP_ERR_CODE_DEST_PORT}
     fi
-    used_ports=\$(netstat -nat |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
-    for p in \$used_ports; do
-        if [ $e2eLB -le \$p -a $e2eUB -gt \$p ]; then
-            echo "Requested port \$p is in use"
-            exit ${XDDCP_ERR_CODE_DEST_PORT}
-        fi
+
+    tcount_idx=0
+    for iface in $destIfaces; do
+        tcount_idx+=1
+        tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+        e2eLB=$e2ePort
+        e2eUB=\$((e2eLB+tcount))
+        used_ports=\$(netstat -nat |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+        for p in \$used_ports; do
+            if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
+                echo "Requested port \$p is in use"
+                exit ${XDDCP_ERR_CODE_DEST_PORT}
+            fi
+        done
     done
 fi
 
@@ -599,7 +626,7 @@ if [ -e \$destination_file ]; then
 fi
 
 # XDD Command
-xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize ${destQD} -e2e isdestination -e2e dest ${destHost} -e2e port ${e2ePort} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log}"
+xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log}"
 
 # Log XDD Command
 #if [ 1 -eq $verboseFlag ]; then
@@ -623,7 +650,7 @@ EOF
 #
 function get_source_cmds() {
     #echo "get_source_cmds Args: $@" >/dev/stderr
-    local destHost=${1}
+    local destIfaces=${1}
     local srcFile=${2}
     local totalBytes=${3}
     local queueDepth=${4}
@@ -734,12 +761,14 @@ function start_destination_xdd() {
     local remoteFlag=${12}
     local destHost=${13}
     local destUser=${14}
+    local destIfaces=${15}
 
     # Get source commands
     local execRC=1
     local destResult=""
-    local destCmds=$(get_destination_cmds $destHost $srcPath $destPath \
-        $totalBytes $queueDepth $e2ePort $dioFlag $forceFlag $orderedFlag \
+    local destCmds=$(get_destination_cmds $destHost $destIfaces $queueDepth \
+	$srcPath $destPath \
+        $totalBytes $e2ePort $dioFlag $forceFlag $orderedFlag \
         $recursionFlag $resumeFlag $verboseFlag)
     execRC=$?
     if [ 0 -ne $execRC ]; then
@@ -947,8 +976,8 @@ function xddcp_main() {
         # Start destination-side XDD (also sets resume offset if needed)
         start_destination_xdd "${srcPath}" "${destPath}" "${totalBytes}" \
             "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
-            "${orderedFlag}" "${recursiveFlag}" "${resumeFlag}" \
-            "${verboseFlag}" "${destRemoteFlag}" "${destHost}" "${destUser}"
+            "${orderedFlag}" "${recursiveFlag}" "${resumeFlag}" "${verboseFlag}" \
+	    "${destRemoteFlag}" "${destHost}" "${destUser}" "${destHost}"
         rc=$?
         if [ 0 -ne $rc ]; then
            error_exit $rc
