@@ -56,5 +56,5 @@ pod11 pod11 pod11-10g
 #
 [flows]
 itrend_xfs_src -> pod7 -> usn_10g -> pod9 -> itrend_xfs_dest
-itrend_xfs_src -> pod10 -> usn_10g -> pod11 -> itrend_xfs_dest
+#itrend_xfs_src -> pod10 -> usn_10g -> pod11 -> itrend_xfs_dest
 

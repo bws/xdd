@@ -471,7 +471,7 @@ function get_destination_cmds() {
     for iface in $destIfaces; do
 	idx+=1
 	tcount=$(/bin/echo $destIfaceThreads |cut -f $idx -d ' ')
-	e2eDestinations="$e2eDestination -e2e dest ${iface}:${e2ePort},${tcount}" 
+	e2eDestinations="$e2eDestinations -e2e dest ${iface}:${e2ePort},${tcount}" 
     done
     if [ -z "$e2eDestinations" ]; then
 	/bin/echo "ERROR: No destination interfaces specified"
@@ -766,10 +766,10 @@ function start_destination_xdd() {
     # Get source commands
     local execRC=1
     local destResult=""
-    local destCmds=$(get_destination_cmds $destHost $destIfaces $queueDepth \
-	$srcPath $destPath \
-        $totalBytes $e2ePort $dioFlag $forceFlag $orderedFlag \
-        $recursionFlag $resumeFlag $verboseFlag)
+    local destCmds=$(get_destination_cmds "$destHost" "$destIfaces" \
+        "$queueDepth" "$srcPath" "$destPath" \
+        "$totalBytes" "$e2ePort" "$dioFlag" "$forceFlag" "$orderedFlag" \
+        "$recursionFlag" "$resumeFlag" "$verboseFlag")
     execRC=$?
     if [ 0 -ne $execRC ]; then
         exit $execRC

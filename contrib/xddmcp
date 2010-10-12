@@ -368,7 +368,9 @@ function xddmcp_partition() {
 # Start destination sides
 #
 function xddmcp_start_destinations() {
-    local fileSize=$1
+    local srcPath=$1
+    local destPath=$2
+    local fileSize=$3
 
     # Start destinations
     local rankOffset=0
@@ -399,9 +401,9 @@ function xddmcp_start_destinations() {
 	local remoteFlag=1
 
         echo "Start dest: $destHost $destIfaces $threadCount $dioFlag $orderId $rankOffset $rankPartSize"
-	start_destination_xdd $srcPath $destPath $rankPartSize $threadCount \
-	    40010 $dioFlag $forceFlag $orderedFlag $recursionFlag $resumeFlag \
-	    $verboseFlag $remoteFlag $destHost bws $destIfaces
+	start_destination_xdd "$srcPath" "$destPath" "$rankPartSize" "$threadCount" \
+	    "40010" "$dioFlag" "$forceFlag" "$orderedFlag" "$recursionFlag" "$resumeFlag" \
+	    "$verboseFlag" "$remoteFlag" "$destHost" "bws" "$destIfaces"
     done
 }
 
@@ -409,7 +411,9 @@ function xddmcp_start_destinations() {
 # Start source sides
 #
 function xddmcp_start_sources() {
-    local fileSize=$1
+    local srcPath=$1
+    local destPath=$2
+    local fileSize=$3
 
     # Start the sources to initiate transfers
     local rankOffset=0
@@ -535,13 +539,13 @@ function xddmcp_main() {
     fi
 
     # Start destinations
-    xddmcp_start_destinations $fileSize
+    xddmcp_start_destinations $srcPath $destPath $fileSize
 
     # Pause to let everything get initialized
     sleep $XDDMCP_CONNECT_DELAY_SECS
 
     # Start sources
-    xddmcp_start_sources $fileSize
+    xddmcp_start_sources $srcPath $destPath $fileSize
 
     # Collect statuses
     wait
