@@ -452,6 +452,7 @@ function xddmcp_start_sources() {
         xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
 
 	# Flow settings
+	local destIfaces=${g_flowDestIfaces[$i]}
 	local srcHost=${g_flowSrcHost[$i]}
 	local srcIfaces=${g_flowSrcIfaces[$i]}
 	local srcIfaceThreads=${g_flowNetworkThreads[$i]}
@@ -464,18 +465,16 @@ function xddmcp_start_sources() {
 	# Flag settings
 	local forceFlag=0
 	local orderedFlag=0
-	local recursionFlag=0
 	local resumeFlag=0
 	local verboseFlag=0
 	local remoteFlag=1
 
         echo "Start source: $srcHost $srcIfaces $srcIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
 
-#	start_source_xdd $srcPath $rankPartSize \
-#		${g_channelThreads[$channelIdx]} 40010 \
-#		${g_channelSrcDIO[$channelIdx]} 0 0 0 0 \
-#		${g_connectionDest[$i]} 1 \
-#		${g_connectionSrc[$i]} bws &
+	start_source_xdd "${srcPath}" "${rankPartSize}" "${srcIfaceThreads}" \
+            40010 "${dioFlag}" "${orderedFlag}" "${resumeFlag}" \
+            "${verboseFlag}" "${destHostIfaces}" "${remoteFlag}" "${srcHost}" \
+            bws "${srcIfaces}"
     done
 
 }

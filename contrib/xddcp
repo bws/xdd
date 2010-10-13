@@ -37,7 +37,7 @@
 #
 # The following other utilities (non-POSIX) are required to utilize XDDCP:
 #    dirname
-#    host
+#    gethostip
 #    netstat 
 #    ssh
 #    stat
@@ -470,7 +470,6 @@ function get_destination_cmds() {
     declare idx=0
     for iface in $destIfaces; do
 	idx=$((idx+1))
-        /bin/echo $destIfaceThreads >>~/foop
 	tcount=$(/bin/echo $destIfaceThreads |cut -f $idx -d ' ')
 	e2eDestinations="$e2eDestinations -e2e dest ${iface}:${e2ePort},${tcount}" 
     done
@@ -515,9 +514,10 @@ declare -i tcount_idx=0
 for iface in $destIfaces; do
     tcount_idx=\$((tcount+1))
     tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+    iface_ip=\$(gethostip |cut -f \$tcount_idx -d ' ')
     e2eLB=$e2ePort
     e2eUB=\$((e2eLB+tcount))
-    used_ports=\$(netstat -nat |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+    used_ports=\$(netstat -nat |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
     for p in \$used_ports; do
         if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
             port_conflict=1
