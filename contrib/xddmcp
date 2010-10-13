@@ -41,11 +41,14 @@ declare -a g_storageDIO[0]=0
 declare -a g_storageOrdering[0]=0
 
 declare -i g_flowCount=0
-declare -a g_flowSrcHostId[0]
 declare -a g_flowSrcStorageId[0]
-declare -a g_flowNetworkId[0]
-declare -a g_flowDestHostId[0]
 declare -a g_flowDestStorageId[0]
+declare -a g_flowNetworkIds[0]
+declare -a g_flowNetworkThreads[0]
+declare -a g_flowSrcHost[0]
+declare -a g_flowSrcIfaces[0]
+declare -a g_flowDestHost[0]
+declare -a g_flowDestIfaces[0]
 
 #
 # Print out the usage information
@@ -110,6 +113,14 @@ function xddmcp_locate_config_file() {
 	fi
     fi
     echo "$configFile"
+}
+
+#
+# Parse host:iface spec
+#
+function xddmcp_parse_host_iface_spec() {
+    local spec=$1
+    exit 1
 }
 
 #
@@ -211,17 +222,15 @@ function xddmcp_parse_flow_entry() {
     # Skip ->
 
     # Source host id
-    local srcHost=$(echo $connectionSpec |cut -f 2 -d ' ')
-    declare -i srcHostId=-1
-    declare -i hostCount=${#g_storageNames[@]}
-    for ((i=0; i<$hostCount; i+=1)); do
-	if [ "$srcHost" = "${g_hostNames[$i]}" ]; then
-	    srcHostId=$i
-	    break
-	fi
-    done
-    if [ -1 -eq $srcHostId ]; then
-	echo "ERROR: Unknown source host name: $srcHost" >/dev/stderr
+    local srcHostSpec=$(echo $connectionSpec |cut -f 2 -d ' ')
+    local srcHost=$srcHostSpec
+    local srcIface=$srcHostSpec
+    declare -i colonCount=$(echo $srcHostSpec |grep -c ':')
+    if [ 1 -eq $colonCount ]; then
+	srcHost=$(echo $srcHostSpec |cut -f 1 -d ':')
+	srcIface=$(echo $srcHostSpec |cut -f 2 -d ':')
+    elif [ 0 -ne $colonCount ]; then
+	echo "ERROR: Invalid source host:iface spec: $srcHostSpec" >/dev/stderr
 	exit $XDDMCP_INVALID_FLOW_SPEC
     fi
 
@@ -245,16 +254,15 @@ function xddmcp_parse_flow_entry() {
     # Skip ->
 
     # Determine if host has an interface of not
-    local destHost=$(echo $connectionSpec |cut -f 6 -d ' ')
-    declare -i destHostId=-1
-    for ((i=0; i<$hostCount; i+=1)); do
-	if [ "$destHost" = "${g_hostNames[$i]}" ]; then
-	    destHostId=$i
-	    break
-	fi
-    done
-    if [ -1 -eq $destHostId ]; then
-	echo "ERROR: Unknown destination host name: $destHost" >/dev/stderr
+    local destHostSpec=$(echo $connectionSpec |cut -f 6 -d ' ')
+    local destHost=$destHostSpec
+    local destIface=$destHostSpec
+    declare -i colonCount=$(echo $destHostSpec |grep -c ':')
+    if [ 1 -eq $colonCount ]; then
+	destHost=$(echo $destHostSpec |cut -f 1 -d ':')
+	destIface=$(echo $destHostSpec |cut -f 2 -d ':')
+    elif [ 0 -ne $colonCount ]; then
+	echo "ERROR: Invalid destination host:iface spec: $destHostSpec" >/dev/stderr
 	exit $XDDMCP_INVALID_FLOW_SPEC
     fi
 
@@ -274,17 +282,33 @@ function xddmcp_parse_flow_entry() {
 	exit $XDDMCP_INVALID_FLOW_SPEC
     fi
 
-    # Construct the connection
+    # Find a compatible flow if one already exists
     declare -i idx=$g_flowCount
-    g_flowSrcStorageId[$idx]=$srcStoreId
-    g_flowSrcHostId[$idx]=$srcHostId
-    g_flowNetworkId[$idx]=$networkId
-    g_flowDestHostId[$idx]=$destHostId
-    g_flowDestStorageId[$idx]=$destStoreId
-    #echo "Added flow: ${g_flowSrcStorageId[$idx]} ${g_flowSrcHostId[$idx]} ${g_flowNetworkId[$idx]} ${g_flowDestHostId[$idx]} ${g_flowDestStorageId[$idx]}"
+    for ((i=0; i<$g_flowCount; i+=1)); do
+	#echo " ${g_flowDestStorageId[$i]} ? $destStoreId ${g_flowSrcStorageId[$i]} -eq $srcStoreId ${g_flowDestHost[$i]} == $destHost ${g_flowSrcHost[$i]} == $srcHost"
+	if [ ${g_flowDestStorageId[$i]} -eq $destStoreId \
+	    -a ${g_flowSrcStorageId[$i]} -eq $srcStoreId \
+	    -a "${g_flowDestHost[$i]}" == "$destHost" \
+	    -a "${g_flowSrcHost[$i]}" == "$srcHost" ]; then
+	    idx=$i
+	    break
+	fi
+    done
 
-    # Increment the connection count
-    g_flowCount=$((g_flowCount + 1))
+    # Set flow parameters
+    g_flowSrcStorageId[$idx]=$srcStoreId
+    g_flowSrcHost[$idx]=$srcHost
+    g_flowSrcIfaces[$idx]="${g_flowSrcIfaces[$idx]} $srcIface"
+    g_flowDestStorageId[$idx]=$destStoreId
+    g_flowDestHost[$idx]=$destHost
+    g_flowDestIfaces[$idx]="${g_flowDestIfaces[$idx]} $destIface"
+    g_flowNetworkIds[$idx]="${g_flowNetworkIds[$idx]} $networkId"
+    g_flowNetworkThreads[$idx]="${g_flowNetworkThreads[$idx]} ${g_networkThreads[$networkId]}"
+
+    # Increment the flow count if a matching flow was not found
+    if [ $idx -eq $g_flowCount ]; then
+	g_flowCount=$((g_flowCount + 1))
+    fi
     return 0
 }
 
@@ -378,14 +402,19 @@ function xddmcp_start_destinations() {
     for ((i=0; i < $g_flowCount; i+=1)); do
         xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
 
-	# Get the destination host
-	declare -i destHostId=${g_flowDestHostId[$i]}
-	local destHost=${g_hostNames[$destHostId]}
-	local destIfaces=${g_hostIfaces[$destHostId]}
+	# Get the destination host and ifaces
+	#declare -i destHostId=${g_flowDestHostId[$i]}
+	#local destHost=${g_hostNames[$destHostId]}
+	#local destIfaces=${g_hostIfaces[$destHostId]}
 
-	# Get the number of network threads
-	declare -i networkId=${g_flowNetworkId[$i]}
-	declare -i threadCount=${g_networkThreads[$networkId]}
+	# Get the network threads
+	#declare -i networkId=${g_flowNetworkId[$i]}
+	#declare -i threadCount=${g_networkThreads[$networkId]}
+
+	# Flow settings
+	local destHost=${g_flowDestHost[$i]}
+	local destIfaces=${g_flowDestIfaces[$i]}
+	local destIfaceThreads=${g_flowNetworkThreads[$i]}
 
 	# Get the storage DIO flag and ordering
 	declare -i storageId=${g_flowDestStorageId[$i]}
@@ -400,10 +429,10 @@ function xddmcp_start_destinations() {
 	local verboseFlag=0
 	local remoteFlag=1
 
-        echo "Start dest: $destHost $destIfaces $threadCount $dioFlag $orderId $rankOffset $rankPartSize"
-	start_destination_xdd "$srcPath" "$destPath" "$rankPartSize" "$threadCount" \
-	    "40010" "$dioFlag" "$forceFlag" "$orderedFlag" "$recursionFlag" "$resumeFlag" \
-	    "$verboseFlag" "$remoteFlag" "$destHost" "bws" "$destIfaces"
+        echo "Start dest: $destHost $destIfaces $destIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
+	#start_destination_xdd "$srcPath" "$destPath" "$rankPartSize" "$threadCount" \
+	#    "40010" "$dioFlag" "$forceFlag" "$orderedFlag" "$recursionFlag" "$resumeFlag" \
+	#    "$verboseFlag" "$remoteFlag" "$destHost" "bws" "$destIfaces"
     done
 }
 
@@ -421,26 +450,25 @@ function xddmcp_start_sources() {
     for ((i=0; i < $g_flowCount; i+=1)); do
         xddmcp_partition $fileSize $i $g_flowCount rankOffset rankPartSize
 
-	# Get the destination host
-	declare -i destHostId=${g_flowDestHostId[$i]}
-	local destHost=${g_hostNames[$destHostId]}
-	local destIfaces=${g_hostIfaces[$destHostId]}
-
-	# Get the source host
-	declare -i srcHostId=${g_flowSrcHostId[$i]}
-	local host=${g_hostNames[$srcHostId]}
-	local ifaces=${g_hostIfaces[$srcHostId]}
-
-	# Get the number of network threads
-	declare -i networkId=${g_flowNetworkId[$i]}
-	declare -i threadCount=${g_networkThreads[$networkId]}
+	# Flow settings
+	local srcHost=${g_flowSrcHost[$i]}
+	local srcIfaces=${g_flowSrcIfaces[$i]}
+	local srcIfaceThreads=${g_flowNetworkThreads[$i]}
 
 	# Get the storage DIO flag and ordering
 	declare -i storageId=${g_flowSrcStorageId[$i]}
 	declare -i dioFlag=${g_storageDIO[$storageId]}
 	declare -i orderId=${g_storageOrdering[$storageId]}
 
-        echo "Start source: $host $ifaces $threadCount $dioFlag $orderId $rankOffset $rankPartSize"
+	# Flag settings
+	local forceFlag=0
+	local orderedFlag=0
+	local recursionFlag=0
+	local resumeFlag=0
+	local verboseFlag=0
+	local remoteFlag=1
+
+        echo "Start source: $srcHost $srcIfaces $srcIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
 
 #	start_source_xdd $srcPath $rankPartSize \
 #		${g_channelThreads[$channelIdx]} 40010 \
@@ -520,7 +548,7 @@ function xddmcp_main() {
     # Locate config
     configFile=$(xddmcp_locate_config_file $configFile)
     if [ ! -r "$configFile" ]; then
-        echo "Can't read config: $configFile"
+        echo "ERROR: Cannot read config: $configFile"
         exit -1
     fi
     echo "INFO: Using config: $configFile"

@@ -36,18 +36,20 @@ dtn_lustre_dest none
 #
 [network]
 lan_gige 1
-usn_10g 8
+usn_chicago_10g 6
+usn_seattle_10g 8
+usn_svale_10g 8
 
 #
 # Host specifications
 #
 # <host> [space seperated list of interfaces]
 #
-[host]
-pod7 pod7 pod7-10g
-pod9 pod9 pod9-10g
-pod10 pod10 pod10-10g
-pod11 pod11 pod11-10g
+#[host]
+#pod7 pod7 pod7-10g
+#pod9 pod9 pod9-10g
+#pod10 pod10 pod10-10g
+#pod11 pod11 pod11-10g
 
 #
 # Data Transfer Flow specifications
@@ -55,6 +57,8 @@ pod11 pod11 pod11-10g
 # <storage> -> <host> -> <network> -> <host> -> <storage>
 #
 [flows]
-itrend_xfs_src -> pod7 -> usn_10g -> pod9 -> itrend_xfs_dest
-#itrend_xfs_src -> pod10 -> usn_10g -> pod11 -> itrend_xfs_dest
+itrend_xfs_src -> pod7 -> lan_gige -> pod9 -> itrend_xfs_dest
+itrend_xfs_src -> pod7:pod7-10g -> usn_svale_10g -> pod9:pod9-10g -> itrend_xfs_dest
+itrend_xfs_src -> pod10 -> lan_gige -> pod11 -> itrend_xfs_dest
+itrend_xfs_src -> pod10:pod10-10g -> usn_svale_10g -> pod11:pod11-10g -> itrend_xfs_dest
 
