@@ -372,7 +372,7 @@ function xddmcp_partition() {
     # Determine the partion beginning
     local partLB=0
     let "partLB = ($rank * ($fileSize / 1024) / $size) * 1024"
-    echo "partLB = $partLB"
+    #echo "partLB = $partLB"
 
     # Determine the partition end
     local partUB=0
@@ -381,7 +381,7 @@ function xddmcp_partition() {
     else
         let "partUB = (($rank + 1) * ($fileSize / 1024) / $size) * 1024"
     fi
-    echo "partUB = $partUB"
+    #echo "partUB = $partUB"
 
     # Set the outbound parameters
     let "$outBegin=$partLB"
@@ -430,9 +430,10 @@ function xddmcp_start_destinations() {
 	local remoteFlag=1
 
         echo "Start dest: $destHost $destIfaces $destIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
-	#start_destination_xdd "$srcPath" "$destPath" "$rankPartSize" "$threadCount" \
-	#    "40010" "$dioFlag" "$forceFlag" "$orderedFlag" "$recursionFlag" "$resumeFlag" \
-	#    "$verboseFlag" "$remoteFlag" "$destHost" "bws" "$destIfaces"
+	start_destination_xdd "$srcPath" "$destPath" "$rankPartSize" \
+           "$destIfaceThreads" "40010" "$dioFlag" "$forceFlag" "$orderedFlag" \
+           "$recursionFlag" "$resumeFlag" "$verboseFlag" "$remoteFlag" \
+           "$destHost" "bws" "$destIfaces"
     done
 }
 
