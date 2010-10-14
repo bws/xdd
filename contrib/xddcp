@@ -35,16 +35,19 @@
 #    /bin/ps
 #    /bin/uname
 #
-# The following other utilities (non-POSIX) are required to utilize XDDCP:
+# The following utilities (non-POSIX) are required to utilize XDDCP:
 #    dirname
-#    gethostip
-#    netstat 
 #    ssh
 #    stat
 #    tr
 #    truncate
 #    xdd.Linux
 #
+# The following utilities are optionally used by XDDCP:
+#    gethostip
+#    netstat 
+#
+
 
 # XDD Configurable global settings
 XDDCP_DEFAULT_E2E_PORT=40010
@@ -106,11 +109,12 @@ function print_usage() {
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
-    echo " -o		- Ordered-mode, write data in sequential order [the current default]"
+    echo " -o		- Ordered-mode, write data in serial order"
 #    echo " -r		- Copy sub-directories and contents recursively"
     echo " -s		- Use direct I/O on the source end"
     echo " -t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
     echo " -v		- Add verbose output to logs"
+    echo " -w		- Add verbose output to logs and create a binary timestamp dump"
     #echo "-Y		- Force SSH to create psueo-terminal tty"
     #echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
     echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
@@ -280,7 +284,7 @@ function check_host_preconditions() {
     local resumeFlag=$4
 
     # Check for xdd.Linux binary
-    hash ${XDDCP_DEFAULT_XDD} &>/dev/null
+    type ${XDDCP_DEFAULT_XDD} &>/dev/null
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
     else
@@ -292,7 +296,7 @@ function check_host_preconditions() {
         echo "INFO: -F and -a flags cannot both be specified" >/dev/stderr
         error_exit $XDDCP_ERR_CODE_INV_FLAGS
     elif [ 1 -eq $fileListFlag -a 1 -eq $fileSizeFlag ]; then
-        echo "INFO: -F and file size cannot both be specified" >/dev/stderr
+        echo "INFO: -F option does not take an argument" >/dev/stderr
         error_exit $XDDCP_ERR_CODE_INV_FLAGS
     fi
 
@@ -475,6 +479,7 @@ function get_destination_cmds() {
     done
     if [ -z "$e2eDestinations" ]; then
 	/bin/echo "ERROR: No destination interfaces specified"
+	error_exit $XDDCP_ERR_CODE_NO_REMOTE
     fi
 
     # Direct I/O option
@@ -510,21 +515,28 @@ fi
 
 # Check that ports are available for binding
 declare -i port_conflict=0
-declare -i tcount_idx=0
-for iface in $destIfaces; do
-    tcount_idx=\$((tcount+1))
-    tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
-    iface_ip=\$(gethostip |cut -f \$tcount_idx -d ' ')
-    e2eLB=$e2ePort
-    e2eUB=\$((e2eLB+tcount))
-    used_ports=\$(netstat -nat |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
-    for p in \$used_ports; do
-        if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
-            port_conflict=1
-            break
-        fi
+type gethostip &>/dev/null
+hasIpTranslator=\$?
+if [ 1 -ne \$hasIpTranslator ]; then
+    declare -i tcount_idx=0
+    for iface in $destIfaces; do
+        tcount_idx=\$((tcount+1))
+        tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+        iface_ip=\$(gethostip -d \$iface)
+        e2eLB=$e2ePort
+        e2eUB=\$((e2eLB+tcount))
+        echo "\$tcount_idx \$iface_ip \$e2eLB \$e2eUB" >>/tmp/bws
+        echo "netstat -nat |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])" >>/tmp/bws
+        used_ports=\$(netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+        echo "Used ports: \$used_ports" >>/tmp/bws
+        for p in \$used_ports; do
+            if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
+                port_conflict=1
+                break
+            fi
+        done
     done
-done
+fi
 
 # If a port conflict exists, user may want to kill running XDD's and retry
 if [ 1 -eq \$port_conflict ]; then
@@ -548,7 +560,7 @@ if [ 1 -eq \$port_conflict ]; then
         tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
         e2eLB=$e2ePort
         e2eUB=\$((e2eLB+tcount))
-        used_ports=\$(netstat -nat |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+        used_ports=\$(netstat -nlt |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
         for p in \$used_ports; do
             if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
                 echo "Requested port \$p is in use"
@@ -654,7 +666,7 @@ function get_source_cmds() {
     local destIfaces=${1}
     local srcFile=${2}
     local totalBytes=${3}
-    local queueDepth=${4}
+    local destIfaceThreads=${4}
     local e2ePort=${5}
     local srcDIOFlag=${6}
     local serialOrderedFlag=${7}
@@ -667,6 +679,19 @@ function get_source_cmds() {
     let "numReqs   = ${totalBytes} / $xfer"
     let "blockSize = 1024"
     let "reqSize   = $xfer / $blockSize"
+
+    # Construct the e2e destinations
+    local e2eDestinations=""
+    declare idx=0
+    for iface in $destIfaces; do
+	idx=$((idx+1))
+	tcount=$(/bin/echo $destIfaceThreads |cut -f $idx -d ' ')
+	e2eDestinations="$e2eDestinations -e2e dest ${iface}:${e2ePort},${tcount}" 
+    done
+    if [ -z "$e2eDestinations" ]; then
+	/bin/echo "ERROR: No destination interfaces specified"
+	error_exit $XDDCP_ERR_CODE_NO_REMOTE
+    fi
 
     # Validate restart flag if necessary
     srcRestart=""
@@ -734,10 +759,11 @@ if [ ! -r "${srcFile}" ]; then
 fi
 
 # Add the command to the log file
-echo "Source-side invocation: ${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} ${srcQD} -e2e issource -e2e dest ${destHost} -e2e port ${e2ePort} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct" > ${srcLog}
+xdd_cmd="${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct"
+echo "Source-side invocation: \${xdd_cmd}" > ${srcLog}
 
 # Construct local transport endpoint
-${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} ${srcQD} -e2e issource -e2e dest ${destHost} -e2e port ${e2ePort} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct
+\${xdd_cmd}
 
 src_xdd_rc=\$?
 if [ \${src_xdd_rc} -ne 0 ]; then
@@ -816,8 +842,9 @@ function start_source_xdd() {
 
     # Get source commands
     local execRC=1
-    srcCmds=$(get_source_cmds $destHost $path $totalBytes $queueDepth \
-        $e2ePort $dioFlag $orderedFlag $resumeFlag $verboseFlag $resumeOffset)
+    srcCmds=$(get_source_cmds "{$destHost}" "${path}" "${totalBytes}" \
+	"${queueDepth}" "${e2ePort}" "${dioFlag}" "${orderedFlag}" \
+	"${resumeFlag}" "${verboseFlag}" "${resumeOffset}")
     execRC=$?
     if [ 0 -ne $execRC ]; then
         exit $execRC
@@ -868,6 +895,7 @@ function xddcp_main() {
     destDIOFlag=0
     e2ePort=$XDDCP_DEFAULT_E2E_PORT
     fileListFlag=0
+    fileListFile=""
     forceFlag=0
     orderedFlag=0
     queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
@@ -876,11 +904,13 @@ function xddcp_main() {
     srcDIOFlag=0
     sshOption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
     verboseFlag=0
+    binaryDumpFlag=0
 
-    while getopts ":FYadfhp:orst:v" option; do
+    while getopts ":FYadfhp:orst:vw" option; do
         case $option in
             F) 
                 fileListFlag=1
+		fileListFile=$OPTARG
                 ;;
             Y) 
                 sshOption="-tt"
@@ -893,6 +923,10 @@ function xddcp_main() {
                 ;;
 	    f) 
                 forceFlag=1
+		type gethostip &>/dev/null
+		if [ $? -ne 0 ]; then
+		    echo "INFO: Force mode requires the gethostip command, force disabled."
+		fi
                 ;;
 	    h) 
                 print_usage 
@@ -917,6 +951,10 @@ function xddcp_main() {
                 ;;
 	    v) 
                 verboseFlag=1
+                ;;
+	    w) 
+                verboseFlag=1
+		binaryDumpFlag=1
                 ;;
             \?)
                 echo "INFO: Unsupported option: -$OPTARG" >/dev/stderr 

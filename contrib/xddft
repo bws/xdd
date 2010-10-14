@@ -1,6 +1,25 @@
 #!/bin/bash
 #
-# Implement the fork-thread access pattern with XDD.  Create a 
+# This program is free software; you can redistribute it and/or modify 
+# it under the terms of the GNU General Public License as published by 
+# the Free Software Foundation; either version 2 of the License, or 
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but 
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
+# or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License 
+# for more details.
+# 
+# You should have received a copy of the GNU General Public License along 
+# with this program; if not, write to the Free Software Foundation, Inc., 
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+#
+# This file is part of XDD
+#
+# Copyright (C) 2010, Brad Settlemyer
+#
+# Description: Implement the fork-thread access pattern with XDD.  Create a 
 # user-specified number of threads, and have each thread perform
 # random offset 16KiB reads.  Currently the -p option is not really
 # supported.  Not sure if we should provide something like that with

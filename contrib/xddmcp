@@ -1,10 +1,29 @@
 #!/bin/bash
 #
-# This is the multi-host XDD data movement script.  If you want to move a 
-# file from a single source to a single destination, you probably want xddcp.  
-# The xddcp script works similarly to bbcp and scp, it just drives the disk 
-# alot faster.  But if you're here, then you want to go faster than a single 
-# host can drive.  Welcome to where the sidewalk ends.
+# This program is free software; you can redistribute it and/or modify 
+# it under the terms of the GNU General Public License as published by 
+# the Free Software Foundation; either version 2 of the License, or 
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful, but 
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY 
+# or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License 
+# for more details.
+# 
+# You should have received a copy of the GNU General Public License along 
+# with this program; if not, write to the Free Software Foundation, Inc., 
+# 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
+#
+# This file is part of XDD
+#
+# Copyright (C) 2010, Brad Settlemyer
+#
+# Description:  This is the multi-host XDD data movement script.  If you want 
+# to move a file from a single source to a single destination, you probably 
+# want xddcp.  The xddcp script works similarly to bbcp and scp, it just drives 
+# the disk alot faster.  But if you're here, then you want to go faster than 
+# a single host can drive.  Welcome to where the sidewalk ends.
 #
 
 #
@@ -62,8 +81,11 @@ function xddmcp_print_usage() {
     echo "size              - number of bytes to transfer [Default: size of source file]"
     echo ""
     echo "OPTIONS: "
-    echo " -a		- Resume transfer if it was only partially completed "
-    echo "                and the -a flag was specified"
+#    echo " -a		- Resume transfer if it was only partially completed and -a was"
+#    echo "                previously specified"
+#    echo " -d		- Access all destination storage with direct I/O, overriding config if necessary"
+#    echo " -s		- Access all source storage with direct I/O, overriding config if necessary"
+#    echo " -t <num>	- Use <num> threads for all interfaces, overriding config if necessary"
     echo " -c <file>    - Provide an xddmcp config file"
     echo " -h		- Print out usage information"
     echo "NOTE: 'xdd.Linux' must be in your PATH on both source and destination hosts!!"
@@ -429,11 +451,14 @@ function xddmcp_start_destinations() {
 	local verboseFlag=0
 	local remoteFlag=1
 
+	# Just use the current userid
+	user=$(whoami)
+
         echo "Start dest: $destHost $destIfaces $destIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
 	start_destination_xdd "$srcPath" "$destPath" "$rankPartSize" \
            "$destIfaceThreads" "40010" "$dioFlag" "$forceFlag" "$orderedFlag" \
            "$recursionFlag" "$resumeFlag" "$verboseFlag" "$remoteFlag" \
-           "$destHost" "bws" "$destIfaces"
+           "$destHost" "${user}" "$destIfaces"
     done
 }
 
@@ -469,12 +494,14 @@ function xddmcp_start_sources() {
 	local verboseFlag=0
 	local remoteFlag=1
 
-        echo "Start source: $srcHost $srcIfaces $srcIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
+	# Just use the current userid
+	user=$(whoami)
 
+        echo "Start source: $srcHost $srcIfaces $srcIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
 	start_source_xdd "${srcPath}" "${rankPartSize}" "${srcIfaceThreads}" \
             40010 "${dioFlag}" "${orderedFlag}" "${resumeFlag}" \
             "${verboseFlag}" "${destHostIfaces}" "${remoteFlag}" "${srcHost}" \
-            bws "${srcIfaces}"
+            "${user}" "${srcIfaces}"
     done
 
 }
