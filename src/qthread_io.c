@@ -78,7 +78,7 @@ xdd_qthread_io(ptds_t *qp) {
 		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 
 		// Release the next QThread I/O 
-		if ((qp->target_options & TO_SERIAL_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) 
+		if (qp->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) 
 			 xdd_qthread_release_next_io(qp);
 
 		return;
@@ -92,7 +92,7 @@ xdd_qthread_io(ptds_t *qp) {
 	// we need to wait again *after* we have completed our I/O operation for the previous QThread to 
 	// release us *after* it completes its operation. 
 	// Man I hope this works...
-	if ((qp->target_options & TO_SERIAL_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) {
+	if (qp->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) {
 		xdd_qthread_wait_for_previous_io(qp);
 	}
 	
@@ -101,13 +101,13 @@ xdd_qthread_io(ptds_t *qp) {
 	// Subsequent QThreads will do the same...
 	if (xgp->canceled) {
 		// Release the Next QThread I/O if requested
-		if ((qp->target_options & TO_SERIAL_ORDERING) || (qp->target_options & TO_LOOSE_ORDERING)) 
+		if (qp->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) 
 			 xdd_qthread_release_next_io(qp);
 		return;
 	}
 
 	// If Loose Ordering is in effect then release the Next QThread so that it can start
-	if (qp->target_options & TO_LOOSE_ORDERING) 
+	if (qp->target_options & TO_ORDERING_STORAGE_LOOSE) 
 		xdd_qthread_release_next_io(qp);
 
 	// Call the OS-appropriate IO routine to perform the I/O
@@ -126,7 +126,7 @@ xdd_qthread_io(ptds_t *qp) {
 	// in which case the Next QThread is waiting for us to release it so that it can continue.
 	// For Serial Ordering, the Next QThread has not issued its I/O operation yet because it is 
 	// waiting for us to release it.
-	if ((qp->target_options & TO_LOOSE_ORDERING) || (qp->target_options & TO_SERIAL_ORDERING))
+	if (qp->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) 
 		xdd_qthread_release_next_io(qp);
 
 	// Check I/O operation completion
@@ -229,10 +229,8 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 			errno,
 			(long long int)qp->target_op_number,
 			tot_offset);
-//TMR		pthread_mutex_unlock(&tep->tot_mutex);
 		return(-1);
 	}
-//TMR	pthread_mutex_unlock(&tep->tot_mutex);
 	return(0);
 } // End of xdd_qthread_release_next_io()
 
@@ -325,7 +323,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	pthread_mutex_lock(&tep->tot_mutex);
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
 	// Record the update time, byte_location, and io_size for this I/O
-	if ((p->target_options & (TO_SERIAL_ORDERING | TO_LOOSE_ORDERING)) &&  
+	if ((p->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) &&  
 		(tep->tot_byte_location >= qp->my_current_byte_location)) { // This means there is a real collision
 		fprintf(xgp->errout, "%s: qthread_io: Target %d QThread %d: INTERNAL ERROR: TOT Collision at entry %d byte location is %lld [block %lld] my byte location is %lld [block %lld] last updated by qthread %d\n",
 			xgp->progname,

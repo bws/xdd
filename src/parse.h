@@ -90,6 +90,7 @@ int xddfunc_noproclock(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_numreqs(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_operationdelay(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_operation(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_ordering(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_output(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_output_format(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_passdelay(int32_t argc, char *argv[], uint32_t flags);

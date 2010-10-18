@@ -269,8 +269,18 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		    fprintf(out,"\t\tProcessor, all/any\n");
 	else fprintf(out,"\t\tProcessor, %d\n",p->processor);
 	fprintf(out,"\t\tRead/write ratio, %5.2f READ, %5.2f WRITE\n",p->rwratio*100.0,(1.0-p->rwratio)*100.0);
-	fprintf(out,"\t\tI/O Operation Ordering is, %s\n",
-		(p->target_options & TO_SERIAL_ORDERING)?"Serial":((p->target_options & TO_LOOSE_ORDERING)?"Loose":"None"));
+	fprintf(out,"\t\tNetwork Operation Ordering is,");
+	if (p->target_options & TO_ORDERING_NETWORK_SERIAL) 
+		fprintf(out,"serial\n");
+	else if (p->target_options & TO_ORDERING_NETWORK_LOOSE) 
+		fprintf(out,"loose\n");
+	else fprintf(out,"none\n");
+	fprintf(out,"\t\tStorage Operation Ordering is,");
+	if (p->target_options & TO_ORDERING_STORAGE_SERIAL) 
+		fprintf(out,"serial\n");
+	else if (p->target_options & TO_ORDERING_STORAGE_LOOSE) 
+		fprintf(out,"loose\n");
+	else fprintf(out,"none\n");
 	fprintf(out,"\t\tThrottle in %s is, %6.2f\n",
 		(p->throttle_type & PTDS_THROTTLE_OPS)?"ops/sec":((p->throttle_type & PTDS_THROTTLE_BW)?"MB/sec":"Delay"), p->throttle);
 	fprintf(out,"\t\tPer-pass time limit in seconds, %d\n",p->time_limit);

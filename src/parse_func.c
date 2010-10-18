@@ -1576,16 +1576,16 @@ xddfunc_looseordering(int32_t argc, char *argv[], uint32_t flags)
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
-		p->target_options |= TO_LOOSE_ORDERING;
-		p->target_options &= ~TO_SERIAL_ORDERING;
+		p->target_options |= TO_ORDERING_STORAGE_LOOSE;
+		p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
         return(args+1);
     } else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_LOOSE_ORDERING;
-					p->target_options &= ~TO_SERIAL_ORDERING;
+					p->target_options |= TO_ORDERING_STORAGE_LOOSE;
+					p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -1803,8 +1803,8 @@ xddfunc_noordering(int32_t argc, char *argv[], uint32_t flags)
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
-		p->target_options &= ~TO_LOOSE_ORDERING;
-		p->target_options &= ~TO_SERIAL_ORDERING;
+		p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+		p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
         return(args+1);
     } else {// Put this option into all PTDSs 
 			/* Unset the Loose and Serial Ordering Opetions for all targets */
@@ -1812,8 +1812,8 @@ xddfunc_noordering(int32_t argc, char *argv[], uint32_t flags)
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options &= ~TO_LOOSE_ORDERING;
-					p->target_options &= ~TO_SERIAL_ORDERING;
+					p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+					p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -1973,7 +1973,130 @@ xddfunc_operation(int32_t argc, char *argv[], uint32_t flags)
 		}
         return(2);
 	}
-}
+} // End of xddfunc_operation()
+/*----------------------------------------------------------------------------*/
+// Specify the ordering method to apply to I/O 
+// Arguments: -ordering [target #] <storage | network | both>  <serial | loose | none>
+int
+xddfunc_ordering(int32_t argc, char *argv[], uint32_t flags)
+{
+    int			args, i; 
+    int			target_number;
+    ptds_t		*p;
+	char		*thing;
+	char		network_ordering = 0;
+	char		storage_ordering = 0;
+	char		serial_network_ordering = 0;
+	char		serial_storage_ordering = 0;
+	char		loose_network_ordering = 0;
+	char		loose_storage_ordering = 0;
+	char		no_network_ordering = 0;
+	char		no_storage_ordering = 0;
+
+    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
+		return(0);
+
+
+	// Figure out "what" to order - storage, network, or both
+	thing = (char *)argv[args+1];
+	if ((strcmp(thing, "storage") == 0) || (strcmp(thing, "stor") == 0) || (strcmp(thing, "disk") == 0)) {
+		storage_ordering = 1;
+	} else if ((strcmp(thing, "network") == 0) || (strcmp(thing, "net") == 0)) {
+		network_ordering = 1;
+	} else if (strcmp(thing, "both") == 0) {
+		storage_ordering = 1;
+		network_ordering = 1;
+	} else {
+		fprintf(xgp->errout,"%s: xddfunc_ordering: ERROR: Don't know how to order '%s'. This should be either 'storage', 'network', or 'both'.\n",
+			xgp->progname,
+			thing);
+			return(0);
+	}
+	// Now determine the requested ordering method: serial, loose, or none
+	// Note that the ordering mechanisms are mutually exclusive so if one is enabled, the others are disabled
+	thing = (char *)argv[args+2];
+	if ((strcmp(thing, "serial") == 0) || (strcmp(thing, "ser") == 0) || (strcmp(thing, "so") == 0)) {
+		if (storage_ordering)
+			serial_storage_ordering = 1; 
+		if (network_ordering)
+			serial_network_ordering = 1; 
+	} else if ((strcmp(thing, "loose") == 0) || (strcmp(thing, "lo") == 0)) {
+		if (storage_ordering)
+			loose_storage_ordering = 1; 
+		if (network_ordering)
+			loose_network_ordering = 1; 
+	} else if ((strcmp(thing, "none") == 0) || (strcmp(thing, "no") == 0)) {
+		if (storage_ordering)
+			no_storage_ordering = 1; 
+		if (network_ordering)
+			no_network_ordering = 1; 
+	} else {
+		fprintf(xgp->errout,"%s: xddfunc_ordering: ERROR: Don't know what '%s' ordering is. This should be either 'serial', 'loose', or 'none'.\n",
+			xgp->progname,
+			thing);
+			return(0);
+	}
+	// At this point the "order" variable has the proper flags OR'd into it so just or "order" into the target options for either a specific target or all targets
+	if (target_number >= 0) { /* Set this option value for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL) return(-1);
+
+		if (serial_storage_ordering) {
+			p->target_options |= TO_ORDERING_STORAGE_SERIAL;
+			p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+		} else if (loose_storage_ordering) {
+			p->target_options |= TO_ORDERING_STORAGE_LOOSE;
+			p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+		} else if (no_storage_ordering) {
+			p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+			p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+		}
+		if (serial_network_ordering) {
+			p->target_options |= TO_ORDERING_NETWORK_SERIAL;
+			p->target_options &= ~TO_ORDERING_NETWORK_LOOSE;
+		} else if (loose_network_ordering) {
+			p->target_options |= TO_ORDERING_NETWORK_LOOSE;
+			p->target_options &= ~TO_ORDERING_NETWORK_SERIAL;
+		} else if (no_network_ordering) {
+			p->target_options &= ~TO_ORDERING_NETWORK_SERIAL;
+			p->target_options &= ~TO_ORDERING_NETWORK_LOOSE;
+		}
+        return(args+3);
+	} else { // Put this option into all PTDSs 
+		if (flags & XDD_PARSE_PHASE2) {
+			p = xgp->ptdsp[0];
+			i = 0;
+			while (p) {
+				if (serial_storage_ordering) {
+					p->target_options |= TO_ORDERING_STORAGE_SERIAL;
+					p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+				} else if (loose_storage_ordering) {
+					p->target_options |= TO_ORDERING_STORAGE_LOOSE;
+					p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+				} else if (no_storage_ordering) {
+					p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+					p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+				}
+				if (serial_network_ordering) {
+					p->target_options |= TO_ORDERING_NETWORK_SERIAL;
+					p->target_options &= ~TO_ORDERING_NETWORK_LOOSE;
+				} else if (loose_network_ordering) {
+					p->target_options |= TO_ORDERING_NETWORK_LOOSE;
+					p->target_options &= ~TO_ORDERING_NETWORK_SERIAL;
+				} else if (no_network_ordering) {
+					p->target_options &= ~TO_ORDERING_NETWORK_SERIAL;
+					p->target_options &= ~TO_ORDERING_NETWORK_LOOSE;
+				}
+				i++;
+				p = xgp->ptdsp[i];
+			}
+		}
+        return(3);
+	}
+} // End of xddfunc_ordering()
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_output(int32_t argc, char *argv[], uint32_t flags)
@@ -3126,16 +3249,16 @@ xddfunc_serialordering(int32_t argc, char *argv[], uint32_t flags)
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
-		p->target_options |= TO_SERIAL_ORDERING;
-		p->target_options &= ~TO_LOOSE_ORDERING;
+		p->target_options |= TO_ORDERING_STORAGE_SERIAL;
+		p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
         return(args+1);
     } else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_SERIAL_ORDERING;
-					p->target_options &= ~TO_LOOSE_ORDERING;
+					p->target_options |= TO_ORDERING_STORAGE_SERIAL;
+					p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
 					i++;
 					p = xgp->ptdsp[i];
 				}
