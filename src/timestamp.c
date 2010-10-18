@@ -244,6 +244,7 @@ xdd_ts_reports(ptds_t *p) {
 	int64_t  indx; /* Current TS index */
 	tthdr_t  *ttp;  /* pointer to the time stamp table header */
 	char  *opc;  /* pointer to the operation string */
+	char  opc2[8];
 #ifdef WIN32 /* This is required to circumvent the problem of mulitple streams to multiple files */
 	/* We need to wait for the previous thread to finish writing its ts report and close the output stream before we can continue */
 	WaitForSingleObject(p->ts_serializer_mutex,INFINITE);
@@ -305,7 +306,7 @@ xdd_ts_reports(ptds_t *p) {
 
 	// Print a header line with the Quantities as they appear across the page
 	fprintf(p->tsfp,"QThread");
-	fprintf(p->tsfp,",RWNOp");
+	fprintf(p->tsfp,",Op");
 	fprintf(p->tsfp,",Pass");
 	fprintf(p->tsfp,",OP");
 	fprintf(p->tsfp,",Location");
@@ -332,7 +333,7 @@ xdd_ts_reports(ptds_t *p) {
 
 	// Print the UNITS of the above quantities
 	fprintf(p->tsfp,"Number");
-	fprintf(p->tsfp,",OpType");
+	fprintf(p->tsfp,",Type");
 	fprintf(p->tsfp,",Number");
 	fprintf(p->tsfp,",Number");
 	fprintf(p->tsfp,",Bytes");
@@ -421,12 +422,30 @@ xdd_ts_reports(ptds_t *p) {
 				net_start_ts = ttp->tte[i].net_start + ttp->delta;
 				net_end_ts = ttp->tte[i].net_end + ttp->delta;
 				switch (ttp->tte[i].op_type) {
-					case SO_OP_READ: opc="r"; break;
-					case SO_OP_WRITE: opc="w"; break;
-					case SO_OP_WRITE_VERIFY: opc="v"; break;
-					case SO_OP_NOOP: opc="n"; break;
-					case SO_OP_EOF: opc="e"; break;
-					default: opc="-"; break;
+					case SO_OP_READ: 
+					case OP_TYPE_READ: 
+						opc="r"; 
+						break;
+
+					case SO_OP_WRITE: 
+					case OP_TYPE_WRITE: 
+						opc="w"; 
+						break;
+					case SO_OP_WRITE_VERIFY: 
+						opc="v"; 
+						break;
+					case SO_OP_NOOP: 
+					case OP_TYPE_NOOP: 
+						opc="n"; 
+						break;
+					case SO_OP_EOF: 
+					case OP_TYPE_EOF: 
+						opc="e"; 
+						break;
+					default: 
+						sprintf(opc2,"0x%02x",ttp->tte[i].op_type); 
+						opc=opc2; 
+						break;
 				}
 
 				fprintf(p->tsfp,"%d,",ttp->tte[i].qthread_number);

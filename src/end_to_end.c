@@ -324,6 +324,8 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	qp->e2e_header.length = 0;	// NA - no data being sent other than the header
 	qp->e2e_header.magic = PTDS_E2E_MAGIQ;
 
+	if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
+		p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
 	// This will send the E2E Header to the Destination
 	sent = 0;
 	while (sent < headersize) {
@@ -336,6 +338,18 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
 	qp->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);
+	// If time stamping is on then we need to reset these values
+   	if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
+		p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
+		p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
+		p->ttp->tte[qp->ts_current_entry].net_processor_end = xdd_get_processor();
+		p->ttp->tte[qp->ts_current_entry].net_xfer_size = sent;
+		p->ttp->tte[qp->ts_current_entry].byte_location = -1;
+		p->ttp->tte[qp->ts_current_entry].disk_xfer_size = 0;
+		p->ttp->tte[qp->ts_current_entry].op_number = qp->e2e_header.sequence;
+		p->ttp->tte[qp->ts_current_entry].op_type = OP_TYPE_EOF;
+	}
+
 
 	if (sent != headersize) {
 		xdd_e2e_err(qp,"xdd_e2e_eof_source_side","ERROR: could not send EOF to destination\n");
