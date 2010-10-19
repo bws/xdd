@@ -247,6 +247,7 @@ xdd_target_init_barriers(ptds_t *p) {
 			fflush(xgp->errout);
 			return(-1);
 		}
+		p->totp->tot_entry[i].tot_op_number = -1;
 		p->totp->tot_entry[i].tot_byte_location = -1;
 		p->totp->tot_entry[i].tot_io_size = 0;
 	} // End of FOR loop that inits the semaphores in the ToT

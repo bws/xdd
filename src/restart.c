@@ -240,6 +240,8 @@ xdd_restart_monitor(void *junk) {
 				continue;
 			} else {
 				// Put the "Last Committed Block" information in the restart structure...
+				// In the case of Restart processing it is ok to use the tot_byte_location
+				// rather than the tot_op_number.
 				// Scan the Target Offset Table (TOT) for the *lowest* committed offset 
 				// then add N blocks to that number where N = number of TOT entries
 				// to produce the *byte_offset* which is where to start writing 

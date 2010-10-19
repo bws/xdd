@@ -152,7 +152,7 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
-	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
+	tot_offset = (qp->target_op_number % p->totp->tot_entries) - 1;
 	if (tot_offset < 0) 
 		tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
 	
@@ -206,7 +206,7 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 
 
 	p = qp->target_ptds;
-	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
+	tot_offset = (qp->target_op_number % p->totp->tot_entries);
 
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
 
@@ -314,7 +314,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	// Since the TOT is a resource owned by the Target Thread and shared by the QThreads
 	// it will be updated here.
 	// Calculate the TOT Offset
-	tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
+	tot_offset = (qp->target_op_number % p->totp->tot_entries);
 	// Get a pointer to the correct TOT Entry
 	tep = &p->totp->tot_entry[tot_offset];
 	// LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK
@@ -324,20 +324,23 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
 	// Record the update time, byte_location, and io_size for this I/O
 	if ((p->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) &&  
-		(tep->tot_byte_location >= qp->my_current_byte_location)) { // This means there is a real collision
-		fprintf(xgp->errout, "%s: qthread_io: Target %d QThread %d: INTERNAL ERROR: TOT Collision at entry %d byte location is %lld [block %lld] my byte location is %lld [block %lld] last updated by qthread %d\n",
+		(tep->tot_op_number >= qp->target_op_number)) { // This means there is a real collision
+		fprintf(xgp->errout, "%s: qthread_io: Target %d QThread %d: INTERNAL ERROR: TOT Collision at entry %d, op number %lld, byte location is %lld [block %lld], my current op number is %lld,  my byte location is %lld [block %lld] last updated by qthread %d\n",
 			xgp->progname,
 			qp->my_target_number,
 			qp->my_qthread_number,
 			tot_offset,
+			(long long int)tep->tot_op_number,
 			(long long int)tep->tot_byte_location,
 			(long long int)(tep->tot_byte_location / (long long int)(p->iosize)),
+			(long long)qp->target_op_number,
 			(long long)qp->my_current_byte_location,
 			(long long int)(qp->my_current_byte_location / (long long int)(p->iosize)),
 			tep->tot_update_qthread_number);
 	}  else { // Only update if there was no collision or if there is no ordering in which case collisons do not matter
 		pclk_now(&tep->tot_update_ts);
 		tep->tot_update_qthread_number = qp->my_qthread_number;
+		tep->tot_op_number = qp->target_op_number;
 		tep->tot_byte_location = qp->my_current_byte_location;
 		tep->tot_io_size = qp->my_current_io_size;
 	}
