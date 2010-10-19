@@ -842,7 +842,7 @@ function start_source_xdd() {
 
     # Get source commands
     local execRC=1
-    srcCmds=$(get_source_cmds "{$destHost}" "${path}" "${totalBytes}" \
+    srcCmds=$(get_source_cmds "${destHost}" "${path}" "${totalBytes}" \
 	"${queueDepth}" "${e2ePort}" "${dioFlag}" "${orderedFlag}" \
 	"${resumeFlag}" "${verboseFlag}" "${resumeOffset}")
     execRC=$?
