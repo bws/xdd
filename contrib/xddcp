@@ -759,8 +759,10 @@ if [ ! -r "${srcFile}" ]; then
 fi
 
 # Add the command to the log file
-xdd_cmd="${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} ${srcOutput} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct"
-echo "Source-side invocation: \${xdd_cmd}" > ${srcLog}
+src_log="xdd.\$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+
+xdd_cmd="${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct"
+echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
 
 # Construct local transport endpoint
 \${xdd_cmd}

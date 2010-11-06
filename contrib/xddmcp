@@ -499,9 +499,9 @@ function xddmcp_start_sources() {
 
         echo "Start source: $srcHost $srcIfaces $srcIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
 	start_source_xdd "${srcPath}" "${rankPartSize}" "${srcIfaceThreads}" \
-            40010 "${dioFlag}" "${orderedFlag}" "${resumeFlag}" \
-            "${verboseFlag}" "${destHostIfaces}" "${remoteFlag}" "${srcHost}" \
-            "${user}" "${srcIfaces}"
+            40010 "${dioFlag}" "${orderedFlag}" "${resumeFlag}" "${verboseFlag}" \
+            "${rankOffset}" "${destIfaces}" "${remoteFlag}" "${srcHost}" \
+            "${user}" "${srcIfaces}" &
     done
 
 }
