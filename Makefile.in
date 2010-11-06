@@ -246,6 +246,7 @@ fastinstall: all
 
 fullinstall:
 	$(INSTALL) -d $(INSTALL_DIR)/bin
+	$(INSTALL) -d $(INSTALL_DIR)/etc
 	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd.$(OS)
 	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver.$(OS)
@@ -255,6 +256,7 @@ fullinstall:
 	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
 	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
 	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
+	$(INSTALL) -c -m 755 etc/xddmcp.conf.example $(INSTALL_DIR)/etc/xddmcp.conf.example
 
 doc:
 	doxygen doc/Doxyfile
