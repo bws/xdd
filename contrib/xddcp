@@ -985,26 +985,45 @@ function xddcp_main() {
     check_host_preconditions ${srcFileSpecList} ${fileListFlag} \
         ${fileSizeFlag} ${resumeFlag}
 
-    # If using the file list, get all of the source specs
+    # If using the file list, get all of the source specs and path complement
     if [ 1 -eq $fileListFlag ]; then
-        srcFileSpecList=$(/bin/cat ${srcFileSpecList})
+	local srcFileSpecDir=$(dirname ${srcFileSpecList})
+	local fileNames=""
+	for name in $(/bin/cat ${srcFileSpecList}); do
+	    local pathChar=$(dirname $name |cut -c 1)
+	    if [ "." == "$pathChar" ]; then
+		fileNames="${srcFileSpecDir}/${name} $fileNames"
+	    else
+		fileNames="$name $fileNames"
+	    fi
+	done
+
+	# Set the path modified file names as the source specs
+	srcFileSpecList="$fileNames"
     fi
 
     # Process all source file specs
     for srcFileSpec in ${srcFileSpecList}; do
+
+	# Modify the destination path for file list transfers
+	local destFileSpec=$destPath
+	if [ 1 -eq ${fileListFlag} ]; then
+	    local srcFileName=$(basename ${srcFileSpec})
+	    destFileSpec=${destPath}/${srcFileName}
+	fi
 
         # Parse the source side spec
         srcRemoteFlag=0
         parse_endpoint_spec ${srcFileSpec} srcRemoteFlag srcUser srcHost srcPath
 
 	# Check the transfer preconditions
-	check_transfer_preconditions "${srcFileSpec}" "${destPath}" \
+	check_transfer_preconditions "${srcFileSpec}" "${destFileSpec}" \
 	    "${srcRemoteFlag}" "${destRemoteFlag}" "${srcDIOFlag}" "${destDIOFlag}" \
 	    "${fileSizeFlag}" "${totalBytes}"
 
         # Determine the source file size
         if [ 0 -eq $fileSizeFlag ]; then
-            totalBytes=$(get_file_size ${srcPath} \
+            totalBytes=$(get_file_size ${srcFileSpec} \
                 ${srcRemoteFlag} ${srcHost} ${srcUser})
         fi
 
@@ -1015,7 +1034,7 @@ function xddcp_main() {
         fi
 
         # Start destination-side XDD (also sets resume offset if needed)
-        start_destination_xdd "${srcPath}" "${destPath}" "${totalBytes}" \
+        start_destination_xdd "${srcFileSpec}" "${destFileSpec}" "${totalBytes}" \
             "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
             "${orderedFlag}" "${recursiveFlag}" "${resumeFlag}" "${verboseFlag}" \
 	    "${destRemoteFlag}" "${destHost}" "${destUser}" "${destHost}"
@@ -1028,7 +1047,7 @@ function xddcp_main() {
         sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
 
         # Start source-side XDD
-        start_source_xdd "${srcPath}" "${totalBytes}" \
+        start_source_xdd "${srcFileSpec}" "${totalBytes}" \
             "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
             "${orderedFlag}" "${resumeFlag}" "${verboseFlag}" \
             "${g_xddcpResumeOffset}" "${destHost}" \
