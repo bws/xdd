@@ -308,6 +308,8 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		xdd_display_kmgt(out, p->seekhdr.seek_range*p->block_size, p->block_size);
 	}
 	fprintf(out, "\t\tSeek pattern, %s\n", p->seekhdr.seek_pattern);
+	if (p->seekhdr.seek_stride > p->reqsize) 
+		fprintf(out, "\t\tSeek Stride, %d, %d-byte blocks, %d, bytes\n",p->seekhdr.seek_stride,p->block_size,p->seekhdr.seek_stride*p->block_size);
 	fprintf(out, "\t\tFlushwrite interval, %lld\n", (long long)p->flushwrite);
 	fprintf(out,"\t\tI/O memory buffer is %s\n", 
 		(p->target_options & TO_SHARED_MEMORY)?"a shared memory segment":"a normal memory buffer");
