@@ -10,13 +10,14 @@
 #
 xdd_repo_path=/ccs/proj/csc040/var/git/xdd.git
 remote_host=natureboy.ornl.gov
-remote_test_path=/nightly/xdd/repo/xdd
+remote_test_path=/nightly/xdd/repo
 
 #
 # Cleanup anything on the remote machine
 #
 ssh $remote_host bash -x << EOF
 rm -rf $remote_test_path
+mkdir -p $remote_test_path
 EOF
 rc=$?
 if [ $rc -ne 0 ]; then
@@ -39,7 +40,7 @@ fi
 #
 xdd_nightly_temp=xdd.bws
 xdd_nightly_helper=$xdd_nightly_temp/contrib/xdd_nightly.pbs
-git archive --format=tar --prefix=$xdd_nightly_temp/ --remote=/ccs/proj/csc040/var/git/xdd.git HEAD |tar -xf - $xdd_nightly_helper
+/ccs/proj/csc040/opt/git-xt5/bin/git archive --format=tar --prefix=$xdd_nightly_temp/ --remote=/ccs/proj/csc040/var/git/xdd.git HEAD |tar -xf - $xdd_nightly_helper
 rc=$?
 if [ $rc -ne 0 ]; then
     echo "Error extracting nightly helper: $rc"
