@@ -144,9 +144,11 @@ xdd_init_seek_list(ptds_t *p) {
 						sp->seeks[rw_index].block_location = (uint64_t)(range_in_blocksize_blocks * xdd_random_float());
 				}
 			} else {/* generate a sequential seek */
-				if (sp->seek_options & SO_SEEK_STAGGER)
+				if (sp->seek_options & SO_SEEK_STAGGER) {
 					gap = ((sp->seek_range-p->reqsize) - (sp->seek_num_rw_ops*p->reqsize)) / (sp->seek_num_rw_ops-1);
-				else gap = 0;
+				        if (sp->seek_stride > p->reqsize) gap = sp->seek_stride - p->reqsize;
+                                }
+				else gap = 0; 
 				if (sp->seek_interleave > 1)
 					interleave_threadoffset = (p->my_qthread_number%sp->seek_interleave)*p->reqsize;
 				else interleave_threadoffset = 0;

@@ -564,7 +564,7 @@ xdd_func_t  xdd_func[] = {
     {"seek",  "s",
             xddfunc_seek,       
             1,  
-            "  -seek [target <target#>] save <filename> | load <filename> | disthist #buckets | seekhist #buckets | sequential | random | range #blocks | stagger | interleave #blocks | seed # | none\n",  
+            "  -seek [target <target#>] save <filename> | load <filename> | disthist #buckets | seekhist #buckets | sequential | random | range #blocks | stagger #blocks | interleave #blocks | seed # | none\n",  
             {"    -seek 'save <filename>' will save the seek list in the file specified\n\
     -seek 'load <filename>' will load the seek list from the file specified\n\
     -seek 'disthist #buckets' will display a 'seek distance' histogram using the specified number of 'buckets'\n\
@@ -572,7 +572,7 @@ xdd_func_t  xdd_func[] = {
     -seek 'sequential' will generate sequential seeks - this is the default \n",
              "    -seek 'random' will generate random seeks over the range specified in -range \n\
     -seek 'range #' is the range of blocksized-blocks over which to operate\n\
-    -seek 'stagger' specifies a staggered sequential access over 'range'\n\
+    -seek 'stagger' specifies a staggered sequential access over 'range', by #blocks stride if > reqsize\n\
     -seek 'interleave #' specifies the number of blocksized blocks to interleave into the access pattern\n\
     -seek 'seed #' specifies a seed to use when generating random numbers\n\
     -seek 'none' do not seek - retransfer the same block each time \n",

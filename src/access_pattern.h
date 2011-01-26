@@ -60,6 +60,7 @@ struct seekhdr {
 	int64_t  seek_range; /**< range of seek locations */
 	int32_t  seek_seed; /**< seed used for generating random seek locations */
 	int32_t  seek_interleave; /**< interleave used for generating sequential seek locations */
+	int32_t  seek_stride;        /**< stride of each request...if > reqsize*/
 	uint32_t seek_iosize; /**< The largest I/O size in the list */
 	int32_t  seek_num_rw_ops;  /**< Number of read+write operations */
 	int32_t  seek_total_ops;   /**< Total number of ops in the seek list including verifies */

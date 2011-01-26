@@ -3138,6 +3138,7 @@ xddfunc_seek(int32_t argc, char *argv[], uint32_t flags)
 			if (p == NULL) return(-1);
 			p->seekhdr.seek_options |= SO_SEEK_STAGGER;
 			p->seekhdr.seek_pattern = "staggered";
+			p->seekhdr.seek_stride = atoi(argv[args_index+1]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
@@ -3145,12 +3146,13 @@ xddfunc_seek(int32_t argc, char *argv[], uint32_t flags)
 				while (p) {
 					p->seekhdr.seek_options |= SO_SEEK_STAGGER;
 					p->seekhdr.seek_pattern = "staggered";
+			                p->seekhdr.seek_stride = atoi(argv[args_index+1]);
 					i++;
 					p = xgp->ptdsp[i];
 				}
 			}
 		}  
-		return(args_index+1);
+		return(args_index+2);
 	} else if (strcmp(argv[args_index], "interleave") == 0) { /* set the interleave for sequential seek locations */
 		if (target_number >= 0) {  /* set option for specific target */
 			p = xdd_get_ptdsp(target_number, argv[0]);

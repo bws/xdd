@@ -519,6 +519,20 @@ xdd_results_fmt_e2e_last_write_time(results_t *rp) {
 }
 /*----------------------------------------------------------------------------*/
 void 
+xdd_results_fmt_node_name(results_t *rp) {
+	if (rp->flags & RESULTS_HEADER_TAG) {
+		fprintf(rp->output,"%10s"," Node_Name");
+	} else if (rp->flags & RESULTS_UNITS_TAG) {
+		fprintf(rp->output,"%10s","      text");
+	} else if (rp->flags & RESULTS_PASS_INFO) {
+                struct utsname name;
+                uname(&name);
+		fprintf(rp->output,"%10s",name.nodename);
+	}
+
+}
+/*----------------------------------------------------------------------------*/
+void 
 xdd_results_fmt_delimiter(results_t *rp) {
 	fprintf(rp->output,"%c",rp->delimiter);
 
@@ -584,6 +598,7 @@ static	xdd_results_fmt_t	xdd_results_fmt_table[] = {
 	{"+E2EFIRSTREADTIME", 	xdd_results_fmt_e2e_first_read_time},
 	{"+E2ELASTWRITETIME", 	xdd_results_fmt_e2e_last_write_time},
 	{"+DELIM", 				xdd_results_fmt_delimiter},
+	{"+NODENAME", 				xdd_results_fmt_node_name},
 	{ NULL, 				NULL}
 	};
 
