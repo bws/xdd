@@ -1,0 +1,66 @@
+#!/bin/sh
+#PBS -A STF010
+#PBS -N xdd-nightly-dl
+#PBS -j oe
+#PBS -l walltime=0:10:00,size=0
+
+#
+# This is the XDD nightly build helper that pushes the code out to the
+# build and test machines so that we can run the tests
+#
+xdd_repo_path=/ccs/proj/csc040/var/git/xdd.git
+remote_host=natureboy.ornl.gov
+remote_test_path=/nightly/xdd/repo/xdd
+
+#
+# Cleanup anything on the remote machine
+#
+ssh $remote_host bash -x << EOF
+rm -rf $remote_test_path
+EOF
+rc=$?
+if [ $rc -ne 0 ]; then
+   echo "Error removing previous build: $rc"
+   exit 1
+fi
+
+#
+# Perform transfer
+#
+scp -r $xdd_repo_path $remote_host:$remote_test_path
+rc=$?
+if [ $rc -ne 0 ]; then
+   echo "Error transferring repo: $rc"
+   exit 2
+fi
+
+#
+# Schedule the job to run again tomorrow
+#
+xdd_nightly_temp=xdd.bws
+xdd_nightly_helper=$xdd_nightly_temp/contrib/xdd_nightly.pbs
+git archive --format=tar --prefix=$xdd_nightly_temp/ --remote=/ccs/proj/csc040/var/git/xdd.git HEAD |tar -xf - $xdd_nightly_helper
+rc=$?
+if [ $rc -ne 0 ]; then
+    echo "Error extracting nightly helper: $rc"
+    exit 3
+fi
+
+qsub -a 2300 $xdd_nightly_helper
+rc=$?
+if [ $rc -ne 0 ]; then
+    echo "Error scheduling nightly helper: $rc"
+    exit 4
+fi
+
+rm -rf $xdd_nightly_temp
+rc=$?
+if [ $rc -ne 0 ]; then
+    echo "Error removing the nightly last used: $rc"
+    exit 5
+fi
+
+#
+# Success
+#
+exit 0
