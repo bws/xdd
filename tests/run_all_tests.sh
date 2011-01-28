@@ -55,7 +55,7 @@ fi
 #
 # Run all tests
 #
-all_tests=$(ls scripts/test_acceptance*.sh)
+all_tests=$(ls $XDDTEST_TESTS_DIR/scripts/test_acceptance*.sh)
 datestamp=$(/bin/date +%s)
 failed_test=0
 test_log=$XDDTEST_OUTPUT_DIR/test_$datestamp.log

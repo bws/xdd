@@ -8,6 +8,7 @@
 XDDTEST_XDD_EXE=../bin/xdd.Linux
 XDDTEST_XDDCP_EXE=../contrib/xddcp
 XDDTEST_XDDFT_EXE=../contrib/xddft
+XDDTEST_TESTS_DIR=.
 
 #
 # Mounts to use for testing

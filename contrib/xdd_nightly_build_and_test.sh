@@ -76,40 +76,41 @@ fi
 test_local_dir=$test_dir/local_src
 test_src_dir=$test_dir/nightly_src
 test_dest_dir=$test_dir/nightly_dest
+mkdir -p $test_local_dir
 mkdir -p $test_src_dir
 mkdir -p $test_dest_dir
 cd $test_dir
-cat >nightly_test_config <<EOF
+cat >test_config <<EOF
 XDDTEST_XDD_EXE=xdd.Linux
 XDDTEST_XDDCP_EXE=xddcp
 XDDTEST_XDDFT_EXE=xddft
+XDDTEST_TESTS_DIR=$build_dir/tests
 XDDTEST_LOCAL_MOUNT=$test_local_dir
 XDDTEST_SOURCE_MOUNT=$test_src_dir
 XDDTEST_DEST_MOUNT=$test_dest_dir
 XDDTEST_OUTPUT_DIR=$output_dir
 XDDTEST_E2E_SOURCE=localhost
-XDDTEST_E2E_DEST=localhost
+XDDTEST_E2E_DEST=natureboy
 EOF
-$build_dir/xdd/tests/run_all_tests.sh nightly_test_config >>$test_log
+$build_dir/xdd/tests/run_all_tests.sh >>$test_log
 TEST_RC=$?
 
 #
 # Mail the results of the build and test to durmstrang-io
 #
 rcpt="durmstrang-io@email.ornl.gov"
+rcpt="settlemyerbw@ornl.gov"
 if [ 0 -eq $BUILD_RC -a 0 -eq $CONFIG_RC -a 0 -eq $INSTALL_RC -a 0 -eq $TEST_RC ]; then
-    #mail -s "SUCCESS - Nightly build and test for $datestamp" "$rcpt" <<EOF
-echo "
+    mail -s "SUCCESS - Nightly build and test for $datestamp" "$rcpt" <<EOF
 Everything completed successfully as far as I can tell.
-"
+EOF
 else
-    #mail -s "FAILURE - Nightly build and test for $datestamp" -a $logfile "$rcpt" <<EOF
-echo "
+    mail -s "FAILURE - Nightly build and test for $datestamp" -a $logfile "$rcpt" <<EOF
 Cray return code: $CRAY_RC
 Configure return code: $CONFIG_RC
 Build return code: $BUILD_RC
 Install return code: $INSTALL_RC
 Test return code: $TEST_RC
 Zero indicates success. See attachment for error logs.
-"
+EOF
 fi

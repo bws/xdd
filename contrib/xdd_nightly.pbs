@@ -36,6 +36,14 @@ if [ $rc -ne 0 ]; then
 fi
 
 #
+# Kickoff the nightly build and test on $remote_host
+#
+ssh $remote_host bash 2>&1 >/dev/null <<EOF
+git archive --format=tar --prefix=xdd/ --remote=/nightly/xdd/repo/xdd.git master |tar xf -  xdd/contrib/xdd_nightly_build_and_test.sh
+xdd/contrib/xdd_nightly_build_and_test.sh &
+EOF
+
+#
 # Schedule the job to run again tomorrow
 #
 xdd_nightly_temp=xdd.bws
