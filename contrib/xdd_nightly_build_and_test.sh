@@ -18,7 +18,7 @@ CRAY_RC=1
 nightly_base_path=/nightly
 xdd_repo_path=/nightly/xdd/repo/xdd.git
 
-datestamp=$(date +%s)
+datestamp=$(date +%Y-%m-%d-%H:%M)
 build_dir=$nightly_base_path/${USER}/$datestamp/build
 install_dir=$nightly_base_path/${USER}/$datestamp/install
 test_dir=$nightly_base_path/${USER}/$datestamp/test
