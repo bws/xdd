@@ -19,10 +19,10 @@ nightly_base_path=/nightly
 xdd_repo_path=/nightly/xdd/repo/xdd.git
 
 datestamp=$(date +%Y-%m-%d-%H:%M)
-build_dir=$nightly_base_path/${USER}/$datestamp/build
-install_dir=$nightly_base_path/${USER}/$datestamp/install
-test_dir=$nightly_base_path/${USER}/$datestamp/test
-output_dir=$nightly_base_path/${USER}/$datestamp/logs
+build_dir=$nightly_base_path/xdd/$datestamp/build
+install_dir=$nightly_base_path/xdd/$datestamp/install
+test_dir=$nightly_base_path/xdd/$datestamp/test
+output_dir=$nightly_base_path/xdd/$datestamp/logs
 build_log=$output_dir/nightly-build.log
 config_log=$output_dir/nightly-config.log
 install_log=$output_dir/nightly-install.log
