@@ -46,7 +46,7 @@ EOF
 #
 # Schedule the job to run again tomorrow
 #
-xdd_nightly_temp=xdd.bws
+xdd_nightly_temp=xdd.nightly_temp
 xdd_nightly_helper=$xdd_nightly_temp/contrib/xdd_nightly_xt5.pbs
 /ccs/proj/csc040/opt/git-xt5/bin/git archive --format=tar --prefix=$xdd_nightly_temp/ --remote=/ccs/proj/csc040/var/git/xdd.git HEAD |tar -xf - $xdd_nightly_helper
 rc=$?
