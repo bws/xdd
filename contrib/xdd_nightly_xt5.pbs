@@ -10,6 +10,7 @@
 #
 xdd_repo_path=/ccs/proj/csc040/var/git/xdd.git
 remote_host=natureboy.ornl.gov
+remote_user=nightly
 remote_test_path=/nightly/xdd/repo
 
 #
@@ -17,12 +18,13 @@ remote_test_path=/nightly/xdd/repo
 #
 echo "PWD: $PWD"
 echo "Test slave: $remote_host"
+echo "Test user: $remote_user"
 echo "Test slave path: $remote_test_path"
 
 #
 # Cleanup anything on the remote machine
 #
-ssh $remote_host bash -x << EOF
+ssh -l $remote_user $remote_host bash -x << EOF
 rm -rf $remote_test_path
 mkdir -p $remote_test_path
 EOF
@@ -35,7 +37,7 @@ fi
 #
 # Perform transfer
 #
-scp -r $xdd_repo_path $remote_host:$remote_test_path
+scp -r $xdd_repo_path $remote_user@$remote_host:$remote_test_path
 rc=$?
 if [ $rc -ne 0 ]; then
    echo "Error transferring repo: $rc"
@@ -45,7 +47,7 @@ fi
 #
 # Kickoff the nightly build and test on $remote_host
 #
-ssh $remote_host bash 2>&1 >/dev/null <<EOF
+ssh -l $remote_user $remote_host bash 2>&1 >/dev/null <<EOF
 git archive --format=tar --prefix=xdd/ --remote=/nightly/xdd/repo/xdd.git master |tar xf -  xdd/contrib/xdd_nightly_build_and_test.sh
 xdd/contrib/xdd_nightly_build_and_test.sh &
 EOF
