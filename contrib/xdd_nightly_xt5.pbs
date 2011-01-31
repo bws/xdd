@@ -13,6 +13,13 @@ remote_host=natureboy.ornl.gov
 remote_test_path=/nightly/xdd/repo
 
 #
+# Print out some diagnostics
+#
+echo "PWD: $PWD"
+echo "Test slave: $remote_host"
+echo "Test slave path: $remote_test_path"
+
+#
 # Cleanup anything on the remote machine
 #
 ssh $remote_host bash -x << EOF
