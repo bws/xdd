@@ -68,11 +68,6 @@ INSTALL_RC=$?
 # Run the nightly tests
 #
 export PATH=$install_dir/bin:$PATH
-if [ "$(which xdd)" != "$install_dir/bin/xdd" ]; then
-    echo "ERROR: Not using the nightly test version of XDD"
-    exit 1
-fi
-
 test_local_dir=$test_dir/local_src
 test_src_dir=$test_dir/nightly_src
 test_dest_dir=$test_dir/nightly_dest
@@ -81,10 +76,10 @@ mkdir -p $test_src_dir
 mkdir -p $test_dest_dir
 cd $test_dir
 cat >test_config <<EOF
-XDDTEST_XDD_EXE=xdd.Linux
-XDDTEST_XDDCP_EXE=xddcp
-XDDTEST_XDDFT_EXE=xddft
-XDDTEST_TESTS_DIR=$build_dir/tests
+XDDTEST_XDD_EXE=$install_dir/bin/xdd.Linux
+XDDTEST_XDDCP_EXE=$install_dir/bin/xddcp
+XDDTEST_XDDFT_EXE=$install_dir/bin/xddft
+XDDTEST_TESTS_DIR=$build_dir/xdd/tests
 XDDTEST_LOCAL_MOUNT=$test_local_dir
 XDDTEST_SOURCE_MOUNT=$test_src_dir
 XDDTEST_DEST_MOUNT=$test_dest_dir
