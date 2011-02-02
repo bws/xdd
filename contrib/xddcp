@@ -60,27 +60,27 @@ XDDCP_DEFAULT_NETWORK_SLEEP_SECS=4
 XDDCP_DEFAULT_XDD="xdd.$(/bin/uname)"
 
 # XDDCP Error Codes
-XDDCP_ERR_CODE_INVALID_ARGS=1
-XDDCP_ERR_CODE_INVALID_FORMAT=2
-XDDCP_ERR_CODE_XDD_NOT_FOUND=3
-XDDCP_ERR_CODE_QIP_NOT_FOUND=4
-XDDCP_ERR_CODE_INV_FLAGS=5
-XDDCP_ERR_CODE_SRC_XST=6
-XDDCP_ERR_CODE_INV_RST=7
-XDDCP_ERR_CODE_SSH_ERROR=8
-XDDCP_ERR_CODE_SSH_FAILURE=9
-XDDCP_ERR_CODE_SMALL_FILE=10
-XDDCP_ERR_CODE_XFER_SIZE=11
-XDDCP_ERR_CODE_VERSION_MATCH=12
-XDDCP_ERR_CODE_NO_REMOTE=13
-XDDCP_ERR_CODE_XFER_FAIL=14
-XDDCP_ERR_CODE_DEST_PORT=15
-XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO=16
-XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO=17
-XDDCP_ERR_CODE_DEST_DEV_FILE_SIZE=18
-XDDCP_ERR_CODE_DEST_DIR_NOT_XST=19
-XDDCP_ERR_CODE_DEST_DIR_NOT_WR=20
-XDDCP_ERR_CODE_DEST_TGT_NOT_WR=21
+XDDCP_ERR_CODE_INVALID_ARGS=101
+XDDCP_ERR_CODE_INVALID_FORMAT=102
+XDDCP_ERR_CODE_XDD_NOT_FOUND=103
+XDDCP_ERR_CODE_QIP_NOT_FOUND=104
+XDDCP_ERR_CODE_INV_FLAGS=105
+XDDCP_ERR_CODE_SRC_XST=106
+XDDCP_ERR_CODE_INV_RST=107
+XDDCP_ERR_CODE_SSH_ERROR=108
+XDDCP_ERR_CODE_SSH_FAILURE=109
+XDDCP_ERR_CODE_SMALL_FILE=110
+XDDCP_ERR_CODE_XFER_SIZE=111
+XDDCP_ERR_CODE_VERSION_MATCH=112
+XDDCP_ERR_CODE_NO_REMOTE=113
+XDDCP_ERR_CODE_XFER_FAIL=114
+XDDCP_ERR_CODE_DEST_PORT=115
+XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO=116
+XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO=117
+XDDCP_ERR_CODE_DEST_DEV_FILE_SIZE=118
+XDDCP_ERR_CODE_DEST_DIR_NOT_XST=119
+XDDCP_ERR_CODE_DEST_DIR_NOT_WR=120
+XDDCP_ERR_CODE_DEST_TGT_NOT_WR=121
 
 #
 # Global variables
@@ -89,12 +89,13 @@ g_xddcpXddVersion="-1"
 g_xddcpDestXddPid="-1"
 g_xddcpSrcXddPid="-1"
 g_xddcpResumeOffset="0"
+g_transferCount="0"
 
 
 #
 # Print out the usage information
 #
-function print_usage() {
+function print_usage {
     echo "xddcp [OPTIONS] source_file destination_host:destination_file [size]"
     echo ""
     echo "source_file       - complete /filepath/name for source file on source host"
@@ -104,26 +105,24 @@ function print_usage() {
     echo ""
     echo "OPTIONS: "
     echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
-    echo " -d		- Use direct I/O on the destination end"
+    echo " -d s|d|b	- Use direct I/O the end specified (s for source, d for dest, b for both)"
     echo " -f           - If ports are unavailable on destination, attempt to kill running XDD and retry"
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
-    echo " -o		- Ordered-mode, write data in serial order"
-#    echo " -r		- Copy sub-directories and contents recursively"
-    echo " -s		- Use direct I/O on the source end"
+    echo " -o s|d|b    	- Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
+    echo " -r		- Copy sub-directories and contents recursively"
     echo " -t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
     echo " -v		- Add verbose output to logs"
     echo " -w		- Add verbose output to logs and create a binary timestamp dump"
     #echo "-Y		- Force SSH to create psueo-terminal tty"
-    #echo "NOTE: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
     echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
 }
 
 #
 # Print out an appropriate error message and exit
 #
-function error_exit() {
+function error_exit {
     local errorCode=$1
 
     #trap "multilevel_exit_handler $errorCode" EXIT
@@ -134,7 +133,7 @@ function error_exit() {
 #
 # Print out an appropriate error message
 #
-function error_print() {
+function error_print {
     local errorCode=$1
     case $errorCode in
         $XDDCP_ERR_CODE_INVALID_ARGS) 
@@ -210,7 +209,7 @@ function error_print() {
 #
 # Handle trapped signals
 #
-function handle_signal_common() {
+function handle_signal_common {
     local signum=$1
 
     # Attempt to deliver the signal to XDD
@@ -232,7 +231,7 @@ function handle_signal_common() {
 # srcPath=""
 # parse_endpoint_spec $spec srcRemoteFlag srcUser srcHost srcPath
 #
-function parse_endpoint_spec() {
+function parse_endpoint_spec {
     local spec=$1
     local remoteFlagRef="$2"
     local remoteUserRef="$3"
@@ -275,13 +274,14 @@ function parse_endpoint_spec() {
 #
 # Sideffects: Sets the global XDDCP version identifier
 #
-function check_host_preconditions() {
+function check_host_preconditions {
 
     # Arguments
-    local sourceSideFilename=$1
-    local fileListFlag=$2
-    local fileSizeFlag=$3
-    local resumeFlag=$4
+    local sourceSideFilename=${1}
+    local fileListFlag=${2}
+    local fileSizeFlag=${3}
+    local resumeFlag=${4}
+    local recursiveFlag=${5}
 
     # Check for xdd.Linux binary
     type ${XDDCP_DEFAULT_XDD} &>/dev/null
@@ -298,20 +298,59 @@ function check_host_preconditions() {
     elif [ 1 -eq $fileListFlag -a 1 -eq $fileSizeFlag ]; then
         echo "INFO: -F option does not take an argument" >/dev/stderr
         error_exit $XDDCP_ERR_CODE_INV_FLAGS
+    elif [ 1 -eq $fileListFlag -a 1 -eq $recursiveFlag ]; then
+        echo "INFO: -F and -r flags cannot both be specified" >/dev/stderr
+        error_exit $XDDCP_ERR_CODE_INV_FLAGS
+    elif [ 1 -eq $recursiveFlag -a 1 -eq $fileSizeFlag ]; then
+        echo "INFO: -r option does not take an argument" >/dev/stderr
+        error_exit $XDDCP_ERR_CODE_INV_FLAGS
     fi
+}
 
-    # Ensure source side file list filename exists
+#
+# Check preconditions for the file list transfer
+#
+function check_file_list_preconditions {
+
+    # Arguments
+    local sourceSideFilename=$1
+    local fileSizeFlag=$3
+    local resumeFlag=$4
+
+    # Ensure source side file list filename exists and is readable
     if [ 1 -eq $fileListFlag -a ! -r "${sourceSideFilename}" ]; then
 	echo "INFO: Cannot read ${sourceSideFilename}" >/dev/stderr
 	error_exit $XDDCP_ERR_CODE_SRC_XST
     fi
 }
 
+#
+# Check preconditions for a recursive transfer
+#
+function check_recursive_preconditions {
+
+    # Arguments
+    local sourceSidePath=$1
+    local fileSizeFlag=$3
+    local resumeFlag=$4
+
+    # If source side name is a file, ensure its readable
+    # if it is a directory, is readable and searchable
+    if [ -f "${sourceSidePath}" -a ! -r "${sourceSidePath}" ]; then
+	echo "INFO: Cannot read ${sourceSidePath}" >/dev/stderr
+	error_exit $XDDCP_ERR_CODE_SRC_XST
+    elif [ -d "${sourceSidePath}" ]; then
+	if [ ! -r "${sourceSidePath}" -o ! -x "${sourceSidePath}" ]; then
+	    echo "INFO: Cannot read/search ${sourceSidePath}" >/dev/stderr
+	    error_exit $XDDCP_ERR_CODE_SRC_XST
+	fi
+    fi
+}
 
 #
 # Check preconditions for the transfer
 #
-function check_transfer_preconditions() {
+function check_transfer_preconditions {
 
     # Arguments
     local sourceSideFilename=$1
@@ -365,7 +404,7 @@ function check_transfer_preconditions() {
 #
 # Execute xdd commands locally
 #
-function local_exec() {
+function local_exec {
     local cmds="$1"
     /bin/bash <<EOF
 $cmds
@@ -381,7 +420,7 @@ EOF
 #
 # Execute xdd commands on remote host
 #
-function remote_exec() {
+function remote_exec {
     #echo "remote_exec Args: $@" >/dev/stderr
     local cmds="$1"
     local remoteHost="$2"
@@ -419,7 +458,7 @@ EOF
 #
 # Return the file size
 #
-function get_file_size() {
+function get_file_size {
     #echo "get_file_size Args: $@" >/dev/stderr
     local filename=$1
     local remoteFlag=$2
@@ -437,13 +476,13 @@ function get_file_size() {
 #
 # Return the destination side program
 #
-function get_destination_cmds() {
+function get_destination_cmds {
     #echo "get_destination_cmds Args: $@" >/dev/stderr
     local destHost=${1}
     local destIfaces=${2}
     local destIfaceThreads=${3}
     local srcFile=${4}
-    local destFile=${5}
+    local destPath=${5}
     local totalBytes=${6}
     local e2ePort=${7}
     local dioFlag=${8}
@@ -464,9 +503,6 @@ function get_destination_cmds() {
 
     # Other variables
     local srcBase=$(/bin/basename $srcFile)
-    local destBase=$(/bin/basename $destFile)
-    local destDirname=$(dirname $destFile)
-    local destLog="xdd.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
     local destQD="-queuedepth ${queueDepth}"
 
     # Construct the e2e destinations
@@ -570,18 +606,27 @@ if [ 1 -eq \$port_conflict ]; then
     done
 fi
 
+# If the supplied destination is a directory, append the source file name
+destination_file=$destPath
+destination_base=\$(basename $destPath)
+destination_dir=\$(dirname $destPath)
+if [ -d $destPath ]; then
+    destination_file=$destPath/$srcBase
+    destination_base=$srcBase
+    destination_dir=$destPath
+fi
+
 # If the filename uses a relative path, path complement it
-path_char=\$(dirname $destFile |cut -c 1)
+path_char=\$(dirname \$destination_file |cut -c 1)
 if [ "." == \$path_char ]; then
     default_dir=\$(/bin/pwd)
-    destination_dir="\${default_dir}/${destDirname}"
-    destination_file="\${default_dir}/${destFile}"
-    destination_log="\${default_dir}/${destLog}"
-else
-    destination_dir="${destDirname}"
-    destination_file="${destFile}"
-    destination_log="\${destination_dir}/${destLog}"
+    destination_dir="\${default_dir}/${destination_dir}"
+    destination_file="\${default_dir}/${destination_file}"
 fi
+
+# Create the log file name
+destination_log_base="xdd.${destHost}.\${destination_base}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+destination_log="\${destination_dir}/\${destination_log_base}"
 
 # Ensure destination is writable
 if [ ! -d \$destination_dir ]; then
@@ -604,10 +649,10 @@ if [ 1 == $resumeFlag ]; then
     fi
 
     # Create the name for a new restart cookie
-    restart_logfile="\${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}.rst"
+    restart_logfile="\${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.\${destination_base}.${XDDCP_DEFAULT_TIMESTAMP}.rst"
 
     # Check for the existence a restart cookie
-    most_recent_restart_cookie=\$(/bin/ls \${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.${destBase}.*.rst 2>/dev/null |tail -1)
+    most_recent_restart_cookie=\$(/bin/ls \${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.${destination_base}.*.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
        destination_restart="-restart file \${restart_logfile} -restart enable"
@@ -621,7 +666,7 @@ if [ ! -w \$destination_dir -a -e \$destination_log -a ! -w \$destination_log ];
     echo "Logfile already exists and is not writable: \$destination_log" 
     exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
 elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
-    home_dir_log="./${destLog}"
+    home_dir_log="./${destination_log_base}"
     if [ ! -w "./" ]; then
         echo "Could not create log file as \$destination_log or as \$home_dir_log"
         exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
@@ -639,7 +684,7 @@ if [ -e \$destination_file ]; then
 fi
 
 # XDD Command
-xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -verbose > \${destination_log}"
+xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror -verbose > \${destination_log}"
 
 # Log XDD Command
 #if [ 1 -eq $verboseFlag ]; then
@@ -661,7 +706,7 @@ EOF
 #
 # Return the source side program
 #
-function get_source_cmds() {
+function get_source_cmds {
     #echo "get_source_cmds Args: $@" >/dev/stderr
     local destIfaces=${1}
     local srcFile=${2}
@@ -761,7 +806,7 @@ fi
 # Add the command to the log file
 src_log="xdd.\$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
 
-xdd_cmd="${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct"
+xdd_cmd="${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
 echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
 
 # Construct local transport endpoint
@@ -774,7 +819,40 @@ fi
 EOF
 }
 
-function start_destination_xdd() {
+#
+# Create a directory on the destination side
+#
+function create_destination_directory {
+    local destPath=${1}
+    local remoteFlag=${2}
+    local destHost=${3}
+    local destUser=${4}
+
+    # Create destination commands
+    local destCmds="mkdir $destPath"
+
+    # Execute destination side directory creation
+    local destResult=""
+    local execRC=1
+    if [ 1 -eq ${remoteFlag} ]; then
+        destResult=$(remote_exec "${destCmds}" "${destHost}" "${destUser}")
+        execRC=$?
+    else
+        destResult=$(local_exec "${destCmds}")
+        execRC=$?
+    fi
+
+    # Error handling
+    if [ 0 -ne $execRC ]; then
+        exit $execRC
+    fi
+    return 0
+}
+
+#
+# Start XDD on the destination side
+#
+function start_destination_xdd {
     #echo "start_destination_xdd Args: $@" >/dev/stderr
     local srcPath=${1}
     local destPath=${2}
@@ -792,7 +870,7 @@ function start_destination_xdd() {
     local destUser=${14}
     local destIfaces=${15}
 
-    # Get source commands
+    # Get destination commands
     local execRC=1
     local destResult=""
     local destCmds=$(get_destination_cmds "$destHost" "$destIfaces" \
@@ -826,7 +904,10 @@ function start_destination_xdd() {
     return 0
 }
 
-function start_source_xdd() {
+#
+# Start XDD on the source side
+#
+function start_source_xdd {
     #echo "start_source_xdd Args: $@" >/dev/stderr
     local path=${1}
     local totalBytes=${2}
@@ -868,9 +949,251 @@ function start_source_xdd() {
 }
 
 #
+# Perform transfer when the source spec is a file containing a list of files
+#
+function transfer_file_list {
+    local srcFileList=${1}
+    local srcHost=${2}
+    local srcUser=${3}
+    local srcRemoteFlag=${4}
+    local srcDIOFlag=${5}
+    local srcOrderedFlag=${6}
+    local destFileSpec=${7}
+    local destHost=${8}
+    local destUser=${9}
+    local destRemoteFlag=${10}
+    local destDIOFlag=${11}
+    local destOrderedFlag=${12}
+    local totalBytes=${13}
+    local queueDepth=${14}
+    local e2ePort=${15}
+    local fileSizeFlag=${16}
+    local forceFlag=${17}
+    local resumeFlag=${18}
+    local verboseFlag=${19}
+    local binaryDumpFlag=${20}
+
+    # Perform precondition checks for file list transfers
+    check_file_list_preconditions "${srcFileList}" "1" "${fileSizeFlag}" \
+	"${resumeFlag}"
+    rc=$?
+    if [ 0 -ne $rc ]; then
+	error_exit $rc
+    fi
+
+    # Get all of the source specs and path complement
+    local srcFileSpecDir=$(dirname ${srcFileList})
+    local fileNames=""
+    for name in $(/bin/cat ${srcFileList}); do
+	local pathChar=$(dirname $name |cut -c 1)
+	if [ "." == "$pathChar" ]; then
+	    fileNames="${srcFileSpecDir}/${name} $fileNames"
+	else
+	    fileNames="$name $fileNames"
+	fi
+    done
+
+    # Set the path modified file names as the source specs
+    srcFileSpecList="$fileNames"
+    
+    # Process all source file specs
+    for srcFileSpec in ${srcFileSpecList}; do
+
+	# Modify the destination path for file list transfers
+	local srcFileName=$(basename ${srcFileSpec})
+	destFileSpec=${destPath}/${srcFileName}
+
+        # Parse the source side spec
+        srcRemoteFlag=0
+
+	# If we are performing multiple transfers, need to wait for the destination side to hang up
+	if [ 0 -ne $g_transferCount ]; then
+	    sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
+	fi
+
+	#Transfer the file
+	transfer_file "${srcFileSpec}" "${srcHost}" "${srcUser}" \
+	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+	    "${destFileSpec}" "${destHost}" "${destUser}" \
+	    "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
+	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+	    "${verboseFlag}" "${binaryDumpFlag}"
+	    
+	rc=$?
+
+	if [ 0 -ne $rc ]; then
+	    echo "INFO: Failure while transferring ${srcFileSpec} to ${destFileSpec}"
+            error_exit $rc
+	fi
+    done
+    return 0
+}
+
+#
+# Perform transfer when the source spec is a recursive path
+#
+function transfer_recursive_path {
+    local srcPath=${1}
+    local srcHost=${2}
+    local srcUser=${3}
+    local srcRemoteFlag=${4}
+    local srcDIOFlag=${5}
+    local srcOrderedFlag=${6}
+    local destPath=${7}
+    local destHost=${8}
+    local destUser=${9}
+    local destRemoteFlag=${10}
+    local destDIOFlag=${11}
+    local destOrderedFlag=${12}
+    local totalBytes=${13}
+    local queueDepth=${14}
+    local e2ePort=${15}
+    local fileSizeFlag=${16}
+    local forceFlag=${17}
+    local resumeFlag=${18}
+    local verboseFlag=${19}
+    local binaryDumpFlag=${20}
+
+    # Perform precondition checks for file list transfers
+    check_file_list_preconditions "${srcFileList}" "1" "${fileSizeFlag}" \
+	"${resumeFlag}"
+    rc=$?
+    if [ 0 -ne $rc ]; then
+	error_exit $rc
+    fi
+
+    # If the source is a directory, create it on the destination
+    if [ -d "$srcPath" ]; then
+	# Determine the corresponding destination name for the source name
+	# Modify the destination path for file list transfers
+	local srcName=$(/bin/basename $srcPath)
+	local destFileSpec=${destPath}/${srcName}
+	create_destination_directory "${destFileSpec}" "${destRemoteFlag}" "${destHost}" "${destUser}"
+	rc=$?
+	if [ 0 -ne $rc ]; then
+	    echo "INFO: Failure while creating directory ${destFileSpec}"
+	    error_exit $rc
+	fi
+    fi
+
+    # Get names from source spec, if its a directory, transfer its contents recursively
+    # Otherwise, just transfer the file and end
+    for entry in $(/bin/ls $srcPath); do
+	local srcFileSpec=$srcPath/$entry
+	local destFileSpec=$destPath/$(basename $srcPath)
+	if [ -d "$srcFileSpec" ]; then
+	    transfer_recursive_path "${srcFileSpec}" "${srcHost}" "${srcUser}" \
+		"${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+		"${destFileSpec}" "${destHost}" "${destUser}" \
+		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
+		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+		"${verboseFlag}" "${binaryDumpFlag}"
+	else
+	    # If we are performing multiple transfers, need to wait for the destination side to hang up
+	    if [ 0 -ne $g_transferCount ]; then
+		sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
+	    fi
+
+	    #local destFileSpec=$destPath/$(basename $entry)
+	    transfer_file "${srcFileSpec}" "${srcHost}" "${srcUser}" \
+		"${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+		"${destFileSpec}" "${destHost}" "${destUser}" \
+		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
+		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+		"${verboseFlag}" "${binaryDumpFlag}"
+
+	    rc=$?
+	    if [ 0 -ne $rc ]; then
+		echo "INFO: Failure while transferring ${srcFileSpec} to ${destFileSpec}"
+		error_exit $rc
+	    fi
+	fi
+    done
+    return 0
+}
+
+#
+# Perform transfer for a single file
+#
+function transfer_file {
+    local srcFileSpec=${1}
+    local srcHost=${2}
+    local srcUser=${3}
+    local srcRemoteFlag=${4}
+    local srcDIOFlag=${5}
+    local srcOrderedFlag=${6}
+    local destFileSpec=${7}
+    local destHost=${8}
+    local destUser=${9}
+    local destRemoteFlag=${10}
+    local destDIOFlag=${11}
+    local destOrderedFlag=${12}
+    local totalBytes=${13}
+    local queueDepth=${14}
+    local e2ePort=${15}
+    local fileSizeFlag=${16}
+    local forceFlag=${17}
+    local resumeFlag=${18}
+    local verboseFlag=${19}
+    local binaryDumpFlag=${20}
+
+    # Check the transfer preconditions
+    check_transfer_preconditions "${srcFileSpec}" "${destFileSpec}" \
+	"${srcRemoteFlag}" "${destRemoteFlag}" "${srcDIOFlag}" "${destDIOFlag}" \
+	"${fileSizeFlag}" "${totalBytes}"
+
+    # Determine the source file size
+    if [ 0 -eq $fileSizeFlag ]; then
+        totalBytes=$(get_file_size ${srcFileSpec} \
+            ${srcRemoteFlag} ${srcHost} ${srcUser})
+    fi
+
+    # Ensure the source file is large enough
+    if [ "$XDDCP_DEFAULT_XFER_SIZE" -gt "$totalBytes" ]; then
+        echo "INFO: $srcPath file size is $totalBytes bytes" >/dev/stderr
+        error_exit $XDDCP_ERR_CODE_SMALL_FILE
+    fi
+
+    # Hard code the recursive flag
+    recursiveFlag=0
+
+    # Start destination-side XDD (also sets resume offset if needed)
+    start_destination_xdd "${srcFileSpec}" "${destFileSpec}" "${totalBytes}" \
+        "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
+        "${destOrderedFlag}" "${recursiveFlag}" "${resumeFlag}" "${verboseFlag}" \
+	"${destRemoteFlag}" "${destHost}" "${destUser}" "${destHost}"
+    rc=$?
+    if [ 0 -ne $rc ]; then
+        error_exit $rc
+    fi
+ 
+    # Wait to ensure the destination side has setup network and accepting
+    sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
+
+    # Start source-side XDD
+    start_source_xdd "${srcFileSpec}" "${totalBytes}" \
+        "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
+        "${srcOrderedFlag}" "${resumeFlag}" "${verboseFlag}" \
+        "${g_xddcpResumeOffset}" "${destHost}" \
+        "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
+    rc=$?
+    if [ 0 -ne $rc ]; then
+        error_exit $rc
+    fi
+
+    # Increment the number of transfers
+    g_transferCount=$((g_transferCount+1))
+
+    return 0
+}
+
+#
 # XDDCP Main
 #
-function xddcp_main() {
+function xddcp_main {
     #echo "main Args: $@"
     #
     # Install necessary signal handlers
@@ -895,20 +1218,21 @@ function xddcp_main() {
 
     # Parse options
     destDIOFlag=0
+    destOrderedFlag=0
     e2ePort=$XDDCP_DEFAULT_E2E_PORT
     fileListFlag=0
     fileListFile=""
     forceFlag=0
-    orderedFlag=0
     queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
     recursiveFlag=0
     resumeFlag=0
     srcDIOFlag=0
+    srcOrderedFlag=0
     sshOption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
     verboseFlag=0
     binaryDumpFlag=0
 
-    while getopts ":FYadfhp:orst:vw" option; do
+    while getopts ":FYad:fhp:o:rst:vw" option; do
         case $option in
             F) 
                 fileListFlag=1
@@ -921,7 +1245,17 @@ function xddcp_main() {
                 resumeFlag=1
                 ;;
 	    d) 
-                destDIOFlag=1
+		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then
+                    destDIOFlag=1
+		elif [ "$OPTARG" = "source" -o "$OPTARG" = "s" ]; then
+		    srcDIOFlag=1
+		elif [ "$OPTARG" = "both" -o "$OPTARG" = "b" -o "$OPTARG" = "sd" ]; then
+		    destDIOFlag=1
+		    srcDIOFlag=1
+		else
+                    echo "INFO: Unsupported dio argument: -$option $OPTARG" >/dev/stderr 
+                    error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+		fi
                 ;;
 	    f) 
                 forceFlag=1
@@ -935,18 +1269,23 @@ function xddcp_main() {
                 return 0
                 ;;
             o) 
-                orderedFlag=1
+		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then
+                    destOrderedFlag=1
+		elif [ "$OPTARG" = "source" -o "$OPTARG" = "s" ]; then
+		    srcOrderedFlag=1
+		elif [ "$OPTARG" = "both" -o "$OPTARG" = "b" -o "$OPTARG" = "sd" ]; then
+		    destOrderedFlag=1
+		    srcOrderedFlag=1
+		else
+                    echo "INFO: Unsupported dio argument: -$option $OPTARG" >/dev/stderr 
+                    error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+		fi
                 ;;
             p) 
                 e2ePort=$OPTARG
                 ;;
 	    r) 
                 recursiveFlag=1
-                echo "INFO: Unsupported option: -$OPTARG" >/dev/stderr 
-                error_exit $XDDCP_ERR_CODE_INVALID_ARGS
-                ;;
-	    s) 
-                srcDIOFlag=1
                 ;;
 	    t) 
                 queueDepth=$OPTARG
@@ -959,15 +1298,16 @@ function xddcp_main() {
 		binaryDumpFlag=1
                 ;;
             \?)
-                echo "INFO: Unsupported option: -$OPTARG" >/dev/stderr 
+                echo "INFO: Unsupported option: -$option $OPTARG" >/dev/stderr 
                 error_exit $XDDCP_ERR_CODE_INVALID_ARGS
                 ;;
         esac
     done
     shift $((OPTIND-1))
 
-    # Handle a set of input files
-    srcFileSpecList="${1}"
+    # Get the source path
+    srcPath="${1}"
+    srcRemoteFlag=0
 
     # Parse the destination endpoint spec
     destRemoteFlag=0
@@ -982,85 +1322,45 @@ function xddcp_main() {
     fi
 
     # Ensure local option preconditions are met
-    check_host_preconditions ${srcFileSpecList} ${fileListFlag} \
-        ${fileSizeFlag} ${resumeFlag}
+    check_host_preconditions ${srcPath} ${fileListFlag} ${fileSizeFlag} \
+	${recursiveFlag} ${resumeFlag}
 
-    # If using the file list, get all of the source specs and path complement
+    # Transfer according to source input type
+    rc=0
     if [ 1 -eq $fileListFlag ]; then
-	local srcFileSpecDir=$(dirname ${srcFileSpecList})
-	local fileNames=""
-	for name in $(/bin/cat ${srcFileSpecList}); do
-	    local pathChar=$(dirname $name |cut -c 1)
-	    if [ "." == "$pathChar" ]; then
-		fileNames="${srcFileSpecDir}/${name} $fileNames"
-	    else
-		fileNames="$name $fileNames"
-	    fi
-	done
-
-	# Set the path modified file names as the source specs
-	srcFileSpecList="$fileNames"
+	transfer_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
+	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+	    "${destPath}" "${destHost}" "${destUser}" \
+	    "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
+	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+	    "${verboseFlag}" "${binaryDumpFlag}"
+	rc=$?
+    elif [ 1 -eq $recursiveFlag ]; then
+	transfer_recursive_path "${srcPath}" "${srcHost}" "${srcUser}"\
+	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+	    "${destPath}" "${destHost}" "${destUser}" \
+	    "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
+	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+	    "${verboseFlag}" "${binaryDumpFlag}"
+	rc=$?
+    else
+	transfer_file "${srcPath}" "${srcHost}" "${srcUser}"\
+	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+	    "${destPath}" "${destHost}" "${destUser}" \
+	    "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
+	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+	    "${verboseFlag}" "${binaryDumpFlag}"
+	rc=$?
     fi
 
-    # Process all source file specs
-    for srcFileSpec in ${srcFileSpecList}; do
-
-	# Modify the destination path for file list transfers
-	local destFileSpec=$destPath
-	if [ 1 -eq ${fileListFlag} ]; then
-	    local srcFileName=$(basename ${srcFileSpec})
-	    destFileSpec=${destPath}/${srcFileName}
-	fi
-
-        # Parse the source side spec
-        srcRemoteFlag=0
-        parse_endpoint_spec ${srcFileSpec} srcRemoteFlag srcUser srcHost srcPath
-
-	# Check the transfer preconditions
-	check_transfer_preconditions "${srcFileSpec}" "${destFileSpec}" \
-	    "${srcRemoteFlag}" "${destRemoteFlag}" "${srcDIOFlag}" "${destDIOFlag}" \
-	    "${fileSizeFlag}" "${totalBytes}"
-
-        # Determine the source file size
-        if [ 0 -eq $fileSizeFlag ]; then
-            totalBytes=$(get_file_size ${srcFileSpec} \
-                ${srcRemoteFlag} ${srcHost} ${srcUser})
-        fi
-
-        # Ensure the source file is large enough
-        if [ "$XDDCP_DEFAULT_XFER_SIZE" -gt "$totalBytes" ]; then
-            echo "INFO: $srcPath file size is $totalBytes bytes" >/dev/stderr
-            error_exit $XDDCP_ERR_CODE_SMALL_FILE
-        fi
-
-        # Start destination-side XDD (also sets resume offset if needed)
-        start_destination_xdd "${srcFileSpec}" "${destFileSpec}" "${totalBytes}" \
-            "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
-            "${orderedFlag}" "${recursiveFlag}" "${resumeFlag}" "${verboseFlag}" \
-	    "${destRemoteFlag}" "${destHost}" "${destUser}" "${destHost}"
-        rc=$?
-        if [ 0 -ne $rc ]; then
-           error_exit $rc
-        fi
- 
-        # Wait to ensure the destination side has setup network and accepting
-        sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
-
-        # Start source-side XDD
-        start_source_xdd "${srcFileSpec}" "${totalBytes}" \
-            "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
-            "${orderedFlag}" "${resumeFlag}" "${verboseFlag}" \
-            "${g_xddcpResumeOffset}" "${destHost}" \
-            "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
-        rc=$?
-        if [ 0 -ne $rc ]; then
-            error_exit $rc
-        fi
-
-        echo ""
-        echo "Transfer complete.  Verify results with md5sum."
-    done
-    return 0
+    if [ 0 -eq $rc ]; then
+	echo ""
+	echo "Transfer complete.  Verify results with md5sum."
+    fi
+    return $rc
 }
 
 #
