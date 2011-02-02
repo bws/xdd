@@ -304,6 +304,9 @@ function check_host_preconditions {
     elif [ 1 -eq $recursiveFlag -a 1 -eq $fileSizeFlag ]; then
         echo "INFO: -r option does not take an argument" >/dev/stderr
         error_exit $XDDCP_ERR_CODE_INV_FLAGS
+    elif [ 1 -eq $recursiveFlag -a 1 -eq $resumeFlag ]; then
+        echo "INFO: -r and -a flags cannot both be specified" >/dev/stderr
+        error_exit $XDDCP_ERR_CODE_INV_FLAGS
     fi
 }
 
@@ -491,6 +494,7 @@ function get_destination_cmds {
     local recursionFlag=${11}
     local resumeFlag=${12}
     local verboseFlag=${13}
+    local binaryDumpFlag=${14}
 
     # Options that aren't yet settable
     local srcHost=$(/bin/hostname)
@@ -532,6 +536,11 @@ function get_destination_cmds {
     # Verbose option
     if [ 1 -eq $verboseFlag ]; then
         local verboseOpt="-ts detailed -ts output e2e"
+    fi
+
+    # binary timestamp dump
+    if [ 1 -eq $binaryDumpFlag ]; then
+        local binaryDumpOpt="-ts dump xdd.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}"
     fi
     
     cat <<EOF
@@ -684,7 +693,7 @@ if [ -e \$destination_file ]; then
 fi
 
 # XDD Command
-xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror -verbose > \${destination_log}"
+xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror -verbose > \${destination_log}"
 
 # Log XDD Command
 #if [ 1 -eq $verboseFlag ]; then
@@ -717,7 +726,8 @@ function get_source_cmds {
     local serialOrderedFlag=${7}
     local resumeFlag=${8}
     local verboseFlag=${9}
-    local resumeOffset=${10}
+    local binaryDumpFlag=${10}
+    local resumeOffset=${11}
 
     # Construct XDD transfer settings
     let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
@@ -773,6 +783,11 @@ function get_source_cmds {
     if [ 1 -eq $verboseFlag ]; then
         local verboseOpt="-ts detailed -ts output e2e"
     fi
+
+    # binary timestamp dump option
+    if [ 1 -eq $binaryDumpFlag ]; then
+        local binaryDumpOpt="-ts dump xdd.$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}"
+    fi
     
     # Determine if output can be sent to log file
     local srcOutput="-output ${srcLog}"
@@ -806,7 +821,7 @@ fi
 # Add the command to the log file
 src_log="xdd.\$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
 
-xdd_cmd="${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
+xdd_cmd="${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
 echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
 
 # Construct local transport endpoint
@@ -865,10 +880,11 @@ function start_destination_xdd {
     local recursionFlag=${9}
     local resumeFlag=${10}
     local verboseFlag=${11}
-    local remoteFlag=${12}
-    local destHost=${13}
-    local destUser=${14}
-    local destIfaces=${15}
+    local binaryDumpFlag=${12}
+    local remoteFlag=${13}
+    local destHost=${14}
+    local destUser=${15}
+    local destIfaces=${16}
 
     # Get destination commands
     local execRC=1
@@ -876,7 +892,7 @@ function start_destination_xdd {
     local destCmds=$(get_destination_cmds "$destHost" "$destIfaces" \
         "$queueDepth" "$srcPath" "$destPath" \
         "$totalBytes" "$e2ePort" "$dioFlag" "$forceFlag" "$orderedFlag" \
-        "$recursionFlag" "$resumeFlag" "$verboseFlag")
+        "$recursionFlag" "$resumeFlag" "$verboseFlag" "$binaryDumpFlag")
     execRC=$?
     if [ 0 -ne $execRC ]; then
         exit $execRC
@@ -917,17 +933,18 @@ function start_source_xdd {
     local orderedFlag=${6}
     local resumeFlag=${7}
     local verboseFlag=${8}
-    local resumeOffset=${9}
-    local destHost=${10}
-    local remoteFlag=${11}
-    local srcHost=${12}
-    local srcUser=${13}
+    local binaryDumpFlag=${9}
+    local resumeOffset=${10}
+    local destHost=${11}
+    local remoteFlag=${12}
+    local srcHost=${13}
+    local srcUser=${14}
 
     # Get source commands
     local execRC=1
     srcCmds=$(get_source_cmds "${destHost}" "${path}" "${totalBytes}" \
 	"${queueDepth}" "${e2ePort}" "${dioFlag}" "${orderedFlag}" \
-	"${resumeFlag}" "${verboseFlag}" "${resumeOffset}")
+	"${resumeFlag}" "${verboseFlag}" "${binaryDumpFlag}" "${resumeOffset}")
     execRC=$?
     if [ 0 -ne $execRC ]; then
         exit $execRC
@@ -1163,7 +1180,8 @@ function transfer_file {
     # Start destination-side XDD (also sets resume offset if needed)
     start_destination_xdd "${srcFileSpec}" "${destFileSpec}" "${totalBytes}" \
         "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
-        "${destOrderedFlag}" "${recursiveFlag}" "${resumeFlag}" "${verboseFlag}" \
+        "${destOrderedFlag}" "${recursiveFlag}" "${resumeFlag}" \
+	"${verboseFlag}" "${binaryDumpFlag}" \
 	"${destRemoteFlag}" "${destHost}" "${destUser}" "${destHost}"
     rc=$?
     if [ 0 -ne $rc ]; then
@@ -1176,7 +1194,8 @@ function transfer_file {
     # Start source-side XDD
     start_source_xdd "${srcFileSpec}" "${totalBytes}" \
         "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
-        "${srcOrderedFlag}" "${resumeFlag}" "${verboseFlag}" \
+        "${srcOrderedFlag}" "${resumeFlag}" \
+	"${verboseFlag}" "${binaryDumpFlag}" \
         "${g_xddcpResumeOffset}" "${destHost}" \
         "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
     rc=$?
