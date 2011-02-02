@@ -2,6 +2,17 @@
 XDD Release ChangeLog
 -----------------------
 
+xdd-7.0.0 RC19
+==============
+* XDDCP: Add support for recursive copies.
+* XDDCP: Change direct I/O and ordering options so that they can
+	can be specified on source, destination, or both.  The way
+	to invoke is xddcp -d s|d|b, where s enables source DIO,
+	d enabled destination DIO, and b enables DIO on both ends.
+	Alternative spellings are also enabled: source, dest, both,
+	and sd can also be used to specify the relevant ends to
+	configure.
+
 xdd-7.0.0 RC18
 ==============
 * XDD: Add in configure check for sched_getcpu() support.
