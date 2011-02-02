@@ -449,6 +449,7 @@ function xddmcp_start_destinations() {
 	local recursionFlag=0
 	local resumeFlag=0
 	local verboseFlag=0
+	local binaryDumpFlag=0
 	local remoteFlag=1
 
 	# Just use the current userid
@@ -457,7 +458,7 @@ function xddmcp_start_destinations() {
         echo "Start dest: $destHost $destIfaces $destIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
 	start_destination_xdd "$srcPath" "$destPath" "$rankPartSize" \
            "$destIfaceThreads" "40010" "$dioFlag" "$forceFlag" "$orderedFlag" \
-           "$recursionFlag" "$resumeFlag" "$verboseFlag" "$remoteFlag" \
+           "$recursionFlag" "$resumeFlag" "$verboseFlag" "$binaryDumpFlag" "$remoteFlag" \
            "$destHost" "${user}" "$destIfaces"
     done
 }
@@ -492,6 +493,7 @@ function xddmcp_start_sources() {
 	local orderedFlag=0
 	local resumeFlag=0
 	local verboseFlag=0
+	local binaryDumpFlag=0
 	local remoteFlag=1
 
 	# Just use the current userid
@@ -499,7 +501,7 @@ function xddmcp_start_sources() {
 
         echo "Start source: $srcHost $srcIfaces $srcIfaceThreads $dioFlag $orderId $rankOffset $rankPartSize"
 	start_source_xdd "${srcPath}" "${rankPartSize}" "${srcIfaceThreads}" \
-            40010 "${dioFlag}" "${orderedFlag}" "${resumeFlag}" "${verboseFlag}" \
+            40010 "${dioFlag}" "${orderedFlag}" "${resumeFlag}" "${verboseFlag}" "${binaryDumpFlag}" \
             "${rankOffset}" "${destIfaces}" "${remoteFlag}" "${srcHost}" \
             "${user}" "${srcIfaces}" &
     done
@@ -531,6 +533,7 @@ function xddmcp_main() {
     local configFile=""
     local resumeFlag=0
     local verboseFlag=0
+    local binaryDumpFlag=0
 
     while getopts ":ac:hv" option; do
         case $option in
