@@ -94,7 +94,6 @@ TEST_RC=$?
 # Mail the results of the build and test to durmstrang-io
 #
 rcpt="durmstrang-io@email.ornl.gov"
-rcpt="settlemyerbw@ornl.gov"
 if [ 0 -eq $BUILD_RC -a 0 -eq $CONFIG_RC -a 0 -eq $INSTALL_RC -a 0 -eq $TEST_RC ]; then
     mail -s "SUCCESS - Nightly build and test for $datestamp" "$rcpt" <<EOF
 Everything completed successfully as far as I can tell.

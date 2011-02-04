@@ -37,7 +37,7 @@ fi
 #
 # Perform transfer
 #
-scp -r $xdd_repo_path $remote_user@$remote_host:$remote_test_path
+scp -rCq $xdd_repo_path $remote_user@$remote_host:$remote_test_path
 rc=$?
 if [ $rc -ne 0 ]; then
    echo "Error transferring repo: $rc"
@@ -47,9 +47,9 @@ fi
 #
 # Kickoff the nightly build and test on $remote_host
 #
-ssh -l $remote_user $remote_host bash 2>&1 >/dev/null <<EOF
+ssh -l $remote_user $remote_host bash <<EOF
 git archive --format=tar --prefix=xdd/ --remote=/nightly/xdd/repo/xdd.git master |tar xf -  xdd/contrib/xdd_nightly_build_and_test.sh
-xdd/contrib/xdd_nightly_build_and_test.sh &
+xdd/contrib/xdd_nightly_build_and_test.sh >/dev/null 2>&1 &
 EOF
 
 #
