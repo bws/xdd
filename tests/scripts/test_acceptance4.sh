@@ -39,9 +39,9 @@ rm -rf $test_dir
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance Test 3 - -runtime termintated XDD: PASSED."
+  echo "Acceptance Test 4 - -runtime termintated XDD: PASSED."
   exit 0
 else
-  echo "Acceptance Test 3 - -runtime failed to terminate XDD: FAILED."
+  echo "Acceptance Test 4 - -runtime failed to terminate XDD: FAILED."
   exit 1
 fi
