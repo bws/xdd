@@ -3980,6 +3980,8 @@ xddfunc_timelimit(int32_t argc, char *argv[], uint32_t flags)
     int args, i; 
     int target_number;
     ptds_t *p;
+	double	time_limit;
+	pclk_t	time_limit_ticks;
 
     args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
@@ -3987,18 +3989,27 @@ xddfunc_timelimit(int32_t argc, char *argv[], uint32_t flags)
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
 
+	time_limit = atof(argv[args+1]);
+	if (time_limit <= 0.0) {
+		fprintf(xgp->errout,"%s: time limit of %f is not valid. The time limit must be a number of seconds greater than 0.00 but less than the remaining life of the sun.\n",xgp->progname,time_limit);
+		return(0);
+	}
+	time_limit_ticks = (pclk_t)(time_limit * TRILLION);
+
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
-		p->time_limit = atoi(argv[args+1]);
+		p->time_limit = time_limit;
+		p->time_limit_ticks = time_limit_ticks;
         return(args+2);
 	} else  { /* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
 			p = xgp->ptdsp[0];
 			i = 0;
 			while (p) {
-				p->time_limit = atoi(argv[args+1]);
+				p->time_limit = time_limit;
+				p->time_limit_ticks = time_limit_ticks;
 				i++;
 				p = xgp->ptdsp[i];
 			}

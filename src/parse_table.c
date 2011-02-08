@@ -722,7 +722,7 @@ xdd_func_t  xdd_func[] = {
     {"timelimit", "tl",
             xddfunc_timelimit,  
             1,  
-            "  -timelimit [target <target#>] <#seconds>\n",   
+            "  -timelimit [target <target#>] <#.#seconds>\n",   
             {"    Specifies the maximum number of seconds for each pass\n", 
             0,0,0,0},
 			0},

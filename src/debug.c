@@ -91,7 +91,7 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"report_threshold               %lld reporting threshold for long operations \n",(long long int)p->report_threshold);
 	fprintf(xgp->output,"reqsize                        %d number of *blocksize* byte blocks per operation for each target \n",p->reqsize);
 	fprintf(xgp->output,"retry_count                    %d number of retries to issue on an error \n",p->retry_count);
-	fprintf(xgp->output,"time_limit                     %d timelimit in seconds for each thread \n",p->time_limit);
+	fprintf(xgp->output,"time_limit                     %f timelimit in seconds for each thread \n",p->time_limit);
 	fprintf(xgp->output,"*target_directory             '%s' The target directory for the target \n",(p->target_directory != NULL)?p->target_directory:"NA");
 	fprintf(xgp->output,"*target_basename              '%s' devices to perform operation on \n",(p->target_basename != NULL)?p->target_basename:"NA");
 	fprintf(xgp->output,"*target_full_pathname         '%s' Fully qualified path name to the target device/file\n",(p->target_full_pathname != NULL)?p->target_full_pathname:"NA");

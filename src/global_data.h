@@ -108,8 +108,8 @@ struct xdd_global_data {
 	char			run_complete;   					/* Set to a 1 to indicate that all passes have completed */
 	char			deskew_ring;    					/* The alarm that goes off when the the first thread finishes */
 	char			abort;       						/* Abort the run due to some catastrophic failure */
-	char			random_initialized;     			/* Random number generator has been initialized */
 	char			canceled;       					/* Program canceled by user */
+	char			random_initialized;     			/* Random number generator has been initialized */
 	int 			e2e_TCP_Win;						/* TCP Window Size - used by e2e */
 	struct linger	e2e_SO_Linger;						/* Used by the SO_LINGER Socket Option - used by e2e */
 	struct sigaction sa;								/* Used by the signal handlers to determine what to do */

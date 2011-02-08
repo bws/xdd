@@ -61,8 +61,6 @@ xdd_syncio_before_io_op(ptds_t *p) {
  * 
  * This subroutine is called within the context of a Target Thread.
  *
- * Return Values: 0 is good
- *                -1 is bad
  */
 int32_t
 xdd_start_trigger_before_io_op(ptds_t *p) {
@@ -78,7 +76,6 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 		/* Enter the barrier and wait to be told to go */
 		xdd_barrier(&p->target_target_starttrigger_barrier,&p->occupant,1);
 		p->run_status = 1; /* indicate that we have been released */
-		return(-1);
 	}
 
 	/* Check to see if we need to signal some other target to start, stop, or pause.
@@ -121,6 +118,40 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 } // End of xdd_start_trigger_before_io_op()
 
 /*----------------------------------------------------------------------------*/
+/* xdd_timelimit_before_io_op() - This subroutine will check to see if the
+ * specified time limit for this pass has expired. 
+ * 
+ * This subroutine is called within the context of a Target Thread.
+ *
+ */
+int32_t
+xdd_timelimit_before_io_op(ptds_t *p) {
+	pclk_t	current_time;		// What time is it *now*?
+	pclk_t	elapsed_time;		// Elapsed time
+
+
+	/* Check to see if a time limit (in seconds) was specified.
+ 	* If so, then check to see if we have exceeded that amount of time and
+ 	* set the global variable "time_limit_expired". 
+    * Otherwise, return 0 and continue issuing I/Os.
+ 	*/
+	if (p->time_limit_ticks) { 
+		pclk_now(&current_time);
+		elapsed_time = current_time - p->my_pass_start_time;
+		if (elapsed_time >= p->time_limit_ticks) {
+			p->my_time_limit_expired = 1;
+			fprintf(xgp->output,"\n%s: xdd_timelimit_before_io_op: Target %d: Specified time limit of %f seconds exceeded.\n",
+		 		xgp->progname,
+			 	p->my_target_number,
+			 	p->time_limit);
+		}
+	}
+
+	return(0);
+
+} // End of xdd_timelimit_before_io_op()
+
+/*----------------------------------------------------------------------------*/
 /* xdd_target_ttd_before_io_op() - This subroutine will do all the stuff 
  * needed to be done by the Target Thread before a QThread is issued with 
  * an I/O task.
@@ -137,6 +168,9 @@ xdd_target_ttd_before_io_op(ptds_t *p) {
 
 	// Check to see if we need to wait for another target to trigger us to start.
 	xdd_start_trigger_before_io_op(p);
+
+	// Check to see if we need to wait for another target to trigger us to start.
+	status = xdd_timelimit_before_io_op(p);
 
 	// Lock Step Processing (located in lockstep.c)
 	status = xdd_lockstep_before_io_op(p);

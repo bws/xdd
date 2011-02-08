@@ -234,6 +234,8 @@ xdd_init_ptds_before_pass(ptds_t *p) {
 	p->my_shortest_write_op_time = PCLK_MAX;// Shortest write op time that occured during this pass
 	p->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
 
+	p->my_time_limit_expired = 0;		// The time limit expiration indicator
+
 } // End of xdd_init_ptds_before_pass()
  
 /*----------------------------------------------------------------------------*/

@@ -345,6 +345,7 @@ int32_t	xdd_target_ttd_after_pass(ptds_t *p);
 // target_ttd_before_io_op.c
 void	xdd_syncio_before_io_op(ptds_t *p);
 int32_t	xdd_start_trigger_before_io_op(ptds_t *p);
+int32_t	xdd_timelimit_before_io_op(ptds_t *p);
 int32_t	xdd_target_ttd_before_io_op(ptds_t *p);
 
 // target_ttd_before_pass.c

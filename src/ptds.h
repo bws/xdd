@@ -188,7 +188,8 @@ struct ptds {
 	pclk_t				report_threshold;		// reporting threshold for long operations 
 	int32_t				reqsize;  				// number of *blocksize* byte blocks per operation for each target 
 	int32_t				retry_count;  			// number of retries to issue on an error 
-	int32_t				time_limit;  			// timelimit in seconds for each thread 
+	double				time_limit;				// Time of a single pass in seconds
+	pclk_t				time_limit_ticks;		// Time of a single pass in high-res clock ticks
 	char				*target_directory; 		// The target directory for the target 
 	char				*target_basename; 		// Basename of the target/device
 	char				*target_full_pathname;	// Fully qualified path name to the target device/file
@@ -310,6 +311,14 @@ struct ptds {
 	pclk_t				my_accumulated_pattern_fill_time; // Accumulated time spent in data pattern fill before all I/O operations 
 	pclk_t				my_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
 	// Updated by the QThread at different times
+	char				my_time_limit_expired;		// Time limit expired indicator
+	char				available1;					// padding
+	char				available2;					// padding
+	char				available3;					// padding
+	char				available4;					// padding
+	char				available5;					// padding
+	char				available6;					// padding
+	char				available7;					// padding
 	int32_t				my_current_state;			// State of this thread at any given time (see Current State definitions below)
 	pthread_mutex_t 	my_current_state_mutex; 	// Mutex for locking when checking or updating the state info
 	// State Definitions for "my_current_state"

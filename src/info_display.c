@@ -204,7 +204,7 @@ xdd_options_info(FILE *out) {
 	fprintf(out, "Maximum Error Threshold, %lld\n", (long long)xgp->max_errors);
 	fprintf(out, "Target Offset, %lld\n",(long long)xgp->target_offset);
 	fprintf(out, "I/O Synchronization, %d\n", xgp->syncio);
-	fprintf(out, "Total run-time limit in seconds, %d\n", xgp->runtime);
+	fprintf(out, "Total run-time in seconds, %d\n", xgp->runtime);
 	// Print the heartbeat time and display options
 	fprintf(out, "Heartbeat %d ", xgp->heartbeat);
 	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
@@ -283,7 +283,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	else fprintf(out,"none\n");
 	fprintf(out,"\t\tThrottle in %s is, %6.2f\n",
 		(p->throttle_type & PTDS_THROTTLE_OPS)?"ops/sec":((p->throttle_type & PTDS_THROTTLE_BW)?"MB/sec":"Delay"), p->throttle);
-	fprintf(out,"\t\tPer-pass time limit in seconds, %d\n",p->time_limit);
+	fprintf(out,"\t\tPer-pass time limit in seconds, %f\n",p->time_limit);
 	fprintf(out,"\t\tPass seek randomization, %s", (p->target_options & TO_PASS_RANDOMIZE)?"enabled\n":"disabled\n");
 	fprintf(out,"\t\tFile write synchronization, %s", (p->target_options & TO_SYNCWRITE)?"enabled\n":"disabled\n");
 	fprintf(out,"\t\tBlocksize in bytes, %d\n", p->block_size);
