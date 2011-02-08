@@ -18,9 +18,9 @@ mkdir -p $test_dir
 # ReqSize 4096, Bytes 1GB, Targets 1, QueueDepth 4, Passes 1
 data_file=$test_dir/test
 # write a file
-$XDDTEST_XDD_EXE -op write -reqsize 4096 -mbytes    1024 -targets 1 $data_file -qd 4                -passes 1 -datapattern random 
+$XDDTEST_XDD_EXE -op write -reqsize 4096 -mbytes    1024 -targets 1 $data_file -qd 4                  -passes 1 -datapattern random 
 # now read forever, small random I/O  with a timelimit
-$XDDTEST_XDD_EXE -op read  -reqsize    1 -mbytes   16384 -targets 1 $data_file -qd 4 -timelimit 10  -passes 1 -seek random -seek range 1024 &
+$XDDTEST_XDD_EXE -op read  -reqsize    1 -mbytes   16384 -targets 1 $data_file -qd 4 -timelimit 10.0  -passes 1 -seek random -seek range 1024 &
 pid=$$
 echo "xdd started, pid=$pid"
 echo "sleep 30"
