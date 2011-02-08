@@ -78,13 +78,15 @@ xdd_init_globals(char *progname) {
 	xgp->gts_seconds_before_starting = 0; /* number of seconds before starting I/O */
 	xgp->heartbeat = 0;
 	xgp->restart_frequency = 0;
-	xgp->run_ring = 0;       /* The alarm that goes off when the total run time has been exceeded */
+	xgp->run_error_count_exceeded = 0;       /* The alarm that goes off when the number of errors for this run has been exceeded */
+	xgp->run_time_expired = 0;       /* The alarm that goes off when the total run time has been exceeded */
 	xgp->run_complete = 0; 
 	xgp->deskew_ring = 0;    /* The alarm that goes off when the the first thread finishes */
 	xgp->abort = 0;       /* abort the run due to some catastrophic failure */
 	xgp->heartbeat = 0;              /* seconds between heartbeats */
 	xgp->number_of_iothreads = 0;    /* number of threads spawned for all targets */
-	xgp->runtime = 0;                /* Length of time to run all targets, all passes */
+	xgp->run_time = 0;               /* Length of time to run all targets, all passes */
+	xgp->run_time_ticks = 0;         /* Length of time to run all targets, all passes in high-res clock ticks */
 	xgp->estimated_end_time = 0;     /* The time at which this run (all passes) should end */
 	xgp->number_of_processors = 0;   /* Number of processors */ 
 	xgp->random_initialized = 0;     /* Random number generator has not been initialized  */

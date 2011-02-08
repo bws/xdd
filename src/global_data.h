@@ -96,7 +96,8 @@ struct xdd_global_data {
 	int32_t			number_of_targets;      			/* number of targets to operate on */
 	int32_t			number_of_iothreads;    			/* number of threads spawned for all targets */
 	char			*id;                    			/* ID string pointer */
-	int32_t			runtime;                			/* Length of time to run all targets, all passes */
+	double			run_time;                			/* Length of time to run all targets, all passes */
+	pclk_t			run_time_ticks;            			/* Length of time to run all targets, all passes - in high-res clock ticks*/
 	pclk_t			base_time;     						/* The time that xdd was started - set during initialization */
 	pclk_t			estimated_end_time;     			/* The time at which this run (all passes) should end */
 	int32_t			number_of_processors;   			/* Number of processors */
@@ -104,7 +105,8 @@ struct xdd_global_data {
 	int32_t			clock_tick;							/* Number of clock ticks per second */
 // Indicators that are used to control exit conditions and the like
 	char			id_firsttime;           			/* ID first time through flag */
-	char			run_ring;       					/* The alarm that goes off when the total run time has been exceeded */
+	char			run_time_expired;  					/* The alarm that goes off when the total run time has been exceeded */
+	char			run_error_count_exceeded; 			/* The alarm that goes off when the number of errors has been exceeded */
 	char			run_complete;   					/* Set to a 1 to indicate that all passes have completed */
 	char			deskew_ring;    					/* The alarm that goes off when the the first thread finishes */
 	char			abort;       						/* Abort the run due to some catastrophic failure */

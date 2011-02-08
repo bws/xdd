@@ -82,7 +82,7 @@ xdd_status_after_io_op(ptds_t *qp) {
 			xgp->progname,
 			qp->my_target_number, 
 			qp->my_qthread_number);
-		xgp->run_ring = 1;
+		xgp->run_error_count_exceeded = 1;
 	}
 
 	if (qp->my_current_error_count >= xgp->max_errors) {

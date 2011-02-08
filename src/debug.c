@@ -99,7 +99,7 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"processor                      %d Processor/target assignments \n",p->processor);
 	fprintf(xgp->output,"start_delay                    %lld number of picoseconds to delay the start  of this operation \n",(long long int)p->start_delay);
 
-    fprintf(xgp->output,"Stuff REFERENCED during runtime\n");
+    fprintf(xgp->output,"Stuff REFERENCED during run time\n");
 	fprintf(xgp->output,"run_start_time                 %lld This is time t0 of this run - set by xdd_main \n",(long long int)p->run_start_time);
 	fprintf(xgp->output,"first_pass_start_time          %lld Time the first pass started but before the first operation is issued \n",(long long int)p->first_pass_start_time);
 	fprintf(xgp->output,"target_bytes_to_xfer_per_pass  %lld Number of bytes to xfer per pass for the entire target (all qthreads) \n",(long long int)p->target_bytes_to_xfer_per_pass);
@@ -197,7 +197,7 @@ xdd_show_global_data(void) {
 	fprintf(xgp->output,"number_of_targets         %d - number of targets to operate on \n",xgp->number_of_targets);
 	fprintf(xgp->output,"number_of_iothreads       %d - number of threads spawned for all targets \n",xgp->number_of_iothreads);
 	fprintf(xgp->output,"id                       '%s' - ID string pointer \n",(xgp->id != NULL)?xgp->id:"NA");
-	fprintf(xgp->output,"runtime                   %d - Length of time to run all targets, all passes \n",xgp->runtime);
+	fprintf(xgp->output,"run_time                  %f - Length of time to run all targets, all passes \n",xgp->run_time);
 	fprintf(xgp->output,"base_time                 %lld - The time that xdd was started - set during initialization \n",(long long int)xgp->base_time);
 	fprintf(xgp->output,"estimated_time            %lld - The time at which this run (all passes) should end \n",(long long int)xgp->estimated_end_time);
 	fprintf(xgp->output,"number_of_processors      %d - Number of processors \n",xgp->number_of_processors);
@@ -205,7 +205,8 @@ xdd_show_global_data(void) {
 	fprintf(xgp->output,"clock_tick                %d - Number of clock ticks per second \n",xgp->clock_tick);
 // Indicators that are used to control exit conditions and the like
 	fprintf(xgp->output,"id_firsttime              %d - ID first time through flag \n",xgp->id_firsttime);
-	fprintf(xgp->output,"run_ring                  %d - The alarm that goes off when the total run time has been exceeded \n",xgp->run_ring);
+	fprintf(xgp->output,"run_error_count_exceeded  %d - The alarm that goes off when the number of errors for this run has been exceeded \n",xgp->run_error_count_exceeded);
+	fprintf(xgp->output,"run_time_expired          %d - The alarm that goes off when the total run time has been exceeded \n",xgp->run_time_expired);
 	fprintf(xgp->output,"run_complete              %d - Set to a 1 to indicate that all passes have completed \n",xgp->run_complete);
 	fprintf(xgp->output,"deskew_ring               %d - The alarm that goes off when the the first thread finishes \n",xgp->deskew_ring);
 	fprintf(xgp->output,"abort                     %d - abort the run due to some catastrophic failure \n",xgp->abort);

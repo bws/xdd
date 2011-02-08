@@ -91,8 +91,8 @@ xdd_target_thread(void *pin) {
 		 * Otherwise, if there was a run time specified and we have not reached that run time
 		 * and this is the last pass, then add one to the pass count so that we keep going.
 		 */
-		if (xgp->runtime > 0) {
-			if (xgp->run_ring) /* This is the alarm that goes off when the total run time specified has been exceeded */
+		if (xgp->run_time_ticks > 0) {
+			if (xgp->run_time_expired) /* This is the alarm that goes off when the total run time specified has been exceeded */
 				break; /* Time to leave */
 			else if (p->my_current_pass_number == xgp->passes) /* Otherwise if we just finished the last pass, we need to keep going */
 				xgp->passes++;

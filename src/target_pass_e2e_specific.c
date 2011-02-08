@@ -157,8 +157,8 @@ xdd_targetpass_e2e_loop_src(ptds_t *p) {
 	while (p->bytes_remaining) {
 		// Things to do before an I/O is issued
 		xdd_target_ttd_before_io_op(p);
-		// Check to see if the time limit has expired - if so, we need to leave this loop
-		if (p->my_time_limit_expired) 
+		// Check to see if either the pass or run time limit has expired - if so, we need to leave this loop
+		if ((p->my_time_limit_expired) || (xgp->run_time_expired)) 
 			break;
 
 		// Get pointer to next QThread to issue a task to

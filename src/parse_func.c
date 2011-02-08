@@ -2934,21 +2934,13 @@ xddfunc_roundrobin(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_runtime(int32_t argc, char *argv[], uint32_t flags)
 {
-	int	runtime;
-
-
-	if (argc <= 1) {
-		fprintf(stderr,"%s: Error: No value specified for run time\n", xgp->progname);
-		return(-1);
-	}
-
 	if (flags & XDD_PARSE_PHASE2) {
-		runtime = atoi(argv[1]);
-		if (runtime <= 0) {
-			fprintf(stderr,"%s: Error: Runtime value of '%d' cannot be negative\n", xgp->progname, runtime);
-			return(-1);
+		xgp->run_time = atof(argv[1]);
+		if (xgp->run_time <= 0.0) {
+			fprintf(xgp->errout,"%s: run time of %f is not valid. The run time must be a number of seconds greater than 0.00 but less than the remaining life of the sun.\n",xgp->progname,xgp->run_time);
+			return(0);
 		}
-		xgp->runtime = runtime;
+		xgp->run_time_ticks = (pclk_t)(xgp->run_time * TRILLION);
 	}
     return(2);
 }

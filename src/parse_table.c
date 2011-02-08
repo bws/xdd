@@ -546,7 +546,7 @@ xdd_func_t  xdd_func[] = {
     {"runtime", "rt",
             xddfunc_runtime,    
             1,  
-            "  -runtime #seconds\n",   
+            "  -runtime #.#seconds\n",   
             {"    Specifies the number of seconds the entire run should take.\n",
              "    This will set the pass count to infinite and will cause the run to end after the specified number of seconds.\n",
              0,0,0},

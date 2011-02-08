@@ -204,7 +204,7 @@ xdd_options_info(FILE *out) {
 	fprintf(out, "Maximum Error Threshold, %lld\n", (long long)xgp->max_errors);
 	fprintf(out, "Target Offset, %lld\n",(long long)xgp->target_offset);
 	fprintf(out, "I/O Synchronization, %d\n", xgp->syncio);
-	fprintf(out, "Total run-time in seconds, %d\n", xgp->runtime);
+	fprintf(out, "Total run-time limit in seconds, %f\n", xgp->run_time);
 	// Print the heartbeat time and display options
 	fprintf(out, "Heartbeat %d ", xgp->heartbeat);
 	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 

@@ -152,6 +152,39 @@ xdd_timelimit_before_io_op(ptds_t *p) {
 } // End of xdd_timelimit_before_io_op()
 
 /*----------------------------------------------------------------------------*/
+/* xdd_runtime_before_io_op() - This subroutine will check to see if the
+ * specified time limit for this run has expired. 
+ * 
+ * This subroutine is called within the context of a Target Thread.
+ *
+ */
+int32_t
+xdd_runtime_before_io_op(ptds_t *p) {
+	pclk_t	current_time;		// What time is it *now*?
+	pclk_t	elapsed_time;		// Elapsed time
+
+
+	/* Check to see if a time limit (in seconds) was specified.
+ 	* If so, then check to see if we have exceeded that amount of time and
+ 	* set the global variable "time_limit_expired". 
+    * Otherwise, return 0 and continue issuing I/Os.
+ 	*/
+	if (xgp->run_time_ticks) { 
+		pclk_now(&current_time);
+		elapsed_time = current_time - xgp->base_time;
+		if (elapsed_time >= xgp->run_time_ticks) {
+			xgp->run_time_expired = 1;
+			fprintf(xgp->output,"\n%s: xdd_runtime_before_io_op: Specified run time of %f seconds exceeded.\n",
+		 		xgp->progname,
+			 	xgp->run_time);
+		}
+	}
+
+	return(0);
+
+} // End of xdd_runtime_before_io_op()
+
+/*----------------------------------------------------------------------------*/
 /* xdd_target_ttd_before_io_op() - This subroutine will do all the stuff 
  * needed to be done by the Target Thread before a QThread is issued with 
  * an I/O task.
@@ -169,8 +202,11 @@ xdd_target_ttd_before_io_op(ptds_t *p) {
 	// Check to see if we need to wait for another target to trigger us to start.
 	xdd_start_trigger_before_io_op(p);
 
-	// Check to see if we need to wait for another target to trigger us to start.
-	status = xdd_timelimit_before_io_op(p);
+	// Check to see if we exceeded the time limit for this pass
+	xdd_timelimit_before_io_op(p);
+
+	// Check to see if we exceeded the time limit for this run
+	xdd_runtime_before_io_op(p);
 
 	// Lock Step Processing (located in lockstep.c)
 	status = xdd_lockstep_before_io_op(p);
