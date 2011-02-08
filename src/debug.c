@@ -199,6 +199,7 @@ xdd_show_global_data(void) {
 	fprintf(xgp->output,"id                       '%s' - ID string pointer \n",(xgp->id != NULL)?xgp->id:"NA");
 	fprintf(xgp->output,"run_time                  %f - Length of time to run all targets, all passes \n",xgp->run_time);
 	fprintf(xgp->output,"base_time                 %lld - The time that xdd was started - set during initialization \n",(long long int)xgp->base_time);
+	fprintf(xgp->output,"run_start_time            %lld - The time that the targets start their first pass - set after initialization \n",(long long int)xgp->run_start_time);
 	fprintf(xgp->output,"estimated_time            %lld - The time at which this run (all passes) should end \n",(long long int)xgp->estimated_end_time);
 	fprintf(xgp->output,"number_of_processors      %d - Number of processors \n",xgp->number_of_processors);
 //	fprintf(xgp->output,"random_init_state         %s\n",xgp->char			random_init_state[256]; 			/* Random number generator state initalizer array */ 

@@ -99,6 +99,7 @@ struct xdd_global_data {
 	double			run_time;                			/* Length of time to run all targets, all passes */
 	pclk_t			run_time_ticks;            			/* Length of time to run all targets, all passes - in high-res clock ticks*/
 	pclk_t			base_time;     						/* The time that xdd was started - set during initialization */
+	pclk_t			run_start_time; 					/* The time that the targets will start their first pass - set after initialization */
 	pclk_t			estimated_end_time;     			/* The time at which this run (all passes) should end */
 	int32_t			number_of_processors;   			/* Number of processors */
 	char			random_init_state[256]; 			/* Random number generator state initalizer array */ 

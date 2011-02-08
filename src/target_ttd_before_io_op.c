@@ -171,7 +171,7 @@ xdd_runtime_before_io_op(ptds_t *p) {
  	*/
 	if (xgp->run_time_ticks) { 
 		pclk_now(&current_time);
-		elapsed_time = current_time - xgp->base_time;
+		elapsed_time = current_time - xgp->run_start_time;
 		if (elapsed_time >= xgp->run_time_ticks) {
 			xgp->run_time_expired = 1;
 			fprintf(xgp->output,"\n%s: xdd_runtime_before_io_op: Specified run time of %f seconds exceeded.\n",
