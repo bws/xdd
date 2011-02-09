@@ -617,7 +617,7 @@ fi
 
 # If the supplied destination is a directory, append the source file name
 destination_file=$destPath
-destination_base=\$(basename $destPath)
+destination_base=\$(/bin/basename $destPath)
 destination_dir=\$(dirname $destPath)
 if [ -d $destPath ]; then
     destination_file=$destPath/$srcBase
@@ -1017,7 +1017,7 @@ function transfer_file_list {
     for srcFileSpec in ${srcFileSpecList}; do
 
 	# Modify the destination path for file list transfers
-	local srcFileName=$(basename ${srcFileSpec})
+	local srcFileName=$(/bin/basename ${srcFileSpec})
 	destFileSpec=${destPath}/${srcFileName}
 
         # Parse the source side spec

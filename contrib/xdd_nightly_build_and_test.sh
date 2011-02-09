@@ -15,8 +15,8 @@ CRAY_RC=1
 #
 # System locations
 #
-nightly_base_path=/nightly
-xdd_repo_path=/nightly/xdd/repo/xdd.git
+nightly_base_path=/home/nightly
+xdd_repo_path=/home/nightly/xdd/repo/xdd.git
 
 datestamp=$(date +%Y-%m-%d-%H:%M)
 build_dir=$nightly_base_path/xdd/$datestamp/build
@@ -46,22 +46,22 @@ CRAY_RC=0
 #
 # Retrieve and configure XDD
 #
-cd $build_dir >>$config_log
-git clone $xdd_repo_path >>$config_log
-cd xdd >>$config_log
-./configure --prefix=$install_dir >>$config_log
+cd $build_dir &>>$config_log
+git clone $xdd_repo_path &>>$config_log
+cd xdd &>>$config_log
+./configure --prefix=$install_dir &>>$config_log
 CONFIG_RC=$?
 
 #
 # Build XDD
 #
-make >>$build_log
+make &>>$build_log
 BUILD_RC=$?
 
 #
 # Install XDD
 #
-make install >>$install_log
+make install &>>$install_log
 INSTALL_RC=$?
 
 #
@@ -87,7 +87,7 @@ XDDTEST_OUTPUT_DIR=$output_dir
 XDDTEST_E2E_SOURCE=localhost
 XDDTEST_E2E_DEST=natureboy
 EOF
-$build_dir/xdd/tests/run_all_tests.sh >>$test_log
+$build_dir/xdd/tests/run_all_tests.sh &>>$test_log
 TEST_RC=$?
 
 #
@@ -95,16 +95,20 @@ TEST_RC=$?
 #
 rcpt="durmstrang-io@email.ornl.gov"
 if [ 0 -eq $BUILD_RC -a 0 -eq $CONFIG_RC -a 0 -eq $INSTALL_RC -a 0 -eq $TEST_RC ]; then
+    body=$(cat $test_log)
     mail -s "SUCCESS - Nightly build and test for $datestamp" "$rcpt" <<EOF
-Everything completed successfully as far as I can tell.
+$body.
 EOF
 else
-    mail -s "FAILURE - Nightly build and test for $datestamp" -a $logfile "$rcpt" <<EOF
+    body=$(cat $test_log)
+    mail -s "FAILURE - Nightly build and test for $datestamp" -a $config_log -a $build_log -a $install_log -a $test_log "$rcpt" <<EOF
 Cray return code: $CRAY_RC
 Configure return code: $CONFIG_RC
 Build return code: $BUILD_RC
 Install return code: $INSTALL_RC
 Test return code: $TEST_RC
 Zero indicates success. See attachment for error logs.
+
+$body
 EOF
 fi

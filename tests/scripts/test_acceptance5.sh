@@ -63,9 +63,9 @@ fi
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Recursive Test 1 - Check: PASSED."
+  echo "Acceptance 5: Recursive Test - Check: PASSED."
   exit 0
 else
-  echo "Recursive Test 1 -Check: FAILED."
+  echo "Acceptance 5: Recursive Test - Check: FAILED."
   exit 1
 fi
