@@ -60,7 +60,9 @@ xdd_init_globals(char *progname) {
 	// Some of these settings may seem redundant because they are set to zero after clearing the entire data structure but they
 	// are basically place holders in case their default values need to be changed.
 	xgp->passes = DEFAULT_PASSES;
+	xgp->current_pass_number = 0;
 	xgp->pass_delay = DEFAULT_PASSDELAY;
+	xgp->pass_delay_accumulated_time = 0;
 	xgp->tsbinary_filename = DEFAULT_TIMESTAMP;
 	xgp->syncio = 0;
 	xgp->target_offset = 0;

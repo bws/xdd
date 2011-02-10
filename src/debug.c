@@ -176,7 +176,7 @@ xdd_show_global_data(void) {
 	fprintf(xgp->output,"argc                      %d - The original arg count \n",xgp->argc);
 //	fprintf(xgp->output,"argv                    %s\n",xgp->char			**argv;         // The original *argv[]  */
 	fprintf(xgp->output,"passes                    %d - number of passes to perform \n",xgp->passes);
-	fprintf(xgp->output,"pass_delay                %d - number of seconds to delay between passes \n",xgp->pass_delay);
+	fprintf(xgp->output,"pass_delay                %f - number of seconds to delay between passes \n",xgp->pass_delay);
 	fprintf(xgp->output,"target_start_delay        %f - number of seconds to delay the start of each target \n",xgp->target_start_delay);
 	fprintf(xgp->output,"max_errors                %lld - max number of errors to tollerate \n",(long long int)xgp->max_errors);
 	fprintf(xgp->output,"max_errors_to_print       %lld - Maximum number of compare errors to print \n",(long long int)xgp->max_errors_to_print);

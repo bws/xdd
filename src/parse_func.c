@@ -2151,20 +2151,18 @@ xddfunc_output_format(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_passdelay(int32_t argc, char *argv[], uint32_t flags)
 { 
-	int passdelay;
-
 
 	if (argc <= 1) {
 		fprintf(stderr,"%s: Error: No value specified for pass delay\n", xgp->progname);
 		return(-1);
 	}
 	if (flags & XDD_PARSE_PHASE2) {
-		passdelay = atoi(argv[1]);
-		if (passdelay <= 0) {
-			fprintf(stderr,"%s: Error: Pass delay value of '%d' cannot be negative\n", xgp->progname, passdelay);
-			return(-1);
+		xgp->pass_delay = atof(argv[1]);
+		if (xgp->pass_delay <= 0.0) {
+			fprintf(xgp->errout,"%s: pass delay time of %f is not valid. The pass delay time must be a number of seconds greater than 0.00 but less than the remaining life of the sun.\n",xgp->progname,xgp->pass_delay);
+			return(0);
 		}
-		xgp->pass_delay = passdelay;
+		xgp->pass_delay_usec = (pclk_t)(xgp->pass_delay * MILLION);
 	}
     return(2);
 }
@@ -2934,6 +2932,10 @@ xddfunc_roundrobin(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_runtime(int32_t argc, char *argv[], uint32_t flags)
 {
+	if (argc <= 1) {
+		fprintf(stderr,"%s: Error: No value specified for run time\n", xgp->progname);
+		return(-1);
+	}
 	if (flags & XDD_PARSE_PHASE2) {
 		xgp->run_time = atof(argv[1]);
 		if (xgp->run_time <= 0.0) {

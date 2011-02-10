@@ -75,7 +75,10 @@ struct xdd_global_data {
 	int32_t			argc;                   			/* The original arg count */
 	char			**argv;                 			/* The original *argv[]  */
 	int32_t			passes;                 			/* number of passes to perform */
-	int32_t			pass_delay;             			/* number of seconds to delay between passes */
+	int32_t			current_pass_number;      			/* Current pass number at any given time */
+	double			pass_delay;             			/* number of seconds to delay between passes */
+	int32_t			pass_delay_usec;          			/* number of microseconds to delay between passes */
+	pclk_t			pass_delay_accumulated_time;		/* number of high-res clock ticks of accumulated time during all pass delays */
 	double			target_start_delay;     			/* number of seconds to delay the start of each target */
 	int64_t			max_errors;             			/* max number of errors to tollerate */
 	int64_t			max_errors_to_print;    			/* Maximum number of compare errors to print */

@@ -130,10 +130,6 @@ xdd_target_thread(void *pin) {
  		if (p->my_current_pass_number >= xgp->passes)
 			break; 
 
-		/* Insert a delay of "pass_delay" seconds if requested */
-		if (xgp->pass_delay > 0)
-			sleep(xgp->pass_delay);
-
         /* Increment pass number and start work for next pass */
         p->my_current_pass_number++;
 

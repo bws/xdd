@@ -57,6 +57,8 @@ xdd_results_manager(void *n) {
 	int32_t		status;				// Status of the initialization subroutine
 	int			tmp_errno;			// Save the errno
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
+	pclk_t		pass_delay_start;	// Start of a pass delay if it is specified
+	pclk_t		pass_delay_end;		// End of a pass delay if it is specified
 
 
 
@@ -116,7 +118,23 @@ xdd_results_manager(void *n) {
 			xdd_barrier(&xgp->main_results_final_barrier,&barrier_occupant,0);
 			return(0);
 		} else { 
-			 xdd_process_pass_results();
+			xdd_process_pass_results();
+			xgp->current_pass_number++;
+			/* Insert a delay of "pass_delay" seconds if requested */
+			if ((xgp->pass_delay_usec > 0) && (xgp->current_pass_number < xgp->passes)) {
+				pclk_now(&pass_delay_start);
+				xgp->heartbeat_holdoff = 1;
+				fprintf(xgp->output,"\nStarting Pass Delay of %f seconds...",xgp->pass_delay);
+				fflush(xgp->output);
+				usleep(xgp->pass_delay_usec);
+				fprintf(xgp->output,"Done\n");
+				fflush(xgp->output);
+				xgp->heartbeat_holdoff = 0;
+				pclk_now(&pass_delay_end);
+				// Figure out the accumulated pass delay time so that it can be subtracted later
+				xgp->pass_delay_accumulated_time += (pass_delay_end - pass_delay_start);
+			}
+
 		}
 
 		xdd_barrier(&xgp->results_targets_display_barrier,&barrier_occupant,1);
@@ -450,9 +468,10 @@ xdd_combine_results(results_t *to, results_t *from) {
 			to->earliest_start_time_this_run = from->earliest_start_time_this_run;
 		if (to->latest_end_time_this_run <= from->latest_end_time_this_run)
 			to->latest_end_time_this_run = from->latest_end_time_this_run;
+		to->pass_delay_accumulated_time = xgp->pass_delay_accumulated_time;
 		if (to->latest_end_time_this_run <= to->earliest_start_time_this_run) 
 			to->elapsed_pass_time = -1.0;
-		else to->elapsed_pass_time = (to->latest_end_time_this_run - to->earliest_start_time_this_run)/FLOAT_TRILLION;
+		else to->elapsed_pass_time = (to->latest_end_time_this_run - to->earliest_start_time_this_run - to->pass_delay_accumulated_time)/FLOAT_TRILLION;
 		to->accumulated_elapsed_time += to->elapsed_pass_time; // Accumulated elapsed time is "virtual" time since the qthreads run in parallel
 		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N qthreads
 		to->latency = to->accumulated_latency/(from->my_target_number + 1); // This is the "average" latency or milliseconds per op for this target

@@ -200,7 +200,7 @@ xdd_options_info(FILE *out) {
 	fprintf(out,"ID for this run, '%s'\n", xgp->id);
 	fprintf(out,"Maximum Process Priority, %s", (xgp->global_options & GO_MAXPRI)?"enabled\n":"disabled\n");
 	fprintf(out, "Passes, %d\n", xgp->passes);
-	fprintf(out, "Pass Delay in seconds, %d\n", xgp->pass_delay); 
+	fprintf(out, "Pass Delay in seconds, %f\n", xgp->pass_delay); 
 	fprintf(out, "Maximum Error Threshold, %lld\n", (long long)xgp->max_errors);
 	fprintf(out, "Target Offset, %lld\n",(long long)xgp->target_offset);
 	fprintf(out, "I/O Synchronization, %d\n", xgp->syncio);

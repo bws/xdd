@@ -403,7 +403,7 @@ xdd_func_t  xdd_func[] = {
     {"passdelay", "pdelay",       
             xddfunc_passdelay,      
             1,  
-            "  -passdelay #seconds\n",  
+            "  -passdelay #.#seconds\n",  
             {"    Specifies the number of seconds to delay between passes\n", 
             0,0,0,0},
 			0},

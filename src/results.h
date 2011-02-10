@@ -79,6 +79,7 @@ struct results {
 	double		accumulated_latency;		// Total Accumulated Latency Used to calculate average latency
 	double		earliest_start_time_this_run;	// The earliest recorded start time for any qthread in pass 1 of the run
 	double		earliest_start_time_this_pass;	// The earliest recorded start time for any qthread in a given pass
+	double		pass_delay_accumulated_time;	// The accumulated time from inter-pass delay (from the -passdelay option)
 	double		latest_end_time_this_run;		// For a qthread this is the end time of the last pass, for a target it is the latest end time of all qthreads
 	double		latest_end_time_this_pass;		// For a qthread this is the end time of the last pass, for a target it is the latest end time of all qthreads
 	double		elapsed_pass_time;		// usec, Total time from start of pass to the end of the last operation 
