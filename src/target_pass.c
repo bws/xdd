@@ -65,10 +65,6 @@ xdd_targetpass(ptds_t *p) {
 	if ( xgp->abort == 1) 
 		return(0);
 
-	// If this is a dry run then just exit at this point
-	if (xgp->global_options & GO_DRYRUN)
-		return(0);
-
 	// If this run has completed or we've been canceled, then exit this loop
 	if (xgp->run_complete)
 		return(0);

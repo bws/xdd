@@ -3389,12 +3389,30 @@ xddfunc_singleproc(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
+// The start delay function will set the "start delay" time for all
+// targets or for a specific target if specified.
+// For example, assuming four targets have been specified, the option
+// "-startdelay 2.1" will set the start times of each target like so:
+//   Target#   StartDelay (seconds)
+//     0        2.1
+//     1        2.1
+//     2        2.1
+//     3        2.1
+//
+// ---or - to change the start delay of a single target accordingly:
+// "-startdelay target 2 5.3" will set the start delay time of 
+// target 2 to a value of 5.3 seconds while leaving the start delay 
+// times of the other targets unaltered.
+//
+// See also: -targetstartdelay (aka xddfunc_targetstartdelay)
+//
 int
 xddfunc_startdelay(int32_t argc, char *argv[], uint32_t flags)
 { 
     int args, i; 
     int target_number;
-    double tmpf;
+    double start_delay;
+    pclk_t start_delay_psec;
     ptds_t *p;
 
 		
@@ -3403,26 +3421,33 @@ xddfunc_startdelay(int32_t argc, char *argv[], uint32_t flags)
 
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
+	start_delay = atof(argv[args+1]);
+	start_delay_psec = (pclk_t)(start_delay * TRILLION); 
+	if (start_delay < 0.0) {
+		fprintf(xgp->errout,"%s: Start Delay time of %f is not valid. The Start Delay time must be a number of seconds greater than or equal to 0.00 but less than the remaining life of the sun.\n",
+			xgp->progname,start_delay);
+		return(0);
+	}
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
+		p->start_delay = start_delay;
+		p->start_delay_psec = start_delay_psec;
 
-		tmpf = atof(argv[args+1]);
-		p->start_delay = (pclk_t)(tmpf * TRILLION);
 		return(args+2);
 	} else {/* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			tmpf = atof(argv[args+1]);
 			p = xgp->ptdsp[0];
 			i = 0;
 			while (p) {
-				p->start_delay = (pclk_t)(tmpf * TRILLION);
+				p->start_delay = start_delay;
+				p->start_delay_psec = start_delay_psec;
 				i++;
 				p = xgp->ptdsp[i];
 			}
 		}
-		return(args+1);
+		return(2);
 	}
 }
 /*----------------------------------------------------------------------------*/
@@ -3824,27 +3849,67 @@ xddfunc_targets(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
-// The target start delay function will add a delay to each target's
-// starting time. The amount of time to delay is calculated simply by 
-// multiplying the specified time delay multiplier by the target number.
-// For example, "-targetstartdelay 2.1" will add 0 seconds to target 0's
-// start time, 2.1 seconds to target 1's start time, 4.2 seconds to target 2's
-// start time (i.e. 2*2.1) and so on. 
+// The target start delay function will set the "start delay" time for all
+// targets or for a specific target if specified.
+// The amount of time to delay a target's start time is calculated by 
+// multiplying the specified time delay by the target number.
+// For example, assuming four targets have been specified, the option
+// "-targetstartdelay 2.1" will set the start times of each target like so:
+//   Target#   StartDelay (seconds)
+//     0        0.0
+//     1        2.1
+//     2        4.2
+//     3        6.3
+//
+// ---or - to change the start delay of a single target accordingly:
+// "-targetstartdelay target 2 5.3" will set the start delay time of 
+// target 2 to a value of 2*5.3=10.6 seconds while leaving the start delay 
+// times of the other targets unaltered.
+//
+// See also: -startdelay (aka xddfunc_startdelay)
 //
 int
 xddfunc_targetstartdelay(int32_t argc, char *argv[], uint32_t flags)
 { 
-    double tmpf;
+    int args, i; 
+    int target_number;
+    double start_delay;
+    pclk_t start_delay_psec;
+    ptds_t *p;
 
-	if (argc < 2) { // Not enough arguments in this line
-		fprintf(xgp->errout,"%s: ERROR: Not enough arguments to fully qualify this option: %s\n",
-			   	xgp->progname, argv[0]);
-		return(-1);
+	args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
+		return(0);
+	start_delay = atof(argv[args+1]);
+	start_delay_psec = (pclk_t)(start_delay * TRILLION); 
+	if (start_delay < 0.0) {
+		fprintf(xgp->errout,"%s: Target Start Delay time of %f is not valid. The Target Start Delay time must be a number of seconds greater than or equal to 0.00 but less than the remaining life of the sun.\n",
+			xgp->progname,start_delay);
+		return(0);
 	}
 
-	tmpf = atof(argv[1]);
-	xgp->target_start_delay = (pclk_t)(tmpf * TRILLION);
-	return(2);
+	if (target_number >= 0) { /* Set this option value for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL) return(-1);
+		p->start_delay = (double)(start_delay * target_number);
+		p->start_delay_psec = start_delay_psec * target_number;
+		return(args+2);
+	} else {/* Set option for all targets */
+		if (flags & XDD_PARSE_PHASE2) {
+			p = xgp->ptdsp[0];
+			i = 0;
+			while (p) {
+				p->start_delay = (double)(start_delay * p->my_target_number);
+				p->start_delay_psec = start_delay_psec * p->my_target_number;
+fprintf(xgp->errout,"%s: Set Target %d Start Delay time to %f seconds, %lld ps.\n", xgp->progname,p->my_target_number, p->start_delay,(long long int)p->start_delay_psec);
+				i++;
+				p = xgp->ptdsp[i];
+			}
+		}
+		return(2);
+	}
 }
 /*----------------------------------------------------------------------------*/
 // Specify the throttle type and associated throttle value 
@@ -4316,7 +4381,7 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 		return(args_index+1);
 	}
     return(args_index+1);
-} // End of xddfunc_timestamp()
+}
 /*----------------------------------------------------------------------------*/
  // -verify location | contents
 int

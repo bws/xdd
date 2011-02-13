@@ -195,7 +195,8 @@ struct ptds {
 	char				*target_full_pathname;	// Fully qualified path name to the target device/file
 	char				target_extension[32]; 	// The target extension number 
 	int32_t				processor;  			// Processor/target assignments 
-	pclk_t				start_delay; 			// number of picoseconds to delay the start  of this operation 
+	double				start_delay; 			// number of seconds to delay the start  of this operation 
+	pclk_t				start_delay_psec;		// number of picoseconds to delay the start  of this operation 
     // ------------------ Throttle stuff --------------------------------------------------
 	// The following "throttle_" members are for the -throttle option
 	double				throttle;  				// Target Throttle assignments 

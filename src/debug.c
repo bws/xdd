@@ -97,7 +97,7 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"*target_full_pathname         '%s' Fully qualified path name to the target device/file\n",(p->target_full_pathname != NULL)?p->target_full_pathname:"NA");
 	fprintf(xgp->output,"target_extension              '%s' The target extension number \n",p->target_extension);
 	fprintf(xgp->output,"processor                      %d Processor/target assignments \n",p->processor);
-	fprintf(xgp->output,"start_delay                    %lld number of picoseconds to delay the start  of this operation \n",(long long int)p->start_delay);
+	fprintf(xgp->output,"start_delay                    %f number of picoseconds to delay the start  of this operation \n",p->start_delay);
 
     fprintf(xgp->output,"Stuff REFERENCED during run time\n");
 	fprintf(xgp->output,"run_start_time                 %lld This is time t0 of this run - set by xdd_main \n",(long long int)p->run_start_time);
@@ -177,7 +177,6 @@ xdd_show_global_data(void) {
 //	fprintf(xgp->output,"argv                    %s\n",xgp->char			**argv;         // The original *argv[]  */
 	fprintf(xgp->output,"passes                    %d - number of passes to perform \n",xgp->passes);
 	fprintf(xgp->output,"pass_delay                %f - number of seconds to delay between passes \n",xgp->pass_delay);
-	fprintf(xgp->output,"target_start_delay        %f - number of seconds to delay the start of each target \n",xgp->target_start_delay);
 	fprintf(xgp->output,"max_errors                %lld - max number of errors to tollerate \n",(long long int)xgp->max_errors);
 	fprintf(xgp->output,"max_errors_to_print       %lld - Maximum number of compare errors to print \n",(long long int)xgp->max_errors_to_print);
 	fprintf(xgp->output,"output_filename          '%s' - name of the output file \n",(xgp->output_filename != NULL)?xgp->output_filename:"NA");

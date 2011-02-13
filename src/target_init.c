@@ -327,7 +327,7 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 		qp = qp->next_qp;
 	} // End of FOR loop that starts all qthreads for this target
 
-	if (xgp->global_options & GO_VERBOSE) {
+	if (xgp->global_options & GO_REALLYVERBOSE) {
 		fprintf(xgp->errout,"\n%s: xdd_target_init_start_qthreads: Target %d ALL %d QThreads started\n",
 			xgp->progname,
 			p->my_target_number,
