@@ -675,7 +675,7 @@ if [ ! -w \$destination_dir -a -e \$destination_log -a ! -w \$destination_log ];
     echo "Logfile already exists and is not writable: \$destination_log" 
     exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
 elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
-    home_dir_log="./${destination_log_base}"
+    home_dir_log="./\${destination_log_base}"
     if [ ! -w "./" ]; then
         echo "Could not create log file as \$destination_log or as \$home_dir_log"
         exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
@@ -701,7 +701,7 @@ xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${o
 #fi
 
 # Invoke XDD
-\${xdd_cmd} >> \${destination_log} 2>&1 &
+\${xdd_cmd} &>> \${destination_log} &
 
 # Send the restart offset back to the source side via an exit code
 if [ 1 -eq $resumeFlag ]; then
