@@ -4464,7 +4464,7 @@ xddfunc_verbose(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_version(int32_t argc, char *argv[], uint32_t flags)
 {
-    fprintf(stdout,"%s: Version %s  based on version %s - %s\n",xgp->progname, XDD_VERSION, XDD_BASE_VERSION, XDD_COPYRIGHT);
+    fprintf(stdout,"%s: Version %s\n",xgp->progname, XDD_VERSION);
     return(-1);
 }
 
