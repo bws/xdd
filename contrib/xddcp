@@ -629,8 +629,8 @@ fi
 path_char=\$(dirname \$destination_file |cut -c 1)
 if [ "." == \$path_char ]; then
     default_dir=\$(/bin/pwd)
-    destination_dir="\${default_dir}/${destination_dir}"
-    destination_file="\${default_dir}/${destination_file}"
+    destination_dir="\${default_dir}/\${destination_dir}"
+    destination_file="\${default_dir}/\${destination_file}"
 fi
 
 # Create the log file name
@@ -639,7 +639,7 @@ destination_log="\${destination_dir}/\${destination_log_base}"
 
 # Ensure destination is writable
 if [ ! -d \$destination_dir ]; then
-    echo "Destination directory does not exist: \$destination_dir"
+    echo "Destination directory does not exist: \${destination_dir}"
     exit ${XDDCP_ERR_CODE_DEST_DIR_NOT_XST}
 elif [ -d \$destination_dir -a ! -e \$destination_file -a ! -w \$destination_dir ]; then
     echo "Destination directory is not writable: \$destination_dir"
@@ -661,7 +661,7 @@ if [ 1 == $resumeFlag ]; then
     restart_logfile="\${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.\${destination_base}.${XDDCP_DEFAULT_TIMESTAMP}.rst"
 
     # Check for the existence a restart cookie
-    most_recent_restart_cookie=\$(/bin/ls \${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.${destination_base}.*.rst 2>/dev/null |tail -1)
+    most_recent_restart_cookie=\$(/bin/ls \${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.\${destination_base}.*.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
        destination_restart="-restart file \${restart_logfile} -restart enable"
@@ -1136,6 +1136,7 @@ function transfer_recursive_path {
 # Perform transfer for a single file
 #
 function transfer_file {
+    #echo "transfer_file Args: $@" >/dev/stderr
     local srcFileSpec=${1}
     local srcHost=${2}
     local srcUser=${3}
