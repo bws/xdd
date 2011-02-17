@@ -1,0 +1,48 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+	echo "Usage: $0 [infile] [outprefix]"
+	exit 1
+fi
+
+if [ ! -f /usr/bin/gnuplot ]; then
+	echo "Gnuplot does not appear to be installed."
+	exit 1
+fi
+
+infile=$1
+outprefix=$2
+
+/usr/bin/gnuplot <<EOF
+
+set term po eps color
+set pointsize 2
+set ylabel "MB/s"
+set xlabel "Time in seconds"
+set title "XDDCP Transfer"
+set style data line
+
+set output "$outprefix"."_all.eps"
+plot	'$infile' using 1:2 title 'read_disk' lw 2,\
+	'$infile' using 3:4 title 'send_net' lw 2,\
+	'$infile' using 5:6 title 'recv_net' lw 2,\
+	'$infile' using 7:8 title 'write_disk' lw 2
+
+set output "$outprefix"."_net.eps"
+plot	'$infile' using 3:4 title 'send_net' lw 2,\
+	'$infile' using 5:6 title 'recv_net' lw 2
+
+set output "$outprefix"."_disk.eps"
+plot	'$infile' using 1:2 title 'read_disk' lw 2,\
+	'$infile' using 7:8 title 'write_disk' lw 2
+
+set output "$outprefix"."_src.eps"
+plot	'$infile' using 1:2 title 'read_disk' lw 2,\
+	'$infile' using 3:4 title 'send_net' lw 2
+
+set output "$outprefix"."_dest.eps"
+plot	'$infile' using 5:6 title 'recv_net' lw 2,\
+	'$infile' using 7:8 title 'write_disk' lw 2
+
+EOF
+
