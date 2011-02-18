@@ -104,18 +104,18 @@ function print_usage {
     echo "size              - number of bytes to transfer [Default: size of source file]"
     echo ""
     echo "OPTIONS: "
-    echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
-    echo " -d s|d|b	- Use direct I/O the end specified (s for source, d for dest, b for both)"
+    echo " -a           - Resume transfer if it was only partially completed and the -a flag was specified"
+    echo " -d s|d|b     - Use direct I/O the end specified (s for source, d for dest, b for both)"
     echo " -f           - If ports are unavailable on destination, attempt to kill running XDD and retry"
-    echo " -F		- Transfer a list of files named in source_file"
-    echo " -h		- Print out usage information"
+    echo " -F           - Transfer a list of files named in source_file"
+    echo " -h           - Print out usage information"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
-    echo " -o s|d|b    	- Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
-    echo " -r		- Copy sub-directories and contents recursively"
-    echo " -t threads	- Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
-    echo " -v		- Add verbose output to logs"
-    echo " -w		- Add verbose output to logs and create a binary timestamp dump"
-    #echo "-Y		- Force SSH to create psueo-terminal tty"
+    echo " -o s|d|b     - Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
+    echo " -r           - Copy sub-directories and contents recursively"
+    echo " -t threads   - Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
+    echo " -v           - Add verbose output to logs"
+    echo " -w sec       - Add post-analysis: plot bandwidth over time with sliding window of 'sec' seconds. (sec >= 1)"
+    #echo "-Y           - Force SSH to create psueo-terminal tty"
     echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
 }
 
@@ -540,7 +540,7 @@ function get_destination_cmds {
 
     # binary timestamp dump
     if [ 1 -eq $binaryDumpFlag ]; then
-        local binaryDumpOpt="-ts dump xdd.${destHost}.${destBase}.${XDDCP_DEFAULT_TIMESTAMP}"
+        local binaryDumpPrefix="xdd.${destHost}.$(/bin/basename $destPath).${XDDCP_DEFAULT_TIMESTAMP}"
     fi
     
     cat <<EOF
@@ -684,6 +684,10 @@ elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
     destination_log=\$home_dir_log
 fi
 
+if [ 1 -eq $binaryDumpFlag ]; then
+	binary_dump_opts="-ts dump \$(dirname \${destination_log})/$binaryDumpPrefix"
+fi
+
 # Truncate the destination to the correct size if necessary
 if [ -e \$destination_file ]; then
     cur_size=\$(stat -c '%s' \${destination_file})
@@ -693,7 +697,7 @@ if [ -e \$destination_file ]; then
 fi
 
 # XDD Command
-xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror -verbose > \${destination_log}"
+xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror -verbose > \${destination_log}"
 
 # Log XDD Command
 #if [ 1 -eq $verboseFlag ]; then
@@ -701,7 +705,7 @@ xdd_cmd="${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${o
 #fi
 
 # Invoke XDD
-\${xdd_cmd} &>> \${destination_log} &
+\${xdd_cmd} >> \${destination_log} 2>&1 &
 
 # Send the restart offset back to the source side via an exit code
 if [ 1 -eq $resumeFlag ]; then
@@ -1211,6 +1215,103 @@ function transfer_file {
 }
 
 #
+# Fetches the binary ts dump, calculates running bandwidth
+#    during the transfer, and plots the xfer if gnuplot is available.
+#
+function post_transfer_analysis {
+	local srcPath=${1}
+	local srcHost=$(/bin/hostname -s)
+	local srcUser=${3}
+	local destPath=${4}
+	local destHost=${5}
+	local destUser=${6}
+	local windowSize=${7}
+
+	# where the timestamp dumps should be right now
+	local srcBase=$(/bin/basename $srcPath)
+	local dstBase=$(/bin/basename $destPath)
+	local srcBinDump="xdd.$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+	local dstBinDump="xdd.${destHost}.${dstBase}.${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+
+	# where our data will be stored afterwards
+	local dataDir="${srcHost}_to_${destHost}_${srcBase}_${XDDCP_DEFAULT_TIMESTAMP}"
+	local myLogFile="${dataDir}/post_transfer_analysis.log"
+	local newSrcBin="${dataDir}/src_${srcHost}.bin"
+	local newDstBin="${dataDir}/dest_${destHost}.bin"
+	local tsDataFile="${dataDir}/xfer.dat"
+	local plotPrefix="${dataDir}/xfer"
+
+	echo "Running post transfer analysis... "
+
+	# create data directory and check for writability
+	mkdir ${dataDir}
+	if [ ! -d ${dataDir} ] || [ ! -w ${dataDir} ]; then
+		echo "INFO: Can not write to ${dataDir}.  Skipping analysis." >/dev/stderr
+		return 1
+	fi
+
+	# print a helpful tidbit to the logfile
+	echo "To change the sliding window size without rerunning the transfer, run:" >> ${myLogFile}
+	echo "    read_tsdumps -t [window_size] -o xfer.dat src_${srcHost}.bin dest_${destHost}.bin" >> ${myLogFile}
+	echo "    plot_tsdumps xfer.dat xfer" >> ${myLogFile}
+	echo "" >> ${myLogFile}
+
+	# copy local bin file
+	cp ${srcBinDump} ${newSrcBin} >> ${myLogFile} 2>&1
+	if [ 0 -ne $? ]; then
+		echo "INFO: Failed to copy ${srcBinDump}.  Skipping analysis" >/dev/stderr
+		return 1
+	fi
+	# get destination bin file
+	local destRC=""
+	if [ ! -z "${destUser}" ]; then
+		sshOpts="-l $remoteUser"
+	fi
+	(ssh -q ${sshOpts} ${destHost} /bin/bash <<EOF
+# If the supplied destination is a directory, append the source file name
+destination_file=${destPath}
+destination_dir=\$(dirname ${destPath})
+if [ -d ${destPath} ]; then
+	destination_file=${destPath}/${srcBase}
+	destination_dir=${destPath}
+fi
+# If the filename uses a relative path, path complement it
+path_char=\$(dirname \$destination_file |cut -c 1)
+if [ "." == \$path_char ]; then
+	destination_dir="\$(/bin/pwd)/\${destination_dir}"
+fi
+# If insufficient permissions for the log exist, direct to HOME
+if [ ! -w \$destination_dir ]; then
+	destination_dir="./"
+fi
+# send the file back through cpio
+cd \${destination_dir}
+ls ${dstBinDump} | /bin/cpio -o 2>/dev/null
+EOF
+) | /bin/cpio -i >> ${myLogFile} 2>&1
+	destRC=$?
+	cp ${dstBinDump} ${newDstBin} >> ${myLogFile} 2>&1
+	if [ 0 -ne $destRC ]; then
+		echo "INFO: Failed to copy ${dstBinDump} over ssh.  Skipping analysis" >/dev/stderr
+		return 1
+	fi
+
+	# read the tsdumps and plot output
+	read_tsdumps -t ${windowSize} -o ${tsDataFile} ${newSrcBin} ${newDstBin} >> ${myLogFile} 2>&1
+	if [ 0 -ne $? ]; then
+		echo "INFO: Failed to read timestamp dumps in ${dataDir}.  Skipping analysis" >/dev/stderr
+		return 1
+	fi
+	plot_tsdumps ${tsDataFile} ${plotPrefix} >> ${myLogFile} 2>&1
+	if [ 0 -ne $? ]; then
+		echo "INFO: Failed to plot analysis data.  Skipping gnuplot" >/dev/stderr
+		return 1
+	fi
+
+	echo "done"
+}
+
+#
 # XDDCP Main
 #
 function xddcp_main {
@@ -1251,8 +1352,9 @@ function xddcp_main {
     sshOption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
     verboseFlag=0
     binaryDumpFlag=0
+    windowSize=0
 
-    while getopts ":FYad:fhp:o:rst:vw" option; do
+    while getopts ":FYad:fhp:o:rst:vw:" option; do
         case $option in
             F) 
                 fileListFlag=1
@@ -1316,6 +1418,15 @@ function xddcp_main {
 	    w) 
                 verboseFlag=1
 		binaryDumpFlag=1
+		windowSize=$OPTARG
+		expr $windowSize + 1 >/dev/null 2>&1
+		if [ $? -ne 0 ]; then
+			echo "INFO: Window size (-w arg) must be an integer." >/dev/stderr
+			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+		elif [ $windowSize -le 0 ]; then
+			echo "INFO: Window size (-w arg) must be greater than zero." >/dev/stderr
+			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+		fi
                 ;;
             \?)
                 echo "INFO: Unsupported option: -$option $OPTARG" >/dev/stderr 
@@ -1380,6 +1491,12 @@ function xddcp_main {
 	echo ""
 	echo "Transfer complete.  Verify results with md5sum."
     fi
+
+    if [ 1 -eq ${binaryDumpFlag} ]; then
+	post_transfer_analysis "${srcPath}" "${srcHost}" "${srcUser}" \
+	    "${destPath}" "${destHost}" "${destUser}" "5"
+    fi
+
     return $rc
 }
 

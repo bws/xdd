@@ -251,7 +251,7 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	/* do we have a file pointer? */
 	if (outfile == NULL) {
 		fprintf(stderr,"Can not open output file: %s\n",outfilename);
-		return;
+		exit(1);
 	}
 
 	/* how many qthreads are there? */
