@@ -1494,7 +1494,7 @@ function xddcp_main {
 
     if [ 1 -eq ${binaryDumpFlag} ]; then
 	post_transfer_analysis "${srcPath}" "${srcHost}" "${srcUser}" \
-	    "${destPath}" "${destHost}" "${destUser}" "5"
+	    "${destPath}" "${destHost}" "${destUser}" "${windowSize}"
     fi
 
     return $rc
