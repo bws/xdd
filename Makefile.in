@@ -184,7 +184,7 @@ endif
 #
 # Build rules
 #
-all:	xdd timeserver gettime
+all:	xdd timeserver gettime read_tsdumps
 
 xdd: $(XDD_OBJECTS)
 	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
@@ -203,6 +203,12 @@ gettime: $(GT_OBJECTS)
 	mv -f gettime bin/gettime.$(OS)
 	rm -f bin/gettime
 	ln -s gettime.$(OS) bin/gettime
+
+read_tsdumps: contrib/read_tsdumps.c
+	$(CC) -o $@ $(CFLAGS) $^
+	mv -f read_tsdumps bin/read_tsdumps.$(OS)
+	rm -f bin/read_tsdumps
+	ln -s read_tsdumps.$(OS) bin/read_tsdumps
 
 baseversion:
 	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > src/xdd_base_version.h
@@ -228,6 +234,8 @@ clean: oclean
 		bin/timeserver \
 		bin/gettime.$(OS) \
 		bin/gettime \
+		bin/read_tsdumps.$(OS) \
+		bin/read_tsdumps \
 		a.out 
 	rm -rf doc/doxygen
 
@@ -243,6 +251,8 @@ fastinstall: all
 	rm -f /sbin/gettime.$(OS) /sbin/gettime
 	cp bin/gettime.$(OS) /sbin
 	ln /sbin/gettime.$(OS) /sbin/gettime
+	cp bin/read_tsdumps.$(OS) /sbin
+	ln /sbin/read_tsdumps.$(OS) /sbin/read_tsdumps
 
 fullinstall:
 	$(INSTALL) -d $(INSTALL_DIR)/bin
@@ -253,6 +263,9 @@ fullinstall:
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver
 	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime.$(OS)
 	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime
+	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps.$(OS)
+	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps
+	$(INSTALL) -c -m 755 contrib/plot_tsdumps $(INSTALL_DIR)/bin/plot_tsdumps
 	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
 	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
 	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp

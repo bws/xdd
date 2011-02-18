@@ -1,11 +1,9 @@
 
-#define LINUX 1
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
 #include <string.h>
-#include "../src/xdd.h"
+#include <xdd.h>
 
 /* make sure MAX is defined */
 #ifndef MAX
@@ -65,7 +63,6 @@ void printusage(char *progname);
 int main(int argc, char **argv) {
 
 	int fn,argnum,retval;
-	int64_t i;
 	/* tsdumps for the source and destination sides */
 	tthdr_t *src = NULL;
 	tthdr_t *dst = NULL;
