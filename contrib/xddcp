@@ -284,7 +284,7 @@ function check_host_preconditions {
     local recursiveFlag=${5}
 
     # Check for xdd.Linux binary
-    type ${XDDCP_DEFAULT_XDD} &>/dev/null
+    type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
     else
@@ -545,7 +545,7 @@ function get_destination_cmds {
     
     cat <<EOF
 # Ensure xdd is in the remote path
-\$(hash ${XDDCP_DEFAULT_XDD}) >/dev/null
+type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
 if [ 0 -ne \$? ]; then
     echo "xdd.Linux is not in destination host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
@@ -560,7 +560,7 @@ fi
 
 # Check that ports are available for binding
 declare -i port_conflict=0
-type gethostip &>/dev/null
+type -P gethostip &>/dev/null
 hasIpTranslator=\$?
 if [ 1 -ne \$hasIpTranslator ]; then
     declare -i tcount_idx=0
@@ -803,7 +803,7 @@ function get_source_cmds {
     # Build the command string
     cat <<EOF
 # Ensure xdd is in the path
-\$(hash ${XDDCP_DEFAULT_XDD}) >/dev/null
+type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
 if [ 0 -ne \$? ]; then
     echo "xdd.Linux is not in the source host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
@@ -1381,7 +1381,7 @@ function xddcp_main {
                 ;;
 	    f) 
                 forceFlag=1
-		type gethostip &>/dev/null
+		type -P gethostip &>/dev/null
 		if [ $? -ne 0 ]; then
 		    echo "INFO: Force mode requires the gethostip command, force disabled."
 		fi
