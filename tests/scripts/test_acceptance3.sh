@@ -28,7 +28,7 @@ sleep 30
 
 # Validate output
 test_passes=1
-pkill xdd
+kill -9 $pid
 if [ $? -eq 0 ]; then
    test_passes=0
   echo "Had to kill $pid."
