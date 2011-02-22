@@ -35,6 +35,7 @@ done
 #
 # Perform a recursive copy
 #
+export PATH=$(dirname $XDDTEST_XDD_EXE:/usr/bin:$PATH
 $XDDTEST_XDDCP_EXE -r $test_dir $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT
 rc=$?
 

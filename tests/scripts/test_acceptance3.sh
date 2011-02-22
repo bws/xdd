@@ -21,14 +21,15 @@ data_file=$test_dir/test
 $XDDTEST_XDD_EXE -op write -reqsize 4096 -mbytes    1024 -targets 1 $data_file -qd 4                  -passes 1 -datapattern random 
 # now read forever, small random I/O  with a timelimit
 $XDDTEST_XDD_EXE -op read  -reqsize    1 -mbytes   16384 -targets 1 $data_file -qd 4 -timelimit 10.0  -passes 1 -seek random -seek range 1024 &
-pid=$$
+pid=$!
+ppid=$$
 echo "xdd started, pid=$pid"
 echo "sleep 30"
 sleep 30
 
 # Validate output
 test_passes=1
-kill -9 $pid
+pkill -P $ppid $pid
 if [ $? -eq 0 ]; then
    test_passes=0
   echo "Had to kill $pid."
