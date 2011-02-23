@@ -74,7 +74,7 @@ xdd_qthread_init(ptds_t *qp) {
 	}
 	qp->qthread_target_sync = 0;
 
-#ifdef LINUX
+#if (LINUX || AIX)
         // Copy the file descriptor from the target thread (requires pread/pwrite support)
         status = xdd_target_shallow_open(qp);
 #else
