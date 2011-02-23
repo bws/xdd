@@ -94,7 +94,7 @@ TOOLS_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOLS_SRC)))
 CLIENT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
 GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
 READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
-TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
+TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TS_EXE_SRC)))
 
 
 #
@@ -155,7 +155,7 @@ endif
 #
 # Build rules
 #
-all:	xdd timeserver read_tsdumps
+all:	xdd timeserver gettime read_tsdumps
 
 libs: $(LIB_DIR)/libxdd.a $(LIB_DIR)/libxdd.so
 
@@ -171,13 +171,13 @@ xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
 	rm -f bin/xdd
 	ln -s xdd.$(OS) bin/xdd
 
-timeserver: $(XDD_OBJS) $(TS_EXE_OBJS) 
+timeserver: $(COMMON_DIR)/pclk.o $(TS_EXE_OBJS) 
 	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f timeserver bin/timeserver.$(OS)
 	rm -f bin/timeserver
 	ln -s timeserver.$(OS) bin/timeserver
 
-gettime: $(XDD_OBJS) $(GETTIME_EXE_OBJS) 
+gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/pclk.o $(GETTIME_EXE_OBJS) 
 	$(CC)  -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f gettime bin/gettime.$(OS)
 	rm -f bin/gettime
@@ -244,8 +244,8 @@ fullinstall:
 	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver.$(OS)
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver
-	#$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime.$(OS)
-	#$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime
+	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime.$(OS)
+	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime
 	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps.$(OS)
 	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps
 	$(INSTALL) -c -m 755 contrib/plot_tsdumps $(INSTALL_DIR)/bin/plot_tsdumps
