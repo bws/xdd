@@ -70,7 +70,7 @@ xdd_dio_before_io_op(ptds_t *qp) {
 	// Otherwise, it is necessary to open this target file with DirectIO disabaled
 	qp->my_current_pass_number = qp->target_ptds->my_current_pass_number;
 	qp->target_options &= ~TO_DIO;
-#if (AIX  || SOLARIS || OSX || WIN32)
+#if (SOLARIS || OSX || WIN32)
 	// In this OS it is necessary to close the file descriptor before reopening in BUFFERED I/O Mode
 	close(qp->fd);
 	qp->fd = 0;
