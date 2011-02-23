@@ -141,18 +141,22 @@ xdd_dio_after_io_op(ptds_t *qp) {
 	    return;
 	}
 
-	// At this point there is an alignment issue that requires us 
-	// to close this file descriptor and reopen the filein Buffered I/O mode.
+	// We reached this point because this QThread had been placed in Buffered I/O mode 
+	// just before this I/O started. Since we are supposed to be in Direct I/O mode, 
+	// we need to close this file descriptor and reopen the file in Direct I/O mode.
+
+	// Close this QThread's file descriptor
 	close(qp->fd);
 	qp->fd = 0;
 
-	// Reopen the fd for this QThread
-#ifdef LINUX
-	// Copy the file descriptor from the target thread (requires pread/pwrite support)
-	status = xdd_target_shallow_open(qp);
-#else
-	// Open the target device/file
+	// Reopen the file descriptor for this QThread
+#if (AIX  || SOLARIS || OSX || WIN32)
+	// For this OS, we need to issue a full open to the target device/file.
 	status = xdd_target_open(qp);
+#else // LINUX et al
+	// In this OS, we do not do an actual open because the QThreads share the File Descriptor
+	// with the Target Thread. Therefore, we issue a "shallow" open.
+	status = xdd_target_shallow_open(qp);
 #endif
 	    
 	// Check to see if the open worked

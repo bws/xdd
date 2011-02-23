@@ -154,7 +154,7 @@ xdd_target_shallow_open(ptds_t *p) {
 
 	// Check the status of the OPEN operation to see if it worked
 	if (p->fd < 0) {
-		fprintf(xgp->errout,"%s: xdd_target_open: ERROR: Could not shallow open target number %d name %s\n",
+		fprintf(xgp->errout,"%s: xdd_target_shallow_open: ERROR: Could not shallow open target number %d name %s\n",
 			xgp->progname,
 			p->my_target_number,
 			p->target_full_pathname);
