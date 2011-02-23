@@ -33,7 +33,9 @@ UTMPX_ENABLED := @CONFIG_UTMPX_ENABLED@
 #
 SHELL 	=	/bin/sh
 OS 	= 	$(shell uname)
-INSTALL = $(XDD_DIR)/contrib/install-sh
+DEPENDC = $(XDD_DIR)/support/depend.sh
+INSTALL = $(XDD_DIR)/support/install-sh
+
 #
 # Version information
 #
@@ -51,117 +53,86 @@ XDDVERSION = \"$(VERSION)\"
 #
 # Source locations
 #
-HDR_DIR = src
+DOC_DIR = doc
+LIB_DIR = lib
 SRC_DIR = src
+HDR_DIR = include
+BASE_DIR = $(SRC_DIR)/base
+CLIENT_DIR = $(SRC_DIR)/client
+COMMON_DIR = $(SRC_DIR)/common
+COMPAT_DIR = $(SRC_DIR)/compat
+FS_DIR = $(SRC_DIR)/fs
+NET_DIR = $(SRC_DIR)/net
+TOOLS_DIR = $(SRC_DIR)/tools
 
 #
-# Source files
+# Include module makefiles
 #
-XDD_SOURCE = $(SRC_DIR)/access_pattern.c \
-	$(SRC_DIR)/barrier.c \
-	$(SRC_DIR)/datapatterns.c \
-	$(SRC_DIR)/debug.c \
-	$(SRC_DIR)/end_to_end.c \
-	$(SRC_DIR)/end_to_end_init.c \
-	$(SRC_DIR)/global_clock.c \
-	$(SRC_DIR)/global_data.c \
-	$(SRC_DIR)/global_time.c \
-	$(SRC_DIR)/heartbeat.c \
-	$(SRC_DIR)/info_display.c \
-	$(SRC_DIR)/initialization.c \
-	$(SRC_DIR)/interactive.c \
-	$(SRC_DIR)/interactive_func.c \
-	$(SRC_DIR)/interactive_table.c \
-	$(SRC_DIR)/io_buffers.c \
-	$(SRC_DIR)/lockstep.c \
-	$(SRC_DIR)/memory.c \
-	$(SRC_DIR)/parse.c \
-	$(SRC_DIR)/parse_func.c \
-	$(SRC_DIR)/parse_table.c \
-	$(SRC_DIR)/pclk.c \
-	$(SRC_DIR)/preallocate.c \
-	$(SRC_DIR)/processor.c \
-	$(SRC_DIR)/ptds.c \
-	$(SRC_DIR)/qthread.c \
-	$(SRC_DIR)/qthread_cleanup.c \
-	$(SRC_DIR)/qthread_init.c \
-	$(SRC_DIR)/qthread_io.c \
-	$(SRC_DIR)/qthread_io_for_os.c \
-	$(SRC_DIR)/qthread_ttd_after_io_op.c \
-	$(SRC_DIR)/qthread_ttd_before_io_op.c \
-	$(SRC_DIR)/read_after_write.c \
-	$(SRC_DIR)/restart.c \
-	$(SRC_DIR)/results_display.c \
-	$(SRC_DIR)/results_manager.c \
-	$(SRC_DIR)/schedule.c \
-	$(SRC_DIR)/sg.c \
-	$(SRC_DIR)/signals.c \
-	$(SRC_DIR)/target_cleanup.c \
-	$(SRC_DIR)/target_init.c \
-	$(SRC_DIR)/target_open.c \
-	$(SRC_DIR)/target_pass.c \
-	$(SRC_DIR)/target_pass_e2e_specific.c \
-	$(SRC_DIR)/target_pass_qt_locator.c \
-	$(SRC_DIR)/target_thread.c \
-	$(SRC_DIR)/target_ttd_before_io_op.c \
-	$(SRC_DIR)/target_ttd_after_pass.c \
-	$(SRC_DIR)/target_ttd_before_pass.c \
-	$(SRC_DIR)/timestamp.c \
-	$(SRC_DIR)/utils.c \
-	$(SRC_DIR)/verify.c \
-	$(SRC_DIR)/xdd.c 
-
-XDD_HEADERS = $(HDR_DIR)/access_pattern.h \
-	$(HDR_DIR)/barrier.h \
-	$(HDR_DIR)/end_to_end.h \
-	$(HDR_DIR)/datapatterns.h \
-	$(HDR_DIR)/lockstep.h \
-	$(HDR_DIR)/misc.h \
-	$(HDR_DIR)/parse.h \
-	$(HDR_DIR)/pclk.h \
-	$(HDR_DIR)/ptds.h \
-	$(HDR_DIR)/read_after_write.h \
-	$(HDR_DIR)/restart.h \
-	$(HDR_DIR)/results.h \
-	$(HDR_DIR)/sg.h \
-	$(HDR_DIR)/sg_err.h \
-	$(HDR_DIR)/sg_include.h \
-	$(HDR_DIR)/target_offset_table.h \
-	$(HDR_DIR)/timestamp.h \
-	$(HDR_DIR)/xdd.h \
-	$(HDR_DIR)/xdd_common.h \
-	$(HDR_DIR)/xdd_global_data.h \
-	$(HDR_DIR)/xdd_prototypes.h \
-	$(HDR_DIR)/xdd_version.h
+include $(BASE_DIR)/module.mk
+include $(CLIENT_DIR)/module.mk
+include $(COMMON_DIR)/module.mk
+include $(COMPAT_DIR)/module.mk
+include $(FS_DIR)/module.mk
+include $(NET_DIR)/module.mk
+include $(TOOLS_DIR)/module.mk
 
 #
-# Objects
+# Construct information from modules
 #
-XDD_OBJECTS = $(patsubst %.c, %.o, $(filter %.c, $(XDD_SOURCE)))
-TS_OBJECTS = $(SRC_DIR)/timeserver.o $(SRC_DIR)/pclk.o
-GT_OBJECTS = $(SRC_DIR)/gettime.o \
-	$(SRC_DIR)/global_time.o \
-	$(SRC_DIR)/pclk.o
+XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
+	$(FS_SRC) $(NET_SRC) $(TOOLS_SRC)
+
+#
+# XDD module build targets
+#
+XDD_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(XDD_SRC)))
+TOOLS_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOLS_SRC)))
+
+#
+# Project executable objects
+#
+CLIENT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
+GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
+READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
+TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
+
+
+#
+# Source code dependency generation
+#
+XDD_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(XDD_SRC)))
+TOOLS_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(TOOLS_SRC)))
+CLIENT_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_EXE_SRC)))
 
 #
 # Default build settings
 #
-CC = 		gcc
-INCLUDES = -I$(SRC_DIR)
+CC = gcc
+INCLUDES = -I$(BASE_DIR) -I$(CLIENT_DIR) -I$(COMMON_DIR) \
+		-I$(COMPAT_DIR) -I$(FS_DIR) -I$(NET_DIR) \
+		-I$(TOOLS_DIR)
 COMMONFLAGS = $(INCLUDES) @CONFIG_CFLAGS@ \
 		-DXDD_VERSION=$(XDDVERSION) \
-		-DXDD_VERSION_MAJOR=$(VERSION_MAJOR) -DXDD_VERSION_MINOR=$(VERSION_MINOR) -DXDD_VERSION_REV=$(VERSION_REV) \
+		-DXDD_VERSION_MAJOR=$(VERSION_MAJOR) \
+		-DXDD_VERSION_MINOR=$(VERSION_MINOR) \
+		-DXDD_VERSION_REV=$(VERSION_REV) \
 		$(CONFIDENCE_ENABLED)
 COMMONLIBS = @CONFIG_LDFLAGS@
-CFLAGS = $(COMMONFLAGS) -DLINUX -O2 -g
-LIBRARIES =     $(COMMONLIBS) -lpthread -lrt
+CFLAGS = $(COMMONFLAGS) -DLINUX -O2 -ggdb
+LIBRARIES = $(COMMONLIBS) -lpthread -lrt
+
+#
+# Default link settings
+#
+LD = gcc
+LDFLAGS = -ggdb -R $(INSTALL_DIR)/lib
 
 #
 # Platform specific build settings
 #
 $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
-CFLAGS = $(COMMONFLAGS) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED) -g -fno-strict-aliasing -Wall
+CFLAGS = $(COMMONFLAGS) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED) -g -fno-strict-aliasing -fPIC -Wall
 endif
 ifeq '$(OS)' 'Darwin' 
 CFLAGS = $(COMMONFLAGS) -DOSX -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
@@ -184,27 +155,35 @@ endif
 #
 # Build rules
 #
-all:	xdd timeserver gettime read_tsdumps
+all:	xdd timeserver read_tsdumps
 
-xdd: $(XDD_OBJECTS)
+libs: $(LIB_DIR)/libxdd.a $(LIB_DIR)/libxdd.so
+
+$(LIB_DIR)/libxdd.a: $(XDD_OBJS)
+	ar rcs $@ $^
+
+$(LIB_DIR)/libxdd.so: $(XDD_OBJS)
+	$(CC) -shared -Wl,-soname,$@ -o $@ $^
+
+xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
 	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f $@ bin/xdd.$(OS)
 	rm -f bin/xdd
 	ln -s xdd.$(OS) bin/xdd
 
-timeserver: $(TS_OBJECTS) 
+timeserver: $(XDD_OBJS) $(TS_EXE_OBJS) 
 	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f timeserver bin/timeserver.$(OS)
 	rm -f bin/timeserver
 	ln -s timeserver.$(OS) bin/timeserver
 
-gettime: $(GT_OBJECTS) 
+gettime: $(XDD_OBJS) $(GETTIME_EXE_OBJS) 
 	$(CC)  -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f gettime bin/gettime.$(OS)
 	rm -f bin/gettime
 	ln -s gettime.$(OS) bin/gettime
 
-read_tsdumps: contrib/read_tsdumps.c
+read_tsdumps: $(READ_TSDUMPS_EXE_OBJS)
 	$(CC) -o $@ $(CFLAGS) $^
 	mv -f read_tsdumps bin/read_tsdumps.$(OS)
 	rm -f bin/read_tsdumps
@@ -222,11 +201,15 @@ fulldist:	clean baseversion all tarball
 tarball:
 	tar cfz ../$(PROJECT).$(XDD_VERSION).tgz .
 
+depclean:
+	$(info Cleaning the $(OS) dependency files )
+	@rm -f $(XDD_DEPENDS)
+
 oclean:
 	$(info Cleaning the $(OS) OBJECT files )
-	rm -f $(XDD_OBJECTS) $(TS_OBJECTS) $(GT_OBJECTS)
+	rm -f $(XDD_OBJS) $(TS_OBJECTS) $(GT_OBJECTS)
 
-clean: oclean
+clean: depclean oclean 
 	$(info Cleaning the $(OS) executable files )
 	rm -f bin/xdd.$(OS) \
 		bin/xdd \
@@ -261,8 +244,8 @@ fullinstall:
 	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver.$(OS)
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver
-	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime.$(OS)
-	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime
+	#$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime.$(OS)
+	#$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime
 	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps.$(OS)
 	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps
 	$(INSTALL) -c -m 755 contrib/plot_tsdumps $(INSTALL_DIR)/bin/plot_tsdumps
@@ -276,6 +259,23 @@ doc:
 	cd doc/doxygen/latex && make pdf
 
 #
+# Include dependency makefiles if building source target
+#
+DEPFILTER_MAKECMDGOALS := $(filter %clean %doc, $(MAKECMDGOALS))
+ifeq ($(strip $(DEPFILTER_MAKECMDGOALS)),)
+-include $(XDD_DEPENDS)
+-include $(TOOLS_DEPENDS)
+endif
+
+#
+# Additional rule for building dependencies
+#
+%.d: %.c
+	@echo "Generating dependencies for $< . . ."
+	@mkdir -p $(shell dirname $@)
+	@$(DEPENDC) $(shell dirname $<) $(CC) -MM $(INCLUDES) $< > $@
+
+#
 # Make meta-directives
 #
-.PHONY: all clean doc fastinstall install oclean tarball
+.PHONY: all clean depclean doc fastinstall install oclean tarball

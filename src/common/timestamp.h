@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
  *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Bradley Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
  *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
@@ -33,30 +33,30 @@
 
 /** typedef unsigned long long iotimer_t; */
 struct tte {
-	char 			op_type;  		// operation: write=2, read=1, no-op=0
-	char			filler1;		// 
-	short 			pass_number;  	// Pass Number
-	int32_t			qthread_number;	// My QThread Number
+    char 			op_type;  	// operation: write=2, read=1, no-op=0
+    char			filler1;	// 
+    short 			pass_number;  	// Pass Number
+    int32_t			qthread_number;	// My QThread Number
 // 64 bits 8 bytes
-	short 			disk_processor_start;// Processor number that this disk op was started on
-	short 			disk_processor_end;	// Processor number that this disk op ended on
-	short 			net_processor_start;// Processor number that this net op was started on
-	short 			net_processor_end;	// Processor number that this net op ended on
+    short 			disk_processor_start;   // Processor number that this disk op was started on
+    short 			disk_processor_end;	// Processor number that this disk op ended on
+    short 			net_processor_start;    // Processor number that this net op was started on
+    short 			net_processor_end;	// Processor number that this net op ended on
 // 128 bits 16 bytes
-	int32_t			disk_xfer_size;	// Number of bytes transferred to/from disk
-	int32_t		 	net_xfer_size; 	// Number of bytes transferred to/from network
+    int32_t			disk_xfer_size;	// Number of bytes transferred to/from disk
+    int32_t		 	net_xfer_size; 	// Number of bytes transferred to/from network
 // 192 bits 24 bytes
-	int64_t		 	op_number; 		// Operation number
+    int64_t		 	op_number; 	// Operation number
 // 256 bits 32 bytes
-	int64_t		 	byte_location; 	// Location in bytes - aka Offset into the device/file
+    int64_t		 	byte_location; 	// Location in bytes - aka Offset into the device/file
 // 320 bits 40 bytes
-	pclk_t 			disk_start;  	// The starting time stamp of the disk operation
+    pclk_t 			disk_start;  	// The starting time stamp of the disk operation
 // 384 bits 48 bytes
-	pclk_t 			disk_end;  		// The ending time stamp of the disk operation
+    pclk_t 			disk_end;  	// The ending time stamp of the disk operation
 // 448 bits 56 bytes
-	pclk_t 			net_start;  	// The starting time stamp of the net operation (e2e only)
+    pclk_t 			net_start;  	// The starting time stamp of the net operation (e2e only)
 // 512 bits 64 bytes
-	pclk_t 			net_end;  		// The ending time stamp of the net operation (e2e only)
+    pclk_t 			net_end;        // The ending time stamp of the net operation (e2e only)
 // 520 bits
 //	struct timeval	usage_utime;	// usage_utime.tv_sec = usage.ru_utime.tv_sec;
 //	struct timeval	usage_stime;	// usage_utime.tv_sec = usage.ru_utime.tv_sec;
@@ -74,25 +74,25 @@ struct tthdr {
     uint32_t    major;          /**< Major version for timestamp data format */
     uint32_t    minor;          /**< Minor version for timestamp data format */
     uint32_t    revision;       /**< Revision number for timestamp data format */
-	int32_t		reqsize; 		/**< size of these requests in 'blocksize'-byte blocks */
-	int32_t 	blocksize; 		/**< size of each block in bytes */
-	int64_t 	numents; 		/**< number of timestamp table entries */
-	pclk_t 		trigtime; 		/**< Time the time stamp started */
-	int64_t 	trigop;  		/**< Operation number that timestamping started */
-	int64_t 	res;  			/**< clock resolution - pico seconds per clock tick */
-	int64_t 	range;  		/**< range over which the IO took place */
-	int64_t 	start_offset;	/**< offset of the starting block */
-	int64_t 	target_offset;	/**< offset of the starting block for each proc*/
-	uint64_t 	global_options;	/**< options used */
-	uint64_t 	target_options;	/**< options used */
-	char 		id[MAX_IDLEN]; 	/**< ID string */
-	char 		td[32];  		/**< time and date */
-	pclk_t 		timer_oh; 		/**< Timer overhead in nanoseconds */
-	pclk_t 		delta;  		/**< Delta used for normalization */
-	int64_t 	tt_bytes; 		/**< Size of the entire time stamp table in bytes */
-	int64_t 	tt_size; 		/**< Size of the entire time stamp table in entries */
-	int64_t 	tte_indx; 		/**< Index into the time stamp table */
-	struct 		tte tte[1]; 	/**< timestamp table entries */
+    int32_t	reqsize; 	/**< size of these requests in 'blocksize'-byte blocks */
+    int32_t 	blocksize; 	/**< size of each block in bytes */
+    int64_t 	numents; 	/**< number of timestamp table entries */
+    pclk_t 	trigtime; 	/**< Time the time stamp started */
+    int64_t 	trigop;  	/**< Operation number that timestamping started */
+    int64_t 	res;  		/**< clock resolution - pico seconds per clock tick */
+    int64_t 	range;  	/**< range over which the IO took place */
+    int64_t 	start_offset;	/**< offset of the starting block */
+    int64_t 	target_offset;	/**< offset of the starting block for each proc*/
+    uint64_t 	global_options;	/**< options used */
+    uint64_t 	target_options;	/**< options used */
+    char 	id[MAX_IDLEN]; 	/**< ID string */
+    char 	td[32];  	/**< time and date */
+    pclk_t 	timer_oh; 	/**< Timer overhead in nanoseconds */
+    pclk_t 	delta;  	/**< Delta used for normalization */
+    int64_t 	tt_bytes; 	/**< Size of the entire time stamp table in bytes */
+    int64_t 	tt_size; 	/**< Size of the entire time stamp table in entries */
+    int64_t 	tte_indx; 	/**< Index into the time stamp table */
+    struct 	tte tte[1]; 	/**< timestamp table entries */
 };
 typedef struct tthdr tthdr_t;
 
