@@ -141,14 +141,21 @@ xdd_dio_after_io_op(ptds_t *qp) {
 	    return;
 	}
 
-	// Close non-DIO access, and switch back to DIO
+	// At this point there is an alignment issue that requires us 
+	// to close this file descriptor and reopen the filein Buffered I/O mode.
 	close(qp->fd);
 	qp->fd = 0;
 
-	// Reopen the shallow copy of the target thread's fd
+	// Reopen the fd for this QThread
+#ifdef LINUX
+	// Copy the file descriptor from the target thread (requires pread/pwrite support)
 	status = xdd_target_shallow_open(qp);
+#else
+	// Open the target device/file
+	status = xdd_target_open(qp);
+#endif
 	    
-	// Otherwise, the file was opened without direct I/O for this qthread, close it now
+	// Check to see if the open worked
 	if (status != 0 ) { // error openning target 
 	    fprintf(xgp->errout,"%s: xdd_dio_after_io_op: ERROR: Target %d QThread %d: Reopen of target '%s' failed\n",
 		    xgp->progname,
