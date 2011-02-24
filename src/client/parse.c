@@ -55,6 +55,11 @@ void xdd_build_ptds_substructure(void);
  * will be invoked to do whatever is necessary for the -op command line option. It is
  * worth noting that the "-op" is an alternate for the actual option name which is 
  * "-operation" but I am lazy so there you have it. 
+ *
+ * NOTE: There are other characters that look like a "-" (dash or minus sign - 0x2D)
+ * but are the 16-bit equivalent and this subroutine does not recognize them. 
+ * Hence it is possible that the parse_args subroutine will go right off the edge 
+ * and core dump if the weird dashes are used.
  */
 void
 xdd_parse_args(int32_t argc, char *argv[], uint32_t flags) {

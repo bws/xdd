@@ -188,6 +188,9 @@ xdd_targetpass_task_setup(ptds_t *qp) {
 	// Assign an IO task to this qthread
 	qp->task_request = TASK_REQ_IO;
 
+	// Get the most recent File Descriptor in case it changed...
+	qp->fd = p->fd;
+
 	// Set the Operation Type
 	if (p->seekhdr.seeks[p->my_current_op_number].operation == SO_OP_WRITE) // Write Operation
 		qp->my_current_op_type = OP_TYPE_WRITE;

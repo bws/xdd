@@ -200,6 +200,7 @@ xddfunc_createnewfiles(int32_t argc, char *argv[], uint32_t flags)
 		if (p == NULL) return(-1);
 
 		p->target_options |= TO_CREATE_NEW_FILES;
+
         return(args+1);
     } else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
@@ -4472,15 +4473,17 @@ xddfunc_version(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags)
 {
-	fprintf(xgp->errout, "%s: Invalid option: %s (%d)\n",
-		xgp->progname, argv[0], argc);
+	//fprintf(xgp->errout, "%s: Invalid option: %s (%d)\n",
+		//xgp->progname, argv[0], argc);
+	fprintf(xgp->errout, "%s: Invalid option: (%d)\n",
+		xgp->progname, argc);
     return(0);
 } // end of xddfunc_invalid_option() 
  
 /*----------------------------------------------------------------------------*/
 void
 xddfunc_currently_undefined_option(char *sp) {
-fprintf(xgp->errout,"The '%s' option is currently undefined\n",sp);
+	fprintf(xgp->errout,"The '%s' option is currently undefined\n",sp);
 } // End of xddfunc_currently_undefined_option()
 /*
  * Local variables:
