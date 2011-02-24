@@ -33,6 +33,7 @@
  * on the target device/file.
  */
 #include "xdd.h"
+#include <errno.h>
 
 /*----------------------------------------------------------------------------*/
 /* xdd_target_open() - open the target device and do all necessary 
@@ -209,7 +210,7 @@ xdd_target_existence_check(ptds_t *p) {
 
 
 	/* Stat the file before it is opened */
-#if (AIX1 || SOLARIS)
+#if (AIX || SOLARIS)
 	status = stat64(p->target_full_pathname,&p->statbuf);
 #else // All other OSs use stat
 	status = stat(p->target_full_pathname,&p->statbuf);
