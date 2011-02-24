@@ -570,10 +570,10 @@ if [ 1 -ne \$hasIpTranslator ]; then
         iface_ip=\$(gethostip -d \$iface)
         e2eLB=$e2ePort
         e2eUB=\$((e2eLB+tcount))
-        echo "\$tcount_idx \$iface_ip \$e2eLB \$e2eUB" >>/tmp/bws
-        echo "netstat -nat |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])" >>/tmp/bws
+#        echo "\$tcount_idx \$iface_ip \$e2eLB \$e2eUB" >>/tmp/bws
+#        echo "netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])" >>/tmp/bws
         used_ports=\$(netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
-        echo "Used ports: \$used_ports" >>/tmp/bws
+#        echo "Used ports: \$used_ports" >>/tmp/bws
         for p in \$used_ports; do
             if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
                 port_conflict=1
