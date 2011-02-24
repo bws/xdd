@@ -96,6 +96,16 @@ GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
 READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
 TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TS_EXE_SRC)))
 
+#
+# All objects
+#
+ALL_OBJS = \
+	$(XDD_OBJS) \
+	$(TOOL_OBJS) \
+	$(CLIENT_EXE_OBJS) \
+	$(GETTIME_EXE_OBJS) \
+	$(READ_TSDUMPS_EXE_OBJS) \
+	$(TS_EXE_OBJS) 
 
 #
 # Source code dependency generation
@@ -149,7 +159,8 @@ endif
 ifeq '$(OS)' 'AIX'
 CC =            xlc_r
 CFLAGS = $(COMMONFLAGS) -DAIX -D_THREAD_SAFE -g -q64 -qcpluscmt -qthreaded
-LIBRARIES = 	$(COMMONLIBS) -lnsl -lpthread  -lxnet -v
+LDFLAGS = $(COMMONFLAGS) -DAIX -D_THREAD_SAFE -g -q64 -qcpluscmt -qthreaded
+LIBRARIES = 	$(COMMONLIBS) -lnsl -lpthread -lxnet -v
 endif
 
 #
@@ -203,11 +214,11 @@ tarball:
 
 depclean:
 	$(info Cleaning the $(OS) dependency files )
-	@rm -f $(XDD_DEPENDS)
+	@rm -f $(XDD_DEPENDS) $(TOOLS_DEPENDS)
 
 oclean:
 	$(info Cleaning the $(OS) OBJECT files )
-	rm -f $(XDD_OBJS) $(TS_OBJECTS) $(GT_OBJECTS)
+	rm -f $(ALL_OBJS) 
 
 clean: depclean oclean 
 	$(info Cleaning the $(OS) executable files )
@@ -264,7 +275,7 @@ doc:
 DEPFILTER_MAKECMDGOALS := $(filter %clean %doc, $(MAKECMDGOALS))
 ifeq ($(strip $(DEPFILTER_MAKECMDGOALS)),)
 -include $(XDD_DEPENDS)
--include $(TOOLS_DEPENDS)
+#-include $(TOOLS_DEPENDS)
 endif
 
 #
@@ -273,7 +284,7 @@ endif
 %.d: %.c
 	@echo "Generating dependencies for $< . . ."
 	@mkdir -p $(shell dirname $@)
-	@$(DEPENDC) $(shell dirname $<) $(CC) -MM $(INCLUDES) $< > $@
+	@$(DEPENDC) $(shell dirname $<) gcc -MM $(INCLUDES) $< > $@
 
 #
 # Make meta-directives

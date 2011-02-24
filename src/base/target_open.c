@@ -34,7 +34,6 @@
  */
 #include "xdd.h"
 
-
 /*----------------------------------------------------------------------------*/
 /* xdd_target_open() - open the target device and do all necessary 
  * sanity checks.  This routine simply calls the appropriate open routine
@@ -210,7 +209,7 @@ xdd_target_existence_check(ptds_t *p) {
 
 
 	/* Stat the file before it is opened */
-#if (AIX || SOLARIS)
+#if (AIX1 || SOLARIS)
 	status = stat64(p->target_full_pathname,&p->statbuf);
 #else // All other OSs use stat
 	status = stat(p->target_full_pathname,&p->statbuf);
@@ -301,8 +300,6 @@ xdd_target_existence_check(ptds_t *p) {
 int32_t
 xdd_target_open_for_os(ptds_t *p) {
 
-
-
 	// Set the Open Flags to indicate DirectIO if requested
 	if (p->target_options & TO_DIO) 
 		p->target_open_flags |= O_DIRECT;
@@ -344,25 +341,23 @@ xdd_target_open_for_os(ptds_t *p) {
  */
 int32_t
 xdd_target_open_for_os(ptds_t *p) {
+        // Set the Open Flags to indicate DirectIO if requested
+        if (p->target_options & TO_DIO)
+                p->target_open_flags |= O_DIRECT;
+        else p->target_open_flags &= ~O_DIRECT;
 
-	p->target_open_flags |= O_LARGEFILE;
-	// Set the Open Flags to indicate DirectIO if requested
-	if (p->target_options & TO_DIO) {
-		p->target_open_flags |= O_DIRECT;
-	}
+        /* open the target */
+        if (p->rwratio == 0.0) {
+                p->fd = open(p->target_full_pathname,p->target_open_flags|O_WRONLY, 0666); /* write only */
+        } else if (p->rwratio == 1.0) { /* read only */
+                p->target_open_flags &= ~O_CREAT;
+                p->fd = open(p->target_full_pathname,p->target_open_flags|O_RDONLY, 0777); /* Read only */
+        } else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
+                p->target_open_flags &= ~O_CREAT;
+                p->fd = open(p->target_full_pathname,p->target_open_flags|O_RDWR, 0666);
+        }
 
-	// Generic 64-bit UNIX open stuff - for Solaris, AIX, FREEBSD, and MacOSX
-	if (p->rwratio == 0.0) {
-		p->fd = open64(p->target_full_pathname,p->target_open_flags|O_WRONLY, 0666); /* write only */
-	} else if (p->rwratio == 1.0) { /* read only */
-		p->target_open_flags &= ~O_CREAT;
-		p->fd = open64(p->target_full_pathname,p->target_open_flags|O_RDONLY, 0777); /* Read only */
-	} else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
-		p->target_open_flags &= ~O_CREAT;
-		p->fd = open64(p->target_full_pathname,p->target_open_flags|O_RDWR, 0666);
-	}
-
-	return(0);
+        return(0);
 } // End of xdd_target_open_for_aix()
 #endif
 

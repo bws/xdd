@@ -48,6 +48,7 @@
 #include <sys/mman.h>
 #include <sys/resource.h> /* needed for multiple processes */
 #include <pthread.h>
+#include <semaphore.h>
 #include <sched.h>
 #include <math.h>
 #include <sys/stat.h>
