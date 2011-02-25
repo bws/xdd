@@ -4,6 +4,8 @@ XDD Release ChangeLog
 
 xdd-7.0.0 RC19
 ==============
+* XDD: AIX supported again for xdd.
+* XDD: Version string changed to not include platform.
 * XDDCP: Add support for recursive copies.
 * XDDCP: Change direct I/O and ordering options so that they can
 	can be specified on source, destination, or both.  The way
@@ -12,6 +14,8 @@ xdd-7.0.0 RC19
 	Alternative spellings are also enabled: source, dest, both,
 	and sd can also be used to specify the relevant ends to
 	configure.
+* XDDCP: Add option for creating time series graph of transfer (-w)
+
 
 xdd-7.0.0 RC18
 ==============
