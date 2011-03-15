@@ -49,7 +49,11 @@
 void
 xdd_qthread_io(ptds_t *qp) {
 	int32_t		status;			// Status of various subroutine calls
+	ptds_t		*p;				// Pointer to the Target PTDS for this QThread
 
+
+	// Get the pointer to the Target's PTDS
+	p = qp->target_ptds;
 
 	// Do the things that need to get done before the I/O is started
 	// If this is the Destination Side of an End-to-End (E2E) operation, the xdd_qthread_ttd_before_io_op()
@@ -99,7 +103,7 @@ xdd_qthread_io(ptds_t *qp) {
 	// Check to see if we have been canceled - if so, then we need to release the next QThread
 	// if there is any ordering involved.
 	// Subsequent QThreads will do the same...
-	if (xgp->canceled) {
+	if ((xgp->canceled)  || (xgp->abort) || (p->abort) || (qp->abort)) {
 		// Release the Next QThread I/O if requested
 		if (qp->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) 
 			 xdd_qthread_release_next_io(qp);
@@ -237,16 +241,37 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 /*----------------------------------------------------------------------------*/
 /* xdd_qthread_update_local_counters() - This subroutine will update the local
  * PTDS counters and timers in this QThread's PTDS
+ *
+ * The qthread_io_for_os() subroutine issues an I/O operation and sets the
+ * "my_current_io_status" member of this QThread's PTDS equal to whatever the
+ * read/write system call returned. Under normal conditions the return value
+ * from the read/write system call (or equivalent) should be the number of
+ * bytes transferred. If there was an error during the transfer then the
+ * return value should be -1 and "errno" for this QThread will be set to
+ * indicate roughly what happened (i.e. EIO). If the return value is zero 
+ * then the read/write hit an end-of-file condition. A return value of 
+ * anything between 1 and the number of bytes that were supposed to be 
+ * transferred (minus 1) is considered an error. 
  * 
+ * If the operation completed normally then the various counters in this
+ * QThread's PTDS are updated appropriately. 
+ * Otherwise, an error message is displayed with relevant information 
+ * as to the time and location of the error. The my_current_error_count is
+ * set to 1 to indicate an error condition to the QThread and subsequently
+ * the Target Thread so that they can take appropriate action. 
  */
 void
 xdd_qthread_update_local_counters(ptds_t *qp) {
+	ptds_t	*p;			// Pointer to the Tartget's PTDS
+
+	// Get the pointer to the Target's PTDS
+	p = qp->target_ptds;
 
 	qp->my_current_op_elapsed_time = (qp->my_current_op_end_time - qp->my_current_op_start_time);
 	qp->my_accumulated_op_time += qp->my_current_op_elapsed_time;
 	qp->my_current_io_errno = errno;
 	qp->my_current_error_count = 0;
-	if (qp->my_current_io_status == qp->my_current_io_size) {
+	if (qp->my_current_io_status == qp->my_current_io_size) { // Status is GOOD - update counters
 		qp->my_current_bytes_xfered_this_op = qp->my_current_io_size;
 		qp->my_current_bytes_xfered += qp->my_current_io_size;
 		qp->my_current_op_count++;
@@ -268,8 +293,13 @@ xdd_qthread_update_local_counters(ptds_t *qp) {
 				qp->my_current_noop_op_count++;
 				break;
 		} // End of SWITCH
-	} else {// ((qp->my_current_io_status < 0) || (qp->my_current_io_status != qp->my_current_io_size)) 
-		fprintf(xgp->errout, "%s: I/O ERROR on Target %d QThread %d: ERROR: Status %d, I/O Transfer Size %d, %s Operation Number %lld\n",
+	} else {// Something went wrong - issue error message
+		if (xgp->global_options & GO_STOP_ON_ERROR) {
+			qp->abort = 1; // Remember to abort this QThread
+			p->abort = 1; // This tells all the other QThreads and the Target Thread to abort
+//			xgp->abort = 1; // This tells all the other Targets to abort
+		}
+		fprintf(xgp->errout, "%s: I/O ERROR on Target %d QThread %d: ERROR: Status %d, I/O Transfer Size [expected status] %d, %s Operation Number %lld\n",
 			xgp->progname,
 			qp->my_target_number,
 			qp->my_qthread_number,
@@ -310,6 +340,58 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	p = qp->target_ptds;
 
 	///////////////////////////////////////////////////////////////////////////////////	
+	// The following section gets the "counter_mutex" of the Target PTDS 
+	// in order to update the various counters and timers.
+	//
+	// LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK
+	pthread_mutex_lock(&p->counter_mutex);
+	// Update counters and status in the QThread PTDS
+	p->my_accumulated_op_time += qp->my_current_op_elapsed_time;
+	if (qp->my_current_io_status == qp->my_current_io_size) { // Only update counters if I/O succeeded
+		p->my_current_bytes_xfered_this_op = qp->my_current_bytes_xfered_this_op;
+		p->bytes_completed += qp->my_current_bytes_xfered_this_op;
+		p->my_current_bytes_xfered += qp->my_current_bytes_xfered_this_op;
+		p->my_current_op_count++;
+		p->e2e_sr_time += qp->e2e_sr_time; // E2E Send/Receive Time
+		if ( (qp->target_options & TO_ENDTOEND) && (qp->target_options & TO_E2E_DESTINATION)) {
+			if ( qp->first_pass_start_time < p->first_pass_start_time)  // Record the proper *First* pass start time
+				p->first_pass_start_time = qp->first_pass_start_time;
+			if ( qp->my_pass_start_time < p->my_pass_start_time)  // Record the proper PASS start time
+				p->my_pass_start_time = qp->my_pass_start_time;
+		}
+		// Operation-specific counters
+		switch (qp->my_current_op_type) { 
+			case OP_TYPE_READ: 
+				p->my_accumulated_read_op_time += qp->my_current_op_elapsed_time;
+				p->my_current_bytes_read += qp->my_current_io_size;
+				p->my_current_read_op_count++;
+				break;
+			case OP_TYPE_WRITE: 
+				p->my_accumulated_write_op_time += qp->my_current_op_elapsed_time;
+				p->my_current_bytes_written += qp->my_current_io_size;
+				p->my_current_write_op_count++;
+				break;
+			case OP_TYPE_NOOP: 
+				p->my_accumulated_noop_op_time += qp->my_current_op_elapsed_time;
+				p->my_current_bytes_noop += qp->my_current_io_size;
+				p->my_current_noop_op_count++;
+				break;
+			default:
+				break;
+		} // End of SWITCH
+	} // End of IF clause that updates counters
+
+	// If this QThread got an I/O error then its error count will be 1, otherwise it will be zero
+	p->my_current_error_count += qp->my_current_error_count;
+
+	pthread_mutex_unlock(&p->counter_mutex);
+	// UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED
+
+	// If this QThread got an I/O error then we do not want to update the TOT
+	if (qp->my_current_error_count) 
+		return; 
+
+	///////////////////////////////////////////////////////////////////////////////////	
 	// Update the TOT entry for this last I/O
 	// Since the TOT is a resource owned by the Target Thread and shared by the QThreads
 	// it will be updated here.
@@ -348,51 +430,6 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	pthread_mutex_unlock(&tep->tot_mutex);
 	// UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED
 
-	///////////////////////////////////////////////////////////////////////////////////	
-	// The following section gets the "counter_mutex" of the Target PTDS 
-	// in order to update the various counters and timers.
-	//
-	// LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK
-	pthread_mutex_lock(&p->counter_mutex);
-	// Update counters and status in the QThread PTDS
-	p->my_accumulated_op_time += qp->my_current_op_elapsed_time;
-	if (qp->my_current_io_status == qp->my_current_io_size) {
-		p->my_current_bytes_xfered_this_op = qp->my_current_bytes_xfered_this_op;
-		p->bytes_completed += qp->my_current_bytes_xfered_this_op;
-		p->my_current_bytes_xfered += qp->my_current_bytes_xfered_this_op;
-		p->my_current_op_count++;
-		p->e2e_sr_time += qp->e2e_sr_time; // E2E Send/Receive Time
-		if ( (qp->target_options & TO_ENDTOEND) && (qp->target_options & TO_E2E_DESTINATION)) {
-			if ( qp->first_pass_start_time < p->first_pass_start_time)  // Record the proper *First* pass start time
-				p->first_pass_start_time = qp->first_pass_start_time;
-			if ( qp->my_pass_start_time < p->my_pass_start_time)  // Record the proper PASS start time
-				p->my_pass_start_time = qp->my_pass_start_time;
-		}
-		// Operation-specific counters
-		switch (qp->my_current_op_type) { 
-			case OP_TYPE_READ: 
-				p->my_accumulated_read_op_time += qp->my_current_op_elapsed_time;
-				p->my_current_bytes_read += qp->my_current_io_size;
-				p->my_current_read_op_count++;
-				break;
-			case OP_TYPE_WRITE: 
-				p->my_accumulated_write_op_time += qp->my_current_op_elapsed_time;
-				p->my_current_bytes_written += qp->my_current_io_size;
-				p->my_current_write_op_count++;
-				break;
-			case OP_TYPE_NOOP: 
-				p->my_accumulated_noop_op_time += qp->my_current_op_elapsed_time;
-				p->my_current_bytes_noop += qp->my_current_io_size;
-				p->my_current_noop_op_count++;
-				break;
-			default:
-				break;
-		} // End of SWITCH
-	}
-	p->my_current_error_count += qp->my_current_error_count;
-
-	pthread_mutex_unlock(&p->counter_mutex);
-	// UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED
 
 } // End of xdd_qthread_update_target_counters()
 

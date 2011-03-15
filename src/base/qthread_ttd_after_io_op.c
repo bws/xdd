@@ -78,11 +78,10 @@ xdd_status_after_io_op(ptds_t *qp) {
 
 	/* Check for errors in the last operation */
 	if ((qp->my_current_error_count > 0) && (xgp->global_options & GO_STOP_ON_ERROR)) {
-		fprintf(xgp->errout, "%s: status_after_io_op: Target %d QThread %d: ERROR: Error on this target caused a Stop_On_Error Event - exiting all threads and targets\n",
+		fprintf(xgp->errout, "%s: status_after_io_op: Target %d QThread %d: ERROR: Error on this target caused a Stop_On_Error Event\n",
 			xgp->progname,
 			qp->my_target_number, 
 			qp->my_qthread_number);
-		xgp->run_error_count_exceeded = 1;
 	}
 
 	if (qp->my_current_error_count >= xgp->max_errors) {
@@ -92,7 +91,6 @@ xdd_status_after_io_op(ptds_t *qp) {
 			qp->my_qthread_number,
 			(long long int)qp->my_current_error_count,
 			(long long int)xgp->max_errors);
-		qp->my_error_break = 1;
 	}
 
 	if ((qp->my_current_io_status == 0) && (qp->my_current_io_errno == 0)) {
@@ -103,7 +101,6 @@ xdd_status_after_io_op(ptds_t *qp) {
 			qp->target_full_pathname,
 			qp->my_current_io_status, 
 			qp->my_current_io_errno);
-		qp->my_error_break = 1; /* fake an exit */
 	}
 
 } // End of xdd_status_after_io_op(qp) 
@@ -321,12 +318,14 @@ xdd_extended_stats(ptds_t *qp) {
 void
 xdd_qthread_ttd_after_io_op(ptds_t *qp) {
 
+	// I/O Operation Status Checking
+	xdd_status_after_io_op(qp);
+
+	if (qp->abort)
+		return;
 
 	// Threshold Checking
 	xdd_threshold_after_io_op(qp);
-
-	// I/O Operation Status Checking
-	xdd_status_after_io_op(qp);
 
 	// DirectIO Handling
 	xdd_dio_after_io_op(qp);

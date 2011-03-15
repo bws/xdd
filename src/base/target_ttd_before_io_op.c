@@ -214,7 +214,6 @@ xdd_target_ttd_before_io_op(ptds_t *p) {
 
 	/* init the error number and break flag for good luck */
 	errno = 0;
-	p->my_error_break = 0;
 	/* Get the location to seek to */
 	if (p->seekhdr.seek_options & SO_SEEK_NONE) /* reseek to starting offset if noseek is set */
 		p->my_current_byte_location = (uint64_t)((p->my_target_number * xgp->target_offset) + 

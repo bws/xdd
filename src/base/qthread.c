@@ -43,7 +43,8 @@ xdd_qthread(void *pin) {
 	int32_t  		status; 	// Status of various system calls
 	ptds_t			*qp;		// Pointer to this QThread's PTDS
 	ptds_t			*p;			// Pointer to this QThread's Target PTDS
-
+	pclk_t			checktime;
+	int				mycpu;
 
 	qp = (ptds_t *)pin; 
 	p = qp->target_ptds;	// This is the pointer to this QThread's Target PTDS
@@ -75,13 +76,17 @@ xdd_qthread(void *pin) {
 	// indicate that there was a condition that warrants canceling the entire run
 	while (1) {
 		// Enter the QThread_TargetPass_Wait barrier until we are assigned something to do byte targetpass()
+		pclk_now(&checktime);
 		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&qp->occupant,1);
 
+		pclk_now(&checktime);
 		// Look at Task request 
 		switch (qp->task_request) {
 			case TASK_REQ_IO:
 				// Perform the requested I/O operation
+		pclk_now(&checktime);
 				xdd_qthread_io(qp);
+		pclk_now(&checktime);
 				break;
 			case TASK_REQ_REOPEN:
 				// Reopen the target as requested
@@ -135,7 +140,10 @@ xdd_qthread(void *pin) {
 
 		// Mark this QThread Available
 		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
-		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
+		pclk_now(&checktime);
+		mycpu=xdd_get_processor();
+		//qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
+		qp->qthread_target_sync = 0x80000000; // Mark this QThread NOT Busy
 		if (qp->qthread_target_sync & QTSYNC_TARGET_WAITING) {
 			// Release the target that is waiting on this QThread
 			status = sem_post(&qp->this_qthread_is_available_sem);
@@ -151,6 +159,7 @@ xdd_qthread(void *pin) {
 			qp->qthread_target_sync &= ~QTSYNC_TARGET_WAITING; 
 		}
 
+		pclk_now(&checktime);
 		// Release the QThread Locator which might be waiting for ANY avaiable QThread
 		status = sem_post(&p->any_qthread_available_sem);
 		if (status) {

@@ -110,9 +110,22 @@ DFLOW("\n----------------------All targets should start now---------------------
 	// Display the Ending Time for this run
 	xgp->current_time_for_this_run = time(NULL);
 	c = ctime(&xgp->current_time_for_this_run);
-	fprintf(xgp->output,"Ending time for this run, %s This run %s\n",c, xgp->canceled?"was canceled":"terminated normally");
-	if (xgp->csvoutput)
-		fprintf(xgp->csvoutput,"Ending time for this run, %s This run %s\n",c, xgp->canceled?"was canceled":"terminated normally");
+	if (xgp->canceled) {
+		fprintf(xgp->output,"Ending time for this run, %s This run was canceled\n",c);
+	} else if (xgp->abort) {
+		fprintf(xgp->output,"Ending time for this run, %s This run terminated with errors\n",c);
+	} else {
+		fprintf(xgp->output,"Ending time for this run, %s This run terminated normally\n",c);
+	}
+	if (xgp->csvoutput) {
+		if (xgp->canceled) {
+			fprintf(xgp->csvoutput,"Ending time for this run, %s This run was canceled\n",c);
+		} else if (xgp->abort) {
+			fprintf(xgp->csvoutput,"Ending time for this run, %s This run terminated with errors\n",c);
+		} else {
+			fprintf(xgp->csvoutput,"Ending time for this run, %s This run terminated normally\n",c);
+		}
+	}
 
 	// Cleanup the semaphores and barriers 
 	xdd_destroy_all_barriers();

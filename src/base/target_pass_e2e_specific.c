@@ -72,8 +72,14 @@ xdd_targetpass_e2e_loop_dst(ptds_t *p) {
 	while (qp) { 
 
 		// Check to see if we've been canceled - if so, we need to leave this loop
-		if (xgp->canceled) 
+		if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
+			// When we got this QThread the QTSYNC_BUSY flag was set by get_any_available_qthread()
+			// We need to reset it so that the subsequent loop will find it with get_specific_qthread()
+			// Normally we would get the mutex lock to do this update but at this point it is not necessary.
+			qp->qthread_target_sync &= ~QTSYNC_BUSY;
 			break;
+		}
+
 	
 		// Make sure the QThread does not think the pass is complete
 		qp->task_request = TASK_REQ_IO;
@@ -165,8 +171,13 @@ xdd_targetpass_e2e_loop_src(ptds_t *p) {
 		qp = xdd_get_any_available_qthread(p);
 
 		// Check to see if we've been canceled - if so, we need to leave this loop
-		if (xgp->canceled) 
+		if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
+			// When we got this QThread the QTSYNC_BUSY flag was set by get_any_available_qthread()
+			// We need to reset it so that the subsequent loop will find it with get_specific_qthread()
+			// Normally we would get the mutex lock to do this update but at this point it is not necessary.
+			qp->qthread_target_sync &= ~QTSYNC_BUSY;
 			break;
+		}
 
 		// Set up the task for the QThread
 		xdd_targetpass_e2e_task_setup_src(qp);

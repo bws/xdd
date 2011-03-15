@@ -83,9 +83,10 @@ xdd_target_thread(void *pin) {
 		// Perform a single pass
 		xdd_targetpass(p);
 
-		// Check to see if we got canceled
-		if (xgp->canceled) 
+		// Check to see if we got canceled or if we need to abort for some reason
+		if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
 			break;
+		}
 
 		/* Check to see if the run time has been exceeded - if so, then exit this loop.
 		 * Otherwise, if there was a run time specified and we have not reached that run time

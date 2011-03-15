@@ -62,7 +62,7 @@ xdd_targetpass(ptds_t *p) {
  	// This will wait for the interactive command processor to say go if we are in interactive mode
 	if (xgp->global_options & GO_INTERACTIVE) 
 		xdd_barrier(&xgp->interactive_barrier,&p->occupant,0);
-	if ( xgp->abort == 1) 
+	if (xgp->abort) 
 		return(0);
 
 	// If this run has completed or we've been canceled, then exit this loop
@@ -137,8 +137,13 @@ xdd_targetpass_loop(ptds_t *p) {
 		qp = xdd_get_any_available_qthread(p);
 
 		// Check to see if we've been canceled - if so, we need to leave this loop
-		if (xgp->canceled) 
+		if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
+			// When we got this QThread the QTSYNC_BUSY flag was set by get_any_available_qthread()
+			// We need to reset it so that the subsequent loop will find it with get_specific_qthread()
+			// Normally we would get the mutex lock to do this update but at this point it is not necessary.
+			qp->qthread_target_sync &= ~QTSYNC_BUSY;
 			break;
+		}
 
 		// Set up the task for the QThread
 		xdd_targetpass_task_setup(qp);
@@ -148,10 +153,6 @@ xdd_targetpass_loop(ptds_t *p) {
 		p->my_current_op_number++;
 		p->bytes_issued += qp->my_current_io_size;
 		p->bytes_remaining -= qp->my_current_io_size;
-
-		// E2E Source Side needs to be monitored...
-		if (p->target_options & TO_E2E_SOURCE_MONITOR)
-			xdd_targetpass_e2e_monitor(p);
 
 		// Release the QThread to let it start working on this task
 		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);

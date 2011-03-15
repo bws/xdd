@@ -290,6 +290,9 @@ xdd_process_run_results(void) {
 	for (target_number=0; target_number<xgp->number_of_targets; target_number++) {
 		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
 		tarp = xgp->target_average_resultsp[target_number];
+
+		if (p->abort) 
+			xgp->abort = 1; // Indicate that this run ended with errors of some sort
 			
 		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
 		tarp->format_string = xgp->format_string;

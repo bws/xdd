@@ -111,7 +111,7 @@ xdd_io_for_os(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
 		p->ttp->tte[qp->ts_current_entry].disk_processor_end = xdd_get_processor();
 	}
-		
+
 } // End of xdd_io_for_linux()
 #endif 
 

@@ -275,7 +275,6 @@ struct ptds {
 	// Updated by xdd_issue() at at the start of a Task IO request to a QThread
 	int64_t				my_current_byte_location; 	// Current byte location for this I/O operation 
 	int32_t				my_current_io_size; 		// Size of the I/O to be performed
-	int32_t				my_error_break; 			// When set it indicates an error that will cause the xdd_issue() loop to stop
 	char				*my_current_op_str; 		// Pointer to an ASCII string of the I/O operation type - "READ", "WRITE", or "NOOP"
 	int32_t				my_current_op_type; 		// Current I/O operation type - OP_TYPE_READ or OP_TYPE_WRITE
 #define OP_TYPE_READ	0x01						// used with my_current_op_type
@@ -313,7 +312,7 @@ struct ptds {
 	pclk_t				my_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
 	// Updated by the QThread at different times
 	char				my_time_limit_expired;		// Time limit expired indicator
-	char				available1;					// padding
+	char				abort;						// Abort this operation (either a QThread or a Target Thread)
 	char				available2;					// padding
 	char				available3;					// padding
 	char				available4;					// padding

@@ -221,7 +221,6 @@ xdd_init_ptds_before_pass(ptds_t *p) {
 	p->my_current_byte_location = 0; 	// Current byte location for this I/O operation 
 	p->my_current_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
 	p->my_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
-	p->my_error_break = 0; 			// This is set after an I/O Operation if the op failed in some way
 	p->my_current_error_count = 0;		// The number of I/O errors for this qthread
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS
