@@ -42,13 +42,14 @@ main(int32_t argc,char *argv[]) {
 	int32_t status;
 	char *c;
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
+	int32_t	return_value;
 
 	
 	status = xdd_initialization(argc, argv);
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: Error during initialization\n",xgp->progname);
 		xdd_destroy_all_barriers();
-		exit(1);
+		exit(XDD_RETURN_VALUE_INIT_FAILURE);
 	}
 
 	// Initialize the barrier used to synchronize all the initialization routines
@@ -59,7 +60,7 @@ main(int32_t argc,char *argv[]) {
 	if (status < 0)  {
 		fprintf(stderr,"%s: xdd_main: ERROR: Cannot initialize the main barriers - exiting now.\n",xgp->progname);
 		xdd_destroy_all_barriers();
-		exit(1);
+		exit(XDD_RETURN_VALUE_INIT_FAILURE);
 	}
 	xdd_init_barrier_occupant(&barrier_occupant, "XDD_MAIN", XDD_OCCUPANT_TYPE_MAIN, NULL);
 
@@ -70,7 +71,7 @@ main(int32_t argc,char *argv[]) {
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_main: ERROR: Could not start target threads\n", xgp->progname);
 		xdd_destroy_all_barriers();
-		exit(1);
+		exit(XDD_RETURN_VALUE_TARGET_START_FAILURE);
 	}
 
 	// At this point the the target threads are all waiting at the Initialization Barrier to start.
@@ -101,7 +102,7 @@ DFLOW("\n----------------------All targets should start now---------------------
 	if (xgp->global_options & GO_DRYRUN) {
 		// Cleanup the semaphores and barriers 
 		xdd_destroy_all_barriers();
-		return(0);
+		return(XDD_RETURN_VALUE_SUCCESS);
 	}
 
 	// Wait for the Results Manager to get here at which time all targets have finished
@@ -112,10 +113,13 @@ DFLOW("\n----------------------All targets should start now---------------------
 	c = ctime(&xgp->current_time_for_this_run);
 	if (xgp->canceled) {
 		fprintf(xgp->output,"Ending time for this run, %s This run was canceled\n",c);
+		return_value = XDD_RETURN_VALUE_CANCELED;
 	} else if (xgp->abort) {
 		fprintf(xgp->output,"Ending time for this run, %s This run terminated with errors\n",c);
+		return_value = XDD_RETURN_VALUE_IOERROR;
 	} else {
 		fprintf(xgp->output,"Ending time for this run, %s This run terminated normally\n",c);
+		return_value = XDD_RETURN_VALUE_SUCCESS;
 	}
 	if (xgp->csvoutput) {
 		if (xgp->canceled) {
@@ -131,7 +135,7 @@ DFLOW("\n----------------------All targets should start now---------------------
 	xdd_destroy_all_barriers();
 
 	/* Time to leave... sigh */
-	return(0);
+	return(return_value);
 } /* end of main() */
  
 /*----------------------------------------------------------------------------*/
@@ -202,7 +206,7 @@ xdd_start_results_manager() {
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_start_results_manager: ERROR: Could not start results manager\n", xgp->progname);
 		xdd_destroy_all_barriers();
-		exit(1);
+		exit(XDD_RETURN_VALUE_INIT_FAILURE);
 	}
 	// Enter this barrier and wait for the results monitor to initialize
 	xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,1);
@@ -245,10 +249,10 @@ xdd_start_restart_monitor() {
 	if (xgp->restart_frequency) {
 		status = pthread_create(&xgp->Restart_Thread, NULL, xdd_restart_monitor, (void *)(unsigned long)0);
 		if (status) {
-			fprintf(xgp->errout,"%s: xdd_start_results_manager: ERROR: Could not start restart monitor\n", xgp->progname);
+			fprintf(xgp->errout,"%s: xdd_start_restart_monitor: ERROR: Could not start restart monitor\n", xgp->progname);
 			fflush(xgp->errout);
 			xdd_destroy_all_barriers();
-			exit(1);
+			exit(XDD_RETURN_VALUE_INIT_FAILURE);
 		}
 		// Enter this barrier and wait for the restart monitor to initialize
 		xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,1);
@@ -270,7 +274,7 @@ xdd_start_interactive() {
 			fprintf(xgp->errout,"%s: xdd_start_interactive: ERROR: Could not start interactive control processor\n", xgp->progname);
 			fflush(xgp->errout);
 			xdd_destroy_all_barriers();
-			exit(1);
+			exit(XDD_RETURN_VALUE_INIT_FAILURE);
 		}
 		// Enter this barrier and wait for the restart monitor to initialize
 		xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,1);

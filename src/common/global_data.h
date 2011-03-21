@@ -192,6 +192,13 @@ struct xdd_global_data {
 
 }; // End of Definition of the xdd_globals data structure
 
+// Return Values
+#define	XDD_RETURN_VALUE_SUCCESS				0		// Successful execution
+#define	XDD_RETURN_VALUE_INIT_FAILURE			1		// Something bad happened during initialization
+#define	XDD_RETURN_VALUE_TARGET_START_FAILURE	1		// Could not start one or more targets
+#define	XDD_RETURN_VALUE_CANCELED				1		// Run was canceled
+#define	XDD_RETURN_VALUE_IOERROR				1		// Run ended due to an I/O error
+
 typedef	struct 		xdd_global_data 	xdd_global_data_t;
 
 // NOTE that this is where the xdd_globals structure *pointer* is defined to occupy physical memory if this is xdd.c
