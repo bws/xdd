@@ -142,8 +142,7 @@ xdd_qthread(void *pin) {
 		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
 		pclk_now(&checktime);
 		mycpu=xdd_get_processor();
-		//qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
-		qp->qthread_target_sync = 0x80000000; // Mark this QThread NOT Busy
+		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
 		if (qp->qthread_target_sync & QTSYNC_TARGET_WAITING) {
 			// Release the target that is waiting on this QThread
 			status = sem_post(&qp->this_qthread_is_available_sem);
