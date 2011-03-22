@@ -14,6 +14,72 @@ else
 fi
 
 #
+# Global Data
+#
+MAX_TEST_TIME=5m
+g_alarmPID=0
+g_testPID=0
+g_testTimedOut=0
+
+#
+# Handle exit cleanly
+#
+function handle_exit
+{
+    kill -KILL -$$
+}
+
+#
+# Setup test timeout alarm functionality
+#
+function test_timeout_handler
+{
+    g_testTimedOut=0
+    if [ 0 -ne $g_testPID ]; then
+	pkill -KILL -P $$ $g_testPID
+	if [ 0 -ne $? ]; then
+	    g_testTimedOut=1
+	fi
+	g_testPID=0
+    else
+	echo "ERROR:  Alarm signalled for invalid test pid: $g_testPID"
+    fi
+    return 0
+}
+
+#
+# Set an alarm signal
+#
+function test_timeout_alarm
+{
+    sleep $MAX_TEST_TIME &
+    g_alarmPID=$!
+    wait $g_alarmPID
+    kill -ALRM $$
+    return 0
+}
+
+#
+# Disable an existing alarm
+#
+function test_timeout_alarm_cancel
+{
+    trap '' 14
+    if [ 0 -ne $g_alarmPID ]; then
+	pkill -P $$ $g_alarmPID
+	g_alarmPID=0
+	return 0
+    else
+	return 1
+    fi    
+}
+
+#
+# Make sure all children stop on exit
+#
+trap 'handle_exit' exit
+
+#
 # Create the log file
 #
 datestamp=$(/bin/date +%s)
@@ -64,15 +130,32 @@ fi
 all_tests=$(ls $XDDTEST_TESTS_DIR/scripts/test_acceptance*.sh)
 failed_test=0
 
-echo "Beginning acceptance test . . ." >>$test_log
+echo "Beginning acceptance tests . . ." >>$test_log
 for test in $all_tests; do
-  echo -n "$test . . ."
-  $test &>> $test_log
-    if [ $? -ne 0 ]; then
+    test_base=$(basename $test)
+
+
+    # Allow the test to run until timeout, then kill it automatically
+    trap 'test_timeout_handler' 14
+    test_timeout_alarm &
+    echo -n "Running ${test_base} . . ."
+    $test &>> $test_log &
+    g_testPID=$!
+    wait $g_testPID
+    test_result=$?
+
+    # Cancel the alarm (test finished)
+    test_timeout_alarm_cancel
+    
+    # Check test's status
+    if [ 1 -eq $g_testTimedOut ]; then
+        echo -e "\r[FAIL] Test $test timed out.  See $test_log."
+        failed_test=1
+    elif [ $test_result -ne 0 ]; then
         echo -e "\r[FAIL] Test $test failed.  See $test_log."
         failed_test=1
     else
-        echo -e "\r[PASS] Test $test passed."
+        echo -e "\r[PASS] Test ${test_base} passed."
     fi
 done
 echo "Test output available in $test_log."

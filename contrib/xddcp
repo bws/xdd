@@ -85,6 +85,7 @@ XDDCP_ERR_CODE_DEST_TGT_NOT_WR=121
 #
 # Global variables
 #
+g_xddcpErrorCode="0"
 g_xddcpXddVersion="-1"
 g_xddcpDestXddPid="-1"
 g_xddcpSrcXddPid="-1"
@@ -104,11 +105,12 @@ function print_usage {
     echo "size              - number of bytes to transfer [Default: size of source file]"
     echo ""
     echo "OPTIONS: "
-    echo " -a           - Resume transfer if it was only partially completed and the -a flag was specified"
-    echo " -d s|d|b     - Use direct I/O the end specified (s for source, d for dest, b for both)"
+    echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
+    echo " -d s|d|b	- Use direct I/O the end specified (s for source, d for dest, b for both)"
     echo " -f           - If ports are unavailable on destination, attempt to kill running XDD and retry"
-    echo " -F           - Transfer a list of files named in source_file"
-    echo " -h           - Print out usage information"
+    echo " -F		- Transfer a list of files named in source_file"
+    echo " -h		- Print out usage information"
+    echo " -n		- If operation fails for any reason, rety up to n times"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo " -o s|d|b     - Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
     echo " -r           - Copy sub-directories and contents recursively"
@@ -1346,6 +1348,7 @@ function xddcp_main {
     forceFlag=0
     queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
     recursiveFlag=0
+    retryCount=0
     resumeFlag=0
     srcDIOFlag=0
     srcOrderedFlag=0
@@ -1354,7 +1357,7 @@ function xddcp_main {
     binaryDumpFlag=0
     windowSize=0
 
-    while getopts ":FYad:fhp:o:rst:vw:" option; do
+    while getopts ":FYad:fhn:o:p:rst:vw:" option; do
         case $option in
             F) 
                 fileListFlag=1
@@ -1390,6 +1393,8 @@ function xddcp_main {
                 print_usage 
                 return 0
                 ;;
+	    n)
+		retryCount=$OPTARG
             o) 
 		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then
                     destOrderedFlag=1

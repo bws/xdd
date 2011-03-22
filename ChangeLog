@@ -6,6 +6,7 @@ xdd-7.0.0 RC19
 ==============
 * XDD: AIX supported again for xdd.
 * XDD: Version string changed to not include platform.
+* XDD: Set exit status to 1 on error.
 * XDDCP: Add support for recursive copies.
 * XDDCP: Change direct I/O and ordering options so that they can
 	can be specified on source, destination, or both.  The way
