@@ -309,7 +309,6 @@ xdd_qthread_ttd_before_io_op(ptds_t *qp) {
 
 	/* init the error number and break flag for good luck */
 	errno = 0;
-	qp->my_error_break = 0;
 
 	// Read-After_Write Processing
 	xdd_raw_before_io_op(qp);

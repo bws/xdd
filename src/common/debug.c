@@ -125,7 +125,6 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"Updated by xdd_issue() at at the start of a Task IO request to a QThread\n");
 	fprintf(xgp->output,"my_current_byte_location       %lld Current byte location for this I/O operation \n",(long long int)p->my_current_byte_location);
 	fprintf(xgp->output,"my_current_io_size             %d Size of the I/O to be performed \n",p->my_current_io_size);
-	fprintf(xgp->output,"my_error_break                 %d When set it indicates an error that will cause the xdd_issue() loop to stop \n",p->my_error_break);
 	 fprintf(xgp->output,"my_current_op_str             '%s' - ASCII string of the I/O operation type - 'READ', 'WRITE', or 'NOOP' \n",(p->my_current_op_str != NULL)?p->my_current_op_str:"NA");
 	fprintf(xgp->output,"my_current_op_type             %d Current I/O operation type READ=%d, WRITE=%d, NOOP=%d\n",p->my_current_op_type, OP_TYPE_READ, OP_TYPE_WRITE, OP_TYPE_NOOP);
 

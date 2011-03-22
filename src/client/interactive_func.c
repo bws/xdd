@@ -78,11 +78,9 @@ int
 xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags) {
 	char	*cp;
 
-	fprintf(xgp->output,"show: tokens=%d, cmdline=%s, flags=0x%08x\n",tokens,cmdline,flags);
 	cp = cmdline;
 	while ((*cp != TAB) && (*cp != SPACE) && (*cp != '\0')) cp++;
 	while ((*cp == TAB) || (*cp == SPACE) || (*cp == '\0')) cp++;
-	fprintf(xgp->output,"show: cp=%s\n",cp);
 	if (strcmp(cp, "barrier") == 0) 
 		xdd_interactive_show_barrier(tokens, cp, flags);
 	else if (strcmp(cp, "ptds") == 0) 
