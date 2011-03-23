@@ -4466,17 +4466,20 @@ int
 xddfunc_version(int32_t argc, char *argv[], uint32_t flags)
 {
     fprintf(stdout,"%s: Version %s\n",xgp->progname, XDD_VERSION);
-    return(-1);
+    exit(XDD_RETURN_VALUE_SUCCESS);
 }
 
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags)
 {
-	//fprintf(xgp->errout, "%s: Invalid option: %s (%d)\n",
-		//xgp->progname, argv[0], argc);
-	fprintf(xgp->errout, "%s: Invalid option: (%d)\n",
-		xgp->progname, argc);
+	if (argv[0]) {
+			fprintf(xgp->errout, "%s: Invalid option: token number %d: '%s'\n",
+				xgp->progname, argc-1, argv[0]);
+		} else {
+			fprintf(xgp->errout, "%s: Invalid option: option number, token number %d: <option string not available>\n",
+				xgp->progname, argc-1);
+		}
     return(0);
 } // end of xddfunc_invalid_option() 
  

@@ -97,7 +97,7 @@ xdd_parse_args(int32_t argc, char *argv[], uint32_t flags) {
                 if (status == 0) {
                     invalid = 1;
                     break;
-                } else if (status == -1) exit(1);
+                } else if (status == -1) exit(XDD_RETURN_VALUE_INVALID_OPTION);
                 argi += status;
                 arg_count -= status;
                 not_found = 0;
@@ -107,11 +107,11 @@ xdd_parse_args(int32_t argc, char *argv[], uint32_t flags) {
         }
         // Check to see if things worked...
         if (invalid) // Indicates a valid option but invalid arguments to the option most likely
-            exit(0);
+            exit(XDD_RETURN_VALUE_INVALID_ARGUMENT);
 
         if (not_found) { // Indicates that the specified option was not found in the xddfunc table. 
             xddfunc_invalid_option(argi+1, &(argv[argi]), flags);
-            exit(0);
+            exit(XDD_RETURN_VALUE_INVALID_OPTION);
         }      
     } // End of WHILE loop that processes all arguments on the command line
 } /* End of xdd_parse_args() */
@@ -126,7 +126,7 @@ xdd_parse(int32_t argc, char *argv[]) {
 	if (argc < 1) { // Ooopppsss - nothing specified...
 		fprintf(stderr,"Error: No command line options specified\n");
 		xdd_usage(0);
-		exit(0);
+		exit(XDD_RETURN_VALUE_INVALID_OPTION);
 	}
 	/* parse the command line arguments */
 	xdd_parse_args(argc,argv, XDD_PARSE_PHASE1);
@@ -135,7 +135,7 @@ xdd_parse(int32_t argc, char *argv[]) {
 	if (xgp->ptdsp[0] == NULL) {
 		fprintf(xgp->errout,"You must specify a target device or filename\n");
 		xdd_usage(0);
-		exit(1);
+		exit(XDD_RETURN_VALUE_INVALID_ARGUMENT);
 	}
 
 	// Build the PTDS substructure for all targets

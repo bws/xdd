@@ -195,9 +195,11 @@ struct xdd_global_data {
 // Return Values
 #define	XDD_RETURN_VALUE_SUCCESS				0		// Successful execution
 #define	XDD_RETURN_VALUE_INIT_FAILURE			1		// Something bad happened during initialization
-#define	XDD_RETURN_VALUE_TARGET_START_FAILURE	1		// Could not start one or more targets
-#define	XDD_RETURN_VALUE_CANCELED				1		// Run was canceled
-#define	XDD_RETURN_VALUE_IOERROR				1		// Run ended due to an I/O error
+#define	XDD_RETURN_VALUE_INVALID_ARGUMENT		2		// An invalid argument was specified as part of a valid option
+#define	XDD_RETURN_VALUE_INVALID_OPTION			3		// An invalid option was specified
+#define	XDD_RETURN_VALUE_TARGET_START_FAILURE	4		// Could not start one or more targets
+#define	XDD_RETURN_VALUE_CANCELED				5		// Run was canceled
+#define	XDD_RETURN_VALUE_IOERROR				6		// Run ended due to an I/O error
 
 typedef	struct 		xdd_global_data 	xdd_global_data_t;
 
