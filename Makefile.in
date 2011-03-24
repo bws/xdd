@@ -291,7 +291,7 @@ test_clean:
 	$(RM) contrib/mpil.o
 	$(RM) contrib/mpil
 
-test: bin/mpil
+test: contrib/mpil
 
 #
 # Include dependency makefiles if building source target
