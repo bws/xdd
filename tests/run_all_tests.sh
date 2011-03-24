@@ -141,14 +141,15 @@ for test in $all_tests; do
     echo -n "Running ${test_base} . . ."
     $test &>> $test_log &
     g_testPID=$!
+    test_result=""
     wait $g_testPID
     test_result=$?
 
-    # Cancel the alarm (test finished)
+    # Cancel the alarm (test finished) 
     test_timeout_alarm_cancel
     
     # Check test's status
-    if [ 1 -eq $g_testTimedOut ]; then
+    if [ 1 -eq $g_testTimedOut -a -z "$test_result" ]; then
         echo -e "\r[FAIL] Test $test timed out.  See $test_log."
         failed_test=1
     elif [ $test_result -ne 0 ]; then
