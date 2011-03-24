@@ -1395,6 +1395,7 @@ function xddcp_main {
                 ;;
 	    n)
 		retryCount=$OPTARG
+		;;
             o) 
 		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then
                     destOrderedFlag=1
