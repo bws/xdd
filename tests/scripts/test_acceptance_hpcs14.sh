@@ -249,7 +249,7 @@ echo "##########################################################################
 echo "### Now write this file ${TargetList}"
 echo "####################################################################################################################"
 set +x
-${LAUNCH_CMD} -n $nodes_write $BINDIR/mpil ${XDD} -setup $xdd_setup_dir/s.: 2>&1 | tee $RESULTS
+${LAUNCH_CMD} -n $nodes_write $XDDTEST_MPIL_EXE ${XDD} -setup $xdd_setup_dir/s.: 2>&1 | tee $RESULTS
 set +x
 
 echo "####################################################################################################################"
@@ -317,7 +317,7 @@ echo "###  Implement by launching 1 process/node using $threads_per_target threa
 echo "###  Request size constant per xdd instance, but varies between 4-64 1K block accross xdd instances, each instance with different seed"
 echo "####################################################################################################################################"
 
-${LAUNCH_CMD} -n $nodes_total $BINDIR/mpil ${XDD} -dio -setup $xdd_setup_dir/s.: 2>&1 | tee -a $RESULTS
+${LAUNCH_CMD} -n $nodes_total $XDDTEST_MPIL_EXE ${XDD} -dio -setup $xdd_setup_dir/s.: 2>&1 | tee -a $RESULTS
 
 date
 fi
@@ -331,14 +331,14 @@ echo "###  Implement by launching 1 process/node using $threads_per_target threa
 echo "###  Request size constant per xdd instance, but varies between 4-64 1K block accross xdd instances, each instance with different seed"
 echo "####################################################################################################################################"
 
-${LAUNCH_CMD} -n $nodes_total $BINDIR/mpil ${XDD} -setup $xdd_setup_dir/s.: 2>&1 | tee -a $RESULTS
+${LAUNCH_CMD} -n $nodes_total $XDDTEST_MPIL_EXE ${XDD} -setup $xdd_setup_dir/s.: 2>&1 | tee -a $RESULTS
 
 date
 echo "####################################################################################################################################"
 echo "### Generate reverse sort seek lists "
 echo "####################################################################################################################################"
 cp /bin/sort .
-${LAUNCH_CMD} -n $nodes_total $BINDIR/mpil ./sort -k 2 -o $xdd_setup_dir/rseek_list.: $xdd_setup_dir/p.:.T0Q0.txt
+${LAUNCH_CMD} -n $nodes_total $XDDTEST_MPIL_EXE ./sort -k 2 -o $xdd_setup_dir/rseek_list.: $xdd_setup_dir/p.:.T0Q0.txt
 
 echo "#################################################################################################################################"
 echo "### 10. Perform sector aligned reads on the file, reading backwards with reads of a random size between 512 bytes and 65536 bytes "
@@ -348,7 +348,7 @@ echo "### 11. Output the time for the backwards reads and the number of bytes tr
 echo "#############################################################################################################################"
 if [ "$DIO" -ne "0" ]
 then
-${LAUNCH_CMD} -n $nodes_total $BINDIR/mpil ${XDD} -dio -setup $xdd_setup_dir/r.: 2>&1 | tee -a $RESULTS
+${LAUNCH_CMD} -n $nodes_total $XDDTEST_MPIL_EXE ${XDD} -dio -setup $xdd_setup_dir/r.: 2>&1 | tee -a $RESULTS
 fi
 
 date
@@ -360,7 +360,7 @@ echo "### 13. Output the time for the backwards reads and the number of bytes tr
 echo "### Note these tests are aimed at defeating read ahead...."
 echo "#################################################################################################################################"
 
-${LAUNCH_CMD} -n $nodes_total $BINDIR/mpil ${XDD}       -setup $xdd_setup_dir/r.: 2>&1 | tee -a $RESULTS
+${LAUNCH_CMD} -n $nodes_total $XDDTEST_MPIL_EXE ${XDD}       -setup $xdd_setup_dir/r.: 2>&1 | tee -a $RESULTS
 
 echo "############################################################################################################################ "
 echo "### 14.03 EXPECTED RESULTS "

@@ -33,8 +33,15 @@ UTMPX_ENABLED := @CONFIG_UTMPX_ENABLED@
 #
 SHELL 	=	/bin/sh
 OS 	= 	$(shell uname)
+
+#
+# Tools
+#
 DEPENDC = $(XDD_DIR)/support/depend.sh
 INSTALL = $(XDD_DIR)/support/install-sh
+RM = rm -f
+MKDIR = mkdir -p
+LN = ln -s
 
 #
 # Version information
@@ -179,26 +186,26 @@ $(LIB_DIR)/libxdd.so: $(XDD_OBJS)
 xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
 	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f $@ bin/xdd.$(OS)
-	rm -f bin/xdd
-	ln -s xdd.$(OS) bin/xdd
+	$(RM) bin/xdd
+	$(LN) xdd.$(OS) bin/xdd
 
 timeserver: $(COMMON_DIR)/pclk.o $(TS_EXE_OBJS) 
 	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f timeserver bin/timeserver.$(OS)
-	rm -f bin/timeserver
-	ln -s timeserver.$(OS) bin/timeserver
+	$(RM) bin/timeserver
+	$(LN) timeserver.$(OS) bin/timeserver
 
 gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/pclk.o $(GETTIME_EXE_OBJS) 
 	$(CC)  -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f gettime bin/gettime.$(OS)
-	rm -f bin/gettime
-	ln -s gettime.$(OS) bin/gettime
+	$(RM) bin/gettime
+	$(LN) gettime.$(OS) bin/gettime
 
 read_tsdumps: $(READ_TSDUMPS_EXE_OBJS)
 	$(CC) -o $@ $(CFLAGS) $^
 	mv -f read_tsdumps bin/read_tsdumps.$(OS)
-	rm -f bin/read_tsdumps
-	ln -s read_tsdumps.$(OS) bin/read_tsdumps
+	$(RM) bin/read_tsdumps
+	$(LN) read_tsdumps.$(OS) bin/read_tsdumps
 
 baseversion:
 	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > src/xdd_base_version.h
@@ -214,15 +221,15 @@ tarball:
 
 depclean:
 	$(info Cleaning the $(OS) dependency files )
-	@rm -f $(XDD_DEPENDS) $(TOOLS_DEPENDS)
+	@$(RM) $(XDD_DEPENDS) $(TOOLS_DEPENDS)
 
 oclean:
 	$(info Cleaning the $(OS) OBJECT files )
-	rm -f $(ALL_OBJS) 
+	$(RM) $(ALL_OBJS) 
 
 clean: depclean oclean 
 	$(info Cleaning the $(OS) executable files )
-	rm -f bin/xdd.$(OS) \
+	$(RM) bin/xdd.$(OS) \
 		bin/xdd \
 		bin/timeserver.$(OS) \
 		bin/timeserver \
@@ -231,22 +238,22 @@ clean: depclean oclean
 		bin/read_tsdumps.$(OS) \
 		bin/read_tsdumps \
 		a.out 
-	rm -rf doc/doxygen
+	$(RM) -r doc/doxygen
 
 install: fullinstall
 
 fastinstall: all
-	rm -f /sbin/xdd.$(OS) /sbin/xdd
+	$(RM) /sbin/xdd.$(OS) /sbin/xdd
 	cp bin/xdd.$(OS) /sbin
-	ln /sbin/xdd.$(OS) /sbin/xdd
-	rm -f /sbin/timeserver.$(OS) /sbin/timeserver
+	$(LN) /sbin/xdd.$(OS) /sbin/xdd
+	$(RM) /sbin/timeserver.$(OS) /sbin/timeserver
 	cp bin/timeserver.$(OS) /sbin
-	ln /sbin/timeserver.$(OS) /sbin/timeserver
-	rm -f /sbin/gettime.$(OS) /sbin/gettime
+	$(LN) /sbin/timeserver.$(OS) /sbin/timeserver
+	$(RM) /sbin/gettime.$(OS) /sbin/gettime
 	cp bin/gettime.$(OS) /sbin
-	ln /sbin/gettime.$(OS) /sbin/gettime
+	$(LN) /sbin/gettime.$(OS) /sbin/gettime
 	cp bin/read_tsdumps.$(OS) /sbin
-	ln /sbin/read_tsdumps.$(OS) /sbin/read_tsdumps
+	$(LN) /sbin/read_tsdumps.$(OS) /sbin/read_tsdumps
 
 fullinstall:
 	$(INSTALL) -d $(INSTALL_DIR)/bin
@@ -268,6 +275,23 @@ fullinstall:
 doc:
 	doxygen doc/Doxyfile
 	cd doc/doxygen/latex && make pdf
+
+#
+# Build test support infrastructure
+#
+MPICC = mpicc
+
+contrib/mpil: contrib/mpil.o
+	$(MPICC) $^ -o $@
+
+contrib/mpil.o: contrib/mpil.c
+	$(MPICC) -c $^ -o $@
+
+test_clean:
+	$(RM) contrib/mpil.o
+	$(RM) contrib/mpil
+
+test: bin/mpil
 
 #
 # Include dependency makefiles if building source target

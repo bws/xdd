@@ -79,6 +79,7 @@ cat >test_config <<EOF
 XDDTEST_XDD_EXE=$install_dir/bin/xdd.Linux
 XDDTEST_XDDCP_EXE=$install_dir/bin/xddcp
 XDDTEST_XDDFT_EXE=$install_dir/bin/xddft
+XDDTEST_MPIL_EXE=$build_dir/xdd/contrib/mpil
 XDDTEST_TESTS_DIR=$build_dir/xdd/tests
 XDDTEST_LOCAL_MOUNT=$test_local_dir
 XDDTEST_SOURCE_MOUNT=$test_src_dir
@@ -87,6 +88,7 @@ XDDTEST_OUTPUT_DIR=$output_dir
 XDDTEST_E2E_SOURCE=localhost
 XDDTEST_E2E_DEST=natureboy
 EOF
+make test &>>$test_log
 $build_dir/xdd/tests/run_all_tests.sh &>>$test_log
 TEST_RC=$?
 
