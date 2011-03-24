@@ -16,7 +16,7 @@ fi
 #
 # Global Data
 #
-MAX_TEST_TIME=5m
+MAX_TEST_TIME=10m
 g_alarmPID=0
 g_testPID=0
 g_testTimedOut=0
