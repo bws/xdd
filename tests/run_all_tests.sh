@@ -37,8 +37,11 @@ function test_timeout_handler
     g_testTimedOut=0
     if [ 0 -ne $g_testPID ]; then
 	pkill -KILL -P $$ $g_testPID
-	if [ 0 -ne $? ]; then
+        rc=$?
+	if [ 0 -eq $rc ]; then
 	    g_testTimedOut=1
+        else
+            echo "Error terminating process: $g_testPID rc: $rc"
 	fi
 	g_testPID=0
     else
@@ -48,14 +51,22 @@ function test_timeout_handler
 }
 
 #
-# Set an alarm signal
+# Fork the alarm wait process to a subshell
+#
+function test_timeout_alarm_helper
+{
+    sleep $MAX_TEST_TIME &
+    wait $!
+    kill -ALRM $$
+}
+
+#
+# Set an alarm signal in a subshell that signals this shell
 #
 function test_timeout_alarm
 {
-    sleep $MAX_TEST_TIME &
+    test_timeout_alarm_helper &>/dev/null &
     g_alarmPID=$!
-    wait $g_alarmPID
-    kill -ALRM $$
     return 0
 }
 
@@ -64,9 +75,9 @@ function test_timeout_alarm
 #
 function test_timeout_alarm_cancel
 {
-    trap '' 14
+    trap 'echo 0 >/dev/null' 14
     if [ 0 -ne $g_alarmPID ]; then
-	pkill -P $$ $g_alarmPID
+	pkill -P $g_alarmPID -u $USER sleep
 	g_alarmPID=0
 	return 0
     else
@@ -137,7 +148,7 @@ for test in $all_tests; do
 
     # Allow the test to run until timeout, then kill it automatically
     trap 'test_timeout_handler' 14
-    test_timeout_alarm &
+    test_timeout_alarm
     echo -n "Running ${test_base} . . ."
     $test &>> $test_log &
     g_testPID=$!
