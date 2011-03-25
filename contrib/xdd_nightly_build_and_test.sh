@@ -7,6 +7,7 @@
 # Status flags
 #
 BUILD_RC=1
+BUILD_TEST_RC=1
 CONFIG_RC=1
 INSTALL_RC=1
 TEST_RC=1
@@ -59,6 +60,13 @@ make &>>$build_log
 BUILD_RC=$?
 
 #
+# Build XDD tests (relies on Fedora specific junk.  Will require fix.)
+#
+module load openmpi-x86_64
+make test &>>$build_log
+BUILD_TEST_RC=$?
+
+#
 # Install XDD
 #
 make install &>>$install_log
@@ -88,7 +96,6 @@ XDDTEST_OUTPUT_DIR=$output_dir
 XDDTEST_E2E_SOURCE=localhost
 XDDTEST_E2E_DEST=natureboy
 EOF
-make test &>>$test_log
 $build_dir/xdd/tests/run_all_tests.sh &>>$test_log
 TEST_RC=$?
 
@@ -107,6 +114,7 @@ else
 Cray return code: $CRAY_RC
 Configure return code: $CONFIG_RC
 Build return code: $BUILD_RC
+Build Tests return code: $BUILD_TEST_RC
 Install return code: $INSTALL_RC
 Test return code: $TEST_RC
 Zero indicates success. See attachment for error logs.
