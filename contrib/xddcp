@@ -433,7 +433,7 @@ function remote_exec {
 
     # Construct ssh options
     if [ ! -z "${remoteUser}" ]; then
-        sshOpts="-l $remoteUser"
+        sshOpts="-q -l $remoteUser"
     fi
 
     # Local decl must be on seperate line so $? is correct
@@ -1267,9 +1267,9 @@ function post_transfer_analysis {
 	# get destination bin file
 	local destRC=""
 	if [ ! -z "${destUser}" ]; then
-		sshOpts="-l $remoteUser"
+		sshOpts="-q -l $remoteUser"
 	fi
-	(ssh -q ${sshOpts} ${destHost} /bin/bash <<EOF
+	(ssh ${sshOpts} ${destHost} /bin/bash <<EOF
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
 destination_dir=\$(dirname ${destPath})
