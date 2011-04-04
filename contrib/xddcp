@@ -132,10 +132,10 @@ function error_exit {
     #trap "multilevel_exit_handler $errorCode" EXIT
     error_print $errorCode
 
-    echo "Call stack: $FUNCNAME"
-    for ((i=0; i < ${#FUNCNAME[@]}; i=$i+1)); do
-	echo "INFO: Call Stack ${FUNCNAME[$i]}"
-    done
+    #echo "Call stack: $FUNCNAME"
+    #for ((i=0; i < ${#FUNCNAME[@]}; i=$i+1)); do
+#	echo "INFO: Call Stack ${FUNCNAME[$i]}"
+#    done
 
     # Exit the program with the error code
     exit $errorCode
