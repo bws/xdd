@@ -53,7 +53,6 @@ if [ 0 -eq $rc ]; then
     # Perform MD5sum check
     #
     test_passes=1
-    echo "Test file: $source_file $dest_file"
     srcHash=$(md5sum $source_file |cut -d ' ' -f 1)
     destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $dest_file |cut -d ' ' -f 1")
     if [ "$srcHash" != "$destHash" ]; then
