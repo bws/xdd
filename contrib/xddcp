@@ -57,6 +57,8 @@ XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
 XDDCP_DEFAULT_TIMESTAMP="$(/bin/date -u +'%Y-%m-%d-%H%M%S')-GMT"
 XDDCP_DEFAULT_NETWORK_SLEEP_SECS=4
+XDDCP_DEFAULT_RETRY_SLEEP_SECS=4
+XDDCP_DEFAULT_NETWORK_CLEAR_SECS=2
 XDDCP_DEFAULT_XDD="xdd.$(/bin/uname)"
 
 # XDDCP Error Codes
@@ -110,7 +112,7 @@ function print_usage {
     echo " -f           - If ports are unavailable on destination, attempt to kill running XDD and retry"
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
-    echo " -n		- If operation fails for any reason, rety up to n times"
+    echo " -n		- If operation fails for any reason, retry up to n times"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo " -o s|d|b     - Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
     echo " -r           - Copy sub-directories and contents recursively"
@@ -129,6 +131,13 @@ function error_exit {
 
     #trap "multilevel_exit_handler $errorCode" EXIT
     error_print $errorCode
+
+    echo "Call stack: $FUNCNAME"
+    for ((i=0; i < ${#FUNCNAME[@]}; i=$i+1)); do
+	echo "INFO: Call Stack ${FUNCNAME[$i]}"
+    done
+
+    # Exit the program with the error code
     exit $errorCode
 }
 
@@ -417,9 +426,13 @@ EOF
     
     # If the transfer failed, trigger appropriate error
     local rc=$?
-    if [ 0 -ne "$rc" ]; then
-        error_exit "$rc"
-    fi
+    return $rc
+
+# BWS - removed to allow immediate retry capabilities
+#    if [ 0 -ne "$rc" ]; then
+#	echo "BWS Exiting 3?"
+#        error_exit "$rc"
+#    fi
 }
 
 #
@@ -592,9 +605,9 @@ if [ 1 -eq \$port_conflict ]; then
         xddpid=\$(/bin/ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
         if [ ! -z "\$xddpid" ]; then
             kill \$xddpid 2>/dev/null
-            sleep 1
+            sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
             kill -9 \$xddpid 2>/dev/null
-            sleep 1
+            sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
         fi
     else
         echo "Requested port \$p is in use"
@@ -865,7 +878,7 @@ function create_destination_directory {
 
     # Error handling
     if [ 0 -ne $execRC ]; then
-        exit $execRC
+        error_exit $execRC
     fi
     return 0
 }
@@ -901,7 +914,7 @@ function start_destination_xdd {
         "$recursionFlag" "$resumeFlag" "$verboseFlag" "$binaryDumpFlag")
     execRC=$?
     if [ 0 -ne $execRC ]; then
-        exit $execRC
+        error_exit $execRC
     fi
 
     # Execute destination side commands
@@ -912,18 +925,16 @@ function start_destination_xdd {
         destResult=$(local_exec "${destCmds}")
         execRC=$?
     fi
-    if [ 0 -ne $execRC ]; then
-        exit $execRC
-    fi
-    
+
     # Extract the resume offset from the remote output
-    if [ 1 == $resumeFlag ]; then
+    if [ 0 -eq $execRC -a 1 -eq $resumeFlag ]; then
         g_xddcpResumeOffset=$(/bin/echo $destResult |rev |cut -d ' ' -f 1 |rev)
         if [ -z "$g_xddcpResumeOffset" ]; then
             error_exit $XDDCP_ERR_CODE_INV_RESTART
         fi
-    fi    
-    return 0
+    fi
+
+    return $execRC
 }
 
 #
@@ -953,7 +964,7 @@ function start_source_xdd {
 	"${resumeFlag}" "${verboseFlag}" "${binaryDumpFlag}" "${resumeOffset}")
     execRC=$?
     if [ 0 -ne $execRC ]; then
-        exit $execRC
+        error_exit $execRC
     fi
 
     # Execute source commands
@@ -964,9 +975,11 @@ function start_source_xdd {
         local_exec "${srcCmds}"
         execRC=$?
     fi
-    if [ 0 -ne $execRC ]; then
-        exit $execRC
-    fi
+
+    # BWS - Modify to get the retry count working
+    #if [ 0 -ne $execRC ]; then
+    #    error_exit $execRC
+    #fi
 
     return $execRC
 }
@@ -1191,29 +1204,35 @@ function transfer_file {
 	"${verboseFlag}" "${binaryDumpFlag}" \
 	"${destRemoteFlag}" "${destHost}" "${destUser}" "${destHost}"
     rc=$?
-    if [ 0 -ne $rc ]; then
-        error_exit $rc
+
+    # Continue if the destination started correctly
+    if [ 0 -eq $rc ]; then
+        # Wait to ensure the destination side has setup network and accepting
+        sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
+
+        # Start source-side XDD
+	start_source_xdd "${srcFileSpec}" "${totalBytes}" \
+            "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
+            "${srcOrderedFlag}" "${resumeFlag}" \
+	    "${verboseFlag}" "${binaryDumpFlag}" \
+            "${g_xddcpResumeOffset}" "${destHost}" \
+            "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
+	rc=$?
+
+	# Increment the transfer count if the source completed successfully
+	if [ 0 -eq $rc ]; then
+            # Increment the number of transfers
+	    g_transferCount=$((g_transferCount+1))
+	else
+	    echo "INFO: Source-side XDD exited with an error: $rc" >/dev/stderr
+	    # BWS - Removing to support retry
+            #error_exit $rc
+	fi
+    else
+	echo "INFO: Destination-side XDD exited with an error: $rc" >/dev/stderr
     fi
  
-    # Wait to ensure the destination side has setup network and accepting
-    sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
-
-    # Start source-side XDD
-    start_source_xdd "${srcFileSpec}" "${totalBytes}" \
-        "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
-        "${srcOrderedFlag}" "${resumeFlag}" \
-	"${verboseFlag}" "${binaryDumpFlag}" \
-        "${g_xddcpResumeOffset}" "${destHost}" \
-        "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
-    rc=$?
-    if [ 0 -ne $rc ]; then
-        error_exit $rc
-    fi
-
-    # Increment the number of transfers
-    g_transferCount=$((g_transferCount+1))
-
-    return 0
+    return $rc
 }
 
 #
@@ -1462,46 +1481,62 @@ function xddcp_main {
     check_host_preconditions ${srcPath} ${fileListFlag} ${fileSizeFlag} \
 	${recursiveFlag} ${resumeFlag}
 
-    # Transfer according to source input type
-    rc=0
-    if [ 1 -eq $fileListFlag ]; then
-	transfer_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
-	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-	    "${destPath}" "${destHost}" "${destUser}" \
-	    "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
-	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
-	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-	    "${verboseFlag}" "${binaryDumpFlag}"
-	rc=$?
-    elif [ 1 -eq $recursiveFlag ]; then
-	transfer_recursive_path "${srcPath}" "${srcHost}" "${srcUser}"\
-	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-	    "${destPath}" "${destHost}" "${destUser}" \
-	    "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
-	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
-	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-	    "${verboseFlag}" "${binaryDumpFlag}"
-	rc=$?
-    else
-	transfer_file "${srcPath}" "${srcHost}" "${srcUser}"\
-	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-	    "${destPath}" "${destHost}" "${destUser}" \
-	    "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
-	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
-	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-	    "${verboseFlag}" "${binaryDumpFlag}"
-	rc=$?
-    fi
+    # Retry on failed transfer
+    for ((i=0; i<=$retryCount; i=$i+1)); do
 
-    if [ 0 -eq $rc ]; then
-	echo ""
-	echo "Transfer complete.  Verify results with md5sum."
-    fi
+        # Transfer according to source input type
+	rc=0
+	if [ 1 -eq $fileListFlag ]; then
+	    transfer_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
+	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+		"${destPath}" "${destHost}" "${destUser}" \
+		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
+		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+		"${verboseFlag}" "${binaryDumpFlag}"
+	    rc=$?
+	elif [ 1 -eq $recursiveFlag ]; then
+	    transfer_recursive_path "${srcPath}" "${srcHost}" "${srcUser}"\
+	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+		"${destPath}" "${destHost}" "${destUser}" \
+		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
+		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+		"${verboseFlag}" "${binaryDumpFlag}"
+	    rc=$?
+	else
+	    transfer_file "${srcPath}" "${srcHost}" "${srcUser}"\
+	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+		"${destPath}" "${destHost}" "${destUser}" \
+		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
+		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+		"${verboseFlag}" "${binaryDumpFlag}"
+	    rc=$?
+	fi
 
-    if [ 1 -eq ${binaryDumpFlag} ]; then
-	post_transfer_analysis "${srcPath}" "${srcHost}" "${srcUser}" \
-	    "${destPath}" "${destHost}" "${destUser}" "${windowSize}"
-    fi
+	echo "XDDCP: Transfer status was: $rc"
+
+	# Perform post transfer analysis
+	if [ 1 -eq ${binaryDumpFlag} ]; then
+	    post_transfer_analysis "${srcPath}" "${srcHost}" "${srcUser}" \
+		"${destPath}" "${destHost}" "${destUser}" "${windowSize}"
+	fi
+
+	# On successful transfer complete without any more retries
+	if [ 0 -eq $rc ]; then
+	    echo ""
+	    echo "Transfer complete.  Verify results with md5sum."
+	    break
+	elif [ $i -lt $retryCount ]; then
+	    # Print a retry message
+	    echo "Transfer failed.  Retry attempt: $((i+1))"
+	    sleep $XDDCP_DEFAULT_RETRY_SLEEP_SECS
+	else
+	    echo "Transfer failed.  Error code: $rc"
+	    break
+	fi
+    done
 
     return $rc
 }

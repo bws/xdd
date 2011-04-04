@@ -16,6 +16,10 @@ xdd-7.0.0 RC19
 	and sd can also be used to specify the relevant ends to
 	configure.
 * XDDCP: Add option for creating time series graph of transfer (-w)
+* XDDCP: Add option that will allow a number of automatic retries (-n).  If 
+	you use this, you probably want to also use -a and -f.  And while
+	I am presently allowing this option to work with multi-file transfers
+	I do not believe that it will work all that well for that case.
 
 
 xdd-7.0.0 RC18
