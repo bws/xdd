@@ -349,9 +349,9 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	/* Timestamp options */
 	if (p->ts_options & TS_ON) {
 		fprintf(out, "\t\tTimestamping, enabled for %s %s\n",(p->ts_options & TS_DETAILED)?"DETAILED":"", (p->ts_options & TS_SUMMARY)?"SUMMARY":"");
-		fprintf(out, "\t\tTimestamp ASCII output file name, %s.target.%04d.qthread.%04d.csv\n",xgp->tsoutput_filename,p->my_target_number,p->my_qthread_number);
+		fprintf(out, "\t\tTimestamp ASCII output file name, %s\n",p->ts_output_filename);
 		if (p->ts_options & TS_DUMP) 
-			fprintf(out, "\t\tTimestamp binary output file name, %s.target.%04d.qthread.%04d.bin\n",xgp->tsbinary_filename,p->my_target_number,p->my_qthread_number);
+			fprintf(out, "\t\tTimestamp binary output file name, %s\n",p->ts_binary_filename);
 	} else fprintf(out, "\t\tTimestamping, disabled\n");
 	fflush(out);
 	fprintf(out,"\t\tDelete file, %s", (p->target_options & TO_DELETEFILE)?"enabled\n":"disabled\n");

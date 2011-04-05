@@ -4312,7 +4312,7 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 				}
 			}
 		}
-		xgp->tsoutput_filename = argv[args_index];
+		xgp->ts_output_filename_prefix = argv[args_index];
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "append") == 0) { /* set the time stamp Append Output File  reporting option */
 		if (target_number >= 0) {
@@ -4346,7 +4346,7 @@ xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags)
 				}
 			}
 		}
-		xgp->tsbinary_filename = argv[args_index];
+		xgp->ts_binary_filename_prefix = argv[args_index];
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "summary") == 0) { /* set the time stamp SUMMARY reporting option */
 		if (target_number >= 0) {

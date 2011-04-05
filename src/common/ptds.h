@@ -214,6 +214,8 @@ struct ptds {
 	int64_t				ts_size;  				// Time Stamping Size in number of entries 
 	int64_t				ts_trigop;  			// Time Stamping trigger operation number 
 	pclk_t				ts_trigtime; 			// Time Stamping trigger time 
+	char				*ts_binary_filename; 	// Timestamp filename for the binary output file for this Target
+	char				*ts_output_filename; 	// Timestamp report output filename for this Target
 	//
     // ------------------ SGIO stuff --------------------------------------------------
 	// The following variables are used by the SCSI Generic I/O (SGIO) Routines

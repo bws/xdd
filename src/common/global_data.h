@@ -85,8 +85,8 @@ struct xdd_global_data {
 	char			*errout_filename;       			/* name fo the error output file */
 	char			*csvoutput_filename;    			/* name of the csv output file */
 	char			*combined_output_filename; 			/* name of the combined output file */
-	char			*tsbinary_filename;     			/* timestamp filename prefix */
-	char			*tsoutput_filename;     			/* timestamp report output filename prefix */
+	char			*ts_binary_filename_prefix; 			/* timestamp filename prefix */
+	char			*ts_output_filename_prefix; 			/* timestamp report output filename prefix */
 	FILE			*output;                			/* Output file pointer*/ 
 	FILE			*errout;                			/* Error Output file pointer*/ 
 	FILE			*csvoutput;             			/* Comma Separated Values output file */

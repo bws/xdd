@@ -182,8 +182,8 @@ xdd_show_global_data(void) {
 	fprintf(xgp->output,"errout_filename          '%s' - name fo the error output file \n",(xgp->errout_filename != NULL)?xgp->errout_filename:"NA");
 	fprintf(xgp->output,"csvoutput_filename       '%s' - name of the csv output file \n",(xgp->csvoutput_filename != NULL)?xgp->csvoutput_filename:"NA");
 	fprintf(xgp->output,"combined_output_filename '%s' - name of the combined output file \n",(xgp->combined_output_filename != NULL)?xgp->combined_output_filename:"NA");
-	fprintf(xgp->output,"tsbinary_filename        '%s' - timestamp filename prefix \n",(xgp->tsbinary_filename != NULL)?xgp->tsbinary_filename:"NA");
-	fprintf(xgp->output,"tsoutput_filename        '%s' - timestamp report output filename prefix \n",(xgp->tsoutput_filename != NULL)?xgp->tsoutput_filename:"NA");
+	fprintf(xgp->output,"ts_binary_filename_prefix '%s' - timestamp binary filename prefix \n",(xgp->ts_binary_filename_prefix != NULL)?xgp->ts_binary_filename_prefix:"NA");
+	fprintf(xgp->output,"ts_output_filename_prefix '%s' - timestamp report output filename prefix \n",(xgp->ts_output_filename_prefix != NULL)?xgp->ts_output_filename_prefix:"NA");
 	fprintf(xgp->output,"output                  0x%p - Output file pointer \n",xgp->output);
 	fprintf(xgp->output,"errout                  0x%p - Error Output file pointer \n",xgp->errout);
 	fprintf(xgp->output,"csvoutput               0x%p - Comma Separated Values output file \n",xgp->csvoutput);
