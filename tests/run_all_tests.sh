@@ -163,11 +163,13 @@ for test in $all_tests; do
     if [ 1 -eq $g_testTimedOut -a -z "$test_result" ]; then
         echo -e "\r[FAIL] Test $test timed out.  See $test_log."
         failed_test=1
-    elif [ $test_result -ne 0 ]; then
+    elif [ $test_result -eq 0 ]; then
+        echo -e "\r[PASS] Test ${test_base} passed."
+    elif [ $test_result -eq 2 ]; then
+	echo -e "\r[SKIPPED] Test ${test_base} skipped."
+    else
         echo -e "\r[FAIL] Test $test failed.  See $test_log."
         failed_test=1
-    else
-        echo -e "\r[PASS] Test ${test_base} passed."
     fi
 done
 echo "Test output available in $test_log."
