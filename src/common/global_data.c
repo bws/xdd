@@ -63,11 +63,11 @@ xdd_init_globals(char *progname) {
 	xgp->current_pass_number = 0;
 	xgp->pass_delay = DEFAULT_PASSDELAY;
 	xgp->pass_delay_accumulated_time = 0;
-	xgp->tsbinary_filename = DEFAULT_TIMESTAMP;
+	xgp->ts_binary_filename_prefix = DEFAULT_TIMESTAMP;
 	xgp->syncio = 0;
 	xgp->target_offset = 0;
 	xgp->number_of_targets = 0;
-	xgp->tsoutput_filename = 0;
+	xgp->ts_output_filename_prefix = 0;
 	xgp->max_errors = 0; /* set to total_ops later when we know what it is */
 	xgp->max_errors_to_print = DEFAULT_MAX_ERRORS_TO_PRINT;  /* max number of errors to print information about */ 
 	/* Information needed to access the Global Time Server */

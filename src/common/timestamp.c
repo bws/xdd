@@ -71,6 +71,7 @@ xdd_ts_setup(ptds_t *p) {
 	time_t 		t;  /* Time */
 	int64_t 	tt_entries; /* number of entries inthe time stamp table */
 	int32_t 	tt_bytes; /* size of time stamp table in bytes */
+	int32_t		ts_filename_size; // Number of bytes in the size of the file name
 
 
 	/* check to make sure we really need to do this */
@@ -135,10 +136,10 @@ xdd_ts_setup(ptds_t *p) {
 	xdd_ts_overhead(p->ttp);
 
         /* Set the XDD Version into the timestamp header */
-        p->ttp->magic = 0xDEADBEEF;
-        p->ttp->major = XDD_VERSION_MAJOR;
-        p->ttp->minor = XDD_VERSION_MINOR;
-        p->ttp->revision = XDD_VERSION_REV;
+    p->ttp->magic = 0xDEADBEEF;
+    p->ttp->major = XDD_VERSION_MAJOR;
+    p->ttp->minor = XDD_VERSION_MINOR;
+    p->ttp->revision = XDD_VERSION_REV;
         
 	/* init entries in the trace table header */
 	p->ttp->res = cycleval;
@@ -159,6 +160,34 @@ xdd_ts_setup(ptds_t *p) {
 	p->ttp->tte_indx = 0;
 	p->ttp->delta = xgp->gts_delta;
 	p->ts_current_entry = 0;
+
+	// Generate the name(s) of the ASCII and/or binary output files
+
+	// First we do the binary output file name
+	ts_filename_size = sizeof(xgp->ts_binary_filename_prefix) + 32;
+    p->ts_binary_filename = malloc(ts_filename_size);
+	if (p->ts_binary_filename == NULL) {
+		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp binary output filename\n",
+			xgp->progname,p->my_target_number, ts_filename_size);
+		fflush(xgp->errout);
+		perror("Reason");
+		p->ts_options &= ~TS_ON;
+		return;
+	}
+	sprintf(p->ts_binary_filename,"%s.target.%04d.bin",xgp->ts_binary_filename_prefix,p->my_target_number);
+
+	// Now do the ASCII output file name
+	ts_filename_size = sizeof(xgp->ts_output_filename_prefix) + 32;
+    p->ts_output_filename = malloc(ts_filename_size);
+	if (p->ts_output_filename == NULL) {
+		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp output filename\n",
+			xgp->progname,p->my_target_number, ts_filename_size);
+		fflush(xgp->errout);
+		perror("Reason");
+		p->ts_options &= ~TS_ON;
+		return;
+	}
+	sprintf(p->ts_output_filename,"%s.target.%04d.csv",xgp->ts_output_filename_prefix,p->my_target_number);
 	return;
 } /* end of xdd_ts_setup() */
 /*----------------------------------------------------------------------------*/
@@ -170,16 +199,14 @@ xdd_ts_write(ptds_t *p) {
 	int32_t ttfd;   /* file descriptor for the timestamp file */
 	int64_t newsize;  /* new size of the time stamp table */
 	tthdr_t *ttp;   /* pointer to the time stamp table header */
-	char tsfilename[1024]; /* name of the timestamp file */
 
 
 	ttp = p->ttp;
 	if ((p->ts_options & TS_DUMP) == 0)  /* dump only if DUMP was specified */
 		return;
-	sprintf(tsfilename,"%s.target.%04d.bin",xgp->tsbinary_filename,p->my_target_number);
-	ttfd = open(tsfilename,O_WRONLY|O_CREAT,0666);
+	ttfd = open(p->ts_binary_filename,O_WRONLY|O_CREAT,0666);
 	if (ttfd < 0) {
-		fprintf(xgp->errout,"%s: cannot open timestamp table output file %s\n", xgp->progname,tsfilename);
+		fprintf(xgp->errout,"%s: cannot open timestamp table binary output file %s\n", xgp->progname,p->ts_binary_filename);
 		fflush(xgp->errout);
 		perror("reason");
 		return;
@@ -187,12 +214,13 @@ xdd_ts_write(ptds_t *p) {
 	newsize = sizeof(struct tthdr) + (sizeof(struct tte) * ttp->numents);
 	i = write(ttfd,ttp,newsize);
 	if (i != newsize) {
-		fprintf(xgp->errout,"(%d) %s: cannot write timestamp table output file %s\n", p->my_target_number, xgp->progname,tsfilename);
+		fprintf(xgp->errout,"(%d) %s: cannot write timestamp table binary output file %s\n", p->my_target_number, xgp->progname,p->ts_binary_filename);
 		fflush(xgp->errout);
 		perror("reason");
 	}
 	fprintf(xgp->output,"Timestamp table written to %s - %lld entries, %lld bytes\n",
-		tsfilename, (long long)ttp->numents, (long long)newsize);
+		p->ts_binary_filename, (long long)ttp->numents, (long long)newsize);
+
 	close(ttfd);
 } /* end of xdd_ts_write() */
 /*----------------------------------------------------------------------------*/
@@ -240,7 +268,6 @@ xdd_ts_reports(ptds_t *p) {
 	double  floop_time; /* same thing in floating point */
 	double  disk_irate; /* instantaneous data rate */
 	double  net_irate; /* instantaneous data rate */
-	char  filename[1024]; /* tsoutput filename */
 	int64_t  indx; /* Current TS index */
 	tthdr_t  *ttp;  /* pointer to the time stamp table header */
 	char  *opc;  /* pointer to the operation string */
@@ -258,13 +285,12 @@ xdd_ts_reports(ptds_t *p) {
 	}
 		ttp = p->ttp;
 		/* Open the correct output file */
-		if (xgp->tsoutput_filename != 0) {
-			sprintf(filename,"%s.target.%04d.csv",xgp->tsoutput_filename,p->my_target_number);
+		if (xgp->ts_output_filename_prefix != 0) {
 			if (p->ts_options && TS_APPEND)
-				p->tsfp = fopen(filename, "a");
-			else p->tsfp = fopen(filename, "w");
+				p->tsfp = fopen(p->ts_output_filename, "a");
+			else p->tsfp = fopen(p->ts_output_filename, "w");
 			if (p->tsfp == NULL)  {
-				fprintf(xgp->errout,"Cannot open file '%s' as output for time stamp reports - using stdout\n", filename);
+				fprintf(xgp->errout,"Cannot open file '%s' as output for time stamp reports - using stdout\n", p->ts_output_filename);
 				fflush(xgp->errout);
 				p->tsfp = stdout;
 			}
