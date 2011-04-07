@@ -26,7 +26,7 @@ g_testTimedOut=0
 #
 function handle_exit
 {
-    kill -KILL -$$
+    kill -KILL -$$ &> /dev/null
 }
 
 #
