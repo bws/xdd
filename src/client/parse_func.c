@@ -1107,6 +1107,11 @@ xddfunc_fullhelp(int32_t argc, char *argv[], uint32_t flags)
  *      - The word "bandwidth" or "bw" to display the aggregate bandiwdth
  *      - The word "iops" to display the aggregate I/O operations per second
  *      - The word "et" or "etc" or "eta" to display the estimated time to completion
+ *      - The word "lf" or "cr" or to put a LineFeed (aka Carriage Return) at the end of the 
+ *            line after all targets have been displayed
+ *      - The word "tod" to display the "time of day" on each heartbeat line
+ *      - The word "sec" to display the "number of seconds" into the run on each heartbeat line
+ *      - The word "host" to display the "host name" on each heartbeat line
  * Specifying -heartbeat multiple times will add these to the heartbeat output string FOR EACH TARGET
  */
 int
@@ -1182,6 +1187,18 @@ xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 			return(2);
 	} else if ((strcmp(sp, "etc") == 0) || (strcmp(sp, "eta") == 0) || (strcmp(sp, "et") == 0)) { // Report Estimated time to completion
 			xgp->global_options |= GO_HB_ET;
+			return(2);
+	} else if ((strcmp(sp, "lf") == 0) || (strcmp(sp, "cr") == 0) || (strcmp(sp, "nl") == 0)) { // LF/CR/NL at the end of each heartbeat
+			xgp->global_options |= GO_HB_LF;
+			return(2);
+	} else if ((strcmp(sp, "tod") == 0) || (strcmp(sp, "time") == 0)) { // Report the "time of day" on each line
+			xgp->global_options |= GO_HB_TOD;
+			return(2);
+	} else if ((strcmp(sp, "elapsed") == 0) || (strcmp(sp, "sec") == 0)) { // Report the number of "elapsed seconds" on each line
+			xgp->global_options |= GO_HB_ELAPSED;
+			return(2);
+	} else if ((strcmp(sp, "hostname") == 0) || (strcmp(sp, "host") == 0)) { // Report the "host name" on each line
+			xgp->global_options |= GO_HB_HOST;
 			return(2);
 	} else if ((strcmp(sp, "ignorerestart") == 0) || (strcmp(sp, "ir") == 0) || (strcmp(sp, "ignore") == 0)) { // Ignore the restart adjustments
 			xgp->global_options |= GO_HB_IGNORE_RESTART;

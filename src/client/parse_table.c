@@ -188,6 +188,10 @@ xdd_func_t  xdd_func[] = {
                  'bandwidth' | 'bw' -  aggregate bandiwdth\n\
                  'iops' - aggregate I/O operations per second\n\
                  'et' | 'etc' | 'eta' - estimated time to completion\n\
+                 'lf' | 'cr' | 'nl' - LineFeed or CarriageReturn\n\
+                 'tod' | 'time' - Current Time of Day\n\
+                 'elapsed' | 'sec' - Elapsed seconds since start of run\n\
+                 'hostname' | 'host' - Name of host\n\
                  'ignorerestart' | 'ir' - ignore the fact that a restart is in process\n",
 			 "Specifying -heartbeat multiple times will add these to the heartbeat output string FOR EACH TARGET\n",
             0,0,0},

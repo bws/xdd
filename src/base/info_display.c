@@ -67,20 +67,19 @@ xdd_system_info(FILE *out) {
 	int32_t page_size;
 	int32_t physical_pages;
 	int32_t memory_size;
-	struct utsname name;
 	struct rusage xdd_rusage;
 	char	*userlogin;
 #if ( IRIX )
 	inventory_t *inventp;
 	int64_t mem_size;
 #endif // IRIX inventory
-	uname(&name);
+	uname(&xgp->hostname);
 	userlogin = getlogin();
 	if (!userlogin)
 		userlogin = "***unknown user login***";
-	fprintf(out, "Computer Name, %s, User Name, %s\n",name.nodename, userlogin);
-	fprintf(out, "OS release and version, %s %s %s\n",name.sysname, name.release, name.version);
-	fprintf(out, "Machine hardware type, %s\n",name.machine);
+	fprintf(out, "Computer Name, %s, User Name, %s\n",xgp->hostname.nodename, userlogin);
+	fprintf(out, "OS release and version, %s %s %s\n",xgp->hostname.sysname, xgp->hostname.release, xgp->hostname.version);
+	fprintf(out, "Machine hardware type, %s\n",xgp->hostname.machine);
 #if (SOLARIS)
 	xgp->number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
 	physical_pages = sysconf(_SC_PHYS_PAGES);
@@ -207,6 +206,14 @@ xdd_options_info(FILE *out) {
 	fprintf(out, "Total run-time limit in seconds, %f\n", xgp->run_time);
 	// Print the heartbeat time and display options
 	fprintf(out, "Heartbeat %d ", xgp->heartbeat);
+	if (xgp->global_options & GO_HB_LF)  // LineFeed or Carriage Return
+		fprintf(out,"/LF");
+	if (xgp->global_options & GO_HB_TOD)  // Time of Day
+		fprintf(out,"/TOD");
+	if (xgp->global_options & GO_HB_ELAPSED)  // Elapsed Seconds for run
+		fprintf(out,"/ELAPSED");
+	if (xgp->global_options & GO_HB_HOST)  // Host name of this computer
+		fprintf(out,"/HOSTNAME");
 	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
 		fprintf(out,"/Ops");
 	if (xgp->global_options & GO_HB_BYTES)  // display Current number of BYTES transferred 
