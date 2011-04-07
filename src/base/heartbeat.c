@@ -81,7 +81,6 @@ xdd_heartbeat(void *junk) {
 			continue;
 		if (xgp->heartbeat_holdoff == 2) 
 			return(0);
-		fprintf(stderr,"\r");
 		// Display the "legend" string
 		xdd_heartbeat_legend();
 
@@ -144,25 +143,54 @@ DFLOW("\n----------------------heartbeat: Exit-------------------------\n");
  */
 void
 xdd_heartbeat_legend(void) {
+	pclk_t 		now;					// Current time
+	double		elapsed_seconds;		// Elapsed time in seconds
+	time_t		current_time;			// For the Time of Day option
+	char		current_time_string[32];	// For the Time of Day option
+	int			len;
+
+
+	if (xgp->global_options & GO_HB_LF)  
+		 fprintf(stderr,"\n"); // Put a LineFeed character at the end of this line
+	else fprintf(stderr,"\r"); // Otherwise just a carriage return
 
 	fprintf(stderr,"Pass %04d ",xgp->ptdsp[0]->my_current_pass_number);
-	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
+	if (xgp->global_options & GO_HB_HOST)  // Display Current number of OPS performed 
+		fprintf(stderr,"/HOST:%s",xgp->hostname.nodename);
+
+	if (xgp->global_options & GO_HB_TOD) {  // Display the current Time of Day
+		current_time = time(NULL);
+		ctime_r(&current_time,(char *)current_time_string);
+		len = strlen((char *)current_time_string);
+		if (len > 0)
+	 		current_time_string[(len-1)] = '\0';
+		
+		fprintf(stderr,"/TOD:%s",current_time_string);
+	}
+
+	if (xgp->global_options & GO_HB_ELAPSED) {  // Display the elapsed number of seconds this has been running
+		pclk_now(&now);
+		elapsed_seconds = ((double)((double)now - (double)xgp->run_start_time)) / FLOAT_TRILLION;
+		fprintf(stderr,"/ELAPSED:%.0f",elapsed_seconds);
+	}
+
+	if (xgp->global_options & GO_HB_OPS)  // Display Current number of OPS performed 
 		fprintf(stderr,"/OPS");
-	if (xgp->global_options & GO_HB_BYTES)  // display Current number of BYTES transferred 
+	if (xgp->global_options & GO_HB_BYTES)  // Display Current number of BYTES transferred 
 		fprintf(stderr,"/BYTES");
-	if (xgp->global_options & GO_HB_KBYTES)  // display Current number of KILOBYTES transferred 
+	if (xgp->global_options & GO_HB_KBYTES)  // Display Current number of KILOBYTES transferred 
 		fprintf(stderr,"/KB");
-	if (xgp->global_options & GO_HB_MBYTES)  // display Current number of MEGABYTES transferred 
+	if (xgp->global_options & GO_HB_MBYTES)  // Display Current number of MEGABYTES transferred 
 		fprintf(stderr,"/MB");
-	if (xgp->global_options & GO_HB_GBYTES)  // display Current number of GIGABYTES transferred 
+	if (xgp->global_options & GO_HB_GBYTES)  // Display Current number of GIGABYTES transferred 
 		fprintf(stderr,"/GB");
-	if (xgp->global_options & GO_HB_BANDWIDTH)  // display Current Aggregate BANDWIDTH 
+	if (xgp->global_options & GO_HB_BANDWIDTH)  // Display Current Aggregate BANDWIDTH 
 		fprintf(stderr,"/BW");
-	if (xgp->global_options & GO_HB_IOPS)  // display Current Aggregate IOPS 
+	if (xgp->global_options & GO_HB_IOPS)  // Display Current Aggregate IOPS 
 		fprintf(stderr,"/IOPS");
-	if (xgp->global_options & GO_HB_PERCENT)  // display Percent Complete 
+	if (xgp->global_options & GO_HB_PERCENT)  // Display Percent Complete 
 		fprintf(stderr,"/PCT");
-	if (xgp->global_options & GO_HB_ET)  // display Estimated Time to Completion
+	if (xgp->global_options & GO_HB_ET)  // Display Estimated Time to Completion
 		fprintf(stderr,"/ET");
 } // End of xdd_heartbeat_legend()
 /*----------------------------------------------------------------------------*/

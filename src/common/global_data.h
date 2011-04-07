@@ -61,11 +61,13 @@
 #define GO_HB_PERCENT	 		0x0000000008000000ULL  /* Heartbeat option - display Percent Complete */
 #define GO_HB_ET		 		0x0000000010000000ULL  /* Heartbeat option - display Estimated Time to Completion*/
 #define GO_HB_IGNORE_RESTART	0x0000000020000000ULL  /* Heartbeat option - Ignore the restart adjustments */
-#define GO_AVAILABLE3			0x0000000040000000ULL  /* AVAILABLE */
-#define GO_AVAILABLE4			0x0000000080000000ULL  /* AVAILABLE */
-#define GO_INTERACTIVE			0x0000000100000000ULL  /* Enter Interactive Mode - oh what FUN! */
-#define GO_INTERACTIVE_EXIT		0x0000000200000000ULL  /* Exit Interactive Mode */
-#define GO_INTERACTIVE_STOP		0x0000000400000000ULL  /* Stop at various points in Interactive Mode */
+#define GO_HB_LF				0x0000000040000000ULL  /* Heartbeat option - LineFeed/CarriageReturn/NewLine */
+#define GO_HB_TOD				0x0000000080000000ULL  /* Heartbeat option - Time of Day */
+#define GO_HB_ELAPSED			0x0000000100000000ULL  /* Heartbeat option - Elapsed Seconds */
+#define GO_HB_HOST				0x0000000200000000ULL  /* Heartbeat option - Host name */
+#define GO_INTERACTIVE			0x0000000400000000ULL  /* Enter Interactive Mode - oh what FUN! */
+#define GO_INTERACTIVE_EXIT		0x0000000800000000ULL  /* Exit Interactive Mode */
+#define GO_INTERACTIVE_STOP		0x0000001000000000ULL  /* Stop at various points in Interactive Mode */
 
 struct xdd_global_data {
 /* Global variables relevant to all threads */
@@ -127,6 +129,7 @@ struct xdd_global_data {
 	pclk_t			gts_delta;              			/* Time difference returned by the clock initializer */
 	char			*gts_hostname;          			/* name of the time server */
 	pclk_t			ActualLocalStartTime;   			/* The time to start operations */
+	struct			utsname hostname;					/* The name of the computer this instance of XDD is running on */
 
 // PThread structures for the main threads
 	pthread_t 		XDDMain_Thread;						// PThread struct for the XDD main thread
