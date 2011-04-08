@@ -2,7 +2,7 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the retry flag with xddcp with the -a resume flag
+# Validate the retry flag with xddcp without the -a resume flag
 #
 
 #
@@ -11,15 +11,15 @@
 source ./test_config
 
 # Perform pre-test 
-echo "Beginning XDDCP Retry Test 1 . . ."
-test_dir=$XDDTEST_SOURCE_MOUNT/retry1
+echo "Beginning XDDCP Retry Test 2 . . ."
+test_dir=$XDDTEST_SOURCE_MOUNT/retry2
 rm -rf $test_dir
 mkdir -p $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry1"
-ssh $XDDTEST_E2E_DEST "mkdir -p $XDDTEST_DEST_MOUNT/retry1"
+ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry2"
+ssh $XDDTEST_E2E_DEST "mkdir -p $XDDTEST_DEST_MOUNT/retry2"
 
 source_file=$test_dir/file1
-dest_file=$XDDTEST_DEST_MOUNT/retry1/file1
+dest_file=$XDDTEST_DEST_MOUNT/retry2/file1
 
 #
 # This test requires the gethostip command
@@ -27,7 +27,7 @@ dest_file=$XDDTEST_DEST_MOUNT/retry1/file1
 type -P gethostip &>/dev/null
 hasIpTranslator=$?
 if [ 0 -ne $hasIpTranslator ]; then
-    echo "Acceptance XDDCP1: Retry Test 1 - Check: Skipped (gethostip missing)."
+    echo "Acceptance XDDCP2: Retry Test 2 - Check: Skipped (gethostip missing)."
     exit 2
 fi
  
@@ -42,7 +42,7 @@ $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4096 -qd 4
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
 scp $XDDTEST_XDD_EXE $XDDTEST_E2E_DEST:~/bin/xdd.Linux &>/dev/null
-$XDDTEST_XDDCP_EXE -a -f -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
+$XDDTEST_XDDCP_EXE -f -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
 #
@@ -68,7 +68,7 @@ if [ 0 -eq $rc ]; then
     destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $dest_file |cut -d ' ' -f 1")
     if [ "$srcHash" != "$destHash" ]; then
 	test_passes=0
-	echo "ERROR: Failure in retry1"
+	echo "ERROR: Failure in retry2"
 	echo "\tSource hash for $i: $srcHash"
 	echo "\tDestination hash for $d: $destHash"
     fi
@@ -81,9 +81,9 @@ fi
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance XDDCP1: Retry Test - Check: PASSED."
+  echo "Acceptance XDDCP2: Retry Test - Check: PASSED."
   exit 0
 else
-  echo "Acceptance XDDCP1: Retry Test - Check: FAILED."
+  echo "Acceptance XDDCP2: Retry Test - Check: FAILED."
   exit 1
 fi

@@ -87,13 +87,20 @@ XDDCP_ERR_CODE_DEST_TGT_NOT_WR=121
 #
 # Global variables
 #
-g_xddcpErrorCode="0"
 g_xddcpXddVersion="-1"
 g_xddcpDestXddPid="-1"
 g_xddcpSrcXddPid="-1"
 g_xddcpResumeOffset="0"
 g_transferCount="0"
 
+#
+# Reset global variables before retry
+#
+function reset_global_data {
+    g_xddcpDestXddPid="-1"
+    g_xddcpSrcXddPid="-1"
+    g_xddcpResumeOffset="0"
+}
 
 #
 # Print out the usage information
@@ -225,7 +232,7 @@ function handle_signal_common {
 
     # Attempt to deliver the signal to XDD
     if [ -1 -ne $g_xddcpSrcXddPid ]; then
-        kill -$signum $g_xddcpSrcXddPid
+        kill -$signum $g_xddcpSrcXddPid &>/dev/null
     fi
     echo "INFO:  Transfer cancelled by user." >/dev/stderr
 }
@@ -1532,6 +1539,7 @@ function xddcp_main {
 	    # Print a retry message
 	    echo "Transfer failed.  Retry attempt: $((i+1))"
 	    sleep $XDDCP_DEFAULT_RETRY_SLEEP_SECS
+	    reset_global_data
 	else
 	    echo "Transfer failed.  Error code: $rc"
 	    break

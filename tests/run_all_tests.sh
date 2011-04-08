@@ -149,7 +149,7 @@ for test in $all_tests; do
     # Allow the test to run until timeout, then kill it automatically
     trap 'test_timeout_handler' 14
     test_timeout_alarm
-    echo -n "Running ${test_base} . . ."
+    echo -n "Running ${test_base} . . . "
     $test &>> $test_log &
     g_testPID=$!
     test_result=""
@@ -161,14 +161,14 @@ for test in $all_tests; do
     
     # Check test's status
     if [ 1 -eq $g_testTimedOut -a -z "$test_result" ]; then
-        echo -e "\r[FAIL] Test $test timed out.  See $test_log."
+        echo -e "[FAILED] Timed out.  See $test_log."
         failed_test=1
     elif [ $test_result -eq 0 ]; then
-        echo -e "\r[PASS] Test ${test_base} passed."
+        echo -e "[PASSED]"
     elif [ $test_result -eq 2 ]; then
-	echo -e "\r[SKIPPED] Test ${test_base} skipped."
+	echo -e "[SKIPPED]"
     else
-        echo -e "\r[FAIL] Test $test failed.  See $test_log."
+        echo -e "[FAILED] See $test_log."
         failed_test=1
     fi
 done
