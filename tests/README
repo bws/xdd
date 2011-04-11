@@ -3,4 +3,7 @@ on the contents of test_config.example.  Then, simply run:
 
 ./run_all_tests.sh
 
+Acceptance tests belong in the "scripts" directory.  Unit tests belong in the
+"unit" directory.  Other tests are stored in the "other" directory.
+
 Test output is stored in the output directory.
