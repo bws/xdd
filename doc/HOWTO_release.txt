@@ -41,7 +41,7 @@ continue cutting the release.
 
     Where TAG_NAME is in the format xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE] (e.g. xdd-7.0.0.rc1)
     Another way to format the command is:
-	> TAG_NAME=foo && git archive --format=tar --prefix=$TAG_NAME --remote=ssh://home.ccs.ornl.gov/ccs/proj/csc040/var/git/xdd.git $TAG_NAME |gzip >$TAG_NAME.tar.gz
+	> TAG_NAME=foo && git archive --format=tar --prefix=${TAG_NAME}/ --remote=ssh://home.ccs.ornl.gov/ccs/proj/csc040/var/git/xdd.git $TAG_NAME |gzip >$TAG_NAME.tar.gz
 
 The resulting tar file now contains the released code only.
 
