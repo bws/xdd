@@ -99,15 +99,15 @@ test_log=$XDDTEST_OUTPUT_DIR/test_$datestamp.log
 #
 # Ensure the source and destinations are reachable
 #
-ping -c 2 "$XDDTEST_E2E_SOURCE" &>>$test_log
+ping -c 2 "$XDDTEST_E2E_SOURCE" >>$test_log 2>&1
 if [ $? -ne 0 ]; then
-    echo "Unable to contact source: $XDDTEST_E2E_SOURCE" &>>$test_log
+    echo "Unable to contact source: $XDDTEST_E2E_SOURCE" >>$test_log 2>&1
     exit 1
 fi
 
 ping -c 2 "$XDDTEST_E2E_DEST" &>>$test_log
 if [ $? -ne 0 ]; then
-    echo "Unable to contact source: $XDDTEST_E2E_DEST" &>>$test_log
+    echo "Unable to contact source: $XDDTEST_E2E_DEST" >>$test_log 2>&1
     exit 2 
 fi
 
@@ -115,12 +115,12 @@ fi
 # Ensure the mount points exist
 #
 if [ ! -w "$XDDTEST_LOCAL_MOUNT" -o ! -r "$XDDTEST_LOCAL_MOUNT" ]; then
-    echo "Cannot read and write loc: $XDDTEST_LOCAL_MOUNT" &>>$test_log
+    echo "Cannot read and write loc: $XDDTEST_LOCAL_MOUNT" >>$test_log 2>&1
     exit 3
 fi
 
 if [ ! -w "$XDDTEST_SOURCE_MOUNT" -o ! -r "$XDDTEST_SOURCE_MOUNT" ]; then
-    echo "Cannot read and write loc: $XDDTEST_SOURCE_MOUNT" &>>$test_log
+    echo "Cannot read and write loc: $XDDTEST_SOURCE_MOUNT" >>$test_log 2>&1
     exit 3
 fi
 
@@ -130,7 +130,7 @@ ssh $XDDTEST_E2E_DEST bash <<EOF
     fi
 EOF
 if [ $? != 0 ]; then
-    echo "Cannot read and write loc: $XDDTEST_DEST_MOUNT" &>>$test_log
+    echo "Cannot read and write loc: $XDDTEST_DEST_MOUNT" >>$test_log 2>&1
     exit 4
 fi
     
@@ -150,7 +150,7 @@ for test in $all_tests; do
     trap 'test_timeout_handler' 14
     test_timeout_alarm
     echo -n "Running ${test_base} . . . "
-    $test &>> $test_log &
+    $test >> $test_log 2>&1 &
     g_testPID=$!
     test_result=""
     wait $g_testPID

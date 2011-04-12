@@ -208,7 +208,7 @@ read_tsdumps: $(READ_TSDUMPS_EXE_OBJS)
 	$(LN) read_tsdumps.$(OS) bin/read_tsdumps
 
 baseversion:
-	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > src/xdd_base_version.h
+	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > src/base/xdd_base_version.h
 
 dist:	clean baseversion tarball
 		echo "Base Version $(XDDVERSION) Source Only"
