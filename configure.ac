@@ -270,7 +270,7 @@ dnl
 AC_OUTPUT(Makefile)
 
 dnl
-dnl Work around platforms that only have GNU make as gmake
+dnl Work around platforms that only have GNU make as some name other than make
 dnl
 if  ! test x$_cv_gnu_make_command = xmake ; then
     mv Makefile GNUmakefile
