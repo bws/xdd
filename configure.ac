@@ -25,6 +25,20 @@ dnl
 AC_INIT(XDD,7.0.0.0)
 
 dnl
+dnl Include useful macros
+dnl
+m4_include(m4/ax_mpi.m4)
+m4_include(m4/ax_check_gnu_make.m4)
+
+dnl
+dnl Check for GNU Make
+dnl
+AX_CHECK_GNU_MAKE()
+if test x$_cv_gnu_make_command = x ; then
+    AC_MSG_ERROR(No working GNU Make found.)
+fi
+
+dnl
 dnl Determine source and build directories
 dnl
 CONFIG_BUILD_DIR=`pwd`
@@ -34,10 +48,15 @@ AC_SUBST(CONFIG_BUILD_DIR)
 AC_SUBST(CONFIG_PROJECT_DIR)
 
 dnl
-dnl Check for programs
+dnl Check for C compiler
 dnl
-AC_PROG_CC
+AC_PROG_CC([xlc_r gcc])
 AC_LANG_C
+
+dnl
+dnl Check for C dependency generator
+dnl
+AC_PROG_CC([gcc])
 
 dnl 
 dnl Check for Standard C headers
@@ -81,7 +100,6 @@ AC_CHECK_HEADER([sys/stat.h],
                 [], 
                 AC_MSG_ERROR(Must include headers for sys/stat.h))
 
-
 dnl
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl
@@ -91,6 +109,11 @@ dnl
 dnl Checks for library functions.
 dnl
 AC_CHECK_FUNCS([memset])
+
+dnl
+dnl Check for MPI compiler
+dnl
+AX_MPI([],AC_MSG_WARN(MPI C compiler not found.))
 
 dnl
 dnl Check if XFS support should be enabled
@@ -176,6 +199,66 @@ AC_SUBST(CONFIG_CFLAGS, "$CONFIG_CFLAGS")
 AC_SUBST(CONFIG_LDFLAGS, "$CONFIG_LDFLAGS")
 
 dnl
+dnl Ensure that XDDCP required utilities are present
+dnl
+xddcp_disable="no"
+dirname_exists="no"
+AC_PATH_PROG([dirname_exists], [dirname], [no])
+if test "x$dirname_exists" = "xno" ; then
+    AC_MSG_WARN(Support for xddcp disabled.  No working dirname utility.)
+    xddcp_disable="yes"
+fi
+
+ssh_exists="no"
+AC_PATH_PROG([ssh_exists], [ssh], [no])
+if test "x$ssh_exists" = "xno" ; then
+    AC_MSG_WARN(Support for xddcp disabled.  No working ssh utility.)
+    xddcp_disable="yes"
+fi
+
+stat_exists="no"
+AC_PATH_PROG([stat_exists], [stat], [no])
+if test "x$stat_exists" = "xno" ; then
+    AC_MSG_WARN(Support for xddcp disabled.  No working stat utility.)
+    xddcp_disable="yes"
+fi
+
+tr_exists="no"
+AC_PATH_PROG([tr_exists], [tr], [no])
+if test "x$tr_exists" = "xno" ; then
+    AC_MSG_WARN(Support for xddcp disabled.  No working tr utility.)
+    xddcp_disable="yes"
+fi
+
+truncate_exists="no"
+AC_PATH_PROG([truncate_exists], [truncate], [no])
+if test "x$truncate_exists" = "xno" ; then
+    AC_MSG_WARN(Support for xddcp disabled.  No working truncate utility.)
+    xddcp_disable="yes"
+fi
+
+if test "x$xddcp_disable" = "xyes" ; then
+   AC_SUBST(XDDCP_ENABLED, "false")
+else
+   AC_SUBST(XDDCP_ENABLED, "true")
+fi
+
+dnl
+dnl Warn if XDDCP optional utilities are not present
+dnl
+gethostip_exists="no"
+AC_PATH_PROG([gethostip_exists], [gethostip], [no])
+if test "x$gethostip_exists" = "xno" ; then
+   AC_MSG_WARN(Some features of xddcp disabled.  No gethostip utility installed.)
+fi
+
+netstat_exists="no"
+AC_PATH_PROG([netstat_exists], [netstat], [no])
+if test "x$netstat_exists" = "xno" ; then
+   AC_MSG_WARN(Some features of xddcp disabled.  No netstat utility installed.)
+fi
+
+dnl
 dnl Set the default installation prefix
 dnl
 install_prefix='/opt/xdd'
@@ -186,3 +269,11 @@ dnl Generate output
 dnl
 AC_OUTPUT(Makefile)
 
+dnl
+dnl Work around platforms that only have GNU make as gmake
+dnl
+if  ! test x$_cv_gnu_make_command = xmake ; then
+    mv Makefile GNUmakefile
+    echo .DEFAULT: > Makefile ;
+    echo \  $_cv_gnu_make_command \$@ >> Makefile;
+fi
