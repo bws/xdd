@@ -41,7 +41,7 @@ DEPENDC = $(XDD_DIR)/support/depend.sh
 INSTALL = $(XDD_DIR)/support/install-sh
 RM = rm -f
 MKDIR = mkdir -p
-LN = ln -s
+LN = ln -sf
 
 #
 # Version information
@@ -173,16 +173,25 @@ endif
 #
 # Build rules
 #
-all:	xdd timeserver gettime read_tsdumps
+all: xdd timeserver gettime read_tsdumps libs
 
+#
+# Build rules for libraries
+#
 libs: $(LIB_DIR)/libxdd.a $(LIB_DIR)/libxdd.so
 
 $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
 	ar rcs $@ $^
 
-$(LIB_DIR)/libxdd.so: $(XDD_OBJS)
+$(LIB_DIR)/libxdd.so.$(VERSION): $(XDD_OBJS)
 	$(CC) -shared -Wl,-soname,$@ -o $@ $^
 
+$(LIB_DIR)/libxdd.so: $(LIB_DIR)/libxdd.so.$(VERSION)
+	$(LN) $^ $@
+
+#
+# Build rules for executable targets
+#
 xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
 	$(CC) -o $@ $(CFLAGS) $^ $(LIBRARIES)
 	mv -f $@ bin/xdd.$(OS)
@@ -207,39 +216,9 @@ read_tsdumps: $(READ_TSDUMPS_EXE_OBJS)
 	$(RM) bin/read_tsdumps
 	$(LN) read_tsdumps.$(OS) bin/read_tsdumps
 
-baseversion:
-	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > src/base/xdd_base_version.h
-
-dist:	clean baseversion tarball
-		echo "Base Version $(XDDVERSION) Source Only"
-
-fulldist:	clean baseversion all tarball
-		echo "Base Version $(XDDVERSION) built"
-
-tarball:
-	tar cfz ../$(PROJECT).$(XDD_VERSION).tgz .
-
-depclean:
-	$(info Cleaning the $(OS) dependency files )
-	@$(RM) $(XDD_DEPENDS) $(TOOLS_DEPENDS)
-
-oclean:
-	$(info Cleaning the $(OS) OBJECT files )
-	$(RM) $(ALL_OBJS) 
-
-clean: depclean oclean 
-	$(info Cleaning the $(OS) executable files )
-	$(RM) bin/xdd.$(OS) \
-		bin/xdd \
-		bin/timeserver.$(OS) \
-		bin/timeserver \
-		bin/gettime.$(OS) \
-		bin/gettime \
-		bin/read_tsdumps.$(OS) \
-		bin/read_tsdumps \
-		a.out 
-	$(RM) -r doc/doxygen
-
+#
+# Build rules for installation
+#
 install: fullinstall
 
 fastinstall: all
@@ -271,7 +250,28 @@ fullinstall:
 	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
 	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
 	$(INSTALL) -c -m 755 etc/xddmcp.conf.example $(INSTALL_DIR)/etc/xddmcp.conf.example
+	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
+	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.so.$(VERSION) $(INSTALL_DIR)/lib/libxdd.so.$(VERSION)
+	$(LN) $(INSTALL_DIR)/lib/libxdd.so.$(VERSION) $(INSTALL_DIR)/lib/libxdd.so
 
+#
+# Miscellaneous build rules
+#
+baseversion:
+	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > $(BASE_DIR)/xdd_base_version.h
+
+dist: clean baseversion tarball
+	echo "Base Version $(XDDVERSION) Source Only"
+
+fulldist: clean baseversion all tarball
+	echo "Base Version $(XDDVERSION) built"
+
+tarball:
+	tar cfz ../$(PROJECT).$(XDD_VERSION).tgz .
+
+#
+# Build rules for documentation
+#
 doc:
 	doxygen doc/Doxyfile
 	cd doc/doxygen/latex && make pdf
@@ -287,11 +287,42 @@ contrib/mpil: contrib/mpil.o
 contrib/mpil.o: contrib/mpil.c
 	$(MPICC) -c $^ -o $@
 
-test_clean:
+test: contrib/mpil
+
+#
+# Build rules for cleaning up derived files
+#
+testclean:
 	$(RM) contrib/mpil.o
 	$(RM) contrib/mpil
 
-test: contrib/mpil
+depclean:
+	$(info Cleaning the $(OS) dependency files )
+	@$(RM) $(XDD_DEPENDS) $(TOOLS_DEPENDS)
+
+docclean:
+	$(info Cleaning the $(OS) documentation files )
+	@$(RM) -r doc/doxygen
+
+libclean:
+	$(info Cleaning the $(OS) LIBRARY files )
+	@$(RM) $(LIB_DIR)/libxdd.*
+
+oclean:
+	$(info Cleaning the $(OS) OBJECT files )
+	@$(RM) $(ALL_OBJS) 
+
+clean: depclean libclean oclean 
+	$(info Cleaning the $(OS) executable files )
+	$(RM) bin/xdd.$(OS) \
+		bin/xdd \
+		bin/timeserver.$(OS) \
+		bin/timeserver \
+		bin/gettime.$(OS) \
+		bin/gettime \
+		bin/read_tsdumps.$(OS) \
+		bin/read_tsdumps \
+		a.out 
 
 #
 # Include dependency makefiles if building source target
@@ -313,4 +344,4 @@ endif
 #
 # Make meta-directives
 #
-.PHONY: all clean depclean doc fastinstall install oclean tarball
+.PHONY: all clean depclean doc docclean fastinstall install libclean oclean tarball testclean
