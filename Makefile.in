@@ -28,21 +28,26 @@ INSTALL_DIR := @prefix@
 XFS_ENABLED_DEF := @CONFIG_XFS_ENABLED@ @CONFIG_XFS_PACKAGE@ @CONFIG_LINUX_MAGIC@
 UTMPX_ENABLED := @CONFIG_UTMPX_ENABLED@
 XDDCP_ENABLED := @XDDCP_ENABLED@
-
-#
-# Configuration
-#
-SHELL 	=	/bin/sh
-OS 	= 	$(shell uname)
+CC_EXE := @CC@
+DEPC_EXE = @DEPC_PATH@
 
 #
 # Tools
 #
-DEPENDC = $(XDD_DIR)/support/depend.sh
+CC = $(CC_EXE)
+DEPC = $(DEPC_EXE)
+DEPGEN = $(XDD_DIR)/support/depend.sh
 INSTALL = $(XDD_DIR)/support/install-sh
-RM = rm -f
-MKDIR = mkdir -p
+LD = $(CC_EXE)
 LN = ln -sf
+MKDIR = mkdir -p
+RM = rm -f
+
+#
+# Configuration
+#
+SHELL =	/bin/sh
+OS = $(shell uname)
 
 #
 # Version information
@@ -125,50 +130,47 @@ CLIENT_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_EXE_SRC)))
 #
 # Default build settings
 #
-CC = gcc
 INCLUDES = -I$(BASE_DIR) -I$(CLIENT_DIR) -I$(COMMON_DIR) \
 		-I$(COMPAT_DIR) -I$(FS_DIR) -I$(NET_DIR) \
 		-I$(TOOLS_DIR)
-COMMONFLAGS = $(INCLUDES) @CONFIG_CFLAGS@ \
-		-DXDD_VERSION=$(XDDVERSION) \
-		-DXDD_VERSION_MAJOR=$(VERSION_MAJOR) \
-		-DXDD_VERSION_MINOR=$(VERSION_MINOR) \
-		-DXDD_VERSION_REV=$(VERSION_REV) \
-		$(CONFIDENCE_ENABLED)
-COMMONLIBS = @CONFIG_LDFLAGS@
-CFLAGS = $(COMMONFLAGS) -DLINUX -O2 -ggdb
-LIBRARIES = $(COMMONLIBS) -lpthread -lrt
 
-#
-# Default link settings
-#
-LD = gcc
-LDFLAGS = -ggdb -R $(INSTALL_DIR)/lib
+CPPFLAGS = @CONFIG_CPPFLAGS@
+	-DXDD_VERSION=$(XDDVERSION) \
+	-DXDD_VERSION_MAJOR=$(VERSION_MAJOR) \
+	-DXDD_VERSION_MINOR=$(VERSION_MINOR) \
+	-DXDD_VERSION_REV=$(VERSION_REV) \
+	$(CONFIDENCE_ENABLED)
+
+CFLAGS =  @CONFIG_CFLAGS@ $(INCLUDES)
+
+LDFLAGS = @CONFIG_LDFLAGS@ -lpthread
 
 #
 # Platform specific build settings
 #
 $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
-CFLAGS = $(COMMONFLAGS) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED) -g -fno-strict-aliasing -fPIC -Wall
+CPPFLAGS = $(CPPFLAGS) -DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED)
+CFLAGS = $(CFLAGS) -ggdb -fno-strict-aliasing -fPIC -Wall
+LDFLAGS = $(LDFLAGS) -R $(INSTALL_DIR)/lib -ggdb -lrt
 endif
-ifeq '$(OS)' 'Darwin' 
-CFLAGS = $(COMMONFLAGS) -DOSX -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
-OS = 		OSX
+ifeq '$(OS)' 'Darwin'
+CPPFLAGS = $(CPPFLAGS) -DOSX -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
+CFLAGS = $(CFLAGS)
 endif
-ifeq '$(OS)' 'FreeBSD' 
-CFLAGS = $(COMMONFLAGS) -DFREEBSD -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
+ifeq '$(OS)' 'FreeBSD'
+CPPFLAGS =  $(CPPFLAGS) -DFREEBSD -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
+CFLAGS = $(CFLAGS)
 endif
 ifeq '$(OS)' 'Solaris' 
-CC = 		cc
-CFLAGS = $(COMMONFLAGS) -DSOLARIS -g
-LIBRARIES =	$(COMMONLIBS) -lsocket -lnsl -lpthread  -lxnet -lposix4 -v 
+CPPFLAGS = $(CPPFLAGS) -DSOLARIS
+CFLAGS = $(CFLAGS)
+LDFLAGS = -lsocket -lnsl -lpthread  -lxnet -lposix4 -v 
 endif
 ifeq '$(OS)' 'AIX'
-CC =            xlc_r
-CFLAGS = $(COMMONFLAGS) -DAIX -D_THREAD_SAFE -g -q64 -qcpluscmt -qthreaded
-LDFLAGS = $(COMMONFLAGS) -DAIX -D_THREAD_SAFE -g -q64 -qcpluscmt -qthreaded
-LIBRARIES = 	$(COMMONLIBS) -lnsl -lpthread -lxnet -v
+CPPFLAGS = $(CPPFLAGS) -DAIX -D_THREAD_SAFE
+CFLAGS = $(CFLAGS) -g -q64 -qcpluscmt -qthreaded
+LDFLAGS = $(LDFLAGS) -lnsl -lxnet -v
 endif
 
 #
@@ -340,7 +342,7 @@ endif
 %.d: %.c
 	@echo "Generating dependencies for $< . . ."
 	@mkdir -p $(shell dirname $@)
-	@$(DEPENDC) $(shell dirname $<) gcc -MM $(INCLUDES) $< > $@
+	@$(DEPGEN) $(shell dirname $<) $(DEPC) -MM $(INCLUDES) $< > $@
 
 #
 # Make meta-directives

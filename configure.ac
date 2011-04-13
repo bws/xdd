@@ -48,15 +48,22 @@ AC_SUBST(CONFIG_BUILD_DIR)
 AC_SUBST(CONFIG_PROJECT_DIR)
 
 dnl
-dnl Check for C compiler
+dnl Check for C compiler 
+dnl   On IBM systems we prefer the IBM compiler
 dnl
 AC_PROG_CC([xlc_r gcc])
 AC_LANG_C
+AC_SUBST(CC)
 
 dnl
 dnl Check for C dependency generator
 dnl
-AC_PROG_CC([gcc])
+depc_exists="no"
+AC_PATH_PROG([depc_exists],
+             [gcc], 
+             AC_MSG_ERROR(GCC is required to generate C code dependencies.))
+DEPC_PATH=$depc_exists
+AC_SUBST(DEPC_PATH)
 
 dnl 
 dnl Check for Standard C headers
