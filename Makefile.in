@@ -34,6 +34,7 @@ DEPC_EXE = @DEPC_PATH@
 #
 # Tools
 #
+AR = ar
 CC = $(CC_EXE)
 DEPC = $(DEPC_EXE)
 DEPGEN = $(XDD_DIR)/support/depend.sh
@@ -134,6 +135,8 @@ INCLUDES = -I$(BASE_DIR) -I$(CLIENT_DIR) -I$(COMMON_DIR) \
 		-I$(COMPAT_DIR) -I$(FS_DIR) -I$(NET_DIR) \
 		-I$(TOOLS_DIR)
 
+ARFLAGS = -rcs 
+
 CPPFLAGS = -DXDD_VERSION=$(XDDVERSION) \
 	-DXDD_VERSION_MAJOR=$(VERSION_MAJOR) \
 	-DXDD_VERSION_MINOR=$(VERSION_MINOR) \
@@ -147,6 +150,8 @@ LDFLAGS = @CONFIG_LDFLAGS@
 
 LIBS = -lpthread
 
+SOFLAGS =
+
 #
 # Platform specific build settings
 #
@@ -156,6 +161,7 @@ CPPFLAGS += -DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(X
 CFLAGS += -ggdb -fno-strict-aliasing -fPIC -Wall
 LDFLAGS += -ggdb
 LIBS += -lrt
+SOFLAGS += -shared -Wl,-soname,$@
 endif
 ifeq '$(OS)' 'Darwin'
 CPPFLAGS += -DOSX -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
@@ -168,9 +174,12 @@ CPPFLAGS += -DSOLARIS
 LIBS += -lsocket -lnsl -lpthread  -lxnet -lposix4 -v 
 endif
 ifeq '$(OS)' 'AIX'
+ARFLAGS += -X 64
 CPPFLAGS += -DAIX -D_THREAD_SAFE
-CFLAGS += -g -q64 -qcpluscmt -qthreaded
+CFLAGS += -q64 -qcpluscmt -qthreaded
+LDFLAGS += -g -q64 -qcpluscmt -qthreaded
 LIBS += -lnsl -lxnet -v
+SOFLAGS += -G -q64 -qmkshrobj
 endif
 
 #
@@ -186,10 +195,10 @@ all: xdd timeserver gettime read_tsdumps libs
 libs: $(LIB_DIR)/libxdd.a $(LIB_DIR)/libxdd.so
 
 $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
-	ar rcs $@ $^
+	$(AR) $(ARFLAGS) $@ $^
 
 $(LIB_DIR)/libxdd.so.$(VERSION): $(XDD_OBJS)
-	$(CC) -shared -Wl,-soname,$@ -o $@ $^
+	$(CC) $(SOFLAGS) -o $@ $^
 
 $(LIB_DIR)/libxdd.so: $(LIB_DIR)/libxdd.so.$(VERSION)
 	$(LN) $^ $@
