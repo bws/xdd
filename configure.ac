@@ -254,13 +254,13 @@ dnl
 gethostip_exists="no"
 AC_PATH_PROG([gethostip_exists], [gethostip], [no])
 if test "x$gethostip_exists" = "xno" ; then
-   AC_MSG_WARN(Some features of xddcp disabled.  No gethostip utility installed.)
+   AC_MSG_WARN(Some features of xddcp unavailable.  No gethostip utility installed.)
 fi
 
 netstat_exists="no"
 AC_PATH_PROG([netstat_exists], [netstat], [no])
 if test "x$netstat_exists" = "xno" ; then
-   AC_MSG_WARN(Some features of xddcp disabled.  No netstat utility installed.)
+   AC_MSG_WARN(Some features of xddcp unavailable.  No netstat utility installed.)
 fi
 
 dnl
