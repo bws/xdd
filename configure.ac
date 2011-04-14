@@ -279,8 +279,10 @@ AC_OUTPUT(Makefile)
 dnl
 dnl Work around platforms that only have GNU make as some name other than make
 dnl
-if  ! test x$_cv_gnu_make_command = xmake ; then
+if ! test x$_cv_gnu_make_command = xmake ; then
     mv Makefile GNUmakefile
-    echo .DEFAULT: > Makefile ;
-    echo \  $_cv_gnu_make_command \$@ >> Makefile;
+    echo [.DEFAULT:] > Makefile ;
+    echo [\	$_cv_gnu_make_command \$@] >> Makefile;
+else
+    rm -f GNUmakefile
 fi

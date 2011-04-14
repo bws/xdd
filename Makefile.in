@@ -154,7 +154,7 @@ $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
 CPPFLAGS += -DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED)
 CFLAGS += -ggdb -fno-strict-aliasing -fPIC -Wall
-LDFLAGS += -R $(INSTALL_DIR)/lib -ggdb
+LDFLAGS += -ggdb
 LIBS += -lrt
 endif
 ifeq '$(OS)' 'Darwin'
@@ -176,6 +176,8 @@ endif
 #
 # Build rules
 #
+.DEFAULT: all
+
 all: xdd timeserver gettime read_tsdumps libs
 
 #
