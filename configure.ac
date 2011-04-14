@@ -244,9 +244,7 @@ if test "x$truncate_exists" = "xno" ; then
     xddcp_disable="yes"
 fi
 
-if test "x$xddcp_disable" = "xyes" ; then
-   AC_SUBST(XDDCP_ENABLED, "false")
-else
+if  ! test "x$xddcp_disable" = "xyes" ; then
    AC_SUBST(XDDCP_ENABLED, "true")
 fi
 

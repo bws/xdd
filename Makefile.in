@@ -233,7 +233,20 @@ read_tsdumps: $(READ_TSDUMPS_EXE_OBJS)
 #
 # Build rules for installation
 #
-install: fullinstall
+install_pre:
+	$(INSTALL) -d $(INSTALL_DIR)/bin
+	$(INSTALL) -d $(INSTALL_DIR)/etc
+	$(INSTALL) -d $(INSTALL_DIR)/lib
+
+ifdef $(XDDCP_ENABLED) 
+install_xddcp: install_pre
+	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
+	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
+	$(INSTALL) -c -m 755 etc/xddmcp.conf.example $(INSTALL_DIR)/etc/xddmcp.conf.example
+else
+install_xddcp:
+
+endif
 
 fastinstall: all
 	$(RM) /sbin/xdd.$(OS) /sbin/xdd
@@ -248,9 +261,12 @@ fastinstall: all
 	cp bin/read_tsdumps.$(OS) /sbin
 	$(LN) /sbin/read_tsdumps.$(OS) /sbin/read_tsdumps
 
-fullinstall:
-	$(INSTALL) -d $(INSTALL_DIR)/bin
-	$(INSTALL) -d $(INSTALL_DIR)/etc
+install_libs: install_pre
+	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
+	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.so.$(VERSION) $(INSTALL_DIR)/lib/libxdd.so.$(VERSION)
+	$(LN) $(INSTALL_DIR)/lib/libxdd.so.$(VERSION) $(INSTALL_DIR)/lib/libxdd.so
+
+fullinstall: install_pre
 	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd.$(OS)
 	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd
 	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver.$(OS)
@@ -260,13 +276,11 @@ fullinstall:
 	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps.$(OS)
 	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps
 	$(INSTALL) -c -m 755 contrib/plot_tsdumps $(INSTALL_DIR)/bin/plot_tsdumps
-	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
 	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
-	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
-	$(INSTALL) -c -m 755 etc/xddmcp.conf.example $(INSTALL_DIR)/etc/xddmcp.conf.example
-	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
-	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.so.$(VERSION) $(INSTALL_DIR)/lib/libxdd.so.$(VERSION)
-	$(LN) $(INSTALL_DIR)/lib/libxdd.so.$(VERSION) $(INSTALL_DIR)/lib/libxdd.so
+
+install: install_pre fullinstall install_libs install_xddcp
+
+.PHONY: install install_pre install_libs install_xddcp
 
 #
 # Miscellaneous build rules

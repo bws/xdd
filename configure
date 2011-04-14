@@ -4081,10 +4081,7 @@ $as_echo "$as_me: WARNING: Support for xddcp disabled.  No working truncate util
     xddcp_disable="yes"
 fi
 
-if test "x$xddcp_disable" = "xyes" ; then
-   XDDCP_ENABLED="false"
-
-else
+if  ! test "x$xddcp_disable" = "xyes" ; then
    XDDCP_ENABLED="true"
 
 fi
