@@ -224,7 +224,7 @@ xdd_start_heartbeat() {
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
 	xdd_init_barrier_occupant(&barrier_occupant, "XDDMAIN_START_HEARTBEAT", XDD_OCCUPANT_TYPE_MAIN, NULL);
-	if (xgp->heartbeat) {
+	if (xgp->global_options & GO_HEARTBEAT) {
 		status = pthread_create(&xgp->Heartbeat_Thread, NULL, xdd_heartbeat, (void *)(unsigned long)0);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_start_heartbeat: ERROR: Could not start heartbeat\n", xgp->progname);

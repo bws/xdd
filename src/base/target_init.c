@@ -59,7 +59,6 @@ xdd_target_init(ptds_t *p) {
 	pclk_t		TimeDelta;		// Used the init the Global Clock
 	uint32_t	sleepseconds;
 	
-	
 
 #if (AIX)
 	p->my_thread_id = thread_self();
@@ -69,9 +68,8 @@ xdd_target_init(ptds_t *p) {
 	p->my_thread_id = p->my_pid;
 #endif
 
-
-        // Set the pass number
-        p->my_current_pass_number = 1;
+	// Set the pass number
+	p->my_current_pass_number = 1;
 
 	// Check to see that the target is valid and can be opened properly
 	status = xdd_target_open(p);

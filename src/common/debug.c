@@ -188,7 +188,6 @@ xdd_show_global_data(void) {
 	fprintf(xgp->output,"errout                  0x%p - Error Output file pointer \n",xgp->errout);
 	fprintf(xgp->output,"csvoutput               0x%p - Comma Separated Values output file \n",xgp->csvoutput);
 	fprintf(xgp->output,"combined_output         0x%p - Combined output file \n",xgp->combined_output);
-	fprintf(xgp->output,"heartbeat                 %d - seconds between heartbeats \n",xgp->heartbeat);
 	fprintf(xgp->output,"restart_frequency         %d - seconds between restart monitor checks \n",xgp->restart_frequency);
 	fprintf(xgp->output,"syncio                    %d - the number of I/Os to perform btw syncs \n",xgp->syncio);
 	fprintf(xgp->output,"target_offset             %lld - offset value \n",(long long int)xgp->target_offset);

@@ -204,35 +204,6 @@ xdd_options_info(FILE *out) {
 	fprintf(out, "Target Offset, %lld\n",(long long)xgp->target_offset);
 	fprintf(out, "I/O Synchronization, %d\n", xgp->syncio);
 	fprintf(out, "Total run-time limit in seconds, %f\n", xgp->run_time);
-	// Print the heartbeat time and display options
-	fprintf(out, "Heartbeat %d ", xgp->heartbeat);
-	if (xgp->global_options & GO_HB_LF)  // LineFeed or Carriage Return
-		fprintf(out,"/LF");
-	if (xgp->global_options & GO_HB_TOD)  // Time of Day
-		fprintf(out,"/TOD");
-	if (xgp->global_options & GO_HB_ELAPSED)  // Elapsed Seconds for run
-		fprintf(out,"/ELAPSED");
-	if (xgp->global_options & GO_HB_HOST)  // Host name of this computer
-		fprintf(out,"/HOSTNAME");
-	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
-		fprintf(out,"/Ops");
-	if (xgp->global_options & GO_HB_BYTES)  // display Current number of BYTES transferred 
-		fprintf(out,"/Bytes");
-	if (xgp->global_options & GO_HB_KBYTES)  // display Current number of KILOBYTES transferred 
-		fprintf(out,"/KBytes");
-	if (xgp->global_options & GO_HB_MBYTES)  // display Current number of MEGABYTES transferred 
-		fprintf(out,"/MBytes");
-	if (xgp->global_options & GO_HB_GBYTES)  // display Current number of GIGABYTES transferred 
-		fprintf(out,"/GBytes");
-	if (xgp->global_options & GO_HB_BANDWIDTH)  // display Current Aggregate BANDWIDTH 
-		fprintf(out,"/Bandwidth");
-	if (xgp->global_options & GO_HB_IOPS)  // display Current Aggregate IOPS 
-		fprintf(out,"/IOPS");
-	if (xgp->global_options & GO_HB_PERCENT)  // display Percent Complete 
-		fprintf(out,"/PercentComplete");
-	if (xgp->global_options & GO_HB_ET)  // display Estimated Time to Completion
-		fprintf(out,"/EstimateTimeLeft");
-	fprintf(out,"\n");
 
 	fprintf(out, "Output file name, %s\n",xgp->output_filename);
 	fprintf(out, "CSV output file name, %s\n",xgp->csvoutput_filename);
@@ -268,7 +239,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
         return;
 
 	fprintf(out,"\tTarget number, %d\n",p->my_target_number);
-	fprintf(out,"\tFully qualified target pathname, '%s'\n",p->target_full_pathname);
+	fprintf(out,"\t\tFully qualified target pathname, '%s'\n",p->target_full_pathname);
 	fprintf(out,"\t\tTarget directory, %s\n",(strlen(p->target_directory)==0)?"\"./\"":p->target_directory);
 	fprintf(out,"\t\tProcess ID, %d\n",p->my_pid);
 	fprintf(out,"\t\tThread ID, %d\n",p->my_thread_id);
@@ -360,6 +331,45 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		if (p->ts_options & TS_DUMP) 
 			fprintf(out, "\t\tTimestamp binary output file name, %s\n",p->ts_binary_filename);
 	} else fprintf(out, "\t\tTimestamping, disabled\n");
+
+	// Print the heartbeat interval and options
+	if (p->hb.hb_interval > 0) { // Display the Heartbeat information
+		fprintf(out, "\t\tHeartbeat Interval, %d, options, ", p->hb.hb_interval);
+		if (p->hb.hb_options & HB_TOD)  // Time of Day
+			fprintf(out,"/TOD");
+		if (p->hb.hb_options & HB_ELAPSED)  // Elapsed Seconds for run
+			fprintf(out,"/ELAPSED");
+		if (p->hb.hb_options & HB_HOST)  	// Host name of this computer
+			fprintf(out,"/HOSTNAME");
+		if (p->hb.hb_options & HB_TARGET)  	// Display the target number of this info
+			fprintf(out,"/Target#");
+		if (p->hb.hb_options & HB_OPS)  	// Display current number of OPS performed 
+			fprintf(out,"/Ops");
+		if (p->hb.hb_options & HB_BYTES)  	// Display current number of BYTES transferred 
+			fprintf(out,"/Bytes");
+		if (p->hb.hb_options & HB_KBYTES)  	// Display current number of KILOBYTES transferred 
+			fprintf(out,"/KBytes");
+		if (p->hb.hb_options & HB_MBYTES)  	// Display current number of MEGABYTES transferred 
+			fprintf(out,"/MBytes");
+		if (p->hb.hb_options & HB_GBYTES)  	// Display current number of GIGABYTES transferred 
+			fprintf(out,"/GBytes");
+		if (p->hb.hb_options & HB_BANDWIDTH)// Display current Aggregate BANDWIDTH 
+			fprintf(out,"/Bandwidth");
+		if (p->hb.hb_options & HB_IOPS)  	// Display current Aggregate IOPS 
+			fprintf(out,"/IOPS");
+		if (p->hb.hb_options & HB_PERCENT)  // Display Percent Complete 
+			fprintf(out,"/PercentComplete");
+		if (p->hb.hb_options & HB_ET)  		// Display Estimated Time to Completion
+			fprintf(out,"/EstimatedTimeLeft");
+		if (p->hb.hb_options & HB_LF)  		// LineFeed or Carriage Return
+			fprintf(out,"/LF");
+		fprintf(out,"\n");
+		if (p->hb.hb_filename)  			// display name of the file that Heartbeat will send data
+		 	fprintf(out,"\t\tHeartbeart Output File, %s\n",p->hb.hb_filename);
+		else fprintf(out,"\t\tHeartbeart Output File, stderr\n");
+	} else {
+		fprintf(out, "\t\tHeartbeat Disabled, \n");
+	}
 	fflush(out);
 	fprintf(out,"\t\tDelete file, %s", (p->target_options & TO_DELETEFILE)?"enabled\n":"disabled\n");
 
