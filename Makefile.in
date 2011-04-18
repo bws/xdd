@@ -201,7 +201,7 @@ $(LIB_DIR)/libxdd.so.$(VERSION): $(XDD_OBJS)
 	$(CC) $(SOFLAGS) -o $@ $^
 
 $(LIB_DIR)/libxdd.so: $(LIB_DIR)/libxdd.so.$(VERSION)
-	$(LN) $^ $@
+	$(LN) libxdd.so.$(VERSION) $@
 
 #
 # Build rules for executable targets
