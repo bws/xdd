@@ -20,6 +20,20 @@ let "memory_per_node         = 32 * 1024 *1024 *1024"
 #
 source ./test_config
 
+#
+# Skip the test if the hardcoded stuff is too outlandish
+#
+real_num_cores=$(cat /proc/cpuinfo |grep processor |wc -l)
+real_mem_total_kb=$(cat /proc/meminfo |grep MemTotal |awk  '{print $2}')
+real_mem_total=$((real_mem_total_kb*1024))
+if [ $totalcores_alloc -gt $real_num_cores ]; then
+    echo "Acceptance XDD HPCS14: Scenario14 Test - Check: Skipped ($totalcores_alloc cores requested, $real_num_cores exist)."
+    exit 2
+elif [ $memory_per_node -gt $real_mem_total ]; then
+    echo "Acceptance XDD HPCS14: Scenario14 Test - Check: Skipped ($memory_per_node bytes requested, $real_mem_total exist)."
+    exit 2
+fi
+
 # Perform pre-test 
 echo "Beginning Acceptance Test HPCScenario #14 . . ."
 test_dir=$XDDTEST_LOCAL_MOUNT/acceptance_s14
