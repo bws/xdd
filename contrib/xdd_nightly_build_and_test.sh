@@ -18,8 +18,8 @@ CRAY_RC=1
 #
 nightly_base_path=/home/nightly
 xdd_repo_path=/home/nightly/xdd/repo/xdd.git
-source_mnt=/data/xfs1
-dest_mnt=/data/xfs2
+source_mnt=/mnt/disk1
+dest_mnt=/mnt/disk2
 
 datestamp=$(date +%Y-%m-%d-%H%M)
 build_dir=$nightly_base_path/xdd/$datestamp/build

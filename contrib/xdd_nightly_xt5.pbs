@@ -10,6 +10,7 @@
 #
 xdd_repo_path=/ccs/proj/csc040/var/git/xdd.git
 master_host=natureboy.ornl.gov
+master_port=22
 master_user=nightly
 master_repo_path=/nightly/xdd/repo
 
@@ -17,8 +18,8 @@ master_repo_path=/nightly/xdd/repo
 # Because access to the master is limited, we have to relay through another
 # hosts local ports
 #
-relay_host=login5
-relay_port=30022
+master_host=localhost
+master_port=30022
 
 #
 # Print out some diagnostics
@@ -33,60 +34,28 @@ echo "Test slave path: $remote_test_path"
 # forwarding to make life a little simpler
 #
 rc=0
-ssh $relay_host bash -x <<EOF
 
-#
-# Perform the push to the build master
-#
-scp -rCq $xdd_repo_path $master_user@$master_host:$master_repo_path
+# Remove the repository
+ssh -l $master_user $master_host -p $master_port "rm -rf $master_repo_path" &>/dev/null
+rc=$?
+if [ $rc -ne 0 ]; then
+   echo "Error removing nightly repo: $rc"
+   exit 2
+fi
+
+# Push the repository to the master
+scp -rCq -P $master_port $xdd_repo_path $master_user@$master_host:$master_repo_path
 rc=$?
 if [ $rc -ne 0 ]; then
    echo "Error transferring repo: $rc"
    exit 2
 fi
 
-#
-#  Kickoff the nightly build and test on $remote_host
-#
-ssh -l $remote_user $remote_host bash -x <<EOF
-git archive --format=tar --prefix=xdd/ --remote=/nightly/xdd/repo/xdd.git master |tar xf -  xdd/contrib/xdd_nightly_build_and_test.sh
-xdd/contrib/xdd_nightly_build_and_test.sh >/dev/null 2>&1 &
-EOF
-#
-EOF
+# Extract the script to run from the repo
+ssh -l $master_user $master_host -p $master_port "git archive --format=tar --prefix=xdd/ --remote=$master_repo_path master |tar xf -  xdd/contrib/xdd_nightly_build_and_test.sh"
 
-EOF
-
-#
-# Cleanup anything on the remote machine
-#
-ssh -l $remote_user $remote_host bash -x << EOF
-rm -rf $remote_test_path
-mkdir -p $remote_test_path
-EOF
-rc=$?
-if [ $rc -ne 0 ]; then
-   echo "Error removing previous build: $rc"
-   exit 1
-fi
-
-#
-# Perform transfer
-#
-scp -rCq $xdd_repo_path $remote_user@$remote_host:$remote_test_path
-rc=$?
-if [ $rc -ne 0 ]; then
-   echo "Error transferring repo: $rc"
-   exit 2
-fi
-
-#
-# Kickoff the nightly build and test on $remote_host
-#
-ssh -l $remote_user $remote_host bash -x <<EOF
-git archive --format=tar --prefix=xdd/ --remote=/nightly/xdd/repo/xdd.git master |tar xf -  xdd/contrib/xdd_nightly_build_and_test.sh
-xdd/contrib/xdd_nightly_build_and_test.sh >/dev/null 2>&1 &
-EOF
+# Run the build and test master
+ssh -l $master_user $master_host -p $master_port "xdd/contrib/xdd_nightly_build_and_test.sh >/dev/null 2>&1 &"
 
 #
 # Schedule the job to run again tomorrow
@@ -100,7 +69,7 @@ if [ $rc -ne 0 ]; then
     exit 3
 fi
 
-qsub -a 2300 $xdd_nightly_helper
+#qsub -a 2300 $xdd_nightly_helper
 rc=$?
 if [ $rc -ne 0 ]; then
     echo "Error scheduling nightly helper: $rc"
