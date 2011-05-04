@@ -16,15 +16,14 @@ CRAY_RC=1
 #
 # System locations
 #
-nightly_base_path=/home/nightly
+nightly_base_path=$(pwd)
 xdd_repo_path=/home/nightly/xdd/repo/xdd.git
 source_mnt=/data/xfs1
 dest_mnt=/data/xfs2
 
-datestamp=$(date +%Y-%m-%d-%H%M)
-build_dir=$nightly_base_path/xdd/$datestamp/build
-install_dir=$nightly_base_path/xdd/$datestamp/install
-output_dir=$nightly_base_path/xdd/$datestamp/logs
+build_dir=$nightly_base_path/build
+install_dir=$nightly_base_path/install
+output_dir=$nightly_base_path/logs
 test_src_dir=$source_mnt/xdd/$datestamp/test
 test_dest_dir=$dest_mnt/xdd/$datestamp/test
 
@@ -102,4 +101,22 @@ EOF
 #
 $build_dir/xdd/tests/run_all_tests.sh >>$test_log 2>&1
 TEST_RC=$?
+
+#
+# Construct a file that contains all the pertinent info
+#
+results_file=~/xdd_nightly_results
+echo "" > $results_file
+echo "BUILD_RC=$BUILD_RC" >> $results_file
+echo "CONFIG_RC=$CONFIG_RC" >> $results_file
+echo "INSTALL_RC=$INSTALL_RC" >> $results_file
+echo "TEST_RC=$TEST_RC" >> $results_file
+echo "BUILD_RC=$BUILD_RC" >> $results_file
+echo "CONFIG_RC=$CONFIG_RC" >> $results_file
+echo "INSTALL_RC=$INSTALL_RC" >> $results_file
+echo "TEST_RC=$TEST_RC" >> $results_file
+
+#
+# Exit with test return code
+#
 exit $TEST_RC

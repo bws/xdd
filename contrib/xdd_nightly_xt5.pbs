@@ -9,9 +9,16 @@
 # build and test machines so that we can run the tests
 #
 xdd_repo_path=/ccs/proj/csc040/var/git/xdd.git
-remote_host=natureboy.ornl.gov
-remote_user=nightly
-remote_test_path=/nightly/xdd/repo
+master_host=natureboy.ornl.gov
+master_user=nightly
+master_repo_path=/nightly/xdd/repo
+
+#
+# Because access to the master is limited, we have to relay through another
+# hosts local ports
+#
+relay_host=login5
+relay_port=30022
 
 #
 # Print out some diagnostics
@@ -20,6 +27,35 @@ echo "PWD: $PWD"
 echo "Test slave: $remote_host"
 echo "Test user: $remote_user"
 echo "Test slave path: $remote_test_path"
+
+#
+# Things are complicated by ITSD firewall practices.  We'll use ssh remote port
+# forwarding to make life a little simpler
+#
+rc=0
+ssh $relay_host bash -x <<EOF
+
+#
+# Perform the push to the build master
+#
+scp -rCq $xdd_repo_path $master_user@$master_host:$master_repo_path
+rc=$?
+if [ $rc -ne 0 ]; then
+   echo "Error transferring repo: $rc"
+   exit 2
+fi
+
+#
+#  Kickoff the nightly build and test on $remote_host
+#
+ssh -l $remote_user $remote_host bash -x <<EOF
+git archive --format=tar --prefix=xdd/ --remote=/nightly/xdd/repo/xdd.git master |tar xf -  xdd/contrib/xdd_nightly_build_and_test.sh
+xdd/contrib/xdd_nightly_build_and_test.sh >/dev/null 2>&1 &
+EOF
+#
+EOF
+
+EOF
 
 #
 # Cleanup anything on the remote machine
