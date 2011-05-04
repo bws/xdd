@@ -59,7 +59,9 @@ xdd_heartbeat(void *junk) {
 	ptds_t 		*p;						// Pointer to the Target's PTDS
 	int			activity_index;			// A number from 0 to 4 to index into the activity indicators table
 	int			prior_activity_index;	// Used to save the state of the activity index 
+	int			scattered_output;		// When set to something other than 0 it means that the output is directed to mutliple files
 	double		et;						// Estimate time to completion
+	uint32_t	interval;				// The shortest heartbeat interval that is greater than 0
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
 
@@ -68,31 +70,61 @@ xdd_heartbeat(void *junk) {
 	prior_activity_index = 0;
 	xdd_init_barrier_occupant(&barrier_occupant, "HEARTBEAT", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);
 
+	// Open all the Heartbeat output Files if they are not the default (stderr)
+	scattered_output = 0;
+	interval = 31536000; // a year's worth of seconds
+	for (i = 0; i < xgp->number_of_targets; i++) {
+		p = xgp->ptdsp[i];
+		if (p->hb.hb_filename) {
+			p->hb.hb_file_pointer = fopen(p->hb.hb_filename,"a");
+			scattered_output++;
+		} else {
+			p->hb.hb_file_pointer = stderr;
+		}
+
+		// Check to see if this is the shortest non-zero interval and save it if it is
+		if (p->hb.hb_interval) {
+			if (p->hb.hb_interval < interval) 
+				interval = p->hb.hb_interval;
+		}
+	}
 	// Enter this barrier and wait for the heartbeat monitor to initialize
 	xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant, 0);
 
 	while (1) {
-		sleep(xgp->heartbeat);
+		sleep(interval);
 		if (xgp->canceled) {
-			fprintf(stderr,"\nHEARTBEAT: Canceled\n");
+			fprintf(xgp->errout,"\nHEARTBEAT: Canceled\n");
+			return(0);
+		}
+		if (xgp->abort) {
+			fprintf(xgp->errout,"\nHEARTBEAT: Abort\n");
 			return(0);
 		}
 		if (xgp->heartbeat_holdoff == 1) 
 			continue;
 		if (xgp->heartbeat_holdoff == 2) 
 			return(0);
-		// Display the "legend" string
-		xdd_heartbeat_legend();
 
 		// Display all the requested items for each target
 		for (i = 0; i < xgp->number_of_targets; i++) {
+			p = xgp->ptdsp[i];
+
+			// Check to see if this Target wants a heartbeat display, if not, just continue
+			if (p->hb.hb_interval == 0) 
+				continue;
+
+			// Display the "legend" string
+			// If the "scattered_output" is greater than 0 then display the legend for each target
+			// Otherwise just display it for target 0
+			if ((scattered_output)  || (i == 0))
+				xdd_heartbeat_legend(p);
 			total_bytes_xferred = 0;
 			earliest_start_time = PCLK_MAX;
 			latest_end_time = 0.0;
 			total_ops_issued = 0;
-			p = xgp->ptdsp[i];
 			if (p->my_pass_start_time == PCLK_MAX) { // Haven't started yet...
-				fprintf(stderr," + WAITING");
+				fprintf(p->hb.hb_file_pointer," + WAITING");
 				continue; 
 			}
 			// Get the number of bytes xferred by all QThreads for this Target
@@ -118,7 +150,7 @@ xdd_heartbeat(void *junk) {
 			elapsed = ((double)((double)now - (double)earliest_start_time)) / FLOAT_TRILLION;
 
 			// Display the activity indicator 
-			fprintf(stderr," + [%c]", activity_indicators[activity_index]);
+			fprintf(p->hb.hb_file_pointer," + [%c]", activity_indicators[activity_index]);
 
 			// Display the data for this target
 			xdd_heartbeat_values(p, total_bytes_xferred, total_ops_issued, elapsed);
@@ -142,7 +174,7 @@ DFLOW("\n----------------------heartbeat: Exit-------------------------\n");
  * the pass number followed by the names of the values being displayed.
  */
 void
-xdd_heartbeat_legend(void) {
+xdd_heartbeat_legend(ptds_t *p) {
 	pclk_t 		now;					// Current time
 	double		elapsed_seconds;		// Elapsed time in seconds
 	time_t		current_time;			// For the Time of Day option
@@ -150,48 +182,50 @@ xdd_heartbeat_legend(void) {
 	int			len;
 
 
-	if (xgp->global_options & GO_HB_LF)  
-		 fprintf(stderr,"\n"); // Put a LineFeed character at the end of this line
-	else fprintf(stderr,"\r"); // Otherwise just a carriage return
+	if (p->hb.hb_options & HB_LF)  
+		 fprintf(p->hb.hb_file_pointer,"\n"); // Put a LineFeed character at the end of this line
+	else fprintf(p->hb.hb_file_pointer,"\r"); // Otherwise just a carriage return
 
-	fprintf(stderr,"Pass %04d ",xgp->ptdsp[0]->my_current_pass_number);
-	if (xgp->global_options & GO_HB_HOST)  // Display Current number of OPS performed 
-		fprintf(stderr,"/HOST:%s",xgp->hostname.nodename);
+	fprintf(p->hb.hb_file_pointer,"Pass,%04d,",xgp->ptdsp[0]->my_current_pass_number);
+	if (p->hb.hb_options & HB_HOST)  // Display Current number of OPS performed 
+		fprintf(p->hb.hb_file_pointer,"/HOST,%s,",xgp->hostname.nodename);
 
-	if (xgp->global_options & GO_HB_TOD) {  // Display the current Time of Day
+	if (p->hb.hb_options & HB_TOD) {  // Display the current Time of Day
 		current_time = time(NULL);
 		ctime_r(&current_time,(char *)current_time_string);
 		len = strlen((char *)current_time_string);
 		if (len > 0)
 	 		current_time_string[(len-1)] = '\0';
 		
-		fprintf(stderr,"/TOD:%s",current_time_string);
+		fprintf(p->hb.hb_file_pointer,"/TOD,%s,",current_time_string);
 	}
 
-	if (xgp->global_options & GO_HB_ELAPSED) {  // Display the elapsed number of seconds this has been running
+	if (p->hb.hb_options & HB_ELAPSED) {  // Display the elapsed number of seconds this has been running
 		pclk_now(&now);
 		elapsed_seconds = ((double)((double)now - (double)xgp->run_start_time)) / FLOAT_TRILLION;
-		fprintf(stderr,"/ELAPSED:%.0f",elapsed_seconds);
+		fprintf(p->hb.hb_file_pointer,"/ELAPSED,%.0f,",elapsed_seconds);
 	}
 
-	if (xgp->global_options & GO_HB_OPS)  // Display Current number of OPS performed 
-		fprintf(stderr,"/OPS");
-	if (xgp->global_options & GO_HB_BYTES)  // Display Current number of BYTES transferred 
-		fprintf(stderr,"/BYTES");
-	if (xgp->global_options & GO_HB_KBYTES)  // Display Current number of KILOBYTES transferred 
-		fprintf(stderr,"/KB");
-	if (xgp->global_options & GO_HB_MBYTES)  // Display Current number of MEGABYTES transferred 
-		fprintf(stderr,"/MB");
-	if (xgp->global_options & GO_HB_GBYTES)  // Display Current number of GIGABYTES transferred 
-		fprintf(stderr,"/GB");
-	if (xgp->global_options & GO_HB_BANDWIDTH)  // Display Current Aggregate BANDWIDTH 
-		fprintf(stderr,"/BW");
-	if (xgp->global_options & GO_HB_IOPS)  // Display Current Aggregate IOPS 
-		fprintf(stderr,"/IOPS");
-	if (xgp->global_options & GO_HB_PERCENT)  // Display Percent Complete 
-		fprintf(stderr,"/PCT");
-	if (xgp->global_options & GO_HB_ET)  // Display Estimated Time to Completion
-		fprintf(stderr,"/ET");
+	if (p->hb.hb_options & HB_TARGET)  // Display Target Number 
+		fprintf(p->hb.hb_file_pointer,"/TARGET");
+	if (p->hb.hb_options & HB_OPS)  // Display Current number of OPS performed 
+		fprintf(p->hb.hb_file_pointer,"/OPS");
+	if (p->hb.hb_options & HB_BYTES)  // Display Current number of BYTES transferred 
+		fprintf(p->hb.hb_file_pointer,"/BYTES");
+	if (p->hb.hb_options & HB_KBYTES)  // Display Current number of KILOBYTES transferred 
+		fprintf(p->hb.hb_file_pointer,"/KB");
+	if (p->hb.hb_options & HB_MBYTES)  // Display Current number of MEGABYTES transferred 
+		fprintf(p->hb.hb_file_pointer,"/MB");
+	if (p->hb.hb_options & HB_GBYTES)  // Display Current number of GIGABYTES transferred 
+		fprintf(p->hb.hb_file_pointer,"/GB");
+	if (p->hb.hb_options & HB_BANDWIDTH)  // Display Current Aggregate BANDWIDTH 
+		fprintf(p->hb.hb_file_pointer,"/BW");
+	if (p->hb.hb_options & HB_IOPS)  // Display Current Aggregate IOPS 
+		fprintf(p->hb.hb_file_pointer,"/IOPS");
+	if (p->hb.hb_options & HB_PERCENT)  // Display Percent Complete 
+		fprintf(p->hb.hb_file_pointer,"/PCT");
+	if (p->hb.hb_options & HB_ET)  // Display Estimated Time to Completion
+		fprintf(p->hb.hb_file_pointer,"/ET");
 } // End of xdd_heartbeat_legend()
 /*----------------------------------------------------------------------------*/
 /* xdd_heartbeat_values() 
@@ -241,7 +275,7 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 	// Check to see if we are in a "restart" operation and make appropriate adjustments
 	if (p->restartp) {
 		if ((p->restartp->flags & RESTART_FLAG_RESUME_COPY) &&
-			!(xgp->global_options & GO_HB_IGNORE_RESTART)) { // We were not asked to ignore the restart adjustments
+			!(p->hb.hb_options & HB_IGNORE_RESTART)) { // We were not asked to ignore the restart adjustments
 			// Adjust the number of bytes completed so far - add in the start offset
 			adjusted_bytes = bytes + (p->start_offset * p->block_size);
 			// Adjust the number of ops completed so far
@@ -250,52 +284,54 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 			adjusted_target_ops = (p->target_bytes_to_xfer_per_pass + (p->start_offset*p->block_size))/p->iosize; 
 		} // End of making adjustments for a restart operation
 	}
-	if (xgp->global_options & GO_HB_OPS)  // display Current number of OPS performed 
-		fprintf(stderr,"/%010lldops",(long long int)adjusted_ops);
-	if (xgp->global_options & GO_HB_BYTES)  // display Current number of BYTES transferred 
-		fprintf(stderr,"/%015lldB",(long long int)adjusted_bytes);
-	if (xgp->global_options & GO_HB_KBYTES)  // display Current number of KILOBYTES transferred 
-		fprintf(stderr,"/%013.1fKiB",(double)((double)adjusted_bytes / 1024.0) );
-	if (xgp->global_options & GO_HB_MBYTES)  // display Current number of MEGABYTES transferred 
-		fprintf(stderr,"/%010.1fMiB",(double)((double)adjusted_bytes / (1024.0*1024.0)) );
-	if (xgp->global_options & GO_HB_GBYTES)  // display Current number of GIGABYTES transferred 
-		fprintf(stderr,"/%07.1fGiB",(double)((double)adjusted_bytes / (1024.0*1024.0*1024.0)) );
+	if (p->hb.hb_options & HB_TARGET)  // Display Target Number of this information 
+		fprintf(p->hb.hb_file_pointer,",%04d,tgt",p->my_target_number);
+	if (p->hb.hb_options & HB_OPS)  // Display current number of OPS performed 
+		fprintf(p->hb.hb_file_pointer,",%010lld,ops",(long long int)adjusted_ops);
+	if (p->hb.hb_options & HB_BYTES)  // Display current number of BYTES transferred 
+		fprintf(p->hb.hb_file_pointer,",%015lld,B",(long long int)adjusted_bytes);
+	if (p->hb.hb_options & HB_KBYTES)  // Display current number of KILOBYTES transferred 
+		fprintf(p->hb.hb_file_pointer,",%013.1f,KiB",(double)((double)adjusted_bytes / 1024.0) );
+	if (p->hb.hb_options & HB_MBYTES)  // Display current number of MEGABYTES transferred 
+		fprintf(p->hb.hb_file_pointer,",%010.1f,MiB",(double)((double)adjusted_bytes / (1024.0*1024.0)) );
+	if (p->hb.hb_options & HB_GBYTES)  // Display current number of GIGABYTES transferred 
+		fprintf(p->hb.hb_file_pointer,",%07.1f,GiB",(double)((double)adjusted_bytes / (1024.0*1024.0*1024.0)) );
 	// Bandwidth is calculated on unadjusted bytes regardless of whether or not we are doing a restart
-	if (xgp->global_options & GO_HB_BANDWIDTH) {  // display Current Aggregate BANDWIDTH 
+	if (p->hb.hb_options & HB_BANDWIDTH) {  // Display current Aggregate BANDWIDTH 
 		if (elapsed != 0.0) {
 			d = (bytes/elapsed)/FLOAT_MILLION;
 		} else {
 			d = -1.0;
 		}
-		fprintf(stderr,"/%06.2fMBps",d);
+		fprintf(p->hb.hb_file_pointer,",%06.2f,MBps",d);
 	}
 	// IOPS is calculated on unadjusted ops regardless of whether or not we are doing a restart
-	if (xgp->global_options & GO_HB_IOPS){  // display Current Aggregate IOPS 
+	if (p->hb.hb_options & HB_IOPS){  // Display current Aggregate IOPS 
 		if (elapsed != 0.0) {
 			d = ((double)ops)/elapsed;
 		} else {
 			d = -1.0;
 		}
-		fprintf(stderr,"/%06.2fiops",d);
+		fprintf(p->hb.hb_file_pointer,",%06.2f,iops",d);
 	}
 
 	// Percent complete is based on "adjusted bytes" 
-	if (xgp->global_options & GO_HB_PERCENT) {  // display Percent Complete 
+	if (p->hb.hb_options & HB_PERCENT) {  // Display Percent Complete 
 		if (p->target_ops > 0) 
 			d = (double)((double)adjusted_ops / (double)adjusted_target_ops) * 100.0;
 		else
 			d = -1.0;
-		fprintf(stderr,"/%4.2f%%",d);
+		fprintf(p->hb.hb_file_pointer,",%4.2f%%",d);
 	}
 	// Estimated time is based on "unadjusted bytes" otherwise the ETC would be skewed
-	if (xgp->global_options & GO_HB_ET) {  // display Estimated Time to Completion
+	if (p->hb.hb_options & HB_ET) {  // Display Estimated Time to Completion
 		if (p->my_current_state & CURRENT_STATE_PASS_COMPLETE) 
 			d = 0.0;
 		else if (ops > 0) {
 			// Estimate the time to completion -> ((total_ops/ops_completed)*elapsed_time - elapsed)
 			d = (double)(((double)p->target_ops / (double)ops) * elapsed) - elapsed;
 		} else d = -1.0;
-		fprintf(stderr,"/%07.0fs",d);
+		fprintf(p->hb.hb_file_pointer,",%07.0f,s",d);
 	}
 } // End of xdd_heartbeat_values()
 /*

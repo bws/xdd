@@ -177,7 +177,7 @@ xdd_func_t  xdd_func[] = {
     {"heartbeat", "hb",
             xddfunc_heartbeat,  
             1,  
-            "  -heartbeat # | ops | bytes | kbytes | mbytes | gbytes | percent | bw | iops | et | ignorerestart\n",  
+            "  -heartbeat # | ops | bytes | kbytes | mbytes | gbytes | percent | bw | iops | et | lf | tod | elapsed | target | hostname | output <filename> | ignorerestart\n",  
             {"    Will print out heartbeat information every # seconds \n\
  			     'operations' | 'ops' - current number of operations complete \n\
                  'bytes' | 'b' -  current bytes transfered \n\
@@ -191,7 +191,9 @@ xdd_func_t  xdd_func[] = {
                  'lf' | 'cr' | 'nl' - LineFeed or CarriageReturn\n\
                  'tod' | 'time' - Current Time of Day\n\
                  'elapsed' | 'sec' - Elapsed seconds since start of run\n\
+                 'target' | 'tgt' - Target Number\n\
                  'hostname' | 'host' - Name of host\n\
+                 'output' | 'out' <filename> - Name of an output file - default stderr\n\
                  'ignorerestart' | 'ir' - ignore the fact that a restart is in process\n",
 			 "Specifying -heartbeat multiple times will add these to the heartbeat output string FOR EACH TARGET\n",
             0,0,0},
@@ -600,7 +602,7 @@ xdd_func_t  xdd_func[] = {
     {"scsigeneric", "sgio",
             xddfunc_sgio,      
             1,  
-            "  -sgio\n",  
+            "  -sgio [target <target#>]\n",  
             {"    Will use SCSI Generic I/O <linux only> - only necessary if SG device is not /dev/sgX\n", 
             0,0,0,0},
 			0},

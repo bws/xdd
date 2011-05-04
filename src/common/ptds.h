@@ -40,6 +40,7 @@
 #include "end_to_end.h"
 #include "parse.h"
 #include "target_offset_table.h"
+#include "heartbeat.h"
 
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS
@@ -206,6 +207,10 @@ struct ptds {
 #define PTDS_THROTTLE_BW    0x00000002  		// Throttle type of Bandwidth 
 #define PTDS_THROTTLE_ABW   0x00000004  		// Throttle type of Average Bandwidth 
 #define PTDS_THROTTLE_DELAY 0x00000008  		// Throttle type of a constant delay or time for each op 
+    //
+    // ------------------ Heartbeat stuff --------------------------------------------------
+	// The following heartbeat structure and data is for the -heartbeat option
+	struct heartbeat	hb;						// Heartbeat data
     //
     // ------------------ TimeStamp stuff --------------------------------------------------
 	// The following "ts_" members are for the time stamping (-ts) option

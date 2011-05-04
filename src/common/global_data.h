@@ -49,22 +49,8 @@
 #define GO_ENDTOEND				0x0000000000008000ULL  /* End to End operation - be sure to add the headers for the results display */
 #define GO_EXTENDED_STATS		0x0000000000010000ULL  /* Calculate Extended stats on each operation */
 #define GO_DRYRUN				0x0000000000020000ULL  /* Indicates a dry run - chicken! */
-#define GO_AVAILABLE1			0x0000000000040000ULL  /* AVAILABLE */
+#define GO_HEARTBEAT			0x0000000000040000ULL  /* Indicates that a heartbeat has been requested */
 #define GO_AVAILABLE2			0x0000000000080000ULL  /* AVAILABLE */
-#define GO_HB_OPS				0x0000000000100000ULL  /* Heartbeat option - display Current number of OPS performed */
-#define GO_HB_BYTES				0x0000000000200000ULL  /* Heartbeat option - display Current number of BYTES transferred */
-#define GO_HB_KBYTES			0x0000000000400000ULL  /* Heartbeat option - display Current number of KILOBYTES transferred */
-#define GO_HB_MBYTES			0x0000000000800000ULL  /* Heartbeat option - display Current number of MEGABYTES transferred */
-#define GO_HB_GBYTES			0x0000000001000000ULL  /* Heartbeat option - display Current number of GIGABYTES transferred */
-#define GO_HB_BANDWIDTH			0x0000000002000000ULL  /* Heartbeat option - display Current Aggregate BANDWIDTH */
-#define GO_HB_IOPS	 			0x0000000004000000ULL  /* Heartbeat option - display Current Aggregate IOPS */
-#define GO_HB_PERCENT	 		0x0000000008000000ULL  /* Heartbeat option - display Percent Complete */
-#define GO_HB_ET		 		0x0000000010000000ULL  /* Heartbeat option - display Estimated Time to Completion*/
-#define GO_HB_IGNORE_RESTART	0x0000000020000000ULL  /* Heartbeat option - Ignore the restart adjustments */
-#define GO_HB_LF				0x0000000040000000ULL  /* Heartbeat option - LineFeed/CarriageReturn/NewLine */
-#define GO_HB_TOD				0x0000000080000000ULL  /* Heartbeat option - Time of Day */
-#define GO_HB_ELAPSED			0x0000000100000000ULL  /* Heartbeat option - Elapsed Seconds */
-#define GO_HB_HOST				0x0000000200000000ULL  /* Heartbeat option - Host name */
 #define GO_INTERACTIVE			0x0000000400000000ULL  /* Enter Interactive Mode - oh what FUN! */
 #define GO_INTERACTIVE_EXIT		0x0000000800000000ULL  /* Exit Interactive Mode */
 #define GO_INTERACTIVE_STOP		0x0000001000000000ULL  /* Stop at various points in Interactive Mode */
@@ -93,7 +79,6 @@ struct xdd_global_data {
 	FILE			*errout;                			/* Error Output file pointer*/ 
 	FILE			*csvoutput;             			/* Comma Separated Values output file */
 	FILE			*combined_output;       			/* Combined output file */
-	uint32_t		heartbeat;              			/* seconds between heartbeats */
 	uint32_t		restart_frequency;      			/* seconds between restart monitor checks */
 	int32_t			syncio;                 			/* the number of I/Os to perform btw syncs */
 	uint64_t		target_offset;          			/* offset value */

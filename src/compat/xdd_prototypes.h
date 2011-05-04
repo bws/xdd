@@ -88,7 +88,7 @@ void	clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp);
 
 // heartbeat.c
 void *xdd_heartbeat(void *junk);
-void	xdd_heartbeat_legend(void);
+void	xdd_heartbeat_legend(ptds_t *p);
 void	xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed);
 
 // info_display.c

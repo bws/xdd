@@ -26,7 +26,11 @@ g_testTimedOut=0
 #
 function handle_exit
 {
-    kill -KILL -$$ &> /dev/null
+    pkill -P $$ &>/dev/null
+    kill -$$ &>/dev/null
+    sleep 2
+    pkill -KILL -P $$ &>/dev/null
+    kill -KILL -$$ &>/dev/null
 }
 
 #
@@ -36,16 +40,16 @@ function test_timeout_handler
 {
     g_testTimedOut=0
     if [ 0 -ne $g_testPID ]; then
-	pkill -KILL -P $$ $g_testPID
+	pkill -KILL -P $$ $g_testPID &>/dev/null
         rc=$?
 	if [ 0 -eq $rc ]; then
 	    g_testTimedOut=1
         else
-            echo "Error terminating process: $g_testPID rc: $rc"
+            echo "Error terminating process: $g_testPID rc: $rc" >/dev/stderr
 	fi
 	g_testPID=0
     else
-	echo "ERROR:  Alarm signalled for invalid test pid: $g_testPID"
+	echo "ERROR:  Alarm signalled for invalid test pid: $g_testPID" >/dev/stderr
     fi
     return 0
 }
@@ -86,7 +90,7 @@ function test_timeout_alarm_cancel
 }
 
 #
-# Make sure all children stop on exit
+# Install handler to make sure all children die on exit
 #
 trap 'handle_exit' exit
 
@@ -121,6 +125,7 @@ fi
 
 if [ ! -w "$XDDTEST_SOURCE_MOUNT" -o ! -r "$XDDTEST_SOURCE_MOUNT" ]; then
     echo "Cannot read and write loc: $XDDTEST_SOURCE_MOUNT" >>$test_log 2>&1
+    tail -1 $test_log >/dev/stderr
     exit 3
 fi
 
@@ -131,6 +136,7 @@ ssh $XDDTEST_E2E_DEST bash <<EOF
 EOF
 if [ $? != 0 ]; then
     echo "Cannot read and write loc: $XDDTEST_DEST_MOUNT" >>$test_log 2>&1
+    tail -1 $test_log >/dev/stderr
     exit 4
 fi
     
@@ -160,12 +166,12 @@ for test in $all_tests; do
     test_timeout_alarm_cancel
     
     # Check test's status
-    if [ 1 -eq $g_testTimedOut -a -z "$test_result" ]; then
+    if [ 1 -eq ${g_testTimedOut} -a -z "$test_result" ]; then
         echo -e "[FAILED] Timed out.  See $test_log."
         failed_test=1
-    elif [ $test_result -eq 0 ]; then
+    elif [ ${test_result} -eq 0 ]; then
         echo -e "[PASSED]"
-    elif [ $test_result -eq 2 ]; then
+    elif [ ${test_result} -eq 2 ]; then
 	echo -e "[SKIPPED]"
     else
         echo -e "[FAILED] See $test_log."

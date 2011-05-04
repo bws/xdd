@@ -1112,18 +1112,27 @@ xddfunc_fullhelp(int32_t argc, char *argv[], uint32_t flags)
  *      - The word "tod" to display the "time of day" on each heartbeat line
  *      - The word "sec" to display the "number of seconds" into the run on each heartbeat line
  *      - The word "host" to display the "host name" on each heartbeat line
+ *      - The word "output" or "out" will send all the heartbeat output to a specific file
  * Specifying -heartbeat multiple times will add these to the heartbeat output string FOR EACH TARGET
  */
 int
 xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 {
+    int 		args, i; // Number of args and a counter
+    int 		target_number; // The specific target number to update
+    ptds_t 		*p;		// Current PTDS being updated
 	char		*sp;	// String pointer
 	int			c1,c2;	// A single character
 	char		*cp;	// A single Character pointer
 	int			len;	// Length of the option string
-	int			i;		// Counter
 	int			digits;	// if set to 1 then string contains only numerical digits
+	int			return_value;
+	heartbeat_t	hb;		// A heartbeat structure for these options
+	char		*filename; // Pointer to the area that will store the file name
 
+
+    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
 
 	if (argc < 1) {
 		fprintf(xgp->errout,"%s: ERROR: not enough arguments specified for the option '-heartbeat'\n",xgp->progname);
@@ -1151,62 +1160,127 @@ xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 		cp++;
 	}
 		
+	hb.hb_interval = 0;
 	if (digits) { // The heartbeat option is "number of seconds"
-		xgp->heartbeat = atoi(sp);
-		if (xgp->heartbeat <= 0) { // This should not happen but let's check just to be certain
-			fprintf(stderr,"%s: Error: Heartbeat value of '%d' cannot be negative\n", xgp->progname, xgp->heartbeat);
+		hb.hb_interval = atoi(sp);
+		if (hb.hb_interval <= 0) { // This should not happen but let's check just to be certain
+			fprintf(stderr,"%s: Error: Heartbeat value of '%d' cannot be negative\n", xgp->progname, hb.hb_interval);
 			return(-1);
 		}
 		return(2);
 	}
 
+	return_value = -1;
+	hb.hb_options = 0;
+	hb.hb_filename = NULL;
 	// Otherwise check to see if it is any of the recognized words
 	if ((strcmp(sp, "operations") == 0) || (strcmp(sp, "ops") == 0)) { // Report OPERATIONS 
-			xgp->global_options |= GO_HB_OPS;
-			return(2);
+			hb.hb_options |= HB_OPS;
+			return_value = 2;
 	} else if ((strcmp(sp, "bytes") == 0) || (strcmp(sp, "b") == 0)) { // Report Bytes 
-			xgp->global_options |= GO_HB_BYTES;
-			return(2);
+			hb.hb_options |= HB_BYTES;
+			return_value = 2;
 	} else if ((strcmp(sp, "kbytes") == 0) || (strcmp(sp, "kb") == 0)) { // Report KiloBytes 
-			xgp->global_options |= GO_HB_KBYTES;
-			return(2);
+			hb.hb_options |= HB_KBYTES;
+			return_value = 2;
 	} else if ((strcmp(sp, "mbytes") == 0) || (strcmp(sp, "mb") == 0)) { // Report MegaBytes 
-			xgp->global_options |= GO_HB_MBYTES;
-			return(2);
+			hb.hb_options |= HB_MBYTES;
+			return_value = 2;
 	} else if ((strcmp(sp, "gbytes") == 0) || (strcmp(sp, "gb") == 0)) { // Report GigaBytes 
-			xgp->global_options |= GO_HB_GBYTES;
-			return(2);
+			hb.hb_options |= HB_GBYTES;
+			return_value = 2;
 	} else if ((strcmp(sp, "percent") == 0) || (strcmp(sp, "pct") == 0)) { // Report Percent complete
-			xgp->global_options |= GO_HB_PERCENT;
-			return(2);
+			hb.hb_options |= HB_PERCENT;
+			return_value = 2;
 	} else if ((strcmp(sp, "bandwidth") == 0) || (strcmp(sp, "bw") == 0)) { // Report Aggregate Bandwidth
-			xgp->global_options |= GO_HB_BANDWIDTH;
-			return(2);
+			hb.hb_options |= HB_BANDWIDTH;
+			return_value = 2;
 	} else if ((strcmp(sp, "iops") == 0) || (strcmp(sp, "IOPS") == 0)) { // Report IOPS
-			xgp->global_options |= GO_HB_IOPS;
-			return(2);
+			hb.hb_options |= HB_IOPS;
+			return_value = 2;
 	} else if ((strcmp(sp, "etc") == 0) || (strcmp(sp, "eta") == 0) || (strcmp(sp, "et") == 0)) { // Report Estimated time to completion
-			xgp->global_options |= GO_HB_ET;
-			return(2);
+			hb.hb_options |= HB_ET;
+			return_value = 2;
 	} else if ((strcmp(sp, "lf") == 0) || (strcmp(sp, "cr") == 0) || (strcmp(sp, "nl") == 0)) { // LF/CR/NL at the end of each heartbeat
-			xgp->global_options |= GO_HB_LF;
-			return(2);
+			hb.hb_options |= HB_LF;
+			return_value = 2;
 	} else if ((strcmp(sp, "tod") == 0) || (strcmp(sp, "time") == 0)) { // Report the "time of day" on each line
-			xgp->global_options |= GO_HB_TOD;
-			return(2);
+			hb.hb_options |= HB_TOD;
+			return_value = 2;
 	} else if ((strcmp(sp, "elapsed") == 0) || (strcmp(sp, "sec") == 0)) { // Report the number of "elapsed seconds" on each line
-			xgp->global_options |= GO_HB_ELAPSED;
-			return(2);
+			hb.hb_options |= HB_ELAPSED;
+			return_value = 2;
+	} else if ((strcmp(sp, "target") == 0) || (strcmp(sp, "tgt") == 0)) { // Report the "Target Number" on each line
+			hb.hb_options |= HB_TARGET;
+			return_value = 2;
 	} else if ((strcmp(sp, "hostname") == 0) || (strcmp(sp, "host") == 0)) { // Report the "host name" on each line
-			xgp->global_options |= GO_HB_HOST;
-			return(2);
+			hb.hb_options |= HB_HOST;
+			return_value = 2;
+	} else if ((strcmp(sp, "output") == 0) || (strcmp(sp, "out") == 0)) { // Change the name of the output file
+			hb.hb_filename=argv[2];
+			return_value = 3;
 	} else if ((strcmp(sp, "ignorerestart") == 0) || (strcmp(sp, "ir") == 0) || (strcmp(sp, "ignore") == 0)) { // Ignore the restart adjustments
-			xgp->global_options |= GO_HB_IGNORE_RESTART;
-			return(2);
+			hb.hb_options |= HB_IGNORE_RESTART;
+			return_value = 2;
 	} 
-	// Not a recognizable option
-	fprintf(stderr,"%s: ERROR: Unknown option specified for the heartbeat: '%s'\n", xgp->progname, sp);
-	return(-1);
+	if (return_value == -1) {
+		// Not a recognizable option
+		fprintf(stderr,"%s: ERROR: Unknown option specified for the heartbeat: '%s'\n", xgp->progname, sp);
+		return(-1);
+	}
+
+	// At this point we have figured out what was specified. Now we just have to put it into the proper PTDS.
+	xgp->global_options |= GO_HEARTBEAT;
+    // At this point the "target_number" is valid
+	if (target_number >= 0) { /* Set this option for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL) return(-1);
+		if (hb.hb_options)
+			p->hb.hb_options |= hb.hb_options;
+		if (hb.hb_interval > 0) 
+			p->hb.hb_interval = hb.hb_interval;
+		if (hb.hb_filename) {
+			len = strlen(hb.hb_filename);
+			filename = (char *)malloc(len+16);
+			if (filename == NULL) {
+				fprintf(stderr,"%s: ERROR: Cannot allocate %d bytes for heartbeat output file name: '%s'\n", xgp->progname, len+16,hb.hb_filename);
+				return(-1);
+			}
+			sprintf(filename,"%s.T%04d.csv",hb.hb_filename,p->my_target_number);
+			p->hb.hb_filename = filename;
+		}
+		// Check to see if the heartbeat interval has been set yet. If not, then set it to 1.
+		if (p->hb.hb_interval == 0)
+			p->hb.hb_interval = 1;
+        return(args+return_value);
+    } else {// Put this option into all PTDSs 
+		if (flags & XDD_PARSE_PHASE2) {
+			p = xgp->ptdsp[0];
+			i = 0;
+			while (p) {
+				if (hb.hb_options)
+					p->hb.hb_options |= hb.hb_options;
+				if (hb.hb_interval > 0) 
+					p->hb.hb_interval = hb.hb_interval;
+				if (hb.hb_filename) {
+					len = strlen(hb.hb_filename);
+					filename = (char *)malloc(len+16);
+					if (filename == NULL) {
+						fprintf(stderr,"%s: ERROR: Cannot allocate %d bytes for heartbeat output file name: '%s'\n", xgp->progname, len+16,hb.hb_filename);
+						return(-1);
+					}
+					sprintf(filename,"%s.T%04d.csv",hb.hb_filename,p->my_target_number);
+					p->hb.hb_filename = filename;
+				}
+				// Check to see if the heartbeat interval has been set yet. If not, then set it to 1.
+				if (p->hb.hb_interval == 0)
+					p->hb.hb_interval = 1;
+				i++;
+				p = xgp->ptdsp[i];
+			}
+		}
+		return(return_value);
+	}
 
 } // End of xddfunc_heartbeat()
 
