@@ -12,7 +12,7 @@ xdd_repo_path=/ccs/proj/csc040/var/git/xdd.git
 master_host=natureboy.ornl.gov
 master_port=22
 master_user=nightly
-master_repo_path=/nightly/xdd/repo
+master_repo_path=/home/nightly/xdd/repo/xdd.git
 
 #
 # Because access to the master is limited, we have to relay through another

@@ -238,14 +238,11 @@ install_pre:
 	$(INSTALL) -d $(INSTALL_DIR)/etc
 	$(INSTALL) -d $(INSTALL_DIR)/lib
 
-ifdef $(XDDCP_ENABLED) 
 install_xddcp: install_pre
+ifeq (true,$(XDDCP_ENABLED))
 	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
 	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
 	$(INSTALL) -c -m 755 etc/xddmcp.conf.example $(INSTALL_DIR)/etc/xddmcp.conf.example
-else
-install_xddcp:
-
 endif
 
 fastinstall: all
