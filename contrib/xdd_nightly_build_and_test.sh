@@ -25,6 +25,7 @@ datestamp=$(date +%Y-%m-%d-%H%M)
 build_dir=$nightly_base_path/xdd/$datestamp/build
 install_dir=$nightly_base_path/xdd/$datestamp/install
 output_dir=$nightly_base_path/xdd/$datestamp/logs
+test_dir=$nightly_base_path/xdd/$datestamp/test
 test_src_dir=$source_mnt/xdd/$datestamp/test
 test_dest_dir=$dest_mnt/xdd/$datestamp/test
 
@@ -41,6 +42,7 @@ cray_log=$output_dir/nightly-cray.log
 mkdir -p $build_dir
 mkdir -p $install_dir
 mkdir -p $output_dir
+mkdir -p $test_dir
 mkdir -p $test_src_dir
 mkdir -p $test_dest_dir
 
