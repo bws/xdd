@@ -27,17 +27,17 @@ g_testTimedOut=0
 function handle_exit
 {
     # First kill any test script children
-    pkill -P $$ &>/dev/null
+    pkill -P $$ >/dev/null 2>&1
     sleep 1
-    pkill -KILL -P $$ &>/dev/null
+    pkill -KILL -P $$ >/dev/null 2>&1
 
     # Kill any XDD processes that have been orphaned (transfer destinations)
-    pkill -u nightly -P 1 xdd.Linux &>/dev/null
+    pkill -u nightly -P 1 xdd.Linux >/dev/null 2>&1
     sleep 1
-    pkill -KILL -u nightly -P 1 xdd.Linux &>/dev/null
+    pkill -KILL -u nightly -P 1 xdd.Linux >/dev/null 2>&1
 
     # Kill any remaning members of process group (e.g. the timeout signaller)
-    kill 0 &>/dev/null
+    kill 0 >/dev/null 2>&1
 }
 
 #
@@ -49,15 +49,16 @@ function test_timeout_handler
     g_testTimedOut=0
     if [ 0 -ne $g_testPID ]; then
         echo "Test timeout triggered for process: $g_testPID"
+
         # Kill any of the test script's children processes
-        pkill -P $g_testPID
+        pkill -P $g_testPID >/dev/null 2>&1
         sleep 1
-        pkill -KILL -P $g_testPID
+        pkill -KILL -P $g_testPID >/dev/null 2>&1
 
         # Kill any XDD processes that are orphaned (destinations on transfers)
-        pkill -u nightly -P 1 xdd.Linux &>/dev/null
+        pkill -u nightly -P 1 xdd.Linux >/dev/null 2>&1
         sleep 1
-        pkill -KILL -u nightly -P 1 xdd.Linux &>/dev/null
+        pkill -KILL -u nightly -P 1 xdd.Linux >/dev/null 2>&1
 
         # Finally, kill the test script that has timed out
         rc=1
@@ -68,7 +69,7 @@ function test_timeout_handler
             # We can't use SIGKILL here because it triggers a BASH bug that 
             # leaves the stdout for this process in a corrupt state.  The 
             # next write will fail, so let's hope SIGTERM works here
-	    pkill -P $$ $g_testPID &>/dev/null
+	    pkill -P $$ $g_testPID >/dev/null 2>&1
             rc=$?
         
 	    if [ 0 -eq $rc ]; then
@@ -106,7 +107,7 @@ function test_timeout_alarm_helper
 #
 function test_timeout_alarm
 {
-    test_timeout_alarm_helper &>/dev/null &
+    test_timeout_alarm_helper >/dev/null 2>&1 &
     g_alarmPID=$!
     return 0
 }
@@ -146,7 +147,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-ping -c 2 "$XDDTEST_E2E_DEST" &>>$test_log
+ping -c 2 "$XDDTEST_E2E_DEST" >>$test_log 2>&1
 if [ $? -ne 0 ]; then
     echo "Unable to contact source: $XDDTEST_E2E_DEST" >>$test_log 2>&1
     exit 2 
@@ -189,9 +190,9 @@ for test in $all_tests; do
     test_base=$(basename $test)
 
     # Log the system state before each test
-    echo "Process Table before Test -----------------------" >> $test_log 2>&1
-    ps -aef |grep nightly >> $test_log 2>&1
-    echo "Process Table before Test -----------------------" >> $test_log 2>&1
+    echo "Process Table before Test -----------------------" >> $test_log
+    ps -aef |grep nightly >> $test_log
+    echo "Process Table before Test -----------------------" >> $test_log
 
     # Allow the test to run until timeout, then kill it automatically
     trap 'test_timeout_handler' 14
@@ -220,9 +221,9 @@ for test in $all_tests; do
     fi
 
     # Log the system state before each test
-    echo "Process Table after Test -----------------------" >> $test_log 2>&1
-    ps -aef |grep nightly >> $test_log 2>&1
-    echo "Process Table after Test -----------------------" >> $test_log 2>&1
+    echo "Process Table after Test -----------------------" >> $test_log
+    ps -aef |grep nightly >> $test_log
+    echo "Process Table after Test -----------------------" >> $test_log
 
     # Sync the fs and sleep to quiesce the system between tests
     sync
