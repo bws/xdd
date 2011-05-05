@@ -26,10 +26,14 @@ g_testTimedOut=0
 #
 function handle_exit
 {
+    # First kill the test script children
     pkill -P $$ &>/dev/null
-    kill -$$ &>/dev/null
-    sleep 2
+    sleep 1
     pkill -KILL -P $$ &>/dev/null
+
+    # Finally kill the test script (i.e. parent)
+    kill -$$ &>/dev/null
+    sleep 1
     kill -KILL -$$ &>/dev/null
 }
 
