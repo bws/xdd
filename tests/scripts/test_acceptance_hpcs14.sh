@@ -13,7 +13,7 @@ let "totalcores_alloc        =8"
 let "corespernode_alloc      =1"
 let "totalnodes_alloc        =$totalcores_alloc / $corespernode_alloc"
 let "max_apruns              =$totalcores_alloc"
-let "memory_per_node         = 32 * 1024 *1024 *1024"
+let "memory_per_node         = 30 * 1024 *1024 *1024"
 
 #
 # Source the test configuration environment
