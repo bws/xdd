@@ -31,10 +31,20 @@ function handle_exit
     sleep 1
     pkill -KILL -P $$ &>/dev/null
 
-    # Finally kill the test script (i.e. parent)
-    kill -$$ &>/dev/null
+    # Kill any XDD process that have been orphaned (destinations on transfers)
+    pkill -u nightly -P 1 xdd.Linux &>/dev/null
     sleep 1
-    kill -KILL -$$ &>/dev/null
+    pkill -KILL -u nightly -P 1 xdd.Linux &>/dev/null
+
+    # Finally kill the test script (i.e. parent)
+    sleep 1
+    pgrep $$
+    parent_exists=$?
+    if [ $parent_exists -eq 0 ]; then
+        kill -$$ &>/dev/null
+        sleep 1
+        kill -KILL -$$ &>/dev/null
+    fi
 }
 
 #

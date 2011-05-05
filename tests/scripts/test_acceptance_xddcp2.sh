@@ -35,7 +35,7 @@ fi
 #
 # Create the source file
 #
-$XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern random >/dev/null
+$XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 8000 -qd 4 -datapattern random >/dev/null
 
 #
 # Start a long copy
