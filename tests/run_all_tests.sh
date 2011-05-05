@@ -31,10 +31,13 @@ function handle_exit
     sleep 1
     pkill -KILL -P $$ &>/dev/null
 
-    # Kill any XDD processes that have been orphaned (destinations on transfers)
+    # Kill any XDD processes that have been orphaned (transfer destinations)
     pkill -u nightly -P 1 xdd.Linux &>/dev/null
     sleep 1
     pkill -KILL -u nightly -P 1 xdd.Linux &>/dev/null
+
+    # Kill any remaning members of process group (e.g. the timeout signaller)
+    kill 0 &>/dev/null
 }
 
 #
@@ -61,19 +64,30 @@ function test_timeout_handler
         pgrep $g_testPID
         script_running=$?
         if [ $script_running -eq 0 ]; then
-	    pkill -KILL -P $$ $g_testPID &>/dev/null
+            #
+            # We can't use SIGKILL here because it triggers a BASH bug that 
+            # leaves the stdout for this process in a corrupt state.  The 
+            # next write will fail, so let's hope SIGTERM works here
+	    pkill -P $$ $g_testPID &>/dev/null
             rc=$?
-        fi
-	if [ 0 -eq $rc ]; then
-	    g_testTimedOut=1
+        
+	    if [ 0 -eq $rc ]; then
+	        g_testTimedOut=1
+            else
+                echo "Error terminating process: $g_testPID rc: $rc" >>/dev/stderr
+	    fi
         else
-            echo "Error terminating process: $g_testPID rc: $rc" >>/dev/stderr
-	fi
+            echo "Warning: Test process $g_testPID exited." >>/dev/stderr
+        fi
 	g_testPID=0
     else
 	echo "ERROR:  Alarm signalled for invalid test pid: $g_testPID" >>/dev/stderr
     fi
     ps -aef |grep nightly > after_timeout_killer
+
+    # Sleep to let the system state quiesce
+    sleep 2
+
     return 0
 }
 
@@ -174,6 +188,10 @@ echo "Beginning acceptance tests . . ." >>$test_log
 for test in $all_tests; do
     test_base=$(basename $test)
 
+    # Log the system state before each test
+    echo "Process Table before Test -----------------------" >> $test_log 2>&1
+    ps -aef |grep nightly >> $test_log 2>&1
+    echo "Process Table before Test -----------------------" >> $test_log 2>&1
 
     # Allow the test to run until timeout, then kill it automatically
     trap 'test_timeout_handler' 14
@@ -200,6 +218,15 @@ for test in $all_tests; do
         echo -e "[FAILED] See $test_log."
         failed_test=1
     fi
+
+    # Log the system state before each test
+    echo "Process Table after Test -----------------------" >> $test_log 2>&1
+    ps -aef |grep nightly >> $test_log 2>&1
+    echo "Process Table after Test -----------------------" >> $test_log 2>&1
+
+    # Sync the fs and sleep to quiesce the system between tests
+    sync
+    sleep 2
 done
 echo "Test output available in $test_log."
 
