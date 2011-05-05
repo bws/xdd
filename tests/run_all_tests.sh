@@ -26,25 +26,15 @@ g_testTimedOut=0
 #
 function handle_exit
 {
-    # First kill the test script children
+    # First kill any test script children
     pkill -P $$ &>/dev/null
     sleep 1
     pkill -KILL -P $$ &>/dev/null
 
-    # Kill any XDD process that have been orphaned (destinations on transfers)
+    # Kill any XDD processes that have been orphaned (destinations on transfers)
     pkill -u nightly -P 1 xdd.Linux &>/dev/null
     sleep 1
     pkill -KILL -u nightly -P 1 xdd.Linux &>/dev/null
-
-    # Finally kill the test script (i.e. parent)
-    sleep 1
-    pgrep $$
-    parent_exists=$?
-    if [ $parent_exists -eq 0 ]; then
-        kill -$$ &>/dev/null
-        sleep 1
-        kill -KILL -$$ &>/dev/null
-    fi
 }
 
 #
@@ -52,19 +42,38 @@ function handle_exit
 #
 function test_timeout_handler
 {
+    ps -aef |grep nightly > before_timeout_killer
     g_testTimedOut=0
     if [ 0 -ne $g_testPID ]; then
-	pkill -KILL -P $$ $g_testPID &>/dev/null
-        rc=$?
+        echo "Test timeout triggered for process: $g_testPID"
+        # Kill any of the test script's children processes
+        pkill -P $g_testPID
+        sleep 1
+        pkill -KILL -P $g_testPID
+
+        # Kill any XDD processes that are orphaned (destinations on transfers)
+        pkill -u nightly -P 1 xdd.Linux &>/dev/null
+        sleep 1
+        pkill -KILL -u nightly -P 1 xdd.Linux &>/dev/null
+
+        # Finally, kill the test script that has timed out
+        rc=1
+        pgrep $g_testPID
+        script_running=$?
+        if [ $script_running -eq 0 ]; then
+	    pkill -KILL -P $$ $g_testPID &>/dev/null
+            rc=$?
+        fi
 	if [ 0 -eq $rc ]; then
 	    g_testTimedOut=1
         else
-            echo "Error terminating process: $g_testPID rc: $rc" >/dev/stderr
+            echo "Error terminating process: $g_testPID rc: $rc" >>/dev/stderr
 	fi
 	g_testPID=0
     else
-	echo "ERROR:  Alarm signalled for invalid test pid: $g_testPID" >/dev/stderr
+	echo "ERROR:  Alarm signalled for invalid test pid: $g_testPID" >>/dev/stderr
     fi
+    ps -aef |grep nightly > after_timeout_killer
     return 0
 }
 
