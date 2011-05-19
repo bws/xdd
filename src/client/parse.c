@@ -403,8 +403,10 @@ xdd_get_ptdsp(int32_t target_number, char *op) {
 	}
 	return(xgp->ptdsp[target_number]);
 } /* End of xdd_get_ptdsp() */
+
 /*----------------------------------------------------------------------------*/
-/* xdd_get_restartp() - return a pointer to the RESTART for the specified target
+/* xdd_get_restartp() - return a pointer to the RESTART structure 
+ * for the specified target
  */
 restart_t *
 xdd_get_restartp(ptds_t *p) {
@@ -416,10 +418,27 @@ xdd_get_restartp(ptds_t *p) {
 			xgp->progname, (int)sizeof(struct restart), p->my_target_number);
 			return(NULL);
 		}
-		// Initialize the new RESTART structure and lets rock and roll!
 	}
 	return(p->restartp);
 } /* End of xdd_get_restartp() */
+
+/*----------------------------------------------------------------------------*/
+/* xdd_get_rawp() - return a pointer to the ReadAfterWrite Data Structure 
+ * for the specified target
+ */
+xdd_raw_t *
+xdd_get_rawp(ptds_t *p) {
+	
+	if (p->rawp == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
+		p->rawp = malloc(sizeof(struct xdd_raw));
+		if (p->rawp == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESTART structure for target %d\n",
+			xgp->progname, (int)sizeof(struct restart), p->my_target_number);
+			return(NULL);
+		}
+	}
+	return(p->rawp);
+} /* End of xdd_get_rawp() */
 
 #if (LINUX)
 /*----------------------------------------------------------------------------*/

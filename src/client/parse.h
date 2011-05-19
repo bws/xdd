@@ -29,8 +29,12 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
-#define XDD_PARSE_PHASE1    0x00000001 // Preprocess phase - phase 1 
-#define XDD_PARSE_PHASE2    0x00000002 // Parse Phase 2 occurs after we know how many targets there really are
+#define XDD_PARSE_PHASE1			0x00000001 // Preprocess phase - phase 1 
+#define XDD_PARSE_PHASE2			0x00000002 // Parse Phase 2 occurs after we know how many targets there really are
+#define XDD_PARSE_TARGET_IN			0x00000004 // Target In
+#define XDD_PARSE_TARGET_OUT		0x00000008 // Target Out
+#define XDD_PARSE_TARGET_FILE		0x00000010 // Target_inout I/O Type of "FILE"
+#define XDD_PARSE_TARGET_NETWORK	0x00000020 // Target_inout I/O Type of "NETWORK"
 
 /* The format of the entries in the xdd function table */
 typedef int (*func_ptr)(int32_t argc, char *argv[], uint32_t flags);
@@ -129,10 +133,15 @@ int xddfunc_serialordering(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_syncio(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_syncwrite(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_target(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_target_inout(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_target_inout_file(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_target_inout_network(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_targetdir(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_targetin(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_targetoffset(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_targets(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_targetstartdelay(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_targetout(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_throttle(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_timelimit(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_timerinfo(int32_t argc, char *argv[], uint32_t flags);

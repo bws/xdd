@@ -692,6 +692,24 @@ xdd_func_t  xdd_func[] = {
             {"    Specifies the target directory that specific target or all targets live in\n", 
             0,0,0,0},
 			0},
+    {"targetin", "tin",
+            xddfunc_targetin,    
+            1,  
+            "  -targetin type suboption arguments\n",  
+            {"\twhere I/O Type is 'file' or 'network'\n",
+"\t\tand suboptions for 'file' are name|options|ordering\n\
+\t\t The arguments for\n\
+\t\t - name: the filename to access\n\
+\t\t - options: dio, null\n\
+\t\t - ordering: none, serial, loose\n",
+"\t\tand suboptions for 'network' are client|server|protocol|ordering\n\
+\t\t The arguments for\n\
+\t\t - client|server: hostname|ipaddress:port#,nports\n\
+\t\t - protocol: tcp|udp\n\
+\t\t - ordering: none, serial, loose\n",
+             "    See also: -targetout\n",
+             0},
+			0},
     {"targetoffset","to",
             xddfunc_targetoffset,
             1,  
@@ -714,6 +732,24 @@ xdd_func_t  xdd_func[] = {
             "  -targetstartdelay #.#seconds\n",  
             {"    Specify a delay in seconds that is multiplied by the target number and added to each target's start time\n",
             0,0,0,0},
+			0},
+    {"targetout", "tout",
+            xddfunc_targetout,    
+            1,  
+            "  -targetout type suboption arguments\n",  
+            {"\twhere I/O Type is 'file' or 'network'\n",
+"\t\tand suboptions for 'file' are name|options|ordering\n\
+\t\t The arguments for\n\
+\t\t - name: the filename to access\n\
+\t\t - options: dio, null\n\
+\t\t - ordering: none, serial, loose\n",
+"\t\tand suboptions for 'network' are client|server|protocol|ordering\n\
+\t\t The arguments for\n\
+\t\t - client|server: hostname|ipaddress:port#,nports\n\
+\t\t - protocol: tcp|udp\n\
+\t\t - ordering: none, serial, loose\n",
+             "    See also: -targetin\n",
+             0},
 			0},
     {"throttle", "throt",
             xddfunc_throttle,   

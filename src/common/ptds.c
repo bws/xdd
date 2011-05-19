@@ -108,11 +108,13 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->seekhdr.seek_loadfile = NULL; /* file from which to load seek locations from */
 	p->seekhdr.seek_pattern = "sequential";
 	/* Init the read-after-write fields */
-	p->raw_sd = 0; /* raw socket descriptor */
-	p->raw_hostname = NULL;  /* Reader hostname */
-	p->raw_lag = DEFAULT_RAW_LAG; 
-	p->raw_port = DEFAULT_RAW_PORT;
-	p->raw_trigger = PTDS_RAW_MP; /* default to a message passing */
+	if (p->rawp) {
+		p->rawp->raw_sd = 0; /* raw socket descriptor */
+		p->rawp->raw_hostname = NULL;  /* Reader hostname */
+		p->rawp->raw_lag = DEFAULT_RAW_LAG; 
+		p->rawp->raw_port = DEFAULT_RAW_PORT;
+		p->rawp->raw_trigger = PTDS_RAW_MP; /* default to a message passing */
+	}
 	/* Init the end-to-end fields */
 	p->e2e_sd = 0; /* destination machine socket descriptor */
 	p->e2e_src_hostname = NULL;  /* E2E source hostname */

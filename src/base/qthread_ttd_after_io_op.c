@@ -179,6 +179,7 @@ xdd_dio_after_io_op(ptds_t *qp) {
 void
 xdd_raw_after_io_op(ptds_t *qp) {
 
+
 	if ((qp->target_options & TO_READAFTERWRITE) && 
 	    (qp->target_options & TO_RAW_WRITER)) {
 		/* Since I am the writer in a read-after-write operation, and if 
@@ -189,12 +190,12 @@ xdd_raw_after_io_op(ptds_t *qp) {
 	}
 	if ( (qp->my_current_io_status > 0) && (qp->target_options & TO_READAFTERWRITE) ) {
 		if (qp->target_options & TO_RAW_READER) { 
-			qp->raw_data_ready -= qp->my_current_io_status;
+			qp->rawp->raw_data_ready -= qp->my_current_io_status;
 		} else { /* I must be the writer, send a message to the reader if requested */
-			if (qp->raw_trigger & PTDS_RAW_MP) {
-				qp->raw_msg.magic = PTDS_RAW_MAGIC;
-				qp->raw_msg.length = qp->my_current_io_status;
-				qp->raw_msg.location = qp->my_current_byte_location;
+			if (qp->rawp->raw_trigger & PTDS_RAW_MP) {
+				qp->rawp->raw_msg.magic = PTDS_RAW_MAGIC;
+				qp->rawp->raw_msg.length = qp->my_current_io_status;
+				qp->rawp->raw_msg.location = qp->my_current_byte_location;
 				xdd_raw_writer_send_msg(qp);
 			}
 		}
