@@ -153,19 +153,22 @@ xdd_start_delay_before_pass(ptds_t *p) {
  */
 void
 xdd_raw_before_pass(ptds_t *p) {
+	xdd_raw_t		*rawp;
 
 	if ((p->target_options & TO_READAFTERWRITE) == 0)
 		return;
 
+	rawp = p->rawp;
+
 	// Initialize the read-after-write variables
-	p->raw_msg_sent = 0;
-	p->raw_msg_recv = 0;
-	p->raw_msg_last_sequence = 0;
-	p->raw_msg.sequence = 0;
-	p->raw_prev_loc = 0;
-	p->raw_prev_len = 0;
-	p->raw_data_ready = 0;
-	p->raw_data_length = 0;
+	rawp->raw_msg_sent = 0;
+	rawp->raw_msg_recv = 0;
+	rawp->raw_msg_last_sequence = 0;
+	rawp->raw_msg.sequence = 0;
+	rawp->raw_prev_loc = 0;
+	rawp->raw_prev_len = 0;
+	rawp->raw_data_ready = 0;
+	rawp->raw_data_length = 0;
 
 } // End of xdd_raw_before_pass()
 

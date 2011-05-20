@@ -83,6 +83,7 @@ xddfunc_blocksize(int32_t argc, char *argv[], uint32_t flags)
 	int32_t block_size;
     ptds_t *p;
 
+
     args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
@@ -293,8 +294,8 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		pattern_length = strlen((char *)pattern);
 		if (p) { /* set option for specific target */
 			p->target_options |= TO_ASCII_PATTERN;
-			p->data_pattern = (unsigned char *)argv[args+2];
-			p->data_pattern_length = strlen((char *)p->data_pattern);
+			p->dpp->data_pattern = (unsigned char *)argv[args+2];
+			p->dpp->data_pattern_length = strlen((char *)p->dpp->data_pattern);
 		}
 		else  {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
@@ -302,8 +303,8 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 				i = 0;
 				while (p) { 
 					p->target_options |= TO_ASCII_PATTERN;
-					p->data_pattern = pattern;
-					p->data_pattern_length = pattern_length;
+					p->dpp->data_pattern = pattern;
+					p->dpp->data_pattern_length = pattern_length;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -344,8 +345,8 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 
 		if (p) { /* set option for specific target */
 			p->target_options |= TO_HEX_PATTERN;
-			p->data_pattern = pattern_value; // The actual 64-bit value left-justtified
-			p->data_pattern_length = pattern_length; // length in nibbles 
+			p->dpp->data_pattern = pattern_value; // The actual 64-bit value left-justtified
+			p->dpp->data_pattern_length = pattern_length; // length in nibbles 
 		}
 		else  {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
@@ -353,8 +354,8 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 				i = 0;
 				while (p) { 
 					p->target_options |= TO_HEX_PATTERN;
-					p->data_pattern = pattern_value; // The actual 64-bit value right-justtified
-					p->data_pattern_length = pattern_length; // length in bytes
+					p->dpp->data_pattern = pattern_value; // The actual 64-bit value right-justtified
+					p->dpp->data_pattern_length = pattern_length; // length in bytes
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -409,20 +410,20 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 		if (p) { /* set option for specific target */
 			p->target_options |= TO_PATTERN_PREFIX;
-			p->data_pattern_prefix = pattern;
-			p->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
-			p->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
-			p->data_pattern_prefix_length = pattern_length; // Length in nibbles
+			p->dpp->data_pattern_prefix = pattern;
+			p->dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
+			p->dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
+			p->dpp->data_pattern_prefix_length = pattern_length; // Length in nibbles
 		} else  {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) { 
 					p->target_options |= TO_PATTERN_PREFIX;
-					p->data_pattern_prefix = pattern;
-					p->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
-					p->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
-					p->data_pattern_prefix_length = pattern_length; // Length in nibbles
+					p->dpp->data_pattern_prefix = pattern;
+					p->dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
+					p->dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
+					p->dpp->data_pattern_prefix_length = pattern_length; // Length in nibbles
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -436,14 +437,14 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 		if (p) {/* set option for specific target */
 			p->target_options |= TO_FILE_PATTERN;
-			p->data_pattern_filename = (char *)argv[args+2];
+			p->dpp->data_pattern_filename = (char *)argv[args+2];
 		} else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
 					p->target_options |= TO_FILE_PATTERN;
-					p->data_pattern_filename = (char *)argv[args+2];
+					p->dpp->data_pattern_filename = (char *)argv[args+2];
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -564,14 +565,14 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 	} else {
 		if (p) { /* set option for a specific target */ 
 			p->target_options |= TO_SINGLECHAR_PATTERN;
-			p->data_pattern = (unsigned char *)pattern_type;
+			p->dpp->data_pattern = (unsigned char *)pattern_type;
 		} else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
 					p->target_options |= TO_SINGLECHAR_PATTERN;
-					p->data_pattern = (unsigned char *)pattern_type;
+					p->dpp->data_pattern = (unsigned char *)pattern_type;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -2565,10 +2566,11 @@ xddfunc_randomize(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_readafterwrite(int32_t argc, char *argv[], uint32_t flags)
 {
-    int     i;
-    int     args; 
-    int     target_number;
-    ptds_t  *p;
+    int			 i;
+    int			args; 
+    int			target_number;
+	xdd_raw_t	*rawp;
+    ptds_t		*p;
 
 	i = 1;
     args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
@@ -2587,25 +2589,16 @@ xddfunc_readafterwrite(int32_t argc, char *argv[], uint32_t flags)
 	}
 	/* At this point "i" points to the raw "option" argument */
 	if (strcmp(argv[i], "trigger") == 0) { /* set the the trigger type */
-		if (target_number < 0) {  /* set option for all targets */
-//			xgp->global_ptds.target_options |= TO_READAFTERWRITE;
-//			if (strcmp(argv[i+1], "stat") == 0)
-//				xgp->global_ptds.raw_trigger |= PTDS_RAW_STAT;
-//			else if (strcmp(argv[i+1], "mp") == 0)
-//				xgp->global_ptds.raw_trigger |= PTDS_RAW_MP;
-//			else {
-//				fprintf(stderr,"%s: Invalid trigger type specified for read-after-write option: %s\n",
-//					xgp->progname, argv[i+1]);
-				return(0);
-//			}
-		} else {  /* set option for specific target */
+		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
 			if (p == NULL) return(-1);
+			rawp = xdd_get_rawp(p);
+			if (rawp == NULL) return(-1);
 			p->target_options |= TO_READAFTERWRITE;
 			if (strcmp(argv[i+1], "stat") == 0)
-					p->raw_trigger |= PTDS_RAW_STAT;
+					rawp->raw_trigger |= PTDS_RAW_STAT;
 				else if (strcmp(argv[i+1], "mp") == 0)
-					p->raw_trigger |= PTDS_RAW_MP;
+					rawp->raw_trigger |= PTDS_RAW_MP;
 				else {
 					fprintf(stderr,"%s: Invalid trigger type specified for read-after-write option: %s\n",
 						xgp->progname, argv[i+1]);
@@ -2614,36 +2607,35 @@ xddfunc_readafterwrite(int32_t argc, char *argv[], uint32_t flags)
 		}
         return(i+2);
 	} else if (strcmp(argv[i], "lag") == 0) { /* set the lag block count */
-		if (target_number < 0) {
-			for (target_number=0; target_number<MAX_TARGETS; target_number++) {  /* set option for all targets */
-//				xgp->global_ptds.target_options |= TO_READAFTERWRITE;
-//				xgp->global_ptds.raw_lag = atoi(argv[i+1]);
-			}
-		} else {  /* set option for specific target */
+		if (target_number >= 0) {
+			/* set option for specific target */
 			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rawp = xdd_get_rawp(p);
+			if (rawp == NULL) return(-1);
 			p->target_options |= TO_READAFTERWRITE;
-			p->raw_lag = atoi(argv[i+1]);
+			rawp->raw_lag = atoi(argv[i+1]);
 		}
         return(i+2);
 	} else if (strcmp(argv[i], "reader") == 0) { /* hostname of the reader for this read-after-write */
 		/* This assumes that these targets are all writers and need to know who the reader is */
-		if (target_number < 0) {
-//			xgp->global_ptds.target_options |= TO_READAFTERWRITE;
-//			xgp->global_ptds.raw_hostname = argv[i+1];
-		} else {  /* set option for specific target */
+		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rawp = xdd_get_rawp(p);
+			if (rawp == NULL) return(-1);
 			p->target_options |= TO_READAFTERWRITE;
-			p->raw_hostname = argv[i+1];
+			rawp->raw_hostname = argv[i+1];
 		}
         return(i+2);
 	} else if (strcmp(argv[i], "port") == 0) { /* set the port number for the socket used by the writer */
-		if (target_number < 0) {
-//			xgp->global_ptds.target_options |= TO_READAFTERWRITE;
-//			xgp->global_ptds.raw_port = atoi(argv[i+1]);
-		} else {  /* set option for specific target */
+		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rawp = xdd_get_rawp(p);
+			if (rawp == NULL) return(-1);
 			p->target_options |= TO_READAFTERWRITE;
-			p->raw_port = atoi(argv[i+1]);
+			rawp->raw_port = atoi(argv[i+1]);
 		}
         return(i+2);
 	} else {
@@ -3860,6 +3852,18 @@ xddfunc_targetdir(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
+ // -targetin 
+int
+xddfunc_targetin(int32_t argc, char *argv[], uint32_t flags) 
+{
+	int args=0;
+
+	
+	args = xddfunc_target_inout(argc, argv, flags | XDD_PARSE_TARGET_IN);
+
+    return(args);
+}
+/*----------------------------------------------------------------------------*/
 // Specify the starting offset into the device in blocks
 // Arguments: -targetoffset #
 // 
@@ -4002,6 +4006,18 @@ fprintf(xgp->errout,"%s: Set Target %d Start Delay time to %f seconds, %lld ps.\
 		}
 		return(2);
 	}
+}
+/*----------------------------------------------------------------------------*/
+// -targetout 
+int
+xddfunc_targetout(int32_t argc, char *argv[], uint32_t flags) 
+{
+	int args=0;
+
+	
+	args = xddfunc_target_inout(argc, argv, flags | XDD_PARSE_TARGET_OUT);
+
+    return(args);
 }
 /*----------------------------------------------------------------------------*/
 // Specify the throttle type and associated throttle value 
@@ -4579,6 +4595,66 @@ void
 xddfunc_currently_undefined_option(char *sp) {
 	fprintf(xgp->errout,"The '%s' option is currently undefined\n",sp);
 } // End of xddfunc_currently_undefined_option()
+
+/*----------------------------------------------------------------------------*/
+// xddfunc_target_inout_file
+// Called by xddfunc_target_inout() to process the "file" I/O Type.
+// This processes the I/O Type, suboptions, and arguments for that. 
+// 
+int
+xddfunc_target_inout_file(int32_t argc, char *argv[], uint32_t flags) 
+{
+	int args=0;
+	// Suboptions include:
+	//   name:
+	//   dio:
+	//   ordering:   loose, serial, none
+	// 
+    return(args);
+}
+
+/*----------------------------------------------------------------------------*/
+// xddfunc_target_inout_network
+// Called by xddfunc_target_inout() to process the "network" I/O Type.
+// This processes the I/O Type, suboptions, and arguments for that. 
+// 
+int
+xddfunc_target_inout_network(int32_t argc, char *argv[], uint32_t flags) 
+{
+	int args=0;
+	// Suboptions include:
+	//   hostname:   hostname|IP:port#,#ports
+	//   protocol:   TCP or UDP
+	//   ordering:   loose, serial, none
+	// 
+
+    return(args);
+}
+/*----------------------------------------------------------------------------*/
+// xddfunc_target_inout
+// Called by xddfunc_targetin() and xddfunc_targetout() option functions.
+// This processes the I/O Type, suboptions, and arguments for that. 
+// 
+int
+xddfunc_target_inout(int32_t argc, char *argv[], uint32_t flags) 
+{
+	int args=0;
+// Process the I/O Type 
+// Within each I/O Type process the suboptions
+// Within each suboption process the arguments
+//    File
+//    Network
+//    
+	if (flags & XDD_PARSE_TARGET_FILE) {
+		args = xddfunc_target_inout_file(argc, argv, flags);
+	} else if (flags & XDD_PARSE_TARGET_NETWORK) {
+		args = xddfunc_target_inout_network(argc, argv, flags);
+	} else { 
+		fprintf(xgp->errout, "%s: xddfunc_target_inout: Invalid I/O Type\n",
+			xgp->progname);
+	}
+    return(args);
+}
 /*
  * Local variables:
  *  indent-tabs-mode: t

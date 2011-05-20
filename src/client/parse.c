@@ -382,18 +382,29 @@ xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_
  */
 ptds_t *
 xdd_get_ptdsp(int32_t target_number, char *op) {
+	ptds_t				*p;
 
-	if (xgp->ptdsp[target_number] == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
-		xgp->ptdsp[target_number] = malloc(sizeof(struct ptds));
-		if (xgp->ptdsp[target_number] == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS for target %d\n",
-			xgp->progname, (int)sizeof(struct ptds), target_number);
+	p = xgp->ptdsp[target_number];
+	if (p == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
+		p = malloc(sizeof(struct ptds));
+		if (p == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
 			   	xgp->progname, target_number, op);
 			return(NULL);
 		}
+		xgp->ptdsp[target_number] = p;
+		// Zero out the memory first
+		memset((unsigned char *)p, 0, sizeof(ptds_t));
+
+		p->dpp = (struct xdd_data_pattern *)malloc(sizeof(struct xdd_data_pattern));
+		if (p->dpp == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS Data Pattern Structure for target %d\n",
+			xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
+			return(NULL);
+		}
+
 		// Initialize the new PTDS and lets rock and roll!
-		xdd_init_new_ptds(xgp->ptdsp[target_number], target_number);
+		xdd_init_new_ptds(p, target_number);
 		xgp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
 		if (xgp->target_average_resultsp[target_number] == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESULTS struct for target %d\n",
@@ -401,10 +412,12 @@ xdd_get_ptdsp(int32_t target_number, char *op) {
 			return(NULL);
 		}
 	}
-	return(xgp->ptdsp[target_number]);
+	return(p);
 } /* End of xdd_get_ptdsp() */
+
 /*----------------------------------------------------------------------------*/
-/* xdd_get_restartp() - return a pointer to the RESTART for the specified target
+/* xdd_get_restartp() - return a pointer to the RESTART structure 
+ * for the specified target
  */
 restart_t *
 xdd_get_restartp(ptds_t *p) {
@@ -416,10 +429,27 @@ xdd_get_restartp(ptds_t *p) {
 			xgp->progname, (int)sizeof(struct restart), p->my_target_number);
 			return(NULL);
 		}
-		// Initialize the new RESTART structure and lets rock and roll!
 	}
 	return(p->restartp);
 } /* End of xdd_get_restartp() */
+
+/*----------------------------------------------------------------------------*/
+/* xdd_get_rawp() - return a pointer to the ReadAfterWrite Data Structure 
+ * for the specified target
+ */
+xdd_raw_t *
+xdd_get_rawp(ptds_t *p) {
+	
+	if (p->rawp == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
+		p->rawp = malloc(sizeof(struct xdd_raw));
+		if (p->rawp == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESTART structure for target %d\n",
+			xgp->progname, (int)sizeof(struct restart), p->my_target_number);
+			return(NULL);
+		}
+	}
+	return(p->rawp);
+} /* End of xdd_get_rawp() */
 
 #if (LINUX)
 /*----------------------------------------------------------------------------*/

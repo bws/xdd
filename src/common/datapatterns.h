@@ -29,6 +29,26 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
+struct xdd_data_pattern {
+	unsigned char		*data_pattern; 				// Data pattern for write operations for each target - 
+													//      This is the ASCII string representation of the pattern 
+	unsigned char		*data_pattern_value; 		// This is the 64-bit hex value  
+	size_t				data_pattern_length; 		// Length of ASCII data pattern for write operations for each target 
+	unsigned char		*data_pattern_prefix; 		// Data pattern prefix which is a string of hex digits less than 8 bytes (16 nibbles) 
+	size_t				data_pattern_prefix_length; // Data pattern prefix 
+	unsigned char		*data_pattern_prefix_value; // This is the N-bit prefix value fully shifted to the right 
+	uint64_t			data_pattern_prefix_binary; // This is the 64-bit prefix value fully shifted to the left 
+	unsigned char		*data_pattern_name; 		// Data pattern name which is an ASCII string  
+	int32_t				data_pattern_name_length;	// Length of the data pattern name string 
+	char				*data_pattern_filename; 	// Name of a file that contains a data pattern to use 
+	int64_t				data_pattern_compare_errors;	// Number of content/sequence compare errors from the verify() subroutines
+}; 
+typedef struct xdd_data_pattern xdd_data_pattern_t;
+#ifdef XDD_DATA_PATTERN
+/*----------------------------------------------------------------------------*/
+/* 
+ * Various data patterns for 8b10b testing
+ */
 unsigned char lfpat[]={    0xab,0xab,0xab,0xab, 0xab,0xab,0xab,0xab, 0xab,0xab,0xab,0xab, 0xab,0xab,0xab,0xab, // Need a bunch 0xab bytes 
                            0xab,0xab,0xab,0xab, 0xab,0xab,0xab,0xab, 0xab,0xab,0xab,0xab, 0xab,0xab,0xab,0xab, // 
                            0xab,0xab,0xab,0xab, 0xab,0xab,0xab,0xab, 0xab,0xab,0xab,0xab, 0xab,0xab,0xab,0xab, // 
@@ -252,7 +272,17 @@ unsigned char cspat[] =  { 0xbc,0x95,0xb5,0xb5, 0xbc,0x95,0xb5,0xb5, 0xbc,0x95,0
                            0xf1,0x96,0xdb,0x97, // CRC 
                            0xbc,0xb5,0xd5,0xd5  // EOFn
 }; // End of cspat 
+#endif
  
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */
 /*
  * Local variables:
  *  indent-tabs-mode: t

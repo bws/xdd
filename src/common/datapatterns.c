@@ -32,8 +32,8 @@
  * This file contains the subroutines that initialize various data patterns
  * used by XDD
  */
+#define XDD_DATA_PATTERN
 #include "xdd.h"
-#include "datapatterns.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_pattern_buffer() - init the I/O buffer with the appropriate pattern
@@ -46,8 +46,10 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 	int32_t remaining_length; // Length of the space in the pattern buffer
 	unsigned char    *ucp;          // Pointer to an unsigned char type, duhhhh
 	uint32_t *lp;			// pointer to a pattern
+	xdd_data_pattern_t	*dpp;
 
 
+	dpp = p->dpp;
 	if (p->target_options & TO_RANDOM_PATTERN) { // A nice random pattern
 			lp = (uint32_t *)p->rwbuf;
 			xgp->random_initialized = 0;
@@ -64,30 +66,30 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 				ucp = (unsigned char *)p->rwbuf;
 				remaining_length = p->iosize;
 				while (remaining_length) { 
-					if (p->data_pattern_length < remaining_length) 
-						pattern_length = p->data_pattern_length;
+					if (dpp->data_pattern_length < remaining_length) 
+						pattern_length = dpp->data_pattern_length;
 					else pattern_length = remaining_length;
 
-					memcpy(ucp,p->data_pattern,pattern_length);
+					memcpy(ucp,dpp->data_pattern,pattern_length);
 					remaining_length -= pattern_length;
 					ucp += pattern_length;
 				}
 			} else { // Just put the pattern at the beginning of the buffer once 
-				if (p->data_pattern_length < p->iosize) 
-					 pattern_length = p->data_pattern_length;
+				if (dpp->data_pattern_length < p->iosize) 
+					 pattern_length = dpp->data_pattern_length;
 				else pattern_length = p->iosize;
-				memcpy(p->rwbuf,p->data_pattern,pattern_length);
+				memcpy(p->rwbuf,dpp->data_pattern,pattern_length);
 			}
 	} else if (p->target_options & TO_LFPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                p->data_pattern_length = sizeof(lfpat);
-                fprintf(stderr,"LFPAT length is %d\n", (int)p->data_pattern_length);
+                dpp->data_pattern_length = sizeof(lfpat);
+                fprintf(stderr,"LFPAT length is %d\n", (int)dpp->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (p->data_pattern_length < remaining_length) 
-				pattern_length = p->data_pattern_length;
+			if (dpp->data_pattern_length < remaining_length) 
+				pattern_length = dpp->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,lfpat,pattern_length);
 			remaining_length -= pattern_length;
@@ -95,14 +97,14 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 		}
 	} else if (p->target_options & TO_LTPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                p->data_pattern_length = sizeof(ltpat);
-                fprintf(stderr,"LTPAT length is %d\n", (int)p->data_pattern_length);
+                dpp->data_pattern_length = sizeof(ltpat);
+                fprintf(stderr,"LTPAT length is %d\n", (int)dpp->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (p->data_pattern_length < remaining_length) 
-				pattern_length = p->data_pattern_length;
+			if (dpp->data_pattern_length < remaining_length) 
+				pattern_length = dpp->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,ltpat,pattern_length);
 			remaining_length -= pattern_length;
@@ -110,14 +112,14 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 		}
 	} else if (p->target_options & TO_CJTPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                p->data_pattern_length = sizeof(cjtpat);
-                fprintf(stderr,"CJTPAT length is %d\n", (int)p->data_pattern_length);
+                dpp->data_pattern_length = sizeof(cjtpat);
+                fprintf(stderr,"CJTPAT length is %d\n", (int)dpp->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (p->data_pattern_length < remaining_length) 
-				pattern_length = p->data_pattern_length;
+			if (dpp->data_pattern_length < remaining_length) 
+				pattern_length = dpp->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,cjtpat,pattern_length);
 			remaining_length -= pattern_length;
@@ -125,14 +127,14 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 		}
 	} else if (p->target_options & TO_CRPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                p->data_pattern_length = sizeof(crpat);
-                fprintf(stderr,"CRPAT length is %d\n", (int)p->data_pattern_length);
+                dpp->data_pattern_length = sizeof(crpat);
+                fprintf(stderr,"CRPAT length is %d\n", (int)dpp->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (p->data_pattern_length < remaining_length) 
-				pattern_length = p->data_pattern_length;
+			if (dpp->data_pattern_length < remaining_length) 
+				pattern_length = dpp->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,crpat,pattern_length);
 			remaining_length -= pattern_length;
@@ -140,21 +142,21 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 		}
 	} else if (p->target_options & TO_CSPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
-                p->data_pattern_length = sizeof(cspat);
-                fprintf(stderr,"CSPAT length is %d\n", (int)p->data_pattern_length);
+                dpp->data_pattern_length = sizeof(cspat);
+                fprintf(stderr,"CSPAT length is %d\n", (int)dpp->data_pattern_length);
 		memset(p->rwbuf,0x00,p->iosize);
 		remaining_length = p->iosize;
 		ucp = (unsigned char *)p->rwbuf;
 		while (remaining_length) { 
-			if (p->data_pattern_length < remaining_length) 
-				pattern_length = p->data_pattern_length;
+			if (dpp->data_pattern_length < remaining_length) 
+				pattern_length = dpp->data_pattern_length;
 			else pattern_length = remaining_length;
 			memcpy(ucp,cspat,pattern_length);
 			remaining_length -= pattern_length;
 			ucp += pattern_length;
 		}
-    } else { // Otherwise set the entire buffer to the character in "data_pattern"
-                memset(p->rwbuf,*(p->data_pattern),p->iosize);
+    } else { // Otherwise set the entire buffer to the character in "dpp->data_pattern"
+                memset(p->rwbuf,*(dpp->data_pattern),p->iosize);
 	}
 		
 	return;
@@ -179,7 +181,7 @@ xdd_datapattern_fill(ptds_t *qp) {
 		posp = (uint64_t *)qp->rwbuf;
 		for (j=0; j<(qp->my_current_io_size/sizeof(qp->my_current_byte_location)); j++) {
 			*posp = qp->my_current_byte_location + (j * sizeof(qp->my_current_byte_location));
-			*posp |= qp->data_pattern_prefix_binary;
+			*posp |= qp->dpp->data_pattern_prefix_binary;
 			if (qp->target_options & TO_INVERSE_PATTERN)
 				*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
 			posp++;
@@ -188,3 +190,14 @@ xdd_datapattern_fill(ptds_t *qp) {
 		qp->my_accumulated_pattern_fill_time = (end_time - start_time);
 	}
 } // End of xdd_datapattern_fill() 
+
+ 
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

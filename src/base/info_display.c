@@ -298,25 +298,25 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		if (p->target_options & TO_SEQUENCED_PATTERN) fprintf(out,",sequenced ");
 		if (p->target_options & TO_INVERSE_PATTERN) fprintf(out,",inversed ");
 		if (p->target_options & TO_ASCII_PATTERN) fprintf(out,",ASCII: '%s' <%d bytes> %s ",
-			p->data_pattern,(int)p->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
+			p->dpp->data_pattern,(int)p->dpp->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
 		if (p->target_options & TO_HEX_PATTERN) {
 			fprintf(out,",HEX: 0x");
-			for (i=0; i<p->data_pattern_length; i++) 
-				fprintf(out,"%02x",p->data_pattern[i]);
+			for (i=0; i<p->dpp->data_pattern_length; i++) 
+				fprintf(out,"%02x",p->dpp->data_pattern[i]);
 			fprintf(out, " <%d bytes>, %s\n",
-				(int)p->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
+				(int)p->dpp->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
 		}
 		if (p->target_options & TO_PATTERN_PREFIX)  {
 			fprintf(out,",PREFIX: 0x");
-			for (i=0; i<p->data_pattern_prefix_length; i+=2) 
-				fprintf(out,"%02x",p->data_pattern_prefix[i]);
-			fprintf(out, " <%d nibbles>\n", (int)p->data_pattern_prefix_length);
+			for (i=0; i<p->dpp->data_pattern_prefix_length; i+=2) 
+				fprintf(out,"%02x",p->dpp->data_pattern_prefix[i]);
+			fprintf(out, " <%d nibbles>\n", (int)p->dpp->data_pattern_prefix_length);
 		}
 	} else { // Just display the one-byte hex pattern 
-		fprintf(out,",0x%02x\n",p->data_pattern[0]);
+		fprintf(out,",0x%02x\n",p->dpp->data_pattern[0]);
 	}
 	if (p->target_options & TO_FILE_PATTERN) 
-		fprintf(out," From file: %s\n",p->data_pattern_filename);
+		fprintf(out," From file: %s\n",p->dpp->data_pattern_filename);
 	fprintf(out,"\t\tData buffer verification is");
 	if ((p->target_options & (TO_VERIFY_LOCATION | TO_VERIFY_CONTENTS)))
 		fprintf(out," enabled for %s verification.\n", (p->target_options & TO_VERIFY_LOCATION)?"Location":"Content");

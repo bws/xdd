@@ -32,6 +32,7 @@
 #ifdef WIN32
 #include "nt_unix_compat.h"
 #endif
+#include "datapatterns.h"
 #include "results.h"
 #include "access_pattern.h"
 #include "timestamp.h"
@@ -232,22 +233,6 @@ struct ptds {
     unsigned char 		sg_sense[SENSE_BUFF_LEN]; // The Sense Buffer  
 	uint32_t   			sg_num_sectors;			// Number of Sectors from Read Capacity command 
 	uint32_t   			sg_sector_size;			// Sector Size in bytes from Read Capacity command 
-	//
-    // ------------------ Datapattern stuff --------------------------------------------------
-	// Stuff related to the -datapattern option
-	//
-	unsigned char		*data_pattern; 				// Data pattern for write operations for each target - 
-													//      This is the ASCII string representation of the pattern 
-	unsigned char		*data_pattern_value; 		// This is the 64-bit hex value  
-	size_t				data_pattern_length; 		// Length of ASCII data pattern for write operations for each target 
-	unsigned char		*data_pattern_prefix; 		// Data pattern prefix which is a string of hex digits less than 8 bytes (16 nibbles) 
-	size_t				data_pattern_prefix_length; // Data pattern prefix 
-	unsigned char		*data_pattern_prefix_value; // This is the N-bit prefix value fully shifted to the right 
-	uint64_t			data_pattern_prefix_binary; // This is the 64-bit prefix value fully shifted to the left 
-	unsigned char		*data_pattern_name; 		// Data pattern name which is an ASCII string  
-	int32_t				data_pattern_name_length;	// Length of the data pattern name string 
-	char				*data_pattern_filename; 	// Name of a file that contains a data pattern to use 
-	int64_t				compare_errors;				// Number of content/sequence compare errors from the verify() subroutines
 	//
     // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
@@ -458,38 +443,11 @@ struct ptds {
 	xdd_e2e_ate_t		e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]; // Used by E2E to stripe over multiple IP Addresses
 	// ------------------ End of the End to End (E2E) stuff --------------------------------------
 	//
-	// The following "raw_" members are for the ReadAfterWrite (-raw) option
-	char				*raw_myhostname; 		// Hostname of the reader machine as seen by the reader 
-	char				*raw_hostname; 			// Name of the host doing the reading in a read-after-write 
-	struct hostent 		*raw_hostent; 			// for the reader/writer host information 
-	in_port_t			raw_port;  				// Port number to use for the read-after-write socket 
-	in_addr_t			raw_addr;  				// Address number of the read-after-write socket
-	int32_t				raw_lag;  				// Number of blocks the reader should lag behind the writer 
-#define PTDS_RAW_STAT 0x00000001  				// Read-after-write should use stat() to trigger read operations 
-#define PTDS_RAW_MP   0x00000002  				// Read-after-write should use message passing from the writer to trigger read operations 
-	uint32_t			raw_trigger; 			// Read-After-Write trigger mechanism 
-	int32_t				raw_sd;   				// Socket descriptor for the read-after-write message port 
-	int32_t				raw_nd;   				// Number of Socket descriptors in the read set 
-	sd_t				raw_csd[FD_SETSIZE];	// Client socket descriptors 
-	fd_set				raw_active;  			// This set contains the sockets currently active 
-	fd_set				raw_readset; 			// This set is passed to select() 
-	struct sockaddr_in  raw_sname; 				// used by setup_server_socket 
-	uint32_t			raw_snamelen; 			// the length of the socket name 
-	int32_t				raw_current_csd; 		// the current csd used by the raw reader select call 
-	int32_t				raw_next_csd; 			// The next available csd to use 
-#define PTDS_RAW_MAGIC 0x07201958 				// The magic number that should appear at the beginning of each message 
-	xdd_raw_msg_t		raw_msg;  				// The message sent in from the writer 
-	int64_t				raw_msg_last_sequence;	// The last raw msg sequence number received 
-	int32_t				raw_msg_sent; 			// The number of messages sent 
-	int32_t				raw_msg_recv; 			// The number of messages received 
-	int64_t				raw_prev_loc; 			// The previous location from a RAW message from the source 
-	int64_t				raw_prev_len; 			// The previous length from a RAW message from the source 
-	int64_t				raw_data_ready; 		// The amount of data that is ready to be read in an RAW op 
-	int64_t				raw_data_length; 		// The amount of data that is ready to be read for this operation 
-	// ------------------ End of the ReadAfterWrite stuff --------------------------------------
-	struct lockstep		*lockstepp;				// pointer to the lockstep structure used by the lockstep option
-	struct restart		*restartp;				// pointer to the restart structure used by the restart monitor
-	struct ptds			*pm1;					// ptds minus  1 - used for report print queueing - don't ask 
+	struct xdd_data_pattern	*dpp;		 			// Data Pattern Structure Pointer
+	struct xdd_raw			*rawp;		 			// RAW Data Structure Pointer
+	struct lockstep			*lockstepp;				// pointer to the lockstep structure used by the lockstep option
+	struct restart			*restartp;				// pointer to the restart structure used by the restart monitor
+	struct ptds				*pm1;					// ptds minus  1 - used for report print queueing - don't ask 
 #if (LINUX)
 	struct stat			statbuf;				// Target File Stat buffer used by xdd_target_open()
 #elif (AIX || SOLARIS)

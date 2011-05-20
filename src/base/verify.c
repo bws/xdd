@@ -51,11 +51,11 @@ xdd_verify_checksum(ptds_t *p, int64_t current_op) {
  * factor has been previously written to the media that was just read and 
  * is being verified. 
  * It is further assumed that the data pattern and data pattern lenggth
- * are in p->data_pattern and p->data_pattern_length respectively. This is
+ * are in p->dpp->data_pattern and p->dpp->data_pattern_length respectively. This is
  * done by the datapattern function in the parse.c file. If the target_option
  * of "TO_REPLICATE_PATTERN" was specified as well, then the data comparison is
  * made throughout the data buffer. Otherwise only the first N bytes are compared
- * against the data pattern where N is equal to p->data_pattern_length. Cool, huh?
+ * against the data pattern where N is equal to p->dpp->data_pattern_length. Cool, huh?
  */
 int32_t
 xdd_verify_hex(ptds_t *p, int64_t current_op) {
@@ -68,14 +68,14 @@ xdd_verify_hex(ptds_t *p, int64_t current_op) {
 
 	if (p->target_options & TO_REPLICATE_PATTERN) 
 		remaining = p->actual_iosize;
-	else remaining = p->data_pattern_length;
+	else remaining = p->dpp->data_pattern_length;
 
 	offset = 0;
 	bufferp = p->rwbuf;
 	errors = 0;
 	while (remaining) {
-		patternp = p->data_pattern;
-		for (i=0; i<p->data_pattern_length; i++, patternp++, bufferp++) {
+		patternp = p->dpp->data_pattern;
+		for (i=0; i<p->dpp->data_pattern_length; i++, patternp++, bufferp++) {
 			if (*patternp != *bufferp) {
 				fprintf(xgp->errout,"%s: xdd_verify_hex: Target %d QThread %d: ERROR: Content mismatch on op %lld at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
 					xgp->progname, 
@@ -122,7 +122,7 @@ xdd_verify_sequence(ptds_t *p, int64_t current_op) {
 	for (i = 0; i < p->actual_iosize; i+=(sizeof(p->my_current_byte_location))) {
 		expected_data = p->my_current_byte_location + i;
 		if (p->target_options & TO_PATTERN_PREFIX) { // OR-in the pattern prefix
-			expected_data |= p->data_pattern_prefix_binary;
+			expected_data |= p->dpp->data_pattern_prefix_binary;
 		} 
 		if (p->target_options & TO_INVERSE_PATTERN)
 			expected_data ^= 0xffffffffffffffffLL; // 1's compliment of the expected data 
@@ -179,7 +179,7 @@ xdd_verify_singlechar(ptds_t *p, int64_t current_op) {
 	ucp = p->rwbuf;
 	errors = 0;
 	for (i = 0; i < p->actual_iosize; i++) {
-		if (*ucp != *(p->data_pattern)) {
+		if (*ucp != *(p->dpp->data_pattern)) {
 			fprintf(xgp->errout,"%s: xdd_verify_singlechar: Target %d QThread %d: ERROR: Content mismatch on op number %lld at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
 				xgp->progname, 
 				p->my_target_number, 
@@ -187,7 +187,7 @@ xdd_verify_singlechar(ptds_t *p, int64_t current_op) {
 				(long long int)current_op,
 				i, 
 				(unsigned long long)(p->my_current_byte_location/p->block_size), 
-				*(p->data_pattern), 
+				*(p->dpp->data_pattern), 
 				*ucp);
 		errors++;
 		} /* End printing error message */

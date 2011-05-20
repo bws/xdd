@@ -91,7 +91,7 @@ xdd_io_for_os(ptds_t *qp) {
 		}
 	
 		if (p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
-			qp->compare_errors += xdd_verify(qp, qp->target_op_number);
+			qp->dpp->data_pattern_compare_errors += xdd_verify(qp, qp->target_op_number);
 		}
 	
 	} else {  // Must be a NOOP
@@ -169,7 +169,7 @@ xdd_io_for_os(ptds_t *qp) {
 		}
 	
 		if (p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
-			qp->compare_errors += xdd_verify(qp, qp->target_op_number);
+			qp->dpp->data_pattern_compare_errors += xdd_verify(qp, qp->target_op_number);
 		}
 	
 	} else {  // Must be a NOOP
@@ -230,7 +230,7 @@ xdd_io_for_os(ptds_t *p) {
 			posp = (uint64_t *)p->rwbuf;
 			for (uj=0; uj<(p->my_current_io_size/sizeof(p->my_current_byte_location)); uj++) {
 				*posp = p->my_current_byte_location + (uj * sizeof(p->my_current_byte_location));
-				*posp |= p->data_pattern_prefix_binary;
+				*posp |= p->dpp->data_pattern_prefix_binary;
 				if (p->target_options & TO_INVERSE_PATTERN)
 					*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
 				posp++;

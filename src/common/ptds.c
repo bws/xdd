@@ -41,8 +41,6 @@
 void
 xdd_init_new_ptds(ptds_t *p, int32_t n) {
 
-	// Zero out the memory first
-	memset((unsigned char *)p, 0, sizeof(ptds_t));
 
 	p->next_qp = 0; // set upon creation, used when other qthreads are created
 	p->my_target_number = n; // set upon creation of this PTDS
@@ -72,11 +70,11 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->pass_offset = DEFAULT_PASSOFFSET;
 	p->preallocate = DEFAULT_PREALLOCATE;
 	p->queue_depth = DEFAULT_QUEUEDEPTH;
-	p->data_pattern_filename = (char *)DEFAULT_DATA_PATTERN_FILENAME;
-	p->data_pattern = (unsigned char *)DEFAULT_DATA_PATTERN;
-	p->data_pattern_length = DEFAULT_DATA_PATTERN_LENGTH;
-	p->data_pattern_prefix = (unsigned char *)DEFAULT_DATA_PATTERN_PREFIX;
-	p->data_pattern_prefix_length = DEFAULT_DATA_PATTERN_PREFIX_LENGTH;
+	p->dpp->data_pattern_filename = (char *)DEFAULT_DATA_PATTERN_FILENAME;
+	p->dpp->data_pattern = (unsigned char *)DEFAULT_DATA_PATTERN;
+	p->dpp->data_pattern_length = DEFAULT_DATA_PATTERN_LENGTH;
+	p->dpp->data_pattern_prefix = (unsigned char *)DEFAULT_DATA_PATTERN_PREFIX;
+	p->dpp->data_pattern_prefix_length = DEFAULT_DATA_PATTERN_PREFIX_LENGTH;
 	p->block_size = DEFAULT_BLOCKSIZE;
 	p->mem_align = getpagesize();
 
@@ -108,11 +106,13 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->seekhdr.seek_loadfile = NULL; /* file from which to load seek locations from */
 	p->seekhdr.seek_pattern = "sequential";
 	/* Init the read-after-write fields */
-	p->raw_sd = 0; /* raw socket descriptor */
-	p->raw_hostname = NULL;  /* Reader hostname */
-	p->raw_lag = DEFAULT_RAW_LAG; 
-	p->raw_port = DEFAULT_RAW_PORT;
-	p->raw_trigger = PTDS_RAW_MP; /* default to a message passing */
+	if (p->rawp) {
+		p->rawp->raw_sd = 0; /* raw socket descriptor */
+		p->rawp->raw_hostname = NULL;  /* Reader hostname */
+		p->rawp->raw_lag = DEFAULT_RAW_LAG; 
+		p->rawp->raw_port = DEFAULT_RAW_PORT;
+		p->rawp->raw_trigger = PTDS_RAW_MP; /* default to a message passing */
+	}
 	/* Init the end-to-end fields */
 	p->e2e_sd = 0; /* destination machine socket descriptor */
 	p->e2e_src_hostname = NULL;  /* E2E source hostname */
