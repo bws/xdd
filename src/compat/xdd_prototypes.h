@@ -152,6 +152,7 @@ int 		xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *t
 ptds_t 		*xdd_get_ptdsp(int32_t target_number, char *op);
 restart_t 	*xdd_get_restartp(ptds_t *p);
 xdd_raw_t 	*xdd_get_rawp(ptds_t *p);
+xdd_sgio_t 	*xdd_get_sgiop(ptds_t *p);
 int32_t		xdd_linux_cpu_count(void);
 int32_t		xdd_cpu_count(void);
 int32_t		xdd_atohex(unsigned char *destp, char *sourcep);

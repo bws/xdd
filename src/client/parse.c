@@ -443,12 +443,30 @@ xdd_get_rawp(ptds_t *p) {
 	if (p->rawp == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
 		p->rawp = malloc(sizeof(struct xdd_raw));
 		if (p->rawp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESTART structure for target %d\n",
-			xgp->progname, (int)sizeof(struct restart), p->my_target_number);
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RAW structure for target %d\n",
+			xgp->progname, (int)sizeof(struct xdd_raw), p->my_target_number);
 			return(NULL);
 		}
 	}
 	return(p->rawp);
+} /* End of xdd_get_rawp() */
+
+/*----------------------------------------------------------------------------*/
+/* xdd_get_sgiop() - return a pointer to the SCSI Generic I/O (SGIO) Data Structure 
+ * for the specified target
+ */
+xdd_sgio_t *
+xdd_get_sgiop(ptds_t *p) {
+	
+	if (p->sgiop == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
+		p->sgiop = malloc(sizeof(struct xdd_sgio));
+		if (p->sgiop == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for SGIO structure for target %d\n",
+			xgp->progname, (int)sizeof(struct xdd_sgio), p->my_target_number);
+			return(NULL);
+		}
+	}
+	return(p->sgiop);
 } /* End of xdd_get_rawp() */
 
 #if (LINUX)

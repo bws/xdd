@@ -3377,6 +3377,8 @@ xddfunc_sgio(int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) { /* Set this option for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
+		p->sgiop = xdd_get_sgiop(p);
+		if (p->sgiop == NULL) return(-1);
 
 		p->target_options |= TO_SGIO;
         return(args+1);
@@ -3385,6 +3387,8 @@ xddfunc_sgio(int32_t argc, char *argv[], uint32_t flags)
 			p = xgp->ptdsp[0];
 			i = 0;
 			while (p) {
+				p->sgiop = xdd_get_sgiop(p);
+				if (p->sgiop == NULL) return(-1);
 				p->target_options |= TO_SGIO;
 				i++;
 				p = xgp->ptdsp[i];
