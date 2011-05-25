@@ -42,6 +42,7 @@
 #include "parse.h"
 #include "target_offset_table.h"
 #include "heartbeat.h"
+#include "sgio.h"
 
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS
@@ -222,17 +223,6 @@ struct ptds {
 	pclk_t				ts_trigtime; 			// Time Stamping trigger time 
 	char				*ts_binary_filename; 	// Timestamp filename for the binary output file for this Target
 	char				*ts_output_filename; 	// Timestamp report output filename for this Target
-	//
-    // ------------------ SGIO stuff --------------------------------------------------
-	// The following variables are used by the SCSI Generic I/O (SGIO) Routines
-	//
-#define SENSE_BUFF_LEN 64					// Number of bytes for the Sense buffer 
-	uint64_t			sg_from_block;			// Starting block location for this operation 
-	uint32_t			sg_blocks;				// The number of blocks to transfer 
-	uint32_t			sg_blocksize;			// The size of a single block for an SG operation - generally == p->blocksize 
-    unsigned char 		sg_sense[SENSE_BUFF_LEN]; // The Sense Buffer  
-	uint32_t   			sg_num_sectors;			// Number of Sectors from Read Capacity command 
-	uint32_t   			sg_sector_size;			// Sector Size in bytes from Read Capacity command 
 	//
     // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
@@ -443,6 +433,7 @@ struct ptds {
 	xdd_e2e_ate_t		e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]; // Used by E2E to stripe over multiple IP Addresses
 	// ------------------ End of the End to End (E2E) stuff --------------------------------------
 	//
+	struct xdd_sgio			*sgiop;		 			// SGIO Structure Pointer
 	struct xdd_data_pattern	*dpp;		 			// Data Pattern Structure Pointer
 	struct xdd_raw			*rawp;		 			// RAW Data Structure Pointer
 	struct lockstep			*lockstepp;				// pointer to the lockstep structure used by the lockstep option
