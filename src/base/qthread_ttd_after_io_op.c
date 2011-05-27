@@ -259,50 +259,60 @@ xdd_e2e_after_io_op(ptds_t *qp) {
  */
 void 
 xdd_extended_stats(ptds_t *qp) {
+	xdd_extended_stats_t	*esp;
 
 
 	if ((xgp->global_options & GO_EXTENDED_STATS) == 0)
 		return;
 
+	if (qp->esp == NULL) {
+		fprintf(xgp->errout, "%s: xdd_extended_stats: Target %d QThread %d: INTERNAL ERROR: No pointer to Extended Stats Structure for target named '%s'\n",
+			xgp->progname,
+			qp->my_target_number,
+			qp->my_qthread_number,
+			qp->target_full_pathname);
+		return;
+	}
+	esp = qp->esp;
 	// Longest op time
-	if (qp->my_current_op_elapsed_time > qp->my_longest_op_time) {
-		qp->my_longest_op_time = qp->my_current_op_elapsed_time;
-		qp->my_longest_op_number = qp->my_current_op_number;
+	if (qp->my_current_op_elapsed_time > esp->my_longest_op_time) {
+		esp->my_longest_op_time = qp->my_current_op_elapsed_time;
+		esp->my_longest_op_number = qp->my_current_op_number;
 		if (qp->seekhdr.seeks[qp->my_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
-			if (qp->my_current_op_elapsed_time > qp->my_longest_write_op_time) {
-				qp->my_longest_write_op_time = qp->my_current_op_elapsed_time;
-				qp->my_longest_write_op_number = qp->my_current_op_number;
+			if (qp->my_current_op_elapsed_time > esp->my_longest_write_op_time) {
+				esp->my_longest_write_op_time = qp->my_current_op_elapsed_time;
+				esp->my_longest_write_op_number = qp->my_current_op_number;
 			}
 		} else if (qp->seekhdr.seeks[qp->my_current_op_number].operation == SO_OP_READ) {  // READ Operation
-			if (qp->my_current_op_elapsed_time > qp->my_longest_read_op_time) {
-				qp->my_longest_read_op_time = qp->my_current_op_elapsed_time;
-				qp->my_longest_read_op_number = qp->my_current_op_number;
+			if (qp->my_current_op_elapsed_time > esp->my_longest_read_op_time) {
+				esp->my_longest_read_op_time = qp->my_current_op_elapsed_time;
+				esp->my_longest_read_op_number = qp->my_current_op_number;
 			}
 		} else { 																		// NOOP 
-			if (qp->my_current_op_elapsed_time > qp->my_longest_noop_op_time) {
-				qp->my_longest_noop_op_time = qp->my_current_op_elapsed_time;
-				qp->my_longest_noop_op_number = qp->my_current_op_number;
+			if (qp->my_current_op_elapsed_time > esp->my_longest_noop_op_time) {
+				esp->my_longest_noop_op_time = qp->my_current_op_elapsed_time;
+				esp->my_longest_noop_op_number = qp->my_current_op_number;
 			}
 		}
 	}
 	// Shortest op time
-	if (qp->my_current_op_elapsed_time < qp->my_shortest_op_time) {
-		qp->my_shortest_op_time = qp->my_current_op_elapsed_time;
-		qp->my_shortest_op_number = qp->my_current_op_number;
+	if (qp->my_current_op_elapsed_time < esp->my_shortest_op_time) {
+		esp->my_shortest_op_time = qp->my_current_op_elapsed_time;
+		esp->my_shortest_op_number = qp->my_current_op_number;
 		if (qp->seekhdr.seeks[qp->my_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
-			if (qp->my_current_op_elapsed_time < qp->my_shortest_write_op_time) {
-				qp->my_shortest_write_op_time = qp->my_current_op_elapsed_time;
-				qp->my_shortest_write_op_number = qp->my_current_op_number;
+			if (qp->my_current_op_elapsed_time < esp->my_shortest_write_op_time) {
+				esp->my_shortest_write_op_time = qp->my_current_op_elapsed_time;
+				esp->my_shortest_write_op_number = qp->my_current_op_number;
 			}
 		} else if (qp->seekhdr.seeks[qp->my_current_op_number].operation == SO_OP_READ) {  // READ Operation
-			if (qp->my_current_op_elapsed_time < qp->my_shortest_read_op_time) {
-				qp->my_shortest_read_op_time = qp->my_current_op_elapsed_time;
-				qp->my_shortest_read_op_number = qp->my_current_op_number;
+			if (qp->my_current_op_elapsed_time < esp->my_shortest_read_op_time) {
+				esp->my_shortest_read_op_time = qp->my_current_op_elapsed_time;
+				esp->my_shortest_read_op_number = qp->my_current_op_number;
 			}
 		} else { 																		// NOOP 
-			if (qp->my_current_op_elapsed_time < qp->my_shortest_noop_op_time) {
-				qp->my_shortest_noop_op_time = qp->my_current_op_elapsed_time;
-				qp->my_shortest_noop_op_number = qp->my_current_op_number;
+			if (qp->my_current_op_elapsed_time < esp->my_shortest_noop_op_time) {
+				esp->my_shortest_noop_op_time = qp->my_current_op_elapsed_time;
+				esp->my_shortest_noop_op_number = qp->my_current_op_number;
 			}
 		}
 	}

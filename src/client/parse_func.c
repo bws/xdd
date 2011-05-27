@@ -1051,7 +1051,7 @@ xddfunc_extended_stats(int32_t argc, char *argv[], uint32_t flags)
     return(1);
 }
 /*----------------------------------------------------------------------------*/
-// Performance a flush (sync) operation every so many write operations
+// Perform a flush (sync) operation every so many write operations
 // Arguments: -flushwrite [target #] #
 // 
 int

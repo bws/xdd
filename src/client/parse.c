@@ -403,6 +403,9 @@ xdd_get_ptdsp(int32_t target_number, char *op) {
 			return(NULL);
 		}
 
+		if (xgp->global_options & GO_EXTENDED_STATS) 
+			xdd_get_esp(p);
+
 		// Initialize the new PTDS and lets rock and roll!
 		xdd_init_new_ptds(p, target_number);
 		xgp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
@@ -486,6 +489,24 @@ xdd_get_trigp(ptds_t *p) {
 	}
 	return(p->trigp);
 } /* End of xdd_get_trigp() */
+
+/*----------------------------------------------------------------------------*/
+/* xdd_get_esp() - return a pointer to the Extended Stats Data Structure 
+ * for the specified target
+ */
+xdd_extended_stats_t *
+xdd_get_esp(ptds_t *p) {
+	
+	if (p->esp == 0) { // Since there is no existing Extended Stats structure, allocate a new one for this target, initialize it, and move on...
+		p->esp = malloc(sizeof(struct xdd_extended_stats));
+		if (p->esp == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Extended Stats structure for target %d\n",
+			xgp->progname, (int)sizeof(struct xdd_extended_stats), p->my_target_number);
+			return(NULL);
+		}
+	}
+	return(p->esp);
+} /* End of xdd_get_esp() */
 
 #if (LINUX)
 /*----------------------------------------------------------------------------*/

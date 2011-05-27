@@ -227,18 +227,20 @@ xdd_init_ptds_before_pass(ptds_t *p) {
 	p->my_current_error_count = 0;		// The number of I/O errors for this qthread
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS
-	p->my_longest_op_time = 0;			// Longest op time that occured during this pass
-	p->my_longest_op_number = 0; 		// Number of the operation where the longest op time occured during this pass
-	p->my_longest_read_op_time = 0; 	// Longest read op time that occured during this pass
-	p->my_longest_read_op_number = 0; 	// Number of the read operation where the longest op time occured during this pass
-	p->my_longest_write_op_time = 0; 	// Longest write op time that occured during this pass
-	p->my_longest_write_op_number = 0; 	// Number of the write operation where the longest op time occured during this pass
-	p->my_shortest_op_time = PCLK_MAX; 	// Shortest op time that occurred during this pass
-	p->my_shortest_op_number = 0; 		// Number of the operation where the shortest op time occured during this pass
-	p->my_shortest_read_op_time = PCLK_MAX;	// Shortest read op time that occured during this pass
-	p->my_shortest_read_op_number = 0; 	// Number of the read operation where the shortest op time occured during this pass
-	p->my_shortest_write_op_time = PCLK_MAX;// Shortest write op time that occured during this pass
-	p->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
+	if (p->esp) {
+		p->esp->my_longest_op_time = 0;			// Longest op time that occured during this pass
+		p->esp->my_longest_op_number = 0; 		// Number of the operation where the longest op time occured during this pass
+		p->esp->my_longest_read_op_time = 0; 	// Longest read op time that occured during this pass
+		p->esp->my_longest_read_op_number = 0; 	// Number of the read operation where the longest op time occured during this pass
+		p->esp->my_longest_write_op_time = 0; 	// Longest write op time that occured during this pass
+		p->esp->my_longest_write_op_number = 0; 	// Number of the write operation where the longest op time occured during this pass
+		p->esp->my_shortest_op_time = PCLK_MAX; 	// Shortest op time that occurred during this pass
+		p->esp->my_shortest_op_number = 0; 		// Number of the operation where the shortest op time occured during this pass
+		p->esp->my_shortest_read_op_time = PCLK_MAX;	// Shortest read op time that occured during this pass
+		p->esp->my_shortest_read_op_number = 0; 	// Number of the read operation where the shortest op time occured during this pass
+		p->esp->my_shortest_write_op_time = PCLK_MAX;// Shortest write op time that occured during this pass
+		p->esp->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
+	}
 
 	p->my_time_limit_expired = 0;		// The time limit expiration indicator
 

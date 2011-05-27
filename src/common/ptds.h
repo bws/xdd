@@ -44,6 +44,7 @@
 #include "heartbeat.h"
 #include "sgio.h"
 #include "triggers.h"
+#include "extended_stats.h"
 
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS
@@ -319,46 +320,6 @@ struct ptds {
 #define	CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS		0x0000000000000400	// QThread is waiting for the TOT lock to set the "wait" time stamp
 #define	CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO		0x0000000000000800	// Waiting on the previous I/O op semaphore
 
-	//
-	// Longest and shortest op times - RESET AT THE START OF EACH PASS 
-	// These values are only updated when the -extendedstats option is specified
-	pclk_t		my_longest_op_time; 			// Longest op time that occured during this pass
-	pclk_t		my_longest_read_op_time; 		// Longest read op time that occured during this pass
-	pclk_t		my_longest_write_op_time; 		// Longest write op time that occured during this pass
-	pclk_t		my_longest_noop_op_time; 		// Longest noop op time that occured during this pass
-	pclk_t		my_shortest_op_time; 			// Shortest op time that occurred during this pass
-	pclk_t		my_shortest_read_op_time; 		// Shortest read op time that occured during this pass
-	pclk_t		my_shortest_write_op_time; 		// Shortest write op time that occured during this pass
-	pclk_t		my_shortest_noop_op_time; 		// Shortest noop op time that occured during this pass
-
-	int64_t		my_longest_op_bytes; 			// Bytes xfered when the longest op time occured during this pass
-	int64_t	 	my_longest_read_op_bytes; 		// Bytes xfered when the longest read op time occured during this pass
-	int64_t 	my_longest_write_op_bytes; 		// Bytes xfered when the longest write op time occured during this pass
-	int64_t 	my_longest_noop_op_bytes; 		// Bytes xfered when the longest noop op time occured during this pass
-	int64_t 	my_shortest_op_bytes; 			// Bytes xfered when the shortest op time occured during this pass
-	int64_t 	my_shortest_read_op_bytes; 		// Bytes xfered when the shortest read op time occured during this pass
-	int64_t 	my_shortest_write_op_bytes;		// Bytes xfered when the shortest write op time occured during this pass
-	int64_t 	my_shortest_noop_op_bytes;		// Bytes xfered when the shortest noop op time occured during this pass
-
-	int64_t		my_longest_op_number; 			// Operation Number when the longest op time occured during this pass
-	int64_t	 	my_longest_read_op_number; 		// Operation Number when the longest read op time occured during this pass
-	int64_t 	my_longest_write_op_number; 	// Operation Number when the longest write op time occured during this pass
-	int64_t 	my_longest_noop_op_number; 		// Operation Number when the longest noop op time occured during this pass
-	int64_t 	my_shortest_op_number; 			// Operation Number when the shortest op time occured during this pass
-	int64_t 	my_shortest_read_op_number; 	// Operation Number when the shortest read op time occured during this pass
-	int64_t 	my_shortest_write_op_number;	// Operation Number when the shortest write op time occured during this pass
-	int64_t 	my_shortest_noop_op_number;		// Operation Number when the shortest noop op time occured during this pass
-
-	int32_t		my_longest_op_pass_number;		// Pass Number when the longest op time occured during this pass
-	int32_t		my_longest_read_op_pass_number;	// Pass Number when the longest read op time occured
-	int32_t		my_longest_write_op_pass_number;// Pass Number when the longest write op time occured 
-	int32_t		my_longest_noop_op_pass_number;	// Pass Number when the longest noop op time occured 
-	int32_t		my_shortest_op_pass_number;		// Pass Number when the shortest op time occured 
-	int32_t		my_shortest_read_op_pass_number;// Pass Number when the shortest read op time occured 
-	int32_t		my_shortest_write_op_pass_number;// Pass Number when the shortest write op time occured 
-	int32_t		my_shortest_noop_op_pass_number;// Pass Number when the shortest noop op time occured 
-    // ------------------ End of the PASS-Related stuff --------------------------------------------------
-
 	// The following variables are used by the "-reopen" option
 	pclk_t        		open_start_time; 			// Time just before the open is issued for this target 
 	pclk_t        		open_end_time; 				// Time just after the open completes for this target 
@@ -416,13 +377,14 @@ struct ptds {
 	xdd_e2e_ate_t		e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]; // Used by E2E to stripe over multiple IP Addresses
 	// ------------------ End of the End to End (E2E) stuff --------------------------------------
 	//
-	struct xdd_triggers		*trigp;		 			// Triggers Structure Pointer
-	struct xdd_sgio			*sgiop;		 			// SGIO Structure Pointer
-	struct xdd_data_pattern	*dpp;		 			// Data Pattern Structure Pointer
-	struct xdd_raw			*rawp;		 			// RAW Data Structure Pointer
-	struct lockstep			*lockstepp;				// pointer to the lockstep structure used by the lockstep option
-	struct restart			*restartp;				// pointer to the restart structure used by the restart monitor
-	struct ptds				*pm1;					// ptds minus  1 - used for report print queueing - don't ask 
+	struct xdd_extended_stats	*esp;			// Extended Stats Structure Pointer
+	struct xdd_triggers			*trigp;			// Triggers Structure Pointer
+	struct xdd_sgio				*sgiop;			// SGIO Structure Pointer
+	struct xdd_data_pattern		*dpp;			// Data Pattern Structure Pointer
+	struct xdd_raw				*rawp;			// RAW Data Structure Pointer
+	struct lockstep				*lockstepp;		// pointer to the lockstep structure used by the lockstep option
+	struct restart				*restartp;		// pointer to the restart structure used by the restart monitor
+	struct ptds					*pm1;			// ptds minus  1 - used for report print queueing - don't ask 
 #if (LINUX)
 	struct stat			statbuf;				// Target File Stat buffer used by xdd_target_open()
 #elif (AIX || SOLARIS)

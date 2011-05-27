@@ -154,6 +154,7 @@ restart_t 	*xdd_get_restartp(ptds_t *p);
 xdd_raw_t 	*xdd_get_rawp(ptds_t *p);
 xdd_sgio_t 	*xdd_get_sgiop(ptds_t *p);
 xdd_triggers_t 	*xdd_get_trigp(ptds_t *p);
+xdd_extended_stats_t 	*xdd_get_esp(ptds_t *p);
 int32_t		xdd_linux_cpu_count(void);
 int32_t		xdd_cpu_count(void);
 int32_t		xdd_atohex(unsigned char *destp, char *sourcep);
