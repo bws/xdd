@@ -43,6 +43,7 @@
 #include "target_offset_table.h"
 #include "heartbeat.h"
 #include "sgio.h"
+#include "triggers.h"
 
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS
@@ -109,6 +110,7 @@ struct ptds {
 	int32_t   			my_pid;   			// My process ID 
 	int32_t   			total_threads; 		// Total number of threads -> target threads + QThreads 
 	int32_t   			run_complete; 		// 0 = thread has not completed yet, 1= completed this run
+	uint32_t			run_status; 		// This is the status of this thread 0=not started, 1=running 
 #ifdef WIN32
 	HANDLE   			fd;    				// File HANDLE for the target device/file 
 #else
@@ -365,25 +367,6 @@ struct ptds {
 	uint64_t      		front_end_skew_bytes; 		// The number of bytes transfered during the front end skew period 
 	uint64_t      		deskew_window_bytes; 		// The number of bytes transferred during the deskew window 
 	uint64_t      		back_end_skew_bytes; 		// The number of bytes transfered during the back end skew period 
-    // -------------------------------------------------------------------
-	// The following variables are used to implement the various trigger options 
-	pclk_t        		start_trigger_time; 		// Time to trigger another target to start 
-	pclk_t        		stop_trigger_time; 			// Time to trigger another target to stop 
-	int64_t       		start_trigger_op; 			// Operation number to trigger another target to start 
-	int64_t       		stop_trigger_op; 			// Operation number  to trigger another target to stop
-	double        		start_trigger_percent; 		// Percentage of ops before triggering another target to start 
-	double        		stop_trigger_percent; 		// Percentage of ops before triggering another target to stop 
-	int64_t       		start_trigger_bytes; 		// Number of bytes to transfer before triggering another target to start 
-	int64_t       		stop_trigger_bytes; 		// Number of bytes to transfer before triggering another target to stop 
-#define TRIGGER_STARTTIME    0x00000001				// Trigger type of "time" 
-#define TRIGGER_STARTOP      0x00000002				// Trigger type of "op" 
-#define TRIGGER_STARTPERCENT 0x00000004				// Trigger type of "percent" 
-#define TRIGGER_STARTBYTES   0x00000008				// Trigger type of "bytes" 
-	uint32_t			trigger_types;				// This is the type of trigger to administer to another target 
-	int32_t				start_trigger_target;		// The number of the target to send the start trigger to 
-	int32_t				stop_trigger_target;		// The number of the target to send the stop trigger to 
-	uint32_t			run_status; 				// This is the status of this thread 0=not started, 1=running 
-	xdd_barrier_t		target_target_starttrigger_barrier;	// Start Trigger Barrier 
 
     // -------------------------------------------------------------------
 	// The following "e2e_" members are for the End to End ( aka -e2e ) option
@@ -433,6 +416,7 @@ struct ptds {
 	xdd_e2e_ate_t		e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]; // Used by E2E to stripe over multiple IP Addresses
 	// ------------------ End of the End to End (E2E) stuff --------------------------------------
 	//
+	struct xdd_triggers		*trigp;		 			// Triggers Structure Pointer
 	struct xdd_sgio			*sgiop;		 			// SGIO Structure Pointer
 	struct xdd_data_pattern	*dpp;		 			// Data Pattern Structure Pointer
 	struct xdd_raw			*rawp;		 			// RAW Data Structure Pointer

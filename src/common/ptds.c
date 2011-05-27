@@ -61,6 +61,7 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->ts_options = DEFAULT_TS_OPTIONS;
 	p->target_options = DEFAULT_TARGET_OPTIONS; // Zero the target options field
 	p->time_limit = DEFAULT_TIME_LIMIT;
+	p->run_status = 1;   /* This is the status of this thread 0=not started, 1=running */
 	p->numreqs = 0; // This must init to 0
 	p->report_threshold = DEFAULT_REPORT_THRESHOLD;
 	p->flushwrite_current_count = 0;
@@ -80,18 +81,20 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 
 	p->processor = -1;
 	p->start_delay = DEFAULT_START_DELAY;
-	p->start_trigger_time = 0; /* Time to trigger another target to start */
-	p->stop_trigger_time = 0; /* Time to trigger another target to stop */
-	p->start_trigger_op = 0; /* Operation number to trigger another target to start */
-	p->stop_trigger_op = 0; /* Operation number  to trigger another target to stop */
-	p->start_trigger_percent = 0; /* Percentage of ops before triggering another target to start */
-	p->stop_trigger_percent = 0; /* Percentage of ops before triggering another target to stop */
-	p->start_trigger_bytes = 0; /* Number of bytes to transfer before triggering another target to start */
-	p->stop_trigger_bytes = 0; /* Number of bytes to transfer before triggering another target to stop */
-	p->start_trigger_target = -1; /* The number of the target to send the start trigger to */
-	p->stop_trigger_target = -1; /* The number of the target to send the stop trigger to */
-	p->run_status = 1;   /* This is the status of this thread 0=not started, 1=running */
-	p->trigger_types = 0;
+	/* Init the Trigger Structure members if there is a trigger struct */
+	if (p->trigp) {
+		p->trigp->start_trigger_time = 0; /* Time to trigger another target to start */
+		p->trigp->stop_trigger_time = 0; /* Time to trigger another target to stop */
+		p->trigp->start_trigger_op = 0; /* Operation number to trigger another target to start */
+		p->trigp->stop_trigger_op = 0; /* Operation number  to trigger another target to stop */
+		p->trigp->start_trigger_percent = 0; /* Percentage of ops before triggering another target to start */
+		p->trigp->stop_trigger_percent = 0; /* Percentage of ops before triggering another target to stop */
+		p->trigp->start_trigger_bytes = 0; /* Number of bytes to transfer before triggering another target to start */
+		p->trigp->stop_trigger_bytes = 0; /* Number of bytes to transfer before triggering another target to stop */
+		p->trigp->start_trigger_target = -1; /* The number of the target to send the start trigger to */
+		p->trigp->stop_trigger_target = -1; /* The number of the target to send the stop trigger to */
+		p->trigp->trigger_types = 0;
+	}
 	/* Init the seeklist header fields */
 	p->seekhdr.seek_options = 0;
 	p->seekhdr.seek_range = DEFAULT_RANGE;

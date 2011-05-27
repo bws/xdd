@@ -194,7 +194,7 @@ xdd_target_init_barriers(ptds_t *p) {
 	// The Target Start Trigger barrier 
 	if (p->target_options & TO_WAITFORSTART) { // If we are expecting a Start Trigger then we need to init the starttrigger barrier
 		sprintf(tmpname,"T%04d>target_target_starttrigger_barrier",p->my_target_number);
-		status += xdd_init_barrier(&p->target_target_starttrigger_barrier,2,tmpname);
+		status += xdd_init_barrier(&p->trigp->target_target_starttrigger_barrier,2,tmpname);
 	}
 
 	// The "counter_mutex" is used by the QThreads when updating the counter information in the Target Thread PTDS

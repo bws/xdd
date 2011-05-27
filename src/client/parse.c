@@ -422,7 +422,7 @@ xdd_get_ptdsp(int32_t target_number, char *op) {
 restart_t *
 xdd_get_restartp(ptds_t *p) {
 	
-	if (p->restartp == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
+	if (p->restartp == 0) { // Since there is no existing Restart Structure, allocate a new one for this target, initialize it, and move on...
 		p->restartp = malloc(sizeof(struct restart));
 		if (p->restartp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESTART structure for target %d\n",
@@ -440,7 +440,7 @@ xdd_get_restartp(ptds_t *p) {
 xdd_raw_t *
 xdd_get_rawp(ptds_t *p) {
 	
-	if (p->rawp == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
+	if (p->rawp == 0) { // Since there is no existing RAW structure, allocate a new one for this target, initialize it, and move on...
 		p->rawp = malloc(sizeof(struct xdd_raw));
 		if (p->rawp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RAW structure for target %d\n",
@@ -458,7 +458,7 @@ xdd_get_rawp(ptds_t *p) {
 xdd_sgio_t *
 xdd_get_sgiop(ptds_t *p) {
 	
-	if (p->sgiop == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
+	if (p->sgiop == 0) { // Since there is no existing SGIO structure, allocate a new one for this target, initialize it, and move on...
 		p->sgiop = malloc(sizeof(struct xdd_sgio));
 		if (p->sgiop == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for SGIO structure for target %d\n",
@@ -467,7 +467,25 @@ xdd_get_sgiop(ptds_t *p) {
 		}
 	}
 	return(p->sgiop);
-} /* End of xdd_get_rawp() */
+} /* End of xdd_get_sgiop() */
+
+/*----------------------------------------------------------------------------*/
+/* xdd_get_trigp() - return a pointer to the Triggers Data Structure 
+ * for the specified target
+ */
+xdd_triggers_t *
+xdd_get_trigp(ptds_t *p) {
+	
+	if (p->trigp == 0) { // Since there is no existing triggers structure, allocate a new one for this target, initialize it, and move on...
+		p->trigp = malloc(sizeof(struct xdd_triggers));
+		if (p->trigp == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for xdd_triggers structure for target %d\n",
+			xgp->progname, (int)sizeof(struct xdd_triggers), p->my_target_number);
+			return(NULL);
+		}
+	}
+	return(p->trigp);
+} /* End of xdd_get_trigp() */
 
 #if (LINUX)
 /*----------------------------------------------------------------------------*/

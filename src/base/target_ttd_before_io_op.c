@@ -64,51 +64,58 @@ xdd_syncio_before_io_op(ptds_t *p) {
  */
 int32_t
 xdd_start_trigger_before_io_op(ptds_t *p) {
-	ptds_t	*p2;	// Ptr to the ptds that we need to trigger
-	pclk_t	tt;	// Trigger Time
+	ptds_t			*p2;	// Ptr to the ptds that we need to trigger
+	xdd_triggers_t	*trigp1;
+	xdd_triggers_t	*trigp2;
+	pclk_t			tt;	// Trigger Time
 
 
 	/* Check to see if we need to wait for another target to trigger us to start.
  	* If so, then enter the trigger_start barrier and have a beer until we get the signal to
  	* jump into action!
  	*/
+	trigp1 = p->trigp;
+	if (trigp1 == NULL)
+		return(0);
+
 	if ((p->target_options & TO_WAITFORSTART) && (p->run_status == 0)) { 
 		/* Enter the barrier and wait to be told to go */
-		xdd_barrier(&p->target_target_starttrigger_barrier,&p->occupant,1);
+		xdd_barrier(&trigp1->target_target_starttrigger_barrier,&p->occupant,1);
 		p->run_status = 1; /* indicate that we have been released */
 	}
 
 	/* Check to see if we need to signal some other target to start, stop, or pause.
 	 * If so, tickle the appropriate semaphore for that target and get on with our business.
 	 */
-	if (p->trigger_types) {
-		p2 = xgp->ptdsp[p->start_trigger_target];
+	if (trigp1->trigger_types) {
+		p2 = xgp->ptdsp[trigp1->start_trigger_target];
+		trigp2 = p2->trigp;
 		if (p2->run_status == 0) {
-			if (p->trigger_types & TRIGGER_STARTTIME) {
+			if (trigp1->trigger_types & TRIGGER_STARTTIME) {
 			/* If we are past the start time then signal the specified target to start */
 				pclk_now(&tt);
-				if (tt > (p->start_trigger_time + p->my_pass_start_time)) {
-					xdd_barrier(&p2->target_target_starttrigger_barrier,&p->occupant,0);
+				if (tt > (trigp1->start_trigger_time + p->my_pass_start_time)) {
+					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&p->occupant,0);
 				}
 			}
-			if (p->trigger_types & TRIGGER_STARTOP) {
+			if (trigp1->trigger_types & TRIGGER_STARTOP) {
 				/* If we are past the specified operation, then signal the specified target to start */
-				if (p->my_current_op_number > p->start_trigger_op) {
-					xdd_barrier(&p2->target_target_starttrigger_barrier,&p->occupant,0);
+				if (p->my_current_op_number > trigp1->start_trigger_op) {
+					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&p->occupant,0);
 				}
 			}
-			if (p->trigger_types & TRIGGER_STARTPERCENT) {
+			if (trigp1->trigger_types & TRIGGER_STARTPERCENT) {
 				/* If we have completed percentage of operations then signal the specified target to start */
-				if (p->my_current_op_number > (p->start_trigger_percent * p->qthread_ops)) {
-					xdd_barrier(&p2->target_target_starttrigger_barrier,&p->occupant,0);
+				if (p->my_current_op_number > (trigp1->start_trigger_percent * p->qthread_ops)) {
+					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&p->occupant,0);
 				}
 			}
-			if (p->trigger_types & TRIGGER_STARTBYTES) {
+			if (trigp1->trigger_types & TRIGGER_STARTBYTES) {
 				/* If we have completed transferring the specified number of bytes, then signal the 
 				* specified target to start 
 				*/
-				if (p->my_current_bytes_xfered > p->start_trigger_bytes) {
-					xdd_barrier(&p2->target_target_starttrigger_barrier,&p->occupant,0);
+				if (p->my_current_bytes_xfered > trigp1->start_trigger_bytes) {
+					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&p->occupant,0);
 				}
 			}
 		}

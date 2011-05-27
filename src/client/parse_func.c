@@ -3619,10 +3619,11 @@ xddfunc_starttime(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_starttrigger(int32_t argc, char *argv[], uint32_t flags)
 {
-    int 		t1,t2;		// Target numbers
-    double 		tmpf;		// temp
-    ptds_t 		*p1, *p2;	// PTDS pointers for the two targets involved
-    char 		*when;		// The "When" to perform a trigger
+    int 			t1,t2;				// Target numbers
+    ptds_t 			*p1, *p2;			// PTDS pointers for the two targets involved
+    xdd_triggers_t 	*trigp;				// Trigger Stucture pointers for the this target
+    char 			*when;				// The "When" to perform a trigger
+    double 			tmpf;				// temp
 
 		  
 	if (argc < 5) { // Not enough arguments in this line
@@ -3633,65 +3634,68 @@ xddfunc_starttrigger(int32_t argc, char *argv[], uint32_t flags)
 
 	t1 = atoi(argv[1]); /* T1 is the target that does the triggering */
 	t2 = atoi(argv[2]); /* T2 is the target that gets triggered by T1 */
-	/* Sanity checks on the target numbers */
+	// Get the PTDS and Trigger Structures for each target
 	p1 = xdd_get_ptdsp(t1, argv[0]);
 	if (p1 == NULL) return(-1); 
+	trigp = xdd_get_trigp(p1);
+	if (trigp == NULL) return(-1); 
+
 	p2 = xdd_get_ptdsp(t2, argv[0]);
 	if (p2 == NULL) return(-1); 
 	  
-	p1->start_trigger_target = t2; /* The target that does the triggering has to 
+	trigp->start_trigger_target = t2; /* The target that does the triggering has to 
 									* know the target number to trigger */
 	p2->target_options |= TO_WAITFORSTART; /* The target that will be triggered has to know to wait */
 	when = argv[3];
 
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->start_trigger_time = (pclk_t)(tmpf * TRILLION);
-		if (p1->start_trigger_time <= 0.0) {
+		trigp->start_trigger_time = (pclk_t)(tmpf * TRILLION);
+		if (trigp->start_trigger_time <= 0.0) {
 			fprintf(stderr,"%s: Invalid starttrigger time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
 			return(0);
 		}
-		p1->trigger_types |= TRIGGER_STARTTIME;
+		trigp->trigger_types |= TRIGGER_STARTTIME;
         return(5);
 	} else if (strcmp(when,"op") == 0){ /* get the number of operations to wait before triggering the other target */
-		p1->start_trigger_op = atoll(argv[4]);
-		if (p1->start_trigger_op <= 0) {
+		trigp->start_trigger_op = atoll(argv[4]);
+		if (trigp->start_trigger_op <= 0) {
 			fprintf(stderr,"%s: Invalid starttrigger op: %lld. This value must be greater than 0\n",
 				xgp->progname, 
-				(long long)p1->start_trigger_op);
+				(long long)trigp->start_trigger_op);
 			return(0);
 		}
-		p1->trigger_types |= TRIGGER_STARTOP;
+		trigp->trigger_types |= TRIGGER_STARTOP;
 		return(5);    
 	} else if (strcmp(when,"percent") == 0){ /* get the percentage of operations to wait before triggering the other target */
-		p1->start_trigger_percent = (atof(argv[4]) / 100.0);
-		if ((p1->start_trigger_percent < 0.0) || (p1->start_trigger_percent > 1.0)) {
+		trigp->start_trigger_percent = (atof(argv[4]) / 100.0);
+		if ((trigp->start_trigger_percent < 0.0) || (trigp->start_trigger_percent > 1.0)) {
 			fprintf(stderr,"%s: Invalid starttrigger percent: %f. This value must be between 0.0 and 100.0\n",
-				xgp->progname, p1->start_trigger_percent * 100.0 );
+				xgp->progname, trigp->start_trigger_percent * 100.0 );
 			return(0);
 		}
-		p1->trigger_types |= TRIGGER_STARTPERCENT;
+		trigp->trigger_types |= TRIGGER_STARTPERCENT;
 		return(5);    
 	} else if (strcmp(when,"mbytes") == 0){ /* get the number of megabytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->start_trigger_bytes = (uint64_t)(tmpf * 1024*1024);
+		trigp->start_trigger_bytes = (uint64_t)(tmpf * 1024*1024);
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid starttrigger mbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
             return(0);
 		}
-		p1->trigger_types |= TRIGGER_STARTBYTES;
+		trigp->trigger_types |= TRIGGER_STARTBYTES;
 		return(5);    
 	} else if (strcmp(when,"kbytes") == 0){ /* get the number of kilobytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->start_trigger_bytes = (uint64_t)(tmpf * 1024);
+		trigp->start_trigger_bytes = (uint64_t)(tmpf * 1024);
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid starttrigger kbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
             return(0);
 		}
-		p1->trigger_types |= TRIGGER_STARTBYTES;
+		trigp->trigger_types |= TRIGGER_STARTBYTES;
 		return(5);    
 	} else {
 		fprintf(stderr,"%s: Invalid starttrigger qualifer: %s\n",
@@ -3711,10 +3715,11 @@ xddfunc_stoponerror(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_stoptrigger(int32_t argc, char *argv[], uint32_t flags)
 {
-    int t1,t2;
-    double tmpf;
-    ptds_t *p1;
-    char *when;
+    int 			t1,  t2;			// Target numbers
+    ptds_t 			*p1;				// PTDS pointers for the target 
+    xdd_triggers_t 	*trigp;				// Trigger Stucture pointers for the this target
+    char 			*when;				// The "When" to perform a trigger
+    double 			tmpf;				// temp
 
 	  
 	if (argc < 5) { // Not enough arguments in this line
@@ -3729,26 +3734,28 @@ xddfunc_stoptrigger(int32_t argc, char *argv[], uint32_t flags)
 
 	p1 = xdd_get_ptdsp(t1, argv[0]);  
 	if (p1 == NULL) return(-1);
+	trigp = xdd_get_trigp(p1);
+	if (trigp == NULL) return(-1); 
 
-	p1->stop_trigger_target = t2; /* The target that does the triggering has to 
+	trigp->stop_trigger_target = t2; /* The target that does the triggering has to 
 									* know the target number to trigger */
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->stop_trigger_time = (pclk_t)(tmpf * TRILLION);
+		trigp->stop_trigger_time = (pclk_t)(tmpf * TRILLION);
         return(5);
 	} else if (strcmp(when,"op") == 0){ /* get the number of operations to wait before triggering the other target */
-		p1->stop_trigger_op = atoll(argv[4]);
+		trigp->stop_trigger_op = atoll(argv[4]);
         return(5);
 	} else if (strcmp(when,"percent") == 0){ /* get the percentage of operations to wait before triggering the other target */
-		p1->stop_trigger_percent = atof(argv[4]);
+		trigp->stop_trigger_percent = atof(argv[4]);
         return(5);
 	} else if (strcmp(when,"mbytes") == 0){ /* get the number of megabytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->stop_trigger_bytes = (uint64_t)(tmpf * 1024*1024);
+		trigp->stop_trigger_bytes = (uint64_t)(tmpf * 1024*1024);
         return(5);
 	} else if (strcmp(when,"kbytes") == 0){ /* get the number of kilobytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		p1->stop_trigger_bytes = (uint64_t)(tmpf * 1024);
+		trigp->stop_trigger_bytes = (uint64_t)(tmpf * 1024);
         return(5);
 	} else {
 		fprintf(stderr,"%s: Invalid %s qualifer: %s\n",
