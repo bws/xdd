@@ -115,8 +115,9 @@ function print_usage {
     echo ""
     echo "OPTIONS: "
     echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
+    echo " -c           - If ports are unavailable on destination, indicate error rather than trying to force transfer"
     echo " -d s|d|b	- Use direct I/O the end specified (s for source, d for dest, b for both)"
-    echo " -f           - If ports are unavailable on destination, attempt to kill running XDD and retry"
+    #echo " -f           - If ports are unavailable on destination, attempt to kill running XDD and retry"
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
     echo " -n		- If operation fails for any reason, retry up to n times"
@@ -300,6 +301,7 @@ function check_host_preconditions {
     local fileSizeFlag=${3}
     local resumeFlag=${4}
     local recursiveFlag=${5}
+    local forceFlag=${6}
 
     # Check for xdd.Linux binary
     type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
@@ -325,6 +327,13 @@ function check_host_preconditions {
     elif [ 1 -eq $recursiveFlag -a 1 -eq $resumeFlag ]; then
         echo "INFO: -r and -a flags cannot both be specified" >/dev/stderr
         error_exit $XDDCP_ERR_CODE_INV_FLAGS
+    fi
+
+    # Ensure tools required for force flag exist
+    type -P gethostip &>/dev/null
+    if [ $? -ne 0 ]; then
+        echo "INFO: Force mode requires the gethostip command, force disabled."
+        eval "forceFlag=0"
     fi
 }
 
@@ -399,9 +408,9 @@ function check_transfer_preconditions {
     local sourceDir="${sourceSideFilename:0:4}"
     if [ "$sourceDir" != "/dev" ]; then
         local trueSize="$(get_file_size $sourceSideFilename 0)"
-        if [ $XDDCP_DEFAULT_XFER_SIZE -gt $trueSize ]; then
-            error_exit $XDDCP_ERR_CODE_SMALL_FILE
-        elif [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
+        #if [ $XDDCP_DEFAULT_XFER_SIZE -gt $trueSize ]; then
+        #    error_exit $XDDCP_ERR_CODE_SMALL_FILE
+        if [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
             error_exit $XDDCP_ERR_CODE_XFER_SIZE
         fi
     elif [ "$sourceDir" = "/dev" ]; then
@@ -1195,12 +1204,6 @@ function transfer_file {
             ${srcRemoteFlag} ${srcHost} ${srcUser})
     fi
 
-    # Ensure the source file is large enough
-    if [ "$XDDCP_DEFAULT_XFER_SIZE" -gt "$totalBytes" ]; then
-        echo "INFO: $srcPath file size is $totalBytes bytes" >/dev/stderr
-        error_exit $XDDCP_ERR_CODE_SMALL_FILE
-    fi
-
     # Hard code the recursive flag
     recursiveFlag=0
 
@@ -1371,7 +1374,7 @@ function xddcp_main {
     e2ePort=$XDDCP_DEFAULT_E2E_PORT
     fileListFlag=0
     fileListFile=""
-    forceFlag=0
+    forceFlag=1
     queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
     recursiveFlag=0
     retryCount=0
@@ -1383,7 +1386,7 @@ function xddcp_main {
     binaryDumpFlag=0
     windowSize=0
 
-    while getopts ":FYad:fhn:o:p:rst:vw:" option; do
+    while getopts ":FYacd:hn:o:p:rst:vw:" option; do
         case $option in
             F) 
                 fileListFlag=1
@@ -1394,6 +1397,9 @@ function xddcp_main {
                 ;;
             a) 
                 resumeFlag=1
+                ;;
+            c)
+                forceFlag=0
                 ;;
 	    d) 
 		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then
@@ -1413,6 +1419,7 @@ function xddcp_main {
 		type -P gethostip &>/dev/null
 		if [ $? -ne 0 ]; then
 		    echo "INFO: Force mode requires the gethostip command, force disabled."
+                    forceFlag=0
 		fi
                 ;;
 	    h) 
@@ -1486,7 +1493,7 @@ function xddcp_main {
 
     # Ensure local option preconditions are met
     check_host_preconditions ${srcPath} ${fileListFlag} ${fileSizeFlag} \
-	${recursiveFlag} ${resumeFlag}
+	${recursiveFlag} ${resumeFlag} ${forceFlag}
 
     # Retry on failed transfer
     for ((i=0; i<=$retryCount; i=$i+1)); do
