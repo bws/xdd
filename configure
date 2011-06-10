@@ -4129,8 +4129,9 @@ fi
 
 
 if test "x$gethostip_exists" = "xno" ; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Some features of xddcp disabled.  No gethostip utility installed." >&5
-$as_echo "$as_me: WARNING: Some features of xddcp disabled.  No gethostip utility installed." >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Support for xddcp disabled.  No working gethostip utility." >&5
+$as_echo "$as_me: WARNING: Support for xddcp disabled.  No working gethostip utility." >&2;}
+    xddcp_disable="yes"
 fi
 
 netstat_exists="no"
@@ -4176,8 +4177,9 @@ fi
 
 
 if test "x$netstat_exists" = "xno" ; then
-   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Some features of xddcp disabled.  No netstat utility installed." >&5
-$as_echo "$as_me: WARNING: Some features of xddcp disabled.  No netstat utility installed." >&2;}
+    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Support for xddcp disabled.  No working netstat utility." >&5
+$as_echo "$as_me: WARNING: Support for xddcp disabled.  No working netstat utility." >&2;}
+    xddcp_disable="yes"
 fi
 
 install_prefix='/opt/xdd'
