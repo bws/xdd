@@ -44,8 +44,6 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"next_qp         %p Pointer to the next QThread PTDS in the PTDS Substructure \n",p->next_qp); 		
 	//pthread_t  			target_thread;		// Handle for this Target Thread 
 	//pthread_t  			qthread;			// Handle for this QThread 
-	//pthread_t  			issue_thread;		// Handle for this Target's Issue Thread 
-	//pthread_t  			completion_thread;	// Handle for this Target's Completion Thread 
 	fprintf(xgp->output,"my_target_number, %d My target number \n",p->my_target_number);	
 	fprintf(xgp->output,"my_qthread_number,%d My queue number within this target \n",p->my_qthread_number);	
 	fprintf(xgp->output,"my_thread_number, %d My thread number relative to the total number of threads \n",p->my_thread_number); 	

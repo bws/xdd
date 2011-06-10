@@ -102,8 +102,6 @@ struct ptds {
 	struct ptds 		*next_qp; 			// Pointer to the next QThread PTDS in the PTDS Substructure
 	pthread_t  			target_thread;		// Handle for this Target Thread 
 	pthread_t  			qthread;			// Handle for this QThread 
-	pthread_t  			issue_thread;		// Handle for this Target's Issue Thread 
-	pthread_t  			completion_thread;	// Handle for this Target's Completion Thread 
 	int32_t   			my_target_number;	// My target number 
 	int32_t   			my_qthread_number;	// My queue number within this target 
 	int32_t   			my_thread_number; 	// My thread number relative to the total number of threads
