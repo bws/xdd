@@ -242,17 +242,18 @@ xddfunc_csvout(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 {
-	int           args, i; 
-	int           target_number;
-	ptds_t        *p;
-	char          *pattern_type; // The pattern type of ascii, hex, random, ...etc
-	unsigned char *pattern; // The ACSII representation of the specified data pattern
-	unsigned char *pattern_value; // The ACSII representation of the specified data pattern
-	uint64_t      pattern_binary = 0; // The 64-bit value shifted all the way to the left
-	size_t        pattern_length; // The length of the pattern string from the command line
-	unsigned char *tmpp;
-	int           retval;
+	int           		args, i; 
+	int           		target_number;
+	ptds_t        		*p;
+	char          		*pattern_type; // The pattern type of ascii, hex, random, ...etc
+	unsigned char 		*pattern; // The ACSII representation of the specified data pattern
+	unsigned char 		*pattern_value; // The ACSII representation of the specified data pattern
+	uint64_t      		pattern_binary = 0; // The 64-bit value shifted all the way to the left
+	size_t        		pattern_length; // The length of the pattern string from the command line
+	unsigned char 		*tmpp;
+	int           		retval;
   
+
     args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
@@ -272,13 +273,13 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
     }
 	if (strcmp(pattern_type, "random") == 0) {  /* make it random data  */
 		if (p)  /* set option for the specific target */
-            p->target_options |= TO_RANDOM_PATTERN;
+            p->dpp->data_pattern_options |= DP_RANDOM_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) { 
-					p->target_options |= TO_RANDOM_PATTERN;
+					p->dpp->data_pattern_options |= DP_RANDOM_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -293,7 +294,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		pattern = (unsigned char *)argv[args+2];
 		pattern_length = strlen((char *)pattern);
 		if (p) { /* set option for specific target */
-			p->target_options |= TO_ASCII_PATTERN;
+			p->dpp->data_pattern_options |= DP_ASCII_PATTERN;
 			p->dpp->data_pattern = (unsigned char *)argv[args+2];
 			p->dpp->data_pattern_length = strlen((char *)p->dpp->data_pattern);
 		}
@@ -302,7 +303,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) { 
-					p->target_options |= TO_ASCII_PATTERN;
+					p->dpp->data_pattern_options |= DP_ASCII_PATTERN;
 					p->dpp->data_pattern = pattern;
 					p->dpp->data_pattern_length = pattern_length;
 					i++;
@@ -344,7 +345,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		} else pattern_length = 0;
 
 		if (p) { /* set option for specific target */
-			p->target_options |= TO_HEX_PATTERN;
+			p->dpp->data_pattern_options |= DP_HEX_PATTERN;
 			p->dpp->data_pattern = pattern_value; // The actual 64-bit value left-justtified
 			p->dpp->data_pattern_length = pattern_length; // length in nibbles 
 		}
@@ -353,7 +354,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) { 
-					p->target_options |= TO_HEX_PATTERN;
+					p->dpp->data_pattern_options |= DP_HEX_PATTERN;
 					p->dpp->data_pattern = pattern_value; // The actual 64-bit value right-justtified
 					p->dpp->data_pattern_length = pattern_length; // length in bytes
 					i++;
@@ -409,7 +410,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 			pattern_binary <<= ((sizeof(uint64_t)*8)-(pattern_length*2));
 		}
 		if (p) { /* set option for specific target */
-			p->target_options |= TO_PATTERN_PREFIX;
+			p->dpp->data_pattern_options |= DP_PATTERN_PREFIX;
 			p->dpp->data_pattern_prefix = pattern;
 			p->dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
 			p->dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
@@ -419,7 +420,7 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) { 
-					p->target_options |= TO_PATTERN_PREFIX;
+					p->dpp->data_pattern_options |= DP_PATTERN_PREFIX;
 					p->dpp->data_pattern_prefix = pattern;
 					p->dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
 					p->dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
@@ -436,14 +437,14 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 			return(0);
 		}
 		if (p) {/* set option for specific target */
-			p->target_options |= TO_FILE_PATTERN;
+			p->dpp->data_pattern_options |= DP_FILE_PATTERN;
 			p->dpp->data_pattern_filename = (char *)argv[args+2];
 		} else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_FILE_PATTERN;
+					p->dpp->data_pattern_options |= DP_FILE_PATTERN;
 					p->dpp->data_pattern_filename = (char *)argv[args+2];
 					i++;
 					p = xgp->ptdsp[i];
@@ -452,13 +453,13 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else if (strcmp(pattern_type, "sequenced") == 0) {
 		if (p) /* set option for specific target */
-			p->target_options |= TO_SEQUENCED_PATTERN;
+			p->dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_SEQUENCED_PATTERN;
+					p->dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -466,13 +467,13 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else if (strcmp(pattern_type, "inverse") == 0) {
 		if (p) /* set option for specific target */
-			p->target_options |= TO_INVERSE_PATTERN;
+			p->dpp->data_pattern_options |= DP_INVERSE_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_INVERSE_PATTERN;
+					p->dpp->data_pattern_options |= DP_INVERSE_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -480,13 +481,13 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else if (strncmp(pattern_type, "replicate", 9) == 0) {
 		if (p) /* set option for specific target */
-			p->target_options |= TO_REPLICATE_PATTERN;
+			p->dpp->data_pattern_options |= DP_REPLICATE_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_REPLICATE_PATTERN;
+					p->dpp->data_pattern_options |= DP_REPLICATE_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -494,13 +495,13 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else if (strcmp(pattern_type, "lfpat") == 0) {
 		if (p) /* set option for specific target */
-			p->target_options |= TO_LFPAT_PATTERN;
+			p->dpp->data_pattern_options |= DP_LFPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_LFPAT_PATTERN;
+					p->dpp->data_pattern_options |= DP_LFPAT_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -508,13 +509,13 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else if (strcmp(pattern_type, "ltpat") == 0) {
 		if (p) /* set option for specific target */
-			p->target_options |= TO_LTPAT_PATTERN;
+			p->dpp->data_pattern_options |= DP_LTPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_LTPAT_PATTERN;
+					p->dpp->data_pattern_options |= DP_LTPAT_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -522,13 +523,13 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else if (strcmp(pattern_type, "cjtpat") == 0) {
 		if (p) /* set option for specific target */
-			p->target_options |= TO_CJTPAT_PATTERN;
+			p->dpp->data_pattern_options |= DP_CJTPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_CJTPAT_PATTERN;
+					p->dpp->data_pattern_options |= DP_CJTPAT_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -536,13 +537,13 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else if (strcmp(pattern_type, "crpat") == 0) {
 		if (p) /* set option for specific target */
-			p->target_options |= TO_CRPAT_PATTERN;
+			p->dpp->data_pattern_options |= DP_CRPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_CRPAT_PATTERN;
+					p->dpp->data_pattern_options |= DP_CRPAT_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -550,13 +551,13 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else if (strcmp(pattern_type, "cspat") == 0) {
 		if (p) /* set option for specific target */
-			p->target_options |= TO_CSPAT_PATTERN;
+			p->dpp->data_pattern_options |= DP_CSPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_CSPAT_PATTERN;
+					p->dpp->data_pattern_options |= DP_CSPAT_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}
@@ -564,14 +565,14 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 	} else {
 		if (p) { /* set option for a specific target */ 
-			p->target_options |= TO_SINGLECHAR_PATTERN;
+			p->dpp->data_pattern_options |= DP_SINGLECHAR_PATTERN;
 			p->dpp->data_pattern = (unsigned char *)pattern_type;
 		} else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= TO_SINGLECHAR_PATTERN;
+					p->dpp->data_pattern_options |= DP_SINGLECHAR_PATTERN;
 					p->dpp->data_pattern = (unsigned char *)pattern_type;
 					i++;
 					p = xgp->ptdsp[i];
@@ -4547,13 +4548,15 @@ xddfunc_verify(int32_t argc, char *argv[], uint32_t flags)
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(target_number, argv[0]);
 			if (p == NULL) return(-1);
-			p->target_options |= (TO_VERIFY_LOCATION | TO_SEQUENCED_PATTERN);
+			p->target_options |= TO_VERIFY_LOCATION;
+			p->dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = xgp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->target_options |= (TO_VERIFY_LOCATION | TO_SEQUENCED_PATTERN);
+					p->target_options |= TO_VERIFY_LOCATION;
+					p->dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
 					i++;
 					p = xgp->ptdsp[i];
 				}

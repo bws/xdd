@@ -56,7 +56,6 @@
 #define TO_E2E_DESTINATION             0x0000000000000020ULL  // End to End - Destination side 
 #define TO_SGIO                        0x0000000000000040ULL  // Used for SCSI Generic I/O in Linux 
 #define TO_DIO                         0x0000000000000080ULL  // DIRECT IO for files 
-#define TO_RANDOM_PATTERN              0x0000000000000100ULL  // Use random data pattern for write operations 
 #define TO_DELETEFILE                  0x0000000000000200ULL  // Delete target file upon completion of write 
 #define TO_REGULARFILE                 0x0000000000000400ULL  // Target file is a REGULAR file 
 #define TO_DEVICEFILE                  0x0000000000000800ULL  // Target is a Device - could be an SG device 
@@ -65,20 +64,6 @@
 #define TO_LOCKSTEP                    0x0000000000004000ULL  // Normal Lock step mode 
 #define TO_LOCKSTEPOVERLAPPED          0x0000000000008000ULL  // Overlapped lock step mode 
 #define TO_SHARED_MEMORY               0x0000000000010000ULL  // Use a shared memory segment instead of malloced memmory 
-#define TO_SEQUENCED_PATTERN           0x0000000000020000ULL  // Sequenced Data Pattern in the data buffer 
-#define TO_ASCII_PATTERN               0x0000000000040000ULL  // ASCII Data Pattern in the data buffer 
-#define TO_HEX_PATTERN                 0x0000000000080000ULL  // HEXIDECIMAL Data Pattern in the data buffer 
-#define TO_SINGLECHAR_PATTERN          0x0000000000100000ULL  // Single character Data Pattern in the data buffer 
-#define TO_FILE_PATTERN                0x0000000000200000ULL  // Name of file that contains the Data Pattern 
-#define TO_REPLICATE_PATTERN           0x0000000000400000ULL  // Replicate Data Pattern throughout the data buffer 
-#define TO_LFPAT_PATTERN               0x0000000000800000ULL  // Low Frequency FC/SAS pattern 
-#define TO_LTPAT_PATTERN               0x0000000001000000ULL  // Low Transition FC/SAS pattern 
-#define TO_CJTPAT_PATTERN              0x0000000002000000ULL  // Receiver Jitter FC/SAS pattern 
-#define TO_CRPAT_PATTERN               0x0000000004000000ULL  // Random FC/SAS pattern 
-#define TO_CSPAT_PATTERN               0x0000000008000000ULL  // Supply Noise FC/SAS pattern 
-#define TO_PATTERN_PREFIX              0x0000000010000000ULL  // Indicates that there is a data pattern prefix 
-#define TO_INVERSE_PATTERN             0x0000000020000000ULL  // Apply a 1's compliment to the data pattern 
-#define TO_NAME_PATTERN                0x0000000040000000ULL  // Use the specified name at the beginning of the data pattern
 #define TO_PCPU_ABSOLUTE               0x0000000080000000ULL  // Defines the meaning of the percent CPU values on the output 
 #define TO_REOPEN                      0x0000000100000000ULL  // Open/Close target on each pass and record time 
 #define TO_CREATE_NEW_FILES            0x0000000200000000ULL  // Create new targets for each pass 

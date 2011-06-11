@@ -50,7 +50,7 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 
 
 	dpp = p->dpp;
-	if (p->target_options & TO_RANDOM_PATTERN) { // A nice random pattern
+	if (dpp->data_pattern_options & DP_RANDOM_PATTERN) { // A nice random pattern
 			lp = (uint32_t *)p->rwbuf;
 			xgp->random_initialized = 0;
             /* Set each four-byte field in the I/O buffer to a random integer */
@@ -58,11 +58,11 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 				*lp=xdd_random_int();
 				lp++;
 			}
-	} else if ((p->target_options & TO_ASCII_PATTERN) ||
-	           (p->target_options & TO_HEX_PATTERN)) { // put the pattern that is in the pattern buffer into the io buffer
+	} else if ((dpp->data_pattern_options & DP_ASCII_PATTERN) ||
+	           (dpp->data_pattern_options & DP_HEX_PATTERN)) { // put the pattern that is in the pattern buffer into the io buffer
 			// Clear out the buffer before putting in the string so there are no strange characters in it.
 			memset(p->rwbuf,'\0',p->iosize);
-			if (p->target_options & TO_REPLICATE_PATTERN) { // Replicate the pattern throughout the buffer
+			if (dpp->data_pattern_options & DP_REPLICATE_PATTERN) { // Replicate the pattern throughout the buffer
 				ucp = (unsigned char *)p->rwbuf;
 				remaining_length = p->iosize;
 				while (remaining_length) { 
@@ -80,7 +80,7 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 				else pattern_length = p->iosize;
 				memcpy(p->rwbuf,dpp->data_pattern,pattern_length);
 			}
-	} else if (p->target_options & TO_LFPAT_PATTERN) {
+	} else if (dpp->data_pattern_options & DP_LFPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 dpp->data_pattern_length = sizeof(lfpat);
                 fprintf(stderr,"LFPAT length is %d\n", (int)dpp->data_pattern_length);
@@ -95,7 +95,7 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 			remaining_length -= pattern_length;
 			ucp += pattern_length;
 		}
-	} else if (p->target_options & TO_LTPAT_PATTERN) {
+	} else if (dpp->data_pattern_options & DP_LTPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 dpp->data_pattern_length = sizeof(ltpat);
                 fprintf(stderr,"LTPAT length is %d\n", (int)dpp->data_pattern_length);
@@ -110,7 +110,7 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 			remaining_length -= pattern_length;
 			ucp += pattern_length;
 		}
-	} else if (p->target_options & TO_CJTPAT_PATTERN) {
+	} else if (dpp->data_pattern_options & DP_CJTPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 dpp->data_pattern_length = sizeof(cjtpat);
                 fprintf(stderr,"CJTPAT length is %d\n", (int)dpp->data_pattern_length);
@@ -125,7 +125,7 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 			remaining_length -= pattern_length;
 			ucp += pattern_length;
 		}
-	} else if (p->target_options & TO_CRPAT_PATTERN) {
+	} else if (dpp->data_pattern_options & DP_CRPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 dpp->data_pattern_length = sizeof(crpat);
                 fprintf(stderr,"CRPAT length is %d\n", (int)dpp->data_pattern_length);
@@ -140,7 +140,7 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 			remaining_length -= pattern_length;
 			ucp += pattern_length;
 		}
-	} else if (p->target_options & TO_CSPAT_PATTERN) {
+	} else if (dpp->data_pattern_options & DP_CSPAT_PATTERN) {
 		memset(p->rwbuf,0x00,p->iosize);
                 dpp->data_pattern_length = sizeof(cspat);
                 fprintf(stderr,"CSPAT length is %d\n", (int)dpp->data_pattern_length);
@@ -176,13 +176,13 @@ xdd_datapattern_fill(ptds_t *qp) {
 
 
 	/* Sequenced Data Pattern */
-	if (qp->target_options & TO_SEQUENCED_PATTERN) {
+	if (qp->dpp->data_pattern_options & DP_SEQUENCED_PATTERN) {
 		pclk_now(&start_time);
 		posp = (uint64_t *)qp->rwbuf;
 		for (j=0; j<(qp->my_current_io_size/sizeof(qp->my_current_byte_location)); j++) {
 			*posp = qp->my_current_byte_location + (j * sizeof(qp->my_current_byte_location));
 			*posp |= qp->dpp->data_pattern_prefix_binary;
-			if (qp->target_options & TO_INVERSE_PATTERN)
+			if (qp->dpp->data_pattern_options & DP_INVERSE_PATTERN)
 				*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
 			posp++;
 		}

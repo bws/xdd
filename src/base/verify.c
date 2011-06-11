@@ -52,8 +52,8 @@ xdd_verify_checksum(ptds_t *p, int64_t current_op) {
  * is being verified. 
  * It is further assumed that the data pattern and data pattern lenggth
  * are in p->dpp->data_pattern and p->dpp->data_pattern_length respectively. This is
- * done by the datapattern function in the parse.c file. If the target_option
- * of "TO_REPLICATE_PATTERN" was specified as well, then the data comparison is
+ * done by the datapattern function in the parse.c file. If the data_pattern_option
+ * of "DP_REPLICATE_PATTERN" was specified as well, then the data comparison is
  * made throughout the data buffer. Otherwise only the first N bytes are compared
  * against the data pattern where N is equal to p->dpp->data_pattern_length. Cool, huh?
  */
@@ -66,7 +66,7 @@ xdd_verify_hex(ptds_t *p, int64_t current_op) {
 	unsigned char *patternp, *bufferp;
 
 
-	if (p->target_options & TO_REPLICATE_PATTERN) 
+	if (p->dpp->data_pattern_options & DP_REPLICATE_PATTERN) 
 		remaining = p->actual_iosize;
 	else remaining = p->dpp->data_pattern_length;
 
@@ -121,10 +121,10 @@ xdd_verify_sequence(ptds_t *p, int64_t current_op) {
 	errors = 0;
 	for (i = 0; i < p->actual_iosize; i+=(sizeof(p->my_current_byte_location))) {
 		expected_data = p->my_current_byte_location + i;
-		if (p->target_options & TO_PATTERN_PREFIX) { // OR-in the pattern prefix
+		if (p->dpp->data_pattern_options & DP_PATTERN_PREFIX) { // OR-in the pattern prefix
 			expected_data |= p->dpp->data_pattern_prefix_binary;
 		} 
-		if (p->target_options & TO_INVERSE_PATTERN)
+		if (p->dpp->data_pattern_options & DP_INVERSE_PATTERN)
 			expected_data ^= 0xffffffffffffffffLL; // 1's compliment of the expected data 
 
 		if (*uint64p != expected_data) { // If the expected_data pattern is not what we think it should be then scream!
@@ -214,17 +214,17 @@ xdd_verify_contents(ptds_t *p, int64_t current_op) {
 
 	errors = 0;
 	/* Verify the contents of the buffer is equal to the specified data pattern */
-	if (p->target_options & TO_SEQUENCED_PATTERN) { // Lets look at a sequenced data pattern
+	if (p->dpp->data_pattern_options & DP_SEQUENCED_PATTERN) { // Lets look at a sequenced data pattern
 		errors = xdd_verify_sequence(p, current_op);
 		return(errors);
 	}
 
-	if (p->target_options & TO_HEX_PATTERN) { // Lets look at a HEX data pattern
+	if (p->dpp->data_pattern_options & DP_HEX_PATTERN) { // Lets look at a HEX data pattern
 		errors = xdd_verify_hex(p, current_op);
 		return(errors);
 	}
 
-	if (p->target_options & TO_SINGLECHAR_PATTERN) { // Lets look at a single character data pattern
+	if (p->dpp->data_pattern_options & DP_SINGLECHAR_PATTERN) { // Lets look at a single character data pattern
 		errors = xdd_verify_singlechar(p, current_op);
 		return(errors);
 	}

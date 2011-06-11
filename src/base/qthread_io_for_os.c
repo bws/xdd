@@ -226,14 +226,16 @@ xdd_io_for_os(ptds_t *p) {
 	if (p->target_op_number == 0) /* record our starting time */
 		p->my_start_time = p->my_current_start_time;
 	if (p->seekhdr.seeks[p->my_current_op].operation == SO_OP_WRITE) {
-		if (p->target_options & TO_SEQUENCED_PATTERN) {
-			posp = (uint64_t *)p->rwbuf;
-			for (uj=0; uj<(p->my_current_io_size/sizeof(p->my_current_byte_location)); uj++) {
-				*posp = p->my_current_byte_location + (uj * sizeof(p->my_current_byte_location));
-				*posp |= p->dpp->data_pattern_prefix_binary;
-				if (p->target_options & TO_INVERSE_PATTERN)
-					*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
-				posp++;
+		if (p->dpp) {
+			if (p->dpp->data_pattern_options & DP_SEQUENCED_PATTERN) {
+				posp = (uint64_t *)p->rwbuf;
+				for (uj=0; uj<(p->my_current_io_size/sizeof(p->my_current_byte_location)); uj++) {
+					*posp = p->my_current_byte_location + (uj * sizeof(p->my_current_byte_location));
+					*posp |= p->dpp->data_pattern_prefix_binary;
+					if (p->data_pattern_options & DP_INVERSE_PATTERN)
+						*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
+					posp++;
+				}
 			}
 		}
 		/* Actually write the data to the storage device/file */

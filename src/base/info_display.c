@@ -231,8 +231,9 @@ xdd_options_info(FILE *out) {
  */
 void
 xdd_target_info(FILE *out, ptds_t *p) {
-	int i;
-	ptds_t *mp, *sp; /* Master and Slave ptds pointers */
+	int 				i;
+	ptds_t 				*mp, *sp; /* Master and Slave ptds pointers */
+	xdd_data_pattern_t	*dpp;
 
     // Only display information for qthreads if requested
     if (!(p->target_options & TO_QTHREAD_INFO) && (p->my_qthread_number > 0))
@@ -292,31 +293,34 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	fprintf(out,"\t\tI/O memory buffer is %s\n", 
 		(p->target_options & TO_SHARED_MEMORY)?"a shared memory segment":"a normal memory buffer");
 	fprintf(out,"\t\tI/O memory buffer alignment in bytes, %d\n", p->mem_align);
-	fprintf(out,"\t\tData pattern in buffer");
-	if (p->target_options & (TO_RANDOM_PATTERN | TO_SEQUENCED_PATTERN | TO_INVERSE_PATTERN | TO_ASCII_PATTERN | TO_HEX_PATTERN | TO_PATTERN_PREFIX)) {
-		if (p->target_options & TO_RANDOM_PATTERN) fprintf(out,",random ");
-		if (p->target_options & TO_SEQUENCED_PATTERN) fprintf(out,",sequenced ");
-		if (p->target_options & TO_INVERSE_PATTERN) fprintf(out,",inversed ");
-		if (p->target_options & TO_ASCII_PATTERN) fprintf(out,",ASCII: '%s' <%d bytes> %s ",
-			p->dpp->data_pattern,(int)p->dpp->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
-		if (p->target_options & TO_HEX_PATTERN) {
-			fprintf(out,",HEX: 0x");
-			for (i=0; i<p->dpp->data_pattern_length; i++) 
-				fprintf(out,"%02x",p->dpp->data_pattern[i]);
-			fprintf(out, " <%d bytes>, %s\n",
-				(int)p->dpp->data_pattern_length, (p->target_options & TO_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
+	if (p->dpp) {
+		dpp = p->dpp;
+		fprintf(out,"\t\tData pattern in buffer");
+		if (dpp->data_pattern_options & (DP_RANDOM_PATTERN | DP_SEQUENCED_PATTERN | DP_INVERSE_PATTERN | DP_ASCII_PATTERN | DP_HEX_PATTERN | DP_PATTERN_PREFIX)) {
+			if (dpp->data_pattern_options & DP_RANDOM_PATTERN) fprintf(out,",random ");
+			if (dpp->data_pattern_options & DP_SEQUENCED_PATTERN) fprintf(out,",sequenced ");
+			if (dpp->data_pattern_options & DP_INVERSE_PATTERN) fprintf(out,",inversed ");
+			if (dpp->data_pattern_options & DP_ASCII_PATTERN) fprintf(out,",ASCII: '%s' <%d bytes> %s ",
+				dpp->data_pattern,(int)dpp->data_pattern_length, (dpp->data_pattern_options & DP_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
+			if (dpp->data_pattern_options & DP_HEX_PATTERN) {
+				fprintf(out,",HEX: 0x");
+				for (i=0; i<dpp->data_pattern_length; i++) 
+					fprintf(out,"%02x",dpp->data_pattern[i]);
+				fprintf(out, " <%d bytes>, %s\n",
+					(int)dpp->data_pattern_length, (dpp->data_pattern_options & DP_REPLICATE_PATTERN)?"Replicated":"Not Replicated");
+			}
+			if (dpp->data_pattern_options & DP_PATTERN_PREFIX)  {
+				fprintf(out,",PREFIX: 0x");
+				for (i=0; i<dpp->data_pattern_prefix_length; i+=2) 
+					fprintf(out,"%02x",dpp->data_pattern_prefix[i]);
+				fprintf(out, " <%d nibbles>\n", (int)dpp->data_pattern_prefix_length);
+			}
+		} else { // Just display the one-byte hex pattern 
+			fprintf(out,",0x%02x\n",dpp->data_pattern[0]);
 		}
-		if (p->target_options & TO_PATTERN_PREFIX)  {
-			fprintf(out,",PREFIX: 0x");
-			for (i=0; i<p->dpp->data_pattern_prefix_length; i+=2) 
-				fprintf(out,"%02x",p->dpp->data_pattern_prefix[i]);
-			fprintf(out, " <%d nibbles>\n", (int)p->dpp->data_pattern_prefix_length);
-		}
-	} else { // Just display the one-byte hex pattern 
-		fprintf(out,",0x%02x\n",p->dpp->data_pattern[0]);
+		if (dpp->data_pattern_options & DP_FILE_PATTERN) 
+			fprintf(out," From file: %s\n",dpp->data_pattern_filename);
 	}
-	if (p->target_options & TO_FILE_PATTERN) 
-		fprintf(out," From file: %s\n",p->dpp->data_pattern_filename);
 	fprintf(out,"\t\tData buffer verification is");
 	if ((p->target_options & (TO_VERIFY_LOCATION | TO_VERIFY_CONTENTS)))
 		fprintf(out," enabled for %s verification.\n", (p->target_options & TO_VERIFY_LOCATION)?"Location":"Content");

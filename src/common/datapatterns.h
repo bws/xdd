@@ -28,8 +28,24 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#define DP_RANDOM_PATTERN              0x0000000000000001ULL  // Use random data pattern for write operations 
+#define DP_SEQUENCED_PATTERN           0x0000000000000002ULL  // Sequenced Data Pattern in the data buffer 
+#define DP_ASCII_PATTERN               0x0000000000000004ULL  // ASCII Data Pattern in the data buffer 
+#define DP_HEX_PATTERN                 0x0000000000000008ULL  // HEXIDECIMAL Data Pattern in the data buffer 
+#define DP_SINGLECHAR_PATTERN          0x0000000000000010ULL  // Single character Data Pattern in the data buffer 
+#define DP_FILE_PATTERN                0x0000000000000020ULL  // Name of file that contains the Data Pattern 
+#define DP_REPLICATE_PATTERN           0x0000000000000040ULL  // Replicate Data Pattern throughout the data buffer 
+#define DP_LFPAT_PATTERN               0x0000000000000080ULL  // Low Frequency FC/SAS pattern 
+#define DP_LTPAT_PATTERN               0x0000000000000100ULL  // Low Transition FC/SAS pattern 
+#define DP_CJTPAT_PATTERN              0x0000000000000200ULL  // Receiver Jitter FC/SAS pattern 
+#define DP_CRPAT_PATTERN               0x0000000000000400ULL  // Random FC/SAS pattern 
+#define DP_CSPAT_PATTERN               0x0000000000000800ULL  // Supply Noise FC/SAS pattern 
+#define DP_PATTERN_PREFIX              0x0000000000001000ULL  // Indicates that there is a data pattern prefix 
+#define DP_INVERSE_PATTERN             0x0000000000002000ULL  // Apply a 1's compliment to the data pattern 
+#define DP_NAME_PATTERN                0x0000000000004000ULL  // Use the specified name at the beginning of the data pattern
 
 struct xdd_data_pattern {
+	unsigned long long	data_pattern_options; 		// Type of data pattern options to use
 	unsigned char		*data_pattern; 				// Data pattern for write operations for each target - 
 													//      This is the ASCII string representation of the pattern 
 	unsigned char		*data_pattern_value; 		// This is the 64-bit hex value  
