@@ -78,10 +78,10 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 	if (trigp1 == NULL)
 		return(0);
 
-	if ((p->target_options & TO_WAITFORSTART) && (p->run_status == 0)) { 
+	if ((p->target_options & TO_WAITFORSTART) && (trigp1->run_status == 0)) { 
 		/* Enter the barrier and wait to be told to go */
 		xdd_barrier(&trigp1->target_target_starttrigger_barrier,&p->occupant,1);
-		p->run_status = 1; /* indicate that we have been released */
+		trigp1->run_status = 1; /* indicate that we have been released */
 	}
 
 	/* Check to see if we need to signal some other target to start, stop, or pause.
@@ -90,7 +90,7 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 	if (trigp1->trigger_types) {
 		p2 = xgp->ptdsp[trigp1->start_trigger_target];
 		trigp2 = p2->trigp;
-		if (p2->run_status == 0) {
+		if (trigp2->run_status == 0) {
 			if (trigp1->trigger_types & TRIGGER_STARTTIME) {
 			/* If we are past the start time then signal the specified target to start */
 				pclk_now(&tt);

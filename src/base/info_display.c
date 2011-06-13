@@ -235,9 +235,6 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	ptds_t 				*mp, *sp; /* Master and Slave ptds pointers */
 	xdd_data_pattern_t	*dpp;
 
-    // Only display information for qthreads if requested
-    if (!(p->target_options & TO_QTHREAD_INFO) && (p->my_qthread_number > 0))
-        return;
 
 	fprintf(out,"\tTarget number, %d\n",p->my_target_number);
 	fprintf(out,"\t\tFully qualified target pathname, '%s'\n",p->target_full_pathname);

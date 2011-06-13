@@ -2490,38 +2490,6 @@ xddfunc_queuedepth(int32_t argc, char *argv[], uint32_t flags)
 	}
 }
 /*----------------------------------------------------------------------------*/
-int
-xddfunc_qthreadinfo(int32_t argc, char *argv[], uint32_t flags)
-{
-    int args, i; 
-    int target_number;
-    ptds_t *p;
-
-
-    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
-    if (args < 0) return(-1);
-
-    // At this point the "target_number" is valid
-	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(target_number, argv[0]);
-		if (p == NULL) return(-1);
-
-		p->target_options |= TO_QTHREAD_INFO;
-        return(args+1);
-    }else { // Put this option into all PTDSs 
-		if (flags & XDD_PARSE_PHASE2) {
-			p = xgp->ptdsp[0];
-			i = 0;
-			while (p) {
-				p->target_options |= TO_QTHREAD_INFO;
-				i++;
-				p = xgp->ptdsp[i];
-			}
-		}
-	return(1);
-	}
-}
-/*----------------------------------------------------------------------------*/
 // Specify that the seek list should be randomized between passes
 // Arguments: -randomize [target #]
 

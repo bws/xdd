@@ -46,10 +46,8 @@ xdd_show_ptds(ptds_t *p) {
 	//pthread_t  			qthread;			// Handle for this QThread 
 	fprintf(xgp->output,"my_target_number, %d My target number \n",p->my_target_number);	
 	fprintf(xgp->output,"my_qthread_number,%d My queue number within this target \n",p->my_qthread_number);	
-	fprintf(xgp->output,"my_thread_number, %d My thread number relative to the total number of threads \n",p->my_thread_number); 	
 	fprintf(xgp->output,"my_thread_id,     %d My system thread ID (like a process ID) \n",p->my_thread_id);  	
 	fprintf(xgp->output,"my_pid,           %d My process ID \n",p->my_pid);   			
-	fprintf(xgp->output,"total_threads,    %d Total number of threads -> target threads + QThreads \n",p->total_threads); 	
 	fprintf(xgp->output,"fd,               %d File Descriptor for the target device/file \n",p->fd);
 	fprintf(xgp->output,"target_open_flags,0x%8x Flags used during open processing of a target \n",(unsigned int)p->target_open_flags);
 	fprintf(xgp->output,"rwbuf           0x%p The re-aligned I/O buffers \n",p->rwbuf);
@@ -66,7 +64,6 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"qthread_ops,      %lld Total number of ops to perform per qthread \n",(long long)p->qthread_ops);
 	fprintf(xgp->output,"target_ops,       %lld Total number of ops to perform on behalf of a target \n",(long long)p->target_ops);
 //	seekhdr_t			seekhdr;  			// For all the seek information 
-//	results_t			qthread_average_results;	// Averaged results for this qthread - accumulated over all passes
 //	FILE				*tsfp;   			// Pointer to the time stamp output file 
 	fprintf(xgp->output,"bytes_issued      %lld Bytes currently scheduled for I/O but not complete \n",(long long int)p->bytes_issued);
 	fprintf(xgp->output,"bytes_completed   %lld Bytes that have completed transfer \n",(long long int)p->bytes_completed);
@@ -101,7 +98,6 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"run_start_time                 %lld This is time t0 of this run - set by xdd_main \n",(long long int)p->run_start_time);
 	fprintf(xgp->output,"first_pass_start_time          %lld Time the first pass started but before the first operation is issued \n",(long long int)p->first_pass_start_time);
 	fprintf(xgp->output,"target_bytes_to_xfer_per_pass  %lld Number of bytes to xfer per pass for the entire target (all qthreads) \n",(long long int)p->target_bytes_to_xfer_per_pass);
-	fprintf(xgp->output,"qthread_bytes_to_xfer_per_pass %lld Number of bytes to xfer per pass for this qthread \n",(long long int)p->qthread_bytes_to_xfer_per_pass);
 	fprintf(xgp->output,"block_size                     %d Size of a block in bytes for this target \n",p->block_size);
 	fprintf(xgp->output,"queue_depth                    %d Command queue depth for each target \n",p->queue_depth);
 	fprintf(xgp->output,"preallocate                    %lld File preallocation value \n",(long long int)p->preallocate);

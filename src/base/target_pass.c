@@ -42,8 +42,9 @@ xdd_targetpass(ptds_t *p) {
 	/* Before we get started, check to see if we need to reset the 
 	 * run_status in case we are using the start trigger.
 	 */
-	if (p->target_options & TO_WAITFORSTART) 
-		p->run_status = 0;
+	if (p->target_options & TO_WAITFORSTART) {
+		if (p->trigp) p->trigp->run_status = 0;
+	}
 
 	// This barrier is to ensure that all TARGETS start at same time 
 

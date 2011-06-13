@@ -61,7 +61,7 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->ts_options = DEFAULT_TS_OPTIONS;
 	p->target_options = DEFAULT_TARGET_OPTIONS; // Zero the target options field
 	p->time_limit = DEFAULT_TIME_LIMIT;
-	p->run_status = 1;   /* This is the status of this thread 0=not started, 1=running */
+	if (p->trigp) p->trigp->run_status = 1;   /* This is the status of this thread 0=not started, 1=running */
 	p->numreqs = 0; // This must init to 0
 	p->report_threshold = DEFAULT_REPORT_THRESHOLD;
 	p->flushwrite_current_count = 0;
@@ -126,8 +126,6 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->e2e_dest_addr = 0;
 	p->e2e_wait_1st_msg = 0;
 	p->e2e_address_table_next_entry=0;
-	/* Init the results structure */
-	memset((unsigned char *)&p->qthread_average_results,0,sizeof(results_t)); 
 
 	sprintf(p->occupant_name,"TARGET%04d",p->my_target_number);
 	xdd_init_barrier_occupant(&p->occupant, p->occupant_name, XDD_OCCUPANT_TYPE_TARGET, p);
@@ -216,7 +214,6 @@ xdd_create_qthread_ptds(ptds_t *tp, int32_t q) {
 	newqp->next_qp = NULL; 
 	newqp->restartp = NULL; // Zero this because the Target PTDS is the only PTDS with a restart struct
 	newqp->my_qthread_number = q;
-	newqp->my_thread_number = xgp->number_of_iothreads;
 	xgp->number_of_iothreads++;
 	
 	sprintf(newqp->occupant_name,"TARGET%04d_QTHREAD%04d",newqp->my_target_number,newqp->my_qthread_number); 
@@ -283,8 +280,6 @@ xdd_build_ptds_substructure(void) {
 		// The TargetThread PTDS is allocated during parsing for each target that is identified.
 		tp = xgp->ptdsp[target_number];
 
-		// Get my absolute thread number 
-		tp->my_thread_number = xgp->number_of_iothreads;
 		xgp->number_of_iothreads++;
 
 		// If this is an end-to-end operation, figure out the number of QThreads 

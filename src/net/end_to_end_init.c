@@ -308,11 +308,10 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 	qp->e2e_sname.sin_port = htons(qp->e2e_dest_port);
 	qp->e2e_snamelen = sizeof(qp->e2e_sname);
 	if (bind(qp->e2e_sd, (struct sockaddr *) &qp->e2e_sname, qp->e2e_snamelen)) {
-		sprintf(msg,"Error binding name to socket - addr=0x%08x, port=0x%08x, specified as %d plus my_thread_number number %d\n",
+		sprintf(msg,"Error binding name to socket - addr=0x%08x, port=0x%08x, specified as %d \n",
 			qp->e2e_sname.sin_addr.s_addr, 
 			qp->e2e_sname.sin_port,
-			qp->e2e_dest_port,
-			qp->my_thread_number);
+			qp->e2e_dest_port);
 		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket",msg);
 		return(-1);
 	}

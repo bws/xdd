@@ -46,6 +46,7 @@ struct	xdd_triggers	{
 	uint32_t			trigger_types;				// This is the type of trigger to administer to another target 
 	int32_t				start_trigger_target;		// The number of the target to send the start trigger to 
 	int32_t				stop_trigger_target;		// The number of the target to send the stop trigger to 
+	char				run_status;					// 0= this thread is not running, 1=running
 	xdd_barrier_t		target_target_starttrigger_barrier;	// Start Trigger Barrier 
 };
 typedef struct xdd_triggers xdd_triggers_t;

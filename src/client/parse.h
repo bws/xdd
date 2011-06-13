@@ -105,7 +105,6 @@ int xddfunc_preallocate(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_processlock(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_processor(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_queuedepth(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_qthreadinfo(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_randomize(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_readafterwrite(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_reallyverbose(int32_t argc, char *argv[], uint32_t flags);

@@ -70,7 +70,6 @@
 #define TO_RECREATE                    0x0000000400000000ULL  // ReCreate targets for each pass 
 #define TO_SYNCWRITE                   0x0000000800000000ULL  // Sync buffered write operations 
 #define TO_PASS_RANDOMIZE              0x0000001000000000ULL  // Pass randomize 
-#define TO_QTHREAD_INFO                0x0000002000000000ULL  // Display Q thread information 
 #define TO_VERIFY_CONTENTS             0x0000004000000000ULL  // Verify the contents of the I/O buffer 
 #define TO_VERIFY_LOCATION             0x0000008000000000ULL  // Verify the location of the I/O buffer (first 8 bytes) 
 #define TO_RESTART_ENABLE              0x0000010000000000ULL  // Restart option enabled 
@@ -89,12 +88,8 @@ struct ptds {
 	pthread_t  			qthread;			// Handle for this QThread 
 	int32_t   			my_target_number;	// My target number 
 	int32_t   			my_qthread_number;	// My queue number within this target 
-	int32_t   			my_thread_number; 	// My thread number relative to the total number of threads
 	int32_t   			my_thread_id;  		// My system thread ID (like a process ID) 
 	int32_t   			my_pid;   			// My process ID 
-	int32_t   			total_threads; 		// Total number of threads -> target threads + QThreads 
-	int32_t   			run_complete; 		// 0 = thread has not completed yet, 1= completed this run
-	uint32_t			run_status; 		// This is the status of this thread 0=not started, 1=running 
 #ifdef WIN32
 	HANDLE   			fd;    				// File HANDLE for the target device/file 
 #else
@@ -115,7 +110,6 @@ struct ptds {
 	int64_t				qthread_ops;  		// Total number of ops to perform per qthread 
 	int64_t				target_ops;  		// Total number of ops to perform on behalf of a "target"
 	seekhdr_t			seekhdr;  			// For all the seek information 
-	results_t			qthread_average_results;	// Averaged results for this qthread - accumulated over all passes
 	FILE				*tsfp;   			// Pointer to the time stamp output file 
 #ifdef WIN32
 	HANDLE				*ts_serializer_mutex; // needed to circumvent a Windows bug 
@@ -216,7 +210,6 @@ struct ptds {
 	pclk_t				run_start_time; 			// This is time t0 of this run - set by xdd_main
 	pclk_t				first_pass_start_time; 		// Time the first pass started but before the first operation is issued
 	uint64_t			target_bytes_to_xfer_per_pass; 	// Number of bytes to xfer per pass for the entire target (all qthreads)
-	uint64_t			qthread_bytes_to_xfer_per_pass;	// Number of bytes to xfer per pass for this qthread
 	int32_t				block_size;  				// Size of a block in bytes for this target 
 	int32_t				queue_depth; 				// Command queue depth for each target 
 	int64_t				preallocate; 				// File preallocation value 
@@ -281,14 +274,9 @@ struct ptds {
 	// Updated by the QThread at different times
 	char				my_time_limit_expired;		// Time limit expired indicator
 	char				abort;						// Abort this operation (either a QThread or a Target Thread)
-	char				available2;					// padding
-	char				available3;					// padding
-	char				available4;					// padding
-	char				available5;					// padding
-	char				available6;					// padding
-	char				available7;					// padding
-	int32_t				my_current_state;			// State of this thread at any given time (see Current State definitions below)
+	char				run_complete;				// Indicates that the entire RUN of all PASSES has completed
 	pthread_mutex_t 	my_current_state_mutex; 	// Mutex for locking when checking or updating the state info
+	int32_t				my_current_state;			// State of this thread at any given time (see Current State definitions below)
 	// State Definitions for "my_current_state"
 #define	CURRENT_STATE_INIT								0x0000000000000001	// Initialization 
 #define	CURRENT_STATE_IO								0x0000000000000002	// Waiting for an I/O operation to complete
