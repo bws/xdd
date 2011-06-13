@@ -200,7 +200,6 @@ xdd_show_global_data(void) {
 	fprintf(xgp->output,"run_error_count_exceeded  %d - The alarm that goes off when the number of errors for this run has been exceeded \n",xgp->run_error_count_exceeded);
 	fprintf(xgp->output,"run_time_expired          %d - The alarm that goes off when the total run time has been exceeded \n",xgp->run_time_expired);
 	fprintf(xgp->output,"run_complete              %d - Set to a 1 to indicate that all passes have completed \n",xgp->run_complete);
-	fprintf(xgp->output,"deskew_ring               %d - The alarm that goes off when the the first thread finishes \n",xgp->deskew_ring);
 	fprintf(xgp->output,"abort                     %d - abort the run due to some catastrophic failure \n",xgp->abort);
 	fprintf(xgp->output,"random_initialized        %d - Random number generator has been initialized \n",xgp->random_initialized);
 /* information needed to access the Global Time Server */

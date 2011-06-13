@@ -91,19 +91,14 @@ xdd_ts_setup(ptds_t *p) {
 	}
 
 	/* Calculate size of the time stamp table and malloc it */
-	if (xgp->global_options & GO_DESKEW) { /* This is a case where the target has time stamping already enabled as well as deskew */
-		/* Make sure the ts table is large enough for the deskew operation */
-		tt_entries = (xgp->passes * p->target_ops) + p->queue_depth; /* calculate the size */
-	} else {
-		tt_entries = p->ts_size; 
-		if (tt_entries < ((xgp->passes * p->target_ops) + p->queue_depth)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
-			if (((p->ts_options & TS_WRAP) == 0) &&
-				((p->ts_options & TS_ONESHOT) == 0) &&
-				(!(xgp->global_options & GO_DESKEW))) {
-				fprintf(xgp->errout,"%s: ***NOTICE*** The size specified for timestamp table for target %d is too small - enabling time stamp wrapping to compensate\n",xgp->progname,p->my_target_number);
-				fflush(xgp->errout);
-				p->ts_options |= TS_WRAP;
-			}
+	tt_entries = p->ts_size; 
+	if (tt_entries < ((xgp->passes * p->target_ops) + p->queue_depth)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
+		if (((p->ts_options & TS_WRAP) == 0) &&
+			((p->ts_options & TS_ONESHOT) == 0) &&
+			(!(xgp->global_options & GO_DESKEW))) {
+			fprintf(xgp->errout,"%s: ***NOTICE*** The size specified for timestamp table for target %d is too small - enabling time stamp wrapping to compensate\n",xgp->progname,p->my_target_number);
+			fflush(xgp->errout);
+			p->ts_options |= TS_WRAP;
 		}
 	}
 	/* calculate the total size in bytes of the time stamp table */

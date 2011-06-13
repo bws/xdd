@@ -98,7 +98,6 @@ struct xdd_global_data {
 	char			run_time_expired;  					/* The alarm that goes off when the total run time has been exceeded */
 	char			run_error_count_exceeded; 			/* The alarm that goes off when the number of errors has been exceeded */
 	char			run_complete;   					/* Set to a 1 to indicate that all passes have completed */
-	char			deskew_ring;    					/* The alarm that goes off when the the first thread finishes */
 	char			abort;       						/* Abort the run due to some catastrophic failure */
 	char			canceled;       					/* Program canceled by user */
 	char			random_initialized;     			/* Random number generator has been initialized */
@@ -173,10 +172,6 @@ struct xdd_global_data {
 #ifdef LINUX
 	rlim_t	rlimit;
 #endif
-	/* teporary until DESKEW results are fixed */
-	double			deskew_total_rates;
-	double			deskew_total_time;
-	uint64_t		deskew_total_bytes;
 
 }; // End of Definition of the xdd_globals data structure
 

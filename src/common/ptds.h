@@ -295,11 +295,6 @@ struct ptds {
 	pclk_t        		open_start_time; 			// Time just before the open is issued for this target 
 	pclk_t        		open_end_time; 				// Time just after the open completes for this target 
 
-	// The following variables are used for Deskew Operations
-	uint64_t      		front_end_skew_bytes; 		// The number of bytes transfered during the front end skew period 
-	uint64_t      		deskew_window_bytes; 		// The number of bytes transferred during the deskew window 
-	uint64_t      		back_end_skew_bytes; 		// The number of bytes transfered during the back end skew period 
-
     // -------------------------------------------------------------------
 	// The following "e2e_" members are for the End to End ( aka -e2e ) option
 	// The Target Option Flag will have either TO_E2E_DESTINATION or TO_E2E_SOURCE set to indicate

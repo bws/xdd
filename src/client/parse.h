@@ -62,7 +62,6 @@ int xddfunc_csvout(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_debug(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_deletefile(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_deskew(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_devicefile(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_dio(int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_dryrun(int32_t argc, char *argv[], uint32_t flags);

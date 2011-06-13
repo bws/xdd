@@ -624,19 +624,6 @@ xddfunc_deletefile(int32_t argc, char *argv[], uint32_t flags)
 	}
 } // End of xddfunc_deletefile()
 /*----------------------------------------------------------------------------*/
-// Deskew the data rates after a run
-int
-xddfunc_deskew(int32_t argc, char *argv[], uint32_t flags)
-{
-	if (flags & XDD_PARSE_PHASE2) {
-		xgp->global_options |= GO_DESKEW;
-		xgp->deskew_total_bytes = 0;
-		xgp->deskew_total_time = 0;
-		xgp->deskew_total_rates = 0;
-	}
-    return(1);
-} // End of xddfunc_deskew()
-/*----------------------------------------------------------------------------*/
 // Arguments: -devicefile [target #] - OBSOLETE
 int
 xddfunc_devicefile(int32_t argc, char *argv[], uint32_t flags)

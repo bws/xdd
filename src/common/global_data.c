@@ -82,7 +82,6 @@ xdd_init_globals(char *progname) {
 	xgp->run_error_count_exceeded = 0;       /* The alarm that goes off when the number of errors for this run has been exceeded */
 	xgp->run_time_expired = 0;       /* The alarm that goes off when the total run time has been exceeded */
 	xgp->run_complete = 0; 
-	xgp->deskew_ring = 0;    /* The alarm that goes off when the the first thread finishes */
 	xgp->abort = 0;       /* abort the run due to some catastrophic failure */
 	xgp->number_of_iothreads = 0;    /* number of threads spawned for all targets */
 	xgp->run_time = 0;               /* Length of time to run all targets, all passes */
@@ -95,11 +94,6 @@ xdd_init_globals(char *progname) {
 	xgp->XDDMain_Thread = pthread_self();
 	xgp->heartbeat_holdoff = 0;  	/* used by results manager to suspend or cancel heartbeat displays */
 	xgp->format_string = DEFAULT_OUTPUT_FORMAT_STRING;
-
-/* teporary until DESKEW results are fixed */
-	xgp->deskew_total_rates = 0;
-	xgp->deskew_total_time = 0;
-	xgp->deskew_total_bytes = 0;
 
 	// Allocate a suitable buffer for the run ID ASCII string
 	xgp->id = (char *)malloc(MAX_IDLEN);
