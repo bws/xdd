@@ -18,8 +18,8 @@ master_repo_path=/home/nightly/xdd/repo/xdd.git
 # Because access to the master is limited, we have to relay through another
 # hosts local ports
 #
-master_host=localhost
-master_port=30022
+master_host=natureboy.ornl.gov
+master_port=22
 
 #
 # Print out some diagnostics
