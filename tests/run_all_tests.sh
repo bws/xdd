@@ -37,7 +37,7 @@ function handle_exit
     pkill -KILL -u nightly -P 1 xdd.Linux >/dev/null 2>&1
 
     # Kill any remaning members of process group (e.g. the timeout signaller)
-    kill 0 >/dev/null 2>&1
+    #kill 0 >/dev/null 2>&1
 }
 
 #
