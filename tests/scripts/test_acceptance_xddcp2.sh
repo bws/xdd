@@ -42,7 +42,7 @@ $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 8000 -qd 4
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
 scp $XDDTEST_XDD_EXE $XDDTEST_E2E_DEST:~/bin/xdd.Linux &>/dev/null
-$XDDTEST_XDDCP_EXE -f -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
+$XDDTEST_XDDCP_EXE -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
 #
