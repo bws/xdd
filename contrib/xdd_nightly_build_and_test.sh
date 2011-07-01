@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -x
 #
 # Nightly build and test script for XDD
 #
@@ -70,7 +70,6 @@ BUILD_RC=$?
 #
 # Build XDD tests (relies on Fedora specific junk.  Will require fix.)
 #
-module load openmpi-x86_64
 make test >>$build_log 2>&1
 BUILD_TEST_RC=$?
 
