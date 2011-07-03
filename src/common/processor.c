@@ -107,7 +107,7 @@ xdd_processor(ptds_t *p) {
 		fprintf(xgp->errout,"%s: WARNING: Error setting the CPU mask when trying to schedule processor affinity\n",xgp->progname);
 		perror("Reason");
 	}
-	if (xgp->global_options&GO_REALLYVERBOSE);
+	if (xgp->global_options&GO_REALLYVERBOSE)
 		fprintf(xgp->output,"%s: INFORMATION: Assigned processor %d to pid %d threadid %d \n",
 			xgp->progname,
 			p->processor,

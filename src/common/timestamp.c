@@ -281,7 +281,7 @@ xdd_ts_reports(ptds_t *p) {
 		ttp = p->ttp;
 		/* Open the correct output file */
 		if (xgp->ts_output_filename_prefix != 0) {
-			if (p->ts_options && TS_APPEND)
+			if (p->ts_options & TS_APPEND)
 				p->tsfp = fopen(p->ts_output_filename, "a");
 			else p->tsfp = fopen(p->ts_output_filename, "w");
 			if (p->tsfp == NULL)  {

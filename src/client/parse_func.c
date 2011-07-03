@@ -2541,7 +2541,7 @@ xddfunc_readafterwrite(int32_t argc, char *argv[], uint32_t flags)
 					xgp->progname, target_number, argv[i+2]);
 			return(0);
 		}
-		i += args, i;  /* skip past the "target <taget number>" */
+		i += args;  /* skip past the "target <taget number>" */
 	}
 	/* At this point "i" points to the raw "option" argument */
 	if (strcmp(argv[i], "trigger") == 0) { /* set the the trigger type */
