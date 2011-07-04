@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <limits.h>
 #include <signal.h>
 #include <errno.h>

@@ -206,6 +206,11 @@ AC_SUBST(CONFIG_CFLAGS, "$CONFIG_CFLAGS")
 AC_SUBST(CONFIG_LDFLAGS, "$CONFIG_LDFLAGS")
 
 dnl
+dnl Check whether to enable assertions
+dnl
+AC_HEADER_ASSERT
+
+dnl
 dnl Ensure that XDDCP required utilities are present
 dnl
 xddcp_disable="no"
