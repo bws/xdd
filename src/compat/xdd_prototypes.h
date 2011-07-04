@@ -144,7 +144,6 @@ void	xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 void	xdd_unlock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 
 // net_utils.c
-struct xdd_network_address;
 int32_t	xdd_lookup_addr(const char *name, int addrtype, uint32_t flags, struct xdd_network_address *result);
 
 // parse.c

@@ -123,7 +123,7 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->e2e_dest_port = DEFAULT_E2E_PORT;
 	p->e2e_address_table_host_count = 0;
 	p->e2e_address_table_port_count = 0;
-	p->e2e_dest_addr = 0;
+	memset(&p->e2e_dest_addr, 0, sizeof(p->e2e_dest_addr));
 	p->e2e_wait_1st_msg = 0;
 	p->e2e_address_table_next_entry=0;
 

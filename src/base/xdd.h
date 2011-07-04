@@ -48,4 +48,3 @@
 #include "xdd_common.h"
 #include "xdd_prototypes.h"
 #include "global_data.h"
-#include "net_utils.h"

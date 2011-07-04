@@ -45,6 +45,7 @@
 #include "sgio.h"
 #include "triggers.h"
 #include "extended_stats.h"
+#include "net_utils.h"
 
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS
@@ -302,8 +303,8 @@ struct ptds {
 	//
 	char				*e2e_dest_hostname; 	// Name of the Destination machine 
 	char				*e2e_src_hostname; 		// Name of the Source machine 
-	in_addr_t			e2e_dest_addr;  		// Destination Address number of the E2E socket 
-	in_port_t			e2e_dest_port;  		// Port number to use for the E2E socket 
+	struct xdd_network_address e2e_dest_addr;  		// Destination Address of the E2E socket 
+	in_port_t			e2e_dest_port;  		// Port number to use for the E2E socket (host byte order)
 	int32_t				e2e_sd;   				// Socket descriptor for the E2E message port 
 	int32_t				e2e_nd;   				// Number of Socket descriptors in the read set 
 	sd_t				e2e_csd[FD_SETSIZE];	// Client socket descriptors 

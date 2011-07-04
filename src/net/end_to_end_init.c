@@ -95,8 +95,7 @@ xdd_e2e_qthread_init(ptds_t *qp)
 	}
 
 	assert(addr.type == XDD_ADDRESS_INET4);
-	// Convert to host byte order
-	qp->e2e_dest_addr = ntohl(addr.u.in4addr.s_addr);
+	qp->e2e_dest_addr = addr;
 
 	if (qp->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
 		status = xdd_e2e_dest_init(qp);
@@ -191,7 +190,7 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 	/* Now build the "name" of the DESTINATION machine socket thingy and connect to it. */
 	(void) memset(&qp->e2e_sname, 0, sizeof(qp->e2e_sname));
 	qp->e2e_sname.sin_family = AF_INET;
-	qp->e2e_sname.sin_addr.s_addr = htonl(qp->e2e_dest_addr);
+	qp->e2e_sname.sin_addr = qp->e2e_dest_addr.u.in4addr;
 	qp->e2e_sname.sin_port = htons(qp->e2e_dest_port);
 	qp->e2e_snamelen = sizeof(qp->e2e_sname);
 
@@ -313,7 +312,7 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 	/* Bind the name to the socket */
 	(void) memset(&qp->e2e_sname, 0, sizeof(qp->e2e_sname));
 	qp->e2e_sname.sin_family = AF_INET;
-	qp->e2e_sname.sin_addr.s_addr = htonl(qp->e2e_dest_addr);
+	qp->e2e_sname.sin_addr = qp->e2e_dest_addr.u.in4addr;
 	qp->e2e_sname.sin_port = htons(qp->e2e_dest_port);
 	qp->e2e_snamelen = sizeof(qp->e2e_sname);
 	if (bind(qp->e2e_sd, (struct sockaddr *) &qp->e2e_sname, qp->e2e_snamelen)) {
