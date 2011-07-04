@@ -96,7 +96,7 @@ xdd_e2e_qthread_init(ptds_t *qp)
 
 	assert(addr.type == XDD_ADDRESS_INET4);
 	// Convert to host byte order
-	qp->e2e_dest_addr = ntohl(addr.u.in4addr.sin_addr.s_addr);
+	qp->e2e_dest_addr = ntohl(addr.u.in4addr.s_addr);
 
 	if (qp->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
 		status = xdd_e2e_dest_init(qp);

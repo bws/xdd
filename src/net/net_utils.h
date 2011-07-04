@@ -34,10 +34,10 @@
 #define XDD_ADDRESS_INET4 AF_INET  // IPv4 address
 #define XDD_ADDRESS_INET6 AF_INET6  // IPv6 address
 struct xdd_network_address {
-	int type;
+	int type;  // XDD_ADDRESS_INET4 or XDD_ADDRESS_INET6
 	union {
-		struct sockaddr_in in4addr;
-		struct sockaddr_in6 in6addr;
+		struct in_addr in4addr;  // Address if type == XDD_ADDRESS_INET4
+		struct in6_addr in6addr;  // Address if type == XDD_ADDRESS_INET6
 	} u;
 };
 

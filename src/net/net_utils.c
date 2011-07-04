@@ -115,10 +115,12 @@ xdd_lookup_addr(const char *name, int addrtype, uint32_t flags,
 					xgp->progname, status, gai_strerror(status));
 		} else {
 			assert(addrinfo->ai_family == addrtype);
-			assert(addrinfo->ai_addrlen <= sizeof(addr.u));
 			addr.type = addrtype;
-			memcpy(&addr.u, addrinfo->ai_addr, 
-				   MIN(addrinfo->ai_addrlen, sizeof(addr.u)));  // XXX: is this correct?
+			if (addrinfo->ai_family == AF_INET6) {
+				addr.u.in6addr = ((struct sockaddr_in6*)addrinfo->ai_addr)->sin6_addr;
+			} else {  // AF_INET
+				addr.u.in4addr = ((struct sockaddr_in*)addrinfo->ai_addr)->sin_addr;
+			}
 			freeaddrinfo(addrinfo);
 			addrinfo = NULL;
 			found = 1;
