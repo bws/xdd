@@ -31,6 +31,16 @@
 #ifndef NET_UTILS_H
 #define NET_UTILS_H
 
+#define XDD_ADDRESS_INET4 AF_INET  // IPv4 address
+#define XDD_ADDRESS_INET6 AF_INET6  // IPv6 address
+struct xdd_network_address {
+	int type;
+	union {
+		struct sockaddr_in in4addr;
+		struct sockaddr_in6 in6addr;
+	} u;
+};
+
 // Flags for xdd_lookup_addr()
 #define XDD_LOOKUP_IGNORE_CACHE  (1 << 0) // Neither read from nor write to the cache when performing a lookup
 

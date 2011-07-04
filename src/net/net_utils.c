@@ -30,8 +30,8 @@
  */
 /*
  * This file implements a resolver cache so that lookups for the same
- * name return the same IP address within a given XDD process. Space
- * for the cache is is statically allocated and can contain at most
+ * name return the same address within a given XDD process. Space for
+ * the cache is is statically allocated and can contain at most
  * MAX_ADDR_CACHE_ENTRIES entries.
  */
 #include "xdd.h"
@@ -43,45 +43,53 @@ static pthread_mutex_t addr_cache_mutex = PTHREAD_MUTEX_INITIALIZER;  // Mutex t
 static int addr_cache_entries = 0;  // The number of entries present in the cache
 static struct {
 	char name[HOSTNAMELENGTH];  // Hostname
-	in_addr_t addr;  // IPv4 address
+	struct xdd_network_address addr;  // Address
 } addr_cache_entry[MAX_ADDR_CACHE_ENTRIES];  // The address cache implementation as an array of (name, address) pairs
 
 /*----------------------------------------------------------------------*/
 /* xdd_lookup_addr() - resolve the address for a host, possibly using the cache
  * 
- * This subroutine will translate a hostname to an IPv4 address using
- * the system resolver library. If the name has been previously
- * resolved then the subroutine can optionally return a cached
- * result. The purpose of the cache is primarily to defeat DNS
- * round-robin schemes. It has the added advantage of minimizing the
- * number of DNS query packets transmitted over the network. Use of
- * the cache can be disabled on a per-request basis using the
- * XDD_LOOKUP_IGNORE_CACHE flag.
+ * This subroutine will translate a hostname to an address using the
+ * system resolver library. If the name has been previously resolved
+ * then the subroutine can optionally return a cached result. The
+ * purpose of the cache is primarily to defeat DNS round-robin
+ * schemes. It has the added advantage of minimizing the number of DNS
+ * query packets transmitted over the network. Use of the cache can be
+ * disabled on a per-request basis using the XDD_LOOKUP_IGNORE_CACHE
+ * flag.
  *
  * The `name' argument can contain any of the node names recognized by
  * the getaddrinfo(3) function.
  *
  * Function arguments:
  *     - name, the hostname of the machine to lookup
+ *     - addrtype, the type of address to return (XDD_ADDRESS_INET4 or XDD_ADDRESS_INET6)
  *     - flags, a bitmask of options controlling the lookup
  *     - result, the location where the address will be stored upon successful return
  *
  * The size of the cache is fixed at compile-time. Entries in the
  * cache never expire and are never replaced. If the cache is too
  * small to contain a new entry then a warning message is displayed
- * and the new entry is not cached.
+ * and the new entry is not cached. The cache may contain two entries
+ * with the same name provided the entries have different address
+ * types.
  * 
  * Return values: 0 is good, -1 is bad
  */
 int32_t
-xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result)
+xdd_lookup_addr(const char *name, int addrtype, uint32_t flags,
+				struct xdd_network_address *result)
 {
-	in_addr_t addr;
+	struct xdd_network_address addr;
 	int hit = 0, found = 0;
 	struct addrinfo hints;
 	struct addrinfo *addrinfo = NULL;
 	int status;
 	int i;
+
+	assert(addrtype == XDD_ADDRESS_INET4 || addrtype == XDD_ADDRESS_INET6);
+
+	memset(&addr, 0, sizeof(addr));
 
 	// Lock out the entire function to prevent race conditions
 	pthread_mutex_lock(&addr_cache_mutex);
@@ -89,7 +97,8 @@ xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result)
 	// Search the cache first if this feature has not been disabled
 	if (!(flags & XDD_LOOKUP_IGNORE_CACHE)) {
 		for (i = 0; i < addr_cache_entries && !found; i++) {
-			if (!strcmp(addr_cache_entry[i].name, name)) {
+			if (addr_cache_entry[i].addr.type == addrtype &&
+				!strcmp(addr_cache_entry[i].name, name)) {
 				addr = addr_cache_entry[i].addr;
 				hit = found = 1;
 			}
@@ -99,14 +108,17 @@ xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result)
 	// Query the resolver library if the address was not found
 	if (!found) {
 		memset(&hints, 0, sizeof(hints));
-		hints.ai_family = AF_INET;  // Only return IPv4 addresses
+		hints.ai_family = addrtype;  // Rely on the XDD_ADDRESS_* constants mapping to AF_*
 		status = getaddrinfo(name, NULL, &hints, &addrinfo);
 		if (status) {
 			fprintf(xgp->errout, "%s: xdd_lookup_addr: status %d: %s\n",
 					xgp->progname, status, gai_strerror(status));
 		} else {
-			assert(addrinfo->ai_family == AF_INET);
-			addr = ((struct sockaddr_in*)addrinfo->ai_addr)->sin_addr.s_addr;
+			assert(addrinfo->ai_family == addrtype);
+			assert(addrinfo->ai_addrlen <= sizeof(addr.u));
+			addr.type = addrtype;
+			memcpy(&addr.u, addrinfo->ai_addr, 
+				   MIN(addrinfo->ai_addrlen, sizeof(addr.u)));  // XXX: is this correct?
 			freeaddrinfo(addrinfo);
 			addrinfo = NULL;
 			found = 1;

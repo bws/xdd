@@ -69,7 +69,7 @@ int32_t
 xdd_e2e_qthread_init(ptds_t *qp)
 {
 	int status;
-	in_addr_t addr;
+	struct xdd_network_address addr;
 
 	qp->e2e_sr_time = 0;
 
@@ -86,15 +86,17 @@ xdd_e2e_qthread_init(ptds_t *qp)
 	}
 
 	// Get the IP address of the destination host
-	status = xdd_lookup_addr(qp->e2e_dest_hostname, 0, &addr);
+	status = xdd_lookup_addr(qp->e2e_dest_hostname, XDD_ADDRESS_INET4,
+							 0, &addr);
 	if (status) {
 		fprintf(xgp->errout, "%s: xdd_e2e_qthread_init: unable to identify host '%s'\n",
 				xgp->progname, qp->e2e_dest_hostname);
 		return(-1);
 	}
 
+	assert(addr.type == XDD_ADDRESS_INET4);
 	// Convert to host byte order
-	qp->e2e_dest_addr = ntohl(addr);
+	qp->e2e_dest_addr = ntohl(addr.u.in4addr.sin_addr.s_addr);
 
 	if (qp->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
 		status = xdd_e2e_dest_init(qp);
