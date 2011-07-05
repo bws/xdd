@@ -703,6 +703,7 @@ xddfunc_dryrun(int32_t argc, char *argv[], uint32_t flags)
 //				port <number>
 //				issource
 //				isdestination
+//				protocol ipv4|ipv6
 // 
 int
 xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
@@ -717,6 +718,7 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 	int		number_of_ports;
 	int 	len;
 	char	cmdline[256];
+	int	addrtype;
 
 
 	if (argc <= 1) {
@@ -1003,6 +1005,38 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 			}
 		}
 		xgp->global_options |= GO_ENDTOEND;
+		return(args_index);
+	} else if ((strcmp(argv[args_index], "protocol") == 0) ||
+			   (strcmp(argv[args_index], "proto") == 0)) {
+		// Set the Internet Protocol version (IPv4 or IPv6) used for addresses
+		args_index++;
+		if ((strcmp(argv[args_index], "ipv4") == 0) ||
+			(strcmp(argv[args_index], "4") == 0)) {
+			addrtype = XDD_ADDRESS_INET4;
+		} else if ((strcmp(argv[args_index], "ipv6") == 0) ||
+				   (strcmp(argv[args_index], "6") == 0)) {
+			addrtype = XDD_ADDRESS_INET6;
+		} else {
+			fprintf(stderr, "%s: Invalid End-to-End protocol %s\n",
+					xgp->progname, argv[args_index]);
+			return(0);
+		}
+		args_index++;
+		if (target_number >= 0) {
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			p->e2e_addrtype = addrtype;
+		} else {  // Set option for all targets
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) {
+					p->e2e_addrtype = addrtype;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+		}
 		return(args_index);
 	} else {
 		fprintf(stderr,"%s: Invalid End-to-End option %s\n",xgp->progname, argv[args_index]);

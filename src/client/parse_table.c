@@ -135,7 +135,7 @@ xdd_func_t  xdd_func[] = {
     {"endtoend", "e2e",
             xddfunc_endtoend,
             1,
-            "  -endtoend [target #]  issource | isdestination | destination <hostname[:baseport#[,portcount]]> | port <#> | portcount <#>\n",
+            "  -endtoend [target #]  issource | isdestination | destination <hostname[:baseport#[,portcount]]> | port <#> | portcount <#> | protocol (ipv4|ipv6)\n",
             {"    Specifies a source and destination information for doing end-to-end test between two machines",
             0,0,0,0},
 			0},

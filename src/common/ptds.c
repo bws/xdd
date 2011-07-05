@@ -120,6 +120,7 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->e2e_sd = 0; /* destination machine socket descriptor */
 	p->e2e_src_hostname = NULL;  /* E2E source hostname */
 	p->e2e_dest_hostname = NULL;  /* E2E destination hostname */
+	p->e2e_addrtype = XDD_ADDRESS_INET4;  // Default to IPv4
 	p->e2e_dest_port = DEFAULT_E2E_PORT;
 	p->e2e_address_table_host_count = 0;
 	p->e2e_address_table_port_count = 0;

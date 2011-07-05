@@ -86,7 +86,7 @@ xdd_e2e_qthread_init(ptds_t *qp)
 	}
 
 	// Get the IP address of the destination host
-	status = xdd_lookup_addr(qp->e2e_dest_hostname, XDD_ADDRESS_INET4,
+	status = xdd_lookup_addr(qp->e2e_dest_hostname, qp->e2e_addrtype,
 							 0, &addr);
 	if (status) {
 		fprintf(xgp->errout, "%s: xdd_e2e_qthread_init: unable to identify host '%s'\n",
@@ -94,7 +94,6 @@ xdd_e2e_qthread_init(ptds_t *qp)
 		return(-1);
 	}
 
-	assert(addr.type == XDD_ADDRESS_INET4);
 	qp->e2e_dest_addr = addr;
 
 	if (qp->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
