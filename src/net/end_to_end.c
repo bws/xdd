@@ -75,7 +75,7 @@ xdd_e2e_src_send(ptds_t *qp) {
 	nclk_now(&qp->my_current_net_start_time);
 	while (sent < qp->e2e_iosize) {
 		sendsize = (qp->e2e_iosize-sent) > maxmit ? maxmit : (qp->e2e_iosize-sent);
-		qp->e2e_send_status = sendto(qp->e2e_sd,(char *)qp->rwbuf+sent, sendsize, 0, (struct sockaddr *)&qp->e2e_sname, sizeof(struct sockaddr_in));
+		qp->e2e_send_status = send(qp->e2e_sd,(char *)qp->rwbuf+sent, sendsize, 0);
 		sent += qp->e2e_send_status;
                 sentcalls++;
 	}
@@ -89,7 +89,7 @@ xdd_e2e_src_send(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].net_xfer_calls = sentcalls;
 	}
 	
-	// Calculate the Send/Receive time by the time it took the last sendto() to run
+	// Calculate the Send/Receive time by the time it took the last send() to run
 	qp->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);
 
 	if (sent != qp->e2e_iosize) {
@@ -145,7 +145,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	if (FD_ISSET(qp->e2e_sd, &qp->e2e_readset)) { /* Process an incoming connection */
 		qp->e2e_current_csd = qp->e2e_next_csd;
 
-		qp->e2e_csd[qp->e2e_current_csd] = accept(qp->e2e_sd, (struct sockaddr *)&qp->e2e_rname,&qp->e2e_rnamelen);
+		qp->e2e_csd[qp->e2e_current_csd] = accept(qp->e2e_sd, NULL, NULL);
 
 		FD_SET(qp->e2e_csd[qp->e2e_current_csd], &qp->e2e_active); /* Mark this fd as active */
 		FD_SET(qp->e2e_csd[qp->e2e_current_csd], &qp->e2e_readset); /* Put in readset so that it gets processed */
@@ -353,7 +353,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	while (sent < qp->e2e_iosize) {
 		sendsize = (qp->e2e_iosize-sent) > maxmit ? maxmit : (qp->e2e_iosize-sent);
 
-		qp->e2e_send_status = sendto(qp->e2e_sd,((char *)qp->rwbuf)+sent, sendsize, 0, (struct sockaddr *)&qp->e2e_sname, sizeof(struct sockaddr_in));
+		qp->e2e_send_status = send(qp->e2e_sd,((char *)qp->rwbuf)+sent, sendsize, 0);
 		if (qp->e2e_send_status <= 0) {
 			xdd_e2e_err(qp,"xdd_e2e_eof_source_side","ERROR: error sending EOF to destination\n");
 			return(-1);
@@ -363,7 +363,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	}
 	nclk_now(&qp->my_current_net_end_time);
 	
-	// Calculate the Send/Receive time by the time it took the last sendto() to run
+	// Calculate the Send/Receive time by the time it took the last send() to run
 	qp->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);
 	// If time stamping is on then we need to reset these values
    	if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {

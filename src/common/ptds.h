@@ -310,10 +310,8 @@ struct ptds {
 	sd_t				e2e_csd[FD_SETSIZE];	// Client socket descriptors 
 	fd_set				e2e_active;  			// This set contains the sockets currently active 
 	fd_set				e2e_readset; 			// This set is passed to select() 
-	struct sockaddr_in  e2e_sname; 				// used by setup_server_socket 
-	uint32_t			e2e_snamelen; 			// the length of the socket name 
-	struct sockaddr_in  e2e_rname; 				// used by destination machine to remember the name of the source machine 
-	uint32_t			e2e_rnamelen; 			// the length of the source socket name 
+	struct sockaddr_storage  e2e_sname; 				// used by setup_server_socket 
+	socklen_t			e2e_snamelen; 			// the length of the socket name 
 	int32_t				e2e_current_csd; 		// the current csd used by the select call on the destination side
 	int32_t				e2e_next_csd; 			// The next available csd to use 
 	int32_t				e2e_iosize;   			// Number of bytes per End to End request - size of data buffer plus size of E2E Header

@@ -174,13 +174,14 @@ int32_t
 xdd_e2e_setup_src_socket(ptds_t *qp) {
 	int  	status; /* status of send/recv function calls */
 	char 	msg[256];
-	int 	type;
+	int 	domain, type;
 
+	domain = (qp->e2e_dest_addr.type == XDD_ADDRESS_INET6 ? AF_INET6 : AF_INET);
 	// The socket type is SOCK_STREAM because this is a TCP connection 
 	type = SOCK_STREAM;
 
 	// Create the socket 
-	qp->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
+	qp->e2e_sd = socket(domain, type, IPPROTO_TCP);
 	if (qp->e2e_sd < 0) {
 		xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","ERROR: error openning socket\n");
 		return(-1);
@@ -189,10 +190,21 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 
 	/* Now build the "name" of the DESTINATION machine socket thingy and connect to it. */
 	(void) memset(&qp->e2e_sname, 0, sizeof(qp->e2e_sname));
-	qp->e2e_sname.sin_family = AF_INET;
-	qp->e2e_sname.sin_addr = qp->e2e_dest_addr.u.in4addr;
-	qp->e2e_sname.sin_port = htons(qp->e2e_dest_port);
-	qp->e2e_snamelen = sizeof(qp->e2e_sname);
+	if (domain == AF_INET6) {
+		struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)&qp->e2e_sname;
+
+		sa6->sin6_family = AF_INET6;
+		sa6->sin6_addr = qp->e2e_dest_addr.u.in6addr;
+		sa6->sin6_port = htons(qp->e2e_dest_port);
+		qp->e2e_snamelen = sizeof(*sa6);
+	} else {  // AF_INET
+		struct sockaddr_in *sa4 = (struct sockaddr_in*)&qp->e2e_sname;
+
+		sa4->sin_family = AF_INET;
+		sa4->sin_addr = qp->e2e_dest_addr.u.in4addr;
+		sa4->sin_port = htons(qp->e2e_dest_port);
+		qp->e2e_snamelen = sizeof(qp->e2e_sname);
+	}
 
 	// Connecting to the server....
 	status = connect(qp->e2e_sd, (struct sockaddr *) &qp->e2e_sname, sizeof(qp->e2e_sname));
@@ -294,14 +306,16 @@ int32_t
 xdd_e2e_setup_dest_socket(ptds_t *qp) {
 	int  	status;
 	char 	msg[256];
-	int 	type;
+	char	prettyaddr[64];
+	int 	domain, type;
 
 
+	domain = (qp->e2e_dest_addr.type == XDD_ADDRESS_INET6 ? AF_INET6 : AF_INET);
 	// Set the "type" of socket being requested: for TCP, type=SOCK_STREAM 
 	type = SOCK_STREAM;
 
 	// Create the socket 
-	qp->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
+	qp->e2e_sd = socket(domain, type, IPPROTO_TCP);
 	if (qp->e2e_sd < 0) {
 		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket","ERROR: error openning socket\n");
 		return(-1);
@@ -311,15 +325,27 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 
 	/* Bind the name to the socket */
 	(void) memset(&qp->e2e_sname, 0, sizeof(qp->e2e_sname));
-	qp->e2e_sname.sin_family = AF_INET;
-	qp->e2e_sname.sin_addr = qp->e2e_dest_addr.u.in4addr;
-	qp->e2e_sname.sin_port = htons(qp->e2e_dest_port);
-	qp->e2e_snamelen = sizeof(qp->e2e_sname);
+	if (domain == AF_INET6) {
+		struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)&qp->e2e_sname;
+
+		sa6->sin6_family = AF_INET6;
+		sa6->sin6_addr = qp->e2e_dest_addr.u.in6addr;
+		sa6->sin6_port = htons(qp->e2e_dest_port);
+		qp->e2e_snamelen = sizeof(*sa6);
+		inet_ntop(AF_INET6, &sa6->sin6_addr, prettyaddr, 64);
+	} else {  // AF_INET
+		struct sockaddr_in *sa4 = (struct sockaddr_in*)&qp->e2e_sname;
+
+		sa4->sin_family = AF_INET;
+		sa4->sin_addr = qp->e2e_dest_addr.u.in4addr;
+		sa4->sin_port = htons(qp->e2e_dest_port);
+		qp->e2e_snamelen = sizeof(*sa4);
+		inet_ntop(AF_INET, &sa4->sin_addr, prettyaddr, 64);
+	}
 	if (bind(qp->e2e_sd, (struct sockaddr *) &qp->e2e_sname, qp->e2e_snamelen)) {
-		sprintf(msg,"Error binding name to socket - addr=0x%08x, port=0x%08x, specified as %d \n",
-			qp->e2e_sname.sin_addr.s_addr, 
-			qp->e2e_sname.sin_port,
-			qp->e2e_dest_port);
+		snprintf(msg, 256, "Error binding name to socket - addr=%s, port=%u\n",
+				 prettyaddr,
+				 (unsigned int)qp->e2e_dest_port);
 		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket",msg);
 		return(-1);
 	}
