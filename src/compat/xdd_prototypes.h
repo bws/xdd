@@ -64,13 +64,14 @@ int32_t xdd_e2e_eof_source_side(ptds_t *qp);
 int32_t xdd_e2e_eof_destination_side(ptds_t *qp);
 
 // end_to_end_init.c
+int32_t	xdd_e2e_target_init(ptds_t *p);
+int32_t	xdd_e2e_qthread_init(ptds_t *qp);
 int32_t	xdd_e2e_src_init(ptds_t *qp);
 int32_t	xdd_e2e_setup_src_socket(ptds_t *qp);
 int32_t	xdd_e2e_dest_init(ptds_t *qp);
 int32_t	xdd_e2e_setup_dest_socket(ptds_t *qp);
 void	xdd_e2e_set_socket_opts(ptds_t *qp, char *sktname, int skt);
 void	xdd_e2e_prt_socket_opts(char *sktname, int skt);
-void	xdd_e2e_gethost_error(char *str);
 void	xdd_e2e_err(ptds_t *qp, char const *whence, char const *fmt, ...);
 int32_t	xdd_sockets_init(void);
 
@@ -141,6 +142,9 @@ int32_t	xdd_lockstep_after_pass(ptds_t *p);
 // memory.c
 void	xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 void	xdd_unlock_memory(unsigned char *bp, uint32_t bsize, char *sp);
+
+// net_utils.c
+int32_t	xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result);
 
 // parse.c
 void		xdd_parse_args(int32_t argc, char *argv[], uint32_t flags);

@@ -1,4 +1,4 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
+/* Copyright (C) 1992-2011 I/O Performance, Inc. and the
  * United States Departments of Energy (DoE) and Defense (DoD)
  *
  * This program is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
  *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Brad Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
  *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
@@ -28,24 +28,19 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xdd_base_version.h"
-#if WIN32
-#include "xdd_win32.h"
-#elif LINUX
-#include "xdd_linux.h"
-#elif OSX
-#include "xdd_osx.h"
-#elif FREEBSD
-#include "xdd_freebsd.h"
-#elif SOLARIS
-#include "xdd_solaris.h"
-#elif AIX
-#include "xdd_aix.h"
-#elif IRIX
-#include "xdd_irix.h"
-#endif
+#ifndef NET_UTILS_H
+#define NET_UTILS_H
 
-#include "xdd_common.h"
-#include "xdd_prototypes.h"
-#include "global_data.h"
-#include "net_utils.h"
+// Flags for xdd_lookup_addr()
+#define XDD_LOOKUP_IGNORE_CACHE  (1 << 0) // Neither read from nor write to the cache when performing a lookup
+
+#endif /* NET_UTILS_H */
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

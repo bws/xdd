@@ -135,6 +135,13 @@ xdd_target_init(ptds_t *p) {
 	if (status) 
 		return(-1);
 
+	// Special setup for an End-to-End operation
+	if (p->target_options & TO_ENDTOEND) {
+		status = xdd_e2e_target_init(p);
+		if (status)
+			return(-1);
+	}
+
 	// Start the QThreads
 	status = xdd_target_init_start_qthreads(p);
 	if (status) 

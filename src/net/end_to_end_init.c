@@ -35,6 +35,79 @@
 #include "xdd.h"
 
 /*----------------------------------------------------------------------*/
+/* xdd_e2e_target_init() - init socket library
+ * This routine is called during target initialization to initialize the
+ * socket library.
+ *
+ * Return values: 0 is good, -1 is bad
+ *
+ */
+int32_t
+xdd_e2e_target_init(ptds_t *p)
+{
+	int status;
+
+	// Init the sockets - This is actually just for Windows that requires some additional initting
+	status = xdd_sockets_init();
+	if (status == -1) {
+		xdd_e2e_err(p,"xdd_e2e_target_init","could not initialize sockets for e2e target\n");
+		return(-1);
+	}
+
+	return(0);
+}
+
+/*----------------------------------------------------------------------*/
+/* xdd_e2e_qthread_init() - init source and destination sides
+ * This routine is called during QThread initialization to initialize
+ * a source or destination QThread.
+ *
+ * Return values: 0 is good, -1 is bad
+ *
+ */
+int32_t
+xdd_e2e_qthread_init(ptds_t *qp)
+{
+	int status;
+	in_addr_t addr;
+
+	qp->e2e_sr_time = 0;
+
+	if(qp->e2e_dest_hostname == NULL) {
+		fprintf(xgp->errout,"%s: xdd_e2e_qthread_init: Target %d QThread %d: No DESTINATION host name or IP address specified for this end-to-end operation.\n",
+				xgp->progname,
+				qp->my_target_number,
+				qp->my_qthread_number);
+		fprintf(xgp->errout,"%s: xdd_e2e_qthread_init: Target %d QThread %d: Use the '-e2e destination' option to specify the DESTINATION host name or IP address.\n",
+				xgp->progname,
+				qp->my_target_number,
+				qp->my_qthread_number);
+		return(-1);
+	}
+
+	// Get the IP address of the destination host
+	status = xdd_lookup_addr(qp->e2e_dest_hostname, 0, &addr);
+	if (status) {
+		fprintf(xgp->errout, "%s: xdd_e2e_qthread_init: unable to identify host '%s'\n",
+				xgp->progname, qp->e2e_dest_hostname);
+		return(-1);
+	}
+
+	// Convert to host byte order
+	qp->e2e_dest_addr = ntohl(addr);
+
+	if (qp->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
+		status = xdd_e2e_dest_init(qp);
+	} else if (qp->target_options & TO_E2E_SOURCE) { // This is the Source side of an End-to-End
+		status = xdd_e2e_src_init(qp);
+	} else { // Should never reach this point
+		status = -1;
+	}
+
+	return status;
+}
+
+/*----------------------------------------------------------------------*/
 /* xdd_e2e_src_init() - init the source side 
  * This routine is called from the xdd io thread before all the action 
  * starts. When calling this routine, it is because this thread is on the
@@ -102,39 +175,6 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 	char 	msg[256];
 	int 	type;
 
-
-	// Init the sockets - This is actually just for Windows that requires some additional initting
-	status = xdd_sockets_init(); 
-	if (status == -1) {
-		xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","Could not initialize sockets for e2e source\n");
-		return(-1);
-	}
-
-	if(qp->e2e_dest_hostname == NULL) {
-		fprintf(xgp->errout,"%s: xdd_e2e_setup_src_socket: Target %d QThread %d: No DESTINATION host name or IP address specified for this end-to-end operation.\n",
-			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number);
-		fprintf(xgp->errout,"%s: xdd_e2e_setup_src_socket: Target %d QThread %d: Use the '-e2e destination' option to specify the DESTINATION host name or IP address.\n",
-			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number);
-		return(-1);
-	}
-
-	/* Get the IP address of the destination host */
-	qp->e2e_dest_hostent = gethostbyname(qp->e2e_dest_hostname);
-	if (!(qp->e2e_dest_hostent)) {
-		sprintf(msg,"xdd_e2e_setup_src_socket: Target %d QThread %d: Unable to identify the destination host <%s>for this e2e operation.",
-			qp->my_target_number,
-			qp->my_qthread_number, 
-			qp->e2e_dest_hostname);
-		xdd_e2e_gethost_error(msg);
-		return(-1);
-	}
-
-	qp->e2e_dest_addr = ntohl(((struct in_addr *) qp->e2e_dest_hostent->h_addr)->s_addr);
-
 	// The socket type is SOCK_STREAM because this is a TCP connection 
 	type = SOCK_STREAM;
 
@@ -160,10 +200,6 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 		return(-1);
 	}
 
-	// Convert this back so that we retain the correct information to use with send/recv
-	qp->e2e_dest_addr = ntohl(qp->e2e_sname.sin_addr.s_addr);
-	qp->e2e_dest_port = ntohs(qp->e2e_sname.sin_port);
-
 	return(0);
 
 } /* end of xdd_e2e_setup_src_socket() */
@@ -181,7 +217,6 @@ int32_t
 xdd_e2e_dest_init(ptds_t *qp) {
 	int  		status; // status of various function calls 
 	restart_t	*rp;	// Pointer to a restart structure used by the restart_monitor()
-
 
 	// Check to make sure that the destination target is actually *writing* the data it receives to a file or device
 	if (qp->rwratio > 0.0) { // Something is wrong - the destination file/device is not 100% write
@@ -261,34 +296,6 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 	int 	type;
 
 
-	// Init the sockets - This is actually just for Windows that requires some additional initting
-	status = xdd_sockets_init(); 
-	if (status == -1) {
-		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket","could not initialize sockets for e2e destination\n");
-		return(-1);
-	}
-
-	if(qp->e2e_dest_hostname == NULL) {
-		fprintf(xgp->errout,"%s: xdd_e2e_setup_dest_socket: Target %d QThread %d: No DESTINATION host name or IP address specified for this end-to-end operation.\n",
-			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number);
-		fprintf(xgp->errout,"%s: xdd_e2e_setup_dest_socket: Target %d QThread %d: Use the '-e2e destination' option to specify the DESTINATION host name or IP address.\n",
-			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number);
-		return(-1);
-	}
-	// Get the IP address of this host 
-	qp->e2e_dest_hostent = gethostbyname(qp->e2e_dest_hostname);
-	if (! qp->e2e_dest_hostent) {
-		xdd_e2e_gethost_error("xdd_e2e_setup_dest_socket: unable to identify host");
-		return(-1);
-	}
-
-	// Translate the address to a 32-bit number
-	qp->e2e_dest_addr = ntohl(((struct in_addr *) qp->e2e_dest_hostent->h_addr)->s_addr);
-
 	// Set the "type" of socket being requested: for TCP, type=SOCK_STREAM 
 	type = SOCK_STREAM;
 
@@ -315,10 +322,6 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket",msg);
 		return(-1);
 	}
-
-	// Address is converted back at this point so that we can use it later for send/recv
-	qp->e2e_dest_addr = ntohl(qp->e2e_sname.sin_addr.s_addr);
-	qp->e2e_dest_port = ntohs(qp->e2e_sname.sin_port);
 
 	/* All set; prepare to accept connection requests */
 	if (type == SOCK_STREAM) { // If this is a stream socket then we need to listen for incoming data
@@ -399,40 +402,6 @@ xdd_e2e_prt_socket_opts(char *sktname, int skt) {
 	optlen = sizeof(reuse_addr);
 	getsockopt(skt,level,SO_REUSEADDR,(char *)&reuse_addr,&optlen);
 } // End of xdd_e2e_prt_socket_opts()
-
-/*----------------------------------------------------------------------*/
-/*
- * xdd_e2e_gethost_error() - This subroutine will display an error message
- * based on the value of h_errno which is the equivalent of errno 
- * but strictly for gethostbyname and gethostbyaddr operations.
- * The input parameter is a point to the associated string to print before
- * official explanation.
- */
-void 
-xdd_e2e_gethost_error(char *str) {
-	char *errmsg;
-
-	switch (h_errno) {
-		case HOST_NOT_FOUND:
-			errmsg="The specified host is unknown.";
-			break;
- 		case NO_ADDRESS: // aka NO_DATA which are the same value of h_errno
-			errmsg="The requested name is valid but does not have an IP address <NO_ADDRESS>.";
-			break;
-		case NO_RECOVERY:
-			errmsg="A non-recoverable name server error occurred.";
-			break;
-		case TRY_AGAIN:
-			errmsg="A temporary error occurred on an authoritative name server.  Try again later.";
-			break;
-		default:
-			errmsg="Unknown h_errno code.";
-			break;
-	}
-
-	fprintf(xgp->errout,"%s: %s: Reason: <h_errno: %d> %s\n", xgp->progname, str, h_errno, errmsg);
-
-} // End of xdd_e2e_gethost_error()
 
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_err(fmt...)

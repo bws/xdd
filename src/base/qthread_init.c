@@ -141,11 +141,8 @@ xdd_qthread_init(ptds_t *qp) {
 
 	// Set up for an End-to-End operation (if requested)
 	if (qp->target_options & TO_ENDTOEND) {
-		qp->e2e_sr_time = 0;
-		if (qp->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
-			status = xdd_e2e_dest_init(qp);
-		} else if (qp->target_options & TO_E2E_SOURCE) { // This is the Source side of an End-to-End
-			status = xdd_e2e_src_init(qp);
+		if (qp->target_options & (TO_E2E_DESTINATION|TO_E2E_SOURCE)) {
+			status = xdd_e2e_qthread_init(qp);
 		} else { // Not sure which side of the E2E this target is supposed to be....
 			fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: Cannot determine which side of the E2E operation this target is supposed to be.\n",
 				xgp->progname,
@@ -156,6 +153,7 @@ xdd_qthread_init(ptds_t *qp) {
 				fflush(xgp->errout);
 			return(-1);
 		}
+
 		if (status == -1) {
 			fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: E2E %s initialization failed.\n",
 				xgp->progname,

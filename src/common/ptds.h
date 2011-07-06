@@ -302,10 +302,7 @@ struct ptds {
 	//
 	char				*e2e_dest_hostname; 	// Name of the Destination machine 
 	char				*e2e_src_hostname; 		// Name of the Source machine 
-	struct hostent 		*e2e_dest_hostent; 		// For the destination host information 
-	struct hostent 		*e2e_src_hostent; 		// For the source host information 
 	in_addr_t			e2e_dest_addr;  		// Destination Address number of the E2E socket 
-	in_port_t 			e2e_dest_base_port;  	// The first of one or more ports to be used by multiple queuethreads 
 	in_port_t			e2e_dest_port;  		// Port number to use for the E2E socket 
 	int32_t				e2e_sd;   				// Socket descriptor for the E2E message port 
 	int32_t				e2e_nd;   				// Number of Socket descriptors in the read set 
