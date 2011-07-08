@@ -149,7 +149,7 @@ LDFLAGS = -ggdb -R $(INSTALL_DIR)/lib
 #
 $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
-CFLAGS = $(COMMONFLAGS) -DLINUX -O2 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED) -g -fno-strict-aliasing -fPIC -Wall
+CFLAGS = $(COMMONFLAGS) -DLINUX -O0 -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED) -g -fno-strict-aliasing -fPIC -Wall
 endif
 ifeq '$(OS)' 'Darwin' 
 CFLAGS = $(COMMONFLAGS) -DOSX -O2 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE -g
