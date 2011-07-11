@@ -190,7 +190,8 @@ xdd_options_info(FILE *out) {
 	char *c; 
 
 
-	fprintf(out,"IOIOIOIOIOIOIOIOIOIOI XDD version %s based on %s IOIOIOIOIOIOIOIOIOIOIOI\n",XDD_VERSION, XDD_BASE_VERSION);
+	fprintf(out,"IOIOIOIOIOIOIOIOIOIOI XDD version %s based on %s IOIOIOIOIOIOIOIOIOIOIOI\n",
+                PACKAGE_STRING, PACKAGE_VERSION);
 	fprintf(out,"%s\n",XDD_COPYRIGHT);
 	fprintf(out,"%s\n",XDD_DISCLAIMER);
 	xgp->current_time_for_this_run = time(NULL);

@@ -25,9 +25,8 @@
 XDD_DIR := @CONFIG_PROJECT_DIR@
 BUILD_DIR := @CONFIG_BUILD_DIR@
 INSTALL_DIR := @prefix@
-XFS_ENABLED_DEF := @CONFIG_XFS_ENABLED@ @CONFIG_XFS_PACKAGE@ @CONFIG_LINUX_MAGIC@
-UTMPX_ENABLED := @CONFIG_UTMPX_ENABLED@
 XDDCP_ENABLED := @XDDCP_ENABLED@
+XFS_ENABLED_DEF := @CONFIG_XFS_ENABLED@
 CC_EXE := @CC@
 DEPC_EXE := @DEPC_PATH@
 
@@ -49,20 +48,6 @@ RM = rm -f
 #
 SHELL =	/bin/sh
 OS = $(shell uname)
-
-#
-# Version information
-#
-DATESTAMP =	$(shell date +%m%d%y )
-BUILD 	=	$(shell date +%H%M )
-PROJECT =	xdd
-VERSION_MAJOR =	7
-VERSION_MINOR = 0
-VERSION_REV = 0
-VERSION_BUILD = rc21-pre
-VERSION = $(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_REV)-$(VERSION_BUILD)
-XDD_VERSION = $(VERSION)
-XDDVERSION = \"$(VERSION)\"
 
 #
 # Source locations
@@ -137,11 +122,7 @@ INCLUDES = -I$(BASE_DIR) -I$(CLIENT_DIR) -I$(COMMON_DIR) \
 
 ARFLAGS = -rcs 
 
-CPPFLAGS = -DXDD_VERSION=$(XDDVERSION) \
-	-DXDD_VERSION_MAJOR=$(VERSION_MAJOR) \
-	-DXDD_VERSION_MINOR=$(VERSION_MINOR) \
-	-DXDD_VERSION_REV=$(VERSION_REV) \
-	@DEFS@ \
+CPPFLAGS = @DEFS@ \
 	$(CONFIDENCE_ENABLED) \
 	$(INCLUDES)
 
@@ -158,7 +139,7 @@ SOFLAGS =
 #
 $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
-CPPFLAGS += -O0 -DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED)
+CPPFLAGS += -O0 -DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF)
 CFLAGS += -ggdb -fno-strict-aliasing -fPIC -Wall
 LDFLAGS += -ggdb
 LIBS += -lrt
@@ -354,7 +335,7 @@ spotless: clean
 	$(info Cleaning the distribution.)
 	$(RM) GNUMakefile
 	$(RM) Makefile
-	$(RM) Configure
+	$(RM) config.log config.status
 
 #
 # Include dependency makefiles if building source target

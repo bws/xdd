@@ -148,7 +148,7 @@ xdd_processor(ptds_t *p) {
 int
 xdd_get_processor() {
 
-#ifdef UTMPX_SUPPORT
+#ifdef HAVE_UTMPX_H
 		return( sched_getcpu() );
 #else
 		return(-1);

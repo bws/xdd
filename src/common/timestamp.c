@@ -131,10 +131,8 @@ xdd_ts_setup(ptds_t *p) {
 	xdd_ts_overhead(p->ttp);
 
         /* Set the XDD Version into the timestamp header */
-    p->ttp->magic = 0xDEADBEEF;
-    p->ttp->major = XDD_VERSION_MAJOR;
-    p->ttp->minor = XDD_VERSION_MINOR;
-    p->ttp->revision = XDD_VERSION_REV;
+        p->ttp->magic = 0xDEADBEEF;
+        p->ttp->version = PACKAGE_STRING;
         
 	/* init entries in the trace table header */
 	p->ttp->res = cycleval;
@@ -542,5 +540,13 @@ xdd_ts_reports(ptds_t *p) {
 	ReleaseMutex(p->ts_serializer_mutex);
 #endif
 } /* end of xdd_ts_reports() */
- 
- 
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

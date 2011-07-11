@@ -22,7 +22,7 @@ dnl
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
-AC_INIT(XDD,7.0.0.rc20)
+AC_INIT(XDD,7.0.0.pre-rc21)
 
 dnl
 dnl Include useful macros
@@ -69,27 +69,6 @@ dnl
 dnl Check for Standard C headers
 dnl
 AC_HEADER_STDC
-AC_CHECK_HEADER([stdio.h], 
-                [], 
-                AC_MSG_ERROR(Must include headers for libc))
-AC_CHECK_HEADER([stdlib.h], 
-                [], 
-                AC_MSG_ERROR(Must include headers for libc))
-AC_CHECK_HEADER([limits.h], 
-                [], 
-                AC_MSG_ERROR(Must include headers for libc))
-AC_CHECK_HEADER([signal.h], 
-                [], 
-                AC_MSG_ERROR(Must include headers for libc))
-AC_CHECK_HEADER([errno.h], 
-                [], 
-                AC_MSG_ERROR(Must include headers for libc))
-AC_CHECK_HEADER([string.h], 
-                [], 
-                AC_MSG_ERROR(Must include headers for libc))
-AC_CHECK_HEADER([math.h], 
-                [], 
-                AC_MSG_ERROR(Must include headers for libc))
 
 dnl
 dnl Headers common to all supported platforms
@@ -115,7 +94,7 @@ AC_TYPE_SIZE_T
 dnl
 dnl Checks for library functions.
 dnl
-AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNC([memset])
 
 dnl
 dnl Check for MPI compiler
@@ -126,15 +105,9 @@ dnl
 dnl Check if XFS support should be enabled
 dnl
 xfs_header_support="no"
-xfs_package=""
-AC_CHECK_HEADER([xfs/xfs.h],
-                [xfs_header_support="yes"; xfs_package="XFSPROGS_DEVEL"],
+AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h],
+                [xfs_header_support="yes"],
                 [xfs_header_support="no"])
-if test "x$xfs_header_support" = "xyes" ; then
-    AC_CHECK_HEADER([xfs/libxfs.h],
-		    [xfs_package="LIBXFS_DEVEL"],
-                    [])
-fi
 
 dnl
 dnl By default, try to add XFS support, only show errors if user requests XFS
@@ -165,18 +138,11 @@ fi
 dnl
 dnl Check for Linux Magic numbers
 dnl
-xfs_magic_support="no"
-if test "x$xfs_header_support" = "xyes" ; then
-    AC_CHECK_HEADER([linux/magic.h],
-                    [AC_CHECK_DECL(XFS_SUPER_MAGIC,
-                                   [xfs_magic_support="yes"], [], [],
-                                   [[#include <linux/magic.h>]])],
-                    [])
-
-fi
-if test "x$magic_header_support" = "xyes" ; then
-    AC_SUBST(CONFIG_LINUX_MAGIC, "-DMAGIC_XFS_SUPPORT")
-fi
+AC_CHECK_HEADERS([linux/magic.h],
+		 [AC_CHECK_DECLS(XFS_SUPER_MAGIC,
+                                 [], [], [],
+                                 [[#include <linux/magic.h>]])],
+                 [])
 
 
 dnl

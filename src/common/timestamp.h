@@ -71,9 +71,7 @@ typedef struct tte tte_t;
  */
 struct tthdr {
     uint32_t    magic;          /**< Magic number indicating the beginning of timestamp data */
-    uint32_t    major;          /**< Major version for timestamp data format */
-    uint32_t    minor;          /**< Minor version for timestamp data format */
-    uint32_t    revision;       /**< Revision number for timestamp data format */
+    char*       version;        /**< Version string for the timestamp data format */
     int32_t	reqsize; 	/**< size of these requests in 'blocksize'-byte blocks */
     int32_t 	blocksize; 	/**< size of each block in bytes */
     int64_t 	numents; 	/**< number of timestamp table entries */

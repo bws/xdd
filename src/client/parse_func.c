@@ -4541,7 +4541,7 @@ xddfunc_verbose(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_version(int32_t argc, char *argv[], uint32_t flags)
 {
-    fprintf(stdout,"%s: Version %s\n",xgp->progname, XDD_VERSION);
+    fprintf(stdout,"%s: Version %s\n",xgp->progname, PACKAGE_VERSION);
     exit(XDD_RETURN_VALUE_SUCCESS);
 }
 

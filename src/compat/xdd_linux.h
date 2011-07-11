@@ -88,22 +88,22 @@ void xdd_sg_get_version(ptds_t *p, int fd);
 
 extern int h_errno; // For socket calls
 
-#if XFS_ENABLED && XFSPROGS_DEVEL
+#if XFS_ENABLED && HAVE_XFS_XFS_H
 #include <xfs/xfs.h>
-#elif XFS_ENABLED && LIBXFS_DEVEL
+#elif XFS_ENABLED && HAVE_XFS_LIBXFS_H
 #include <xfs/xfs.h>
 #include <xfs/libxfs.h>
 #elif XFS_ENABLED
 #error "ERROR: XFS Support is enabled, but the header support is not valid."
 #endif
 
-#if LINUX_MAGIC_ENABLED
+#if HAVE_LINUX_MAGIC_H && HAVE_DECL_XFS_SUPER_MAGIC
 #include <linux/magic.h>
 #else
 #define XFS_SUPER_MAGIC 0x58465342
 #endif
 
-#ifdef UTMPX_SUPPORT
+#ifdef HAVE_UTMPX_H
 #include <utmpx.h>
 #endif
 
