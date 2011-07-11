@@ -4,6 +4,8 @@ XDD Release ChangeLog
 xdd-7.0.0 RC20
 ==============
 * XDD: Fix deadlock issue(s) in networking code.
+* XDDCP: Modify so that hostnames are resolved once by xddcp.  Note, this
+    does not fix the name resolution in XDD.
 
 xdd-7.0.0 RC19
 ==============
