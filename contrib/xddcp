@@ -37,6 +37,7 @@
 #
 # The following utilities (non-POSIX) are required to utilize XDDCP:
 #    dirname
+#    gethostip
 #    ssh
 #    stat
 #    tr
@@ -44,7 +45,6 @@
 #    xdd.Linux
 #
 # The following utilities are optionally used by XDDCP:
-#    gethostip
 #    netstat 
 #
 
@@ -83,6 +83,8 @@ XDDCP_ERR_CODE_DEST_DEV_FILE_SIZE=118
 XDDCP_ERR_CODE_DEST_DIR_NOT_XST=119
 XDDCP_ERR_CODE_DEST_DIR_NOT_WR=120
 XDDCP_ERR_CODE_DEST_TGT_NOT_WR=121
+XDDCP_ERR_CODE_DEST_IP=122
+XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND=123
 
 #
 # Global variables
@@ -140,8 +142,8 @@ function error_exit {
     #trap "multilevel_exit_handler $errorCode" EXIT
     error_print $errorCode
 
-    #echo "Call stack: $FUNCNAME"
-    #for ((i=0; i < ${#FUNCNAME[@]}; i=$i+1)); do
+#    echo "Call stack: $FUNCNAME"
+#    for ((i=0; i < ${#FUNCNAME[@]}; i=$i+1)); do
 #	echo "INFO: Call Stack ${FUNCNAME[$i]}"
 #    done
 
@@ -218,6 +220,12 @@ function error_print {
 	    ;;
         $XDDCP_ERR_CODE_DEST_TGT_NOT_WR)
 	    echo "ERROR: Destination target is not writable." >/dev/stderr
+	    ;;
+        $XDDCP_ERR_CODE_DEST_IP)
+	    echo "ERROR: Could not resolve destination IP address." >/dev/stderr
+	    ;;
+        $XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND)
+	    echo "ERROR: Could not find gethostip program." >/dev/stderr
 	    ;;
         \?) 
             echo "ERROR: Unknown error code" >/dev/stderr
@@ -309,6 +317,12 @@ function check_host_preconditions {
         error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
     else
         g_xddcpXddVersion=$(${XDDCP_DEFAULT_XDD} -version)
+    fi
+
+    # Check for gethostip binary
+    type -P gethostip &>/dev/null
+    if [ 0 -ne $? ]; then
+        error_exit $XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND
     fi
 
     # Ensure flag combinations are valid
@@ -1494,6 +1508,13 @@ function xddcp_main {
     # Ensure local option preconditions are met
     check_host_preconditions ${srcPath} ${fileListFlag} ${fileSizeFlag} \
 	${recursiveFlag} ${resumeFlag} ${forceFlag}
+
+    # Convert the destination host to its IP to avoid DNS round-robin issues
+    gethostip -d $destHost &> /dev/null
+    if [ 0 -ne $? ]; then
+        error_exit $XDD_ERR_CODE_DEST_IP
+    fi
+    destHost=$(gethostip -d $destHost)
 
     # Retry on failed transfer
     for ((i=0; i<=$retryCount; i=$i+1)); do

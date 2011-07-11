@@ -158,7 +158,7 @@ SOFLAGS =
 #
 $(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
-CPPFLAGS += -DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED)
+CPPFLAGS += -O0 -DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF) $(UTMPX_ENABLED)
 CFLAGS += -ggdb -fno-strict-aliasing -fPIC -Wall
 LDFLAGS += -ggdb
 LIBS += -lrt

@@ -172,14 +172,23 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 			pclk_now(&qp->my_current_net_start_time);
 			while (rcvd_so_far < qp->e2e_iosize) {
 				recvsize = (qp->e2e_iosize-rcvd_so_far) > maxmit ? maxmit : (qp->e2e_iosize-rcvd_so_far);
-				qp->e2e_recv_status = recvfrom(qp->e2e_csd[qp->e2e_current_csd], (char *) qp->rwbuf+rcvd_so_far, recvsize, MSG_WAITALL,NULL,NULL);
+				qp->e2e_recv_status = recvfrom(qp->e2e_csd[qp->e2e_current_csd], (char *) qp->rwbuf+rcvd_so_far, recvsize, 0, NULL,NULL);
 				// Check for other conditions that will get us out of this loop
-				if ((qp->e2e_recv_status <= 0) || 
-					(qp->e2e_recv_status == headersize)) 
+				if (qp->e2e_recv_status <= 0)
 					break;
 				// Otherwise, figure out how much data we got and go back for more if necessary
 				rcvd_so_far += qp->e2e_recv_status;
 			} // End of WHILE loop that received incoming data from the source machine
+
+			// bws: BAND-AID PATCH: EOF message padded to iosize, header must be sent at end;
+			// however, later code expects the header to be at the beginning of the buffer for EOF
+			if (rcvd_so_far == qp->e2e_iosize && 
+				((struct xdd_e2e_header*)(qp->rwbuf+qp->iosize))->magic == PTDS_E2E_MAGIQ) {
+				memmove(qp->rwbuf, qp->rwbuf+qp->iosize, sizeof(struct xdd_e2e_header));
+				qp->e2e_recv_status = headersize;
+			} else if (qp->e2e_recv_status > 0) {
+				qp->e2e_recv_status = rcvd_so_far;
+			}
 
 			pclk_now(&qp->my_current_net_end_time);
 
@@ -307,12 +316,10 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	ptds_t		*p;
 	int 		sent;		// Cumulative number of bytes sent if multiple sendto() invocations are necessary
 	int		sendsize; 	// The number of bytes to send for this invocation of sendto()
-	int		headersize; 	// Size of the E2E Header
 	int		maxmit;		// Maximum TCP transmission size
 
 
 	maxmit = MAXMIT_TCP;
-	headersize = sizeof(xdd_e2e_header_t);
 	p = qp->target_ptds;
 
 	pclk_now(&qp->my_current_net_start_time);
@@ -324,14 +331,23 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	qp->e2e_header.length = 0;	// NA - no data being sent other than the header
 	qp->e2e_header.magic = PTDS_E2E_MAGIQ;
 
+	// bws: BAND-AID PATCH: convert application protocol to use fixed-size messages
+	// previously an EOF message was exactly the size of a header,
+	// now it must be placed at the end to conform with data message protocol
+	memcpy(qp->rwbuf+qp->iosize, &qp->e2e_header, sizeof(qp->e2e_header));
+
 	if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
 		p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
 	// This will send the E2E Header to the Destination
 	sent = 0;
-	while (sent < headersize) {
-		sendsize = (headersize-sent) > maxmit ? maxmit : (headersize-sent);
+	while (sent < qp->e2e_iosize) {
+		sendsize = (qp->e2e_iosize-sent) > maxmit ? maxmit : (qp->e2e_iosize-sent);
 
-		qp->e2e_send_status = sendto(qp->e2e_sd,(char *)&qp->e2e_header, sendsize, 0, (struct sockaddr *)&qp->e2e_sname, sizeof(struct sockaddr_in));
+		qp->e2e_send_status = sendto(qp->e2e_sd,((char *)qp->rwbuf)+sent, sendsize, 0, (struct sockaddr *)&qp->e2e_sname, sizeof(struct sockaddr_in));
+		if (qp->e2e_send_status <= 0) {
+			xdd_e2e_err(qp,"xdd_e2e_eof_source_side","ERROR: error sending EOF to destination\n");
+			return(-1);
+		}
 		sent += qp->e2e_send_status;
 	}
 	pclk_now(&qp->my_current_net_end_time);
@@ -351,7 +367,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	}
 
 
-	if (sent != headersize) {
+	if (sent != qp->e2e_iosize) {
 		xdd_e2e_err(qp,"xdd_e2e_eof_source_side","ERROR: could not send EOF to destination\n");
 		return(-1);
 	}
