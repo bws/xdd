@@ -30,6 +30,8 @@
  */
 
 #define MAX_IDLEN 8192 // This is the maximum length of the Run ID Length field
+#define CTIME_BUFSZ 32  // Size of character buffer for the output from ctime(1)
+                        // POSIX-2008 says this must be at least 26 bytes
 
 /** typedef unsigned long long iotimer_t; */
 struct tte {
@@ -86,7 +88,7 @@ struct tthdr {
     uint64_t 	global_options;	/**< options used */
     uint64_t 	target_options;	/**< options used */
     char 	id[MAX_IDLEN]; 	/**< ID string */
-    char 	td[32];  	/**< time and date */
+    char 	td[CTIME_BUFSZ];  	/**< time and date */
     pclk_t 	timer_oh; 	/**< Timer overhead in nanoseconds */
     pclk_t 	delta;  	/**< Delta used for normalization */
     int64_t 	tt_bytes; 	/**< Size of the entire time stamp table in bytes */

@@ -119,7 +119,7 @@ xdd_ts_setup(ptds_t *p) {
 	/* Lock the time stamp table in memory */
 	xdd_lock_memory((unsigned char *)p->ttp, tt_bytes, "TIMESTAMP");
 	/* clear everything out of the trace table */
-	memset(p->ttp,tt_bytes, 0);
+	memset(p->ttp,0, tt_bytes);
 	/* get access to the high-res clock*/
 	pclk_initialize(&cycleval);
 	if (cycleval == PCLK_BAD) {
@@ -159,7 +159,7 @@ xdd_ts_setup(ptds_t *p) {
 	// Generate the name(s) of the ASCII and/or binary output files
 
 	// First we do the binary output file name
-	ts_filename_size = sizeof(xgp->ts_binary_filename_prefix) + 32;
+	ts_filename_size = strlen(xgp->ts_binary_filename_prefix) + 32;
     p->ts_binary_filename = malloc(ts_filename_size);
 	if (p->ts_binary_filename == NULL) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp binary output filename\n",
@@ -169,10 +169,10 @@ xdd_ts_setup(ptds_t *p) {
 		p->ts_options &= ~TS_ON;
 		return;
 	}
-	sprintf(p->ts_binary_filename,"%s.target.%04d.bin",xgp->ts_binary_filename_prefix,p->my_target_number);
+	snprintf(p->ts_binary_filename,ts_filename_size,"%s.target.%04d.bin",xgp->ts_binary_filename_prefix,p->my_target_number);
 
 	// Now do the ASCII output file name
-	ts_filename_size = sizeof(xgp->ts_output_filename_prefix) + 32;
+	ts_filename_size = strlen(xgp->ts_output_filename_prefix) + 32;
     p->ts_output_filename = malloc(ts_filename_size);
 	if (p->ts_output_filename == NULL) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp output filename\n",
@@ -182,7 +182,7 @@ xdd_ts_setup(ptds_t *p) {
 		p->ts_options &= ~TS_ON;
 		return;
 	}
-	sprintf(p->ts_output_filename,"%s.target.%04d.csv",xgp->ts_output_filename_prefix,p->my_target_number);
+	snprintf(p->ts_output_filename,ts_filename_size,"%s.target.%04d.csv",xgp->ts_output_filename_prefix,p->my_target_number);
 	return;
 } /* end of xdd_ts_setup() */
 /*----------------------------------------------------------------------------*/
