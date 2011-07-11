@@ -2,7 +2,7 @@
 XDD Release ChangeLog
 -----------------------
 
-xdd-7.0.0 RC21
+xdd-7.0.0 RC20
 ==============
 * XDDCP: Allow small file transfers, enable force mode as default,
 	only install xddcp if the gethostip utility exists.
