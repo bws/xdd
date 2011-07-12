@@ -132,7 +132,7 @@ xdd_ts_setup(ptds_t *p) {
 
         /* Set the XDD Version into the timestamp header */
         p->ttp->magic = 0xDEADBEEF;
-        p->ttp->version = PACKAGE_STRING;
+        snprintf(p->ttp->version, sizeof(p->ttp->version), "%s", PACKAGE_STRING);
         
 	/* init entries in the trace table header */
 	p->ttp->res = cycleval;

@@ -32,6 +32,7 @@
 #define MAX_IDLEN 8192 // This is the maximum length of the Run ID Length field
 #define CTIME_BUFSZ 32  // Size of character buffer for the output from ctime(1)
                         // POSIX-2008 says this must be at least 26 bytes
+#define XDD_VERSION_BUFSZ 64  // Size of the character buffer for the XDD version string
 
 /** typedef unsigned long long iotimer_t; */
 struct tte {
@@ -73,7 +74,7 @@ typedef struct tte tte_t;
  */
 struct tthdr {
     uint32_t    magic;          /**< Magic number indicating the beginning of timestamp data */
-    char*       version;        /**< Version string for the timestamp data format */
+    char       version[XDD_VERSION_BUFSZ];        /**< Version string for the timestamp data format */
     int32_t	reqsize; 	/**< size of these requests in 'blocksize'-byte blocks */
     int32_t 	blocksize; 	/**< size of each block in bytes */
     int64_t 	numents; 	/**< number of timestamp table entries */
