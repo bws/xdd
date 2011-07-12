@@ -204,13 +204,13 @@ function error_print {
             echo "ERROR: Destination port is in use" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO)
-            echo "ERROR: Destination is raw device, direct I/O is not allowed." >/dev/stderr
+            echo "ERROR: Destination is a character device, direct I/O is not allowed." >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO)
-            echo "ERROR: Source is raw device, direct I/O is not allowed." >/dev/stderr
+            echo "ERROR: Source is a character device, direct I/O is not allowed." >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_SRC_DEV_FILE_SIZE)
-            echo "ERROR: Source is raw device, transfer size must be provided." >/dev/stderr
+            echo "ERROR: Source is a character device, transfer size must be provided." >/dev/stderr
             ;;
 	$XDDCP_ERR_CODE_DEST_DIR_NOT_XST)
 	    echo "ERROR: Destination directory does not exist." >/dev/stderr
@@ -417,17 +417,20 @@ function check_transfer_preconditions {
 	error_exit $XDDCP_ERR_CODE_SRC_XST
     fi
 
+    # Check if file is a character special device (like zero or null)
+    local sfType=$(stat -c %F ${sourceSideFilename})
+    local dfType=$(stat -c %F ${destSidePathname})
+
     # Ensure file is large enough
     local totalBytes="$transferSize"
-    local sourceDir="${sourceSideFilename:0:4}"
-    if [ "$sourceDir" != "/dev" ]; then
+    if [ "$sfType" != "character special file" ]; then
         local trueSize="$(get_file_size $sourceSideFilename 0)"
         #if [ $XDDCP_DEFAULT_XFER_SIZE -gt $trueSize ]; then
         #    error_exit $XDDCP_ERR_CODE_SMALL_FILE
         if [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
             error_exit $XDDCP_ERR_CODE_XFER_SIZE
         fi
-    elif [ "$sourceDir" = "/dev" ]; then
+    elif [ "$sfType" = "character special file" ]; then
 	if [ 0 -eq "$fileSizeFlag" ]; then
 	    error_exit $XDDCP_ERR_CODE_SRC_DEV_FILE_SIZE
 	elif [ $XDDCP_DEFAULT_XFER_SIZE -gt "$transferSize" ]; then
@@ -436,10 +439,9 @@ function check_transfer_preconditions {
     fi
 
     # Ensure devices and Direct I/O are not combined
-    local destDir="${destSidePathname:0:4}"
-    if [ "$sourceDir" = "/dev" -a 0 -ne $srcDIOFlag ]; then
+    if [ "$sfType" = "character special file" -a 0 -ne $srcDIOFlag ]; then
         error_exit $XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO
-    elif [ "$destDir" = "/dev" -a 0 -ne $destDIOFlag ]; then
+    elif [ "$dfType" = "character special file" -a 0 -ne $destDIOFlag ]; then
         error_exit $XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO
     fi
     return 0
