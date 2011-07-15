@@ -1,5 +1,19 @@
 TODO file for XDD
 
+// Next-release
+* Add source for gethostip and build if necessary
+* Add configure option for --enable-static to perform static builds
+* Fix xddcp so that it uses keepalives to hold the SSH session open
+	(this is needed because file I/O doesn't occur until close on
+	NFS file systems, meaning that a failure isn't known during transfer).
+* Detect if the ports required are in use, and if so, adjust the port range
+  if possible
+* Get xddcp to work on Power7/AIX (needs truncate and gethostip)
+* Add option that sets the log path
+* Fix log names so the gethostip doesn't obscure log name
+* Add output that tells the IP we are going to contact for a name
+
+
 // General
 * Add confidence data dump
 * Add serial thread scheduling I/O scheme
