@@ -106,8 +106,7 @@ dnl Check if XFS support should be enabled
 dnl
 xfs_header_support="no"
 AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h],
-                [xfs_header_support="yes"],
-                [xfs_header_support="no"])
+                [xfs_header_support="yes"])
 
 dnl
 dnl By default, try to add XFS support, only show errors if user requests XFS

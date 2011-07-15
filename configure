@@ -3410,6 +3410,7 @@ $as_echo "#define STDC_HEADERS 1" >>confdefs.h
 
 fi
 
+
 # On IRIX 5.3, sys/types and inttypes.h are conflicting.
 for ac_header in sys/types.h sys/stat.h stdlib.h string.h memory.h strings.h \
 		  inttypes.h stdint.h unistd.h
@@ -3425,63 +3426,6 @@ _ACEOF
 fi
 
 done
-
-
-ac_fn_c_check_header_mongrel "$LINENO" "stdio.h" "ac_cv_header_stdio_h" "$ac_includes_default"
-if test "x$ac_cv_header_stdio_h" = x""yes; then :
-
-else
-  as_fn_error $? "Must include headers for libc" "$LINENO" 5
-fi
-
-
-ac_fn_c_check_header_mongrel "$LINENO" "stdlib.h" "ac_cv_header_stdlib_h" "$ac_includes_default"
-if test "x$ac_cv_header_stdlib_h" = x""yes; then :
-
-else
-  as_fn_error $? "Must include headers for libc" "$LINENO" 5
-fi
-
-
-ac_fn_c_check_header_mongrel "$LINENO" "limits.h" "ac_cv_header_limits_h" "$ac_includes_default"
-if test "x$ac_cv_header_limits_h" = x""yes; then :
-
-else
-  as_fn_error $? "Must include headers for libc" "$LINENO" 5
-fi
-
-
-ac_fn_c_check_header_mongrel "$LINENO" "signal.h" "ac_cv_header_signal_h" "$ac_includes_default"
-if test "x$ac_cv_header_signal_h" = x""yes; then :
-
-else
-  as_fn_error $? "Must include headers for libc" "$LINENO" 5
-fi
-
-
-ac_fn_c_check_header_mongrel "$LINENO" "errno.h" "ac_cv_header_errno_h" "$ac_includes_default"
-if test "x$ac_cv_header_errno_h" = x""yes; then :
-
-else
-  as_fn_error $? "Must include headers for libc" "$LINENO" 5
-fi
-
-
-ac_fn_c_check_header_mongrel "$LINENO" "string.h" "ac_cv_header_string_h" "$ac_includes_default"
-if test "x$ac_cv_header_string_h" = x""yes; then :
-
-else
-  as_fn_error $? "Must include headers for libc" "$LINENO" 5
-fi
-
-
-ac_fn_c_check_header_mongrel "$LINENO" "math.h" "ac_cv_header_math_h" "$ac_includes_default"
-if test "x$ac_cv_header_math_h" = x""yes; then :
-
-else
-  as_fn_error $? "Must include headers for libc" "$LINENO" 5
-fi
-
 
 
 ac_fn_c_check_header_mongrel "$LINENO" "fcntl.h" "ac_cv_header_fcntl_h" "$ac_includes_default"
@@ -3733,8 +3677,6 @@ if eval test \"x\$"$as_ac_Header"\" = x"yes"; then :
 #define `$as_echo "HAVE_$ac_header" | $as_tr_cpp` 1
 _ACEOF
  xfs_header_support="yes"
-else
-  xfs_header_support="no"
 fi
 
 done
