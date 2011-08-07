@@ -40,6 +40,7 @@ struct tte {
     char			filler1;	// 
     short 			pass_number;  	// Pass Number
     int32_t			qthread_number;	// My QThread Number
+    int32_t         thread_id;      // My system thread ID (like a process ID)
 // 64 bits 8 bytes
     short 			disk_processor_start;   // Processor number that this disk op was started on
     short 			disk_processor_end;	// Processor number that this disk op ended on
@@ -48,6 +49,7 @@ struct tte {
 // 128 bits 16 bytes
     int32_t			disk_xfer_size;	// Number of bytes transferred to/from disk
     int32_t		 	net_xfer_size; 	// Number of bytes transferred to/from network
+    int32_t		 	net_xfer_calls; // Number of calls to send/recv to complete this op
 // 192 bits 24 bytes
     int64_t		 	op_number; 	// Operation number
 // 256 bits 32 bytes

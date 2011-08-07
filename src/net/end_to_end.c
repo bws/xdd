@@ -49,6 +49,7 @@ int32_t
 xdd_e2e_src_send(ptds_t *qp) {
 	int 	sent;
 	int		sendsize; 
+	int		sentcalls; 
 	int		maxmit;
 	ptds_t	*p;
 
@@ -70,11 +71,13 @@ xdd_e2e_src_send(ptds_t *qp) {
 	// Note: the qp->e2e_iosize is the size of the data field plus the size of the header
 	maxmit = MAXMIT_TCP;
 	sent = 0;
+        sentcalls = 0;
 	pclk_now(&qp->my_current_net_start_time);
 	while (sent < qp->e2e_iosize) {
 		sendsize = (qp->e2e_iosize-sent) > maxmit ? maxmit : (qp->e2e_iosize-sent);
 		qp->e2e_send_status = sendto(qp->e2e_sd,(char *)qp->rwbuf+sent, sendsize, 0, (struct sockaddr *)&qp->e2e_sname, sizeof(struct sockaddr_in));
 		sent += qp->e2e_send_status;
+                sentcalls++;
 	}
 	pclk_now(&qp->my_current_net_end_time);
 	// Time stamp if requested
@@ -83,6 +86,7 @@ xdd_e2e_src_send(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
 		p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
 		p->ttp->tte[qp->ts_current_entry].net_processor_end = xdd_get_processor();
+		p->ttp->tte[qp->ts_current_entry].net_xfer_calls = sentcalls;
 	}
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
@@ -110,6 +114,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	int 	status; 		// status of select() function call
 	int 	rcvd_so_far;	// Cumulative number of bytes received if multiple recvfrom() invocations are necessary
 	int		recvsize; 		// The number of bytes to receive for this invocation of recvfrom()
+	int		recvcalls; 		// The number of calls to recvfrom() to receive recvsize bytes
 	int		headersize; 	// Size of the E2E Header
 	int		maxmit;			// Maximum TCP transmission size
 	pclk_t 	e2e_wait_1st_msg_start_time; // This is the time stamp of when the first message arrived
@@ -168,6 +173,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 			if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
 				p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
 			rcvd_so_far = 0;
+                        recvcalls = 0;
 			recvsize = 0;
 			pclk_now(&qp->my_current_net_start_time);
 			while (rcvd_so_far < qp->e2e_iosize) {
@@ -178,6 +184,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 					break;
 				// Otherwise, figure out how much data we got and go back for more if necessary
 				rcvd_so_far += qp->e2e_recv_status;
+				recvcalls++;
 			} // End of WHILE loop that received incoming data from the source machine
 
 			// bws: BAND-AID PATCH: EOF message padded to iosize, header must be sent at end;
@@ -201,6 +208,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 				p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
 				p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
 				p->ttp->tte[qp->ts_current_entry].net_processor_end = xdd_get_processor();
+				p->ttp->tte[qp->ts_current_entry].net_xfer_calls = recvcalls;
 			}
 
 			// If this is the first packet received by this QThread then record the *end* of this operation as the
@@ -315,6 +323,7 @@ int32_t
 xdd_e2e_eof_source_side(ptds_t *qp) {
 	ptds_t		*p;
 	int 		sent;		// Cumulative number of bytes sent if multiple sendto() invocations are necessary
+	int 		sentcalls;	// Cumulative number of calls      if multiple sendto() invocations are necessary
 	int		sendsize; 	// The number of bytes to send for this invocation of sendto()
 	int		maxmit;		// Maximum TCP transmission size
 
@@ -340,6 +349,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
 	// This will send the E2E Header to the Destination
 	sent = 0;
+	sentcalls = 0;
 	while (sent < qp->e2e_iosize) {
 		sendsize = (qp->e2e_iosize-sent) > maxmit ? maxmit : (qp->e2e_iosize-sent);
 
@@ -349,6 +359,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 			return(-1);
 		}
 		sent += qp->e2e_send_status;
+		sentcalls++;
 	}
 	pclk_now(&qp->my_current_net_end_time);
 	
@@ -360,6 +371,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
 		p->ttp->tte[qp->ts_current_entry].net_processor_end = xdd_get_processor();
 		p->ttp->tte[qp->ts_current_entry].net_xfer_size = sent;
+		p->ttp->tte[qp->ts_current_entry].net_xfer_calls = sentcalls;
 		p->ttp->tte[qp->ts_current_entry].byte_location = -1;
 		p->ttp->tte[qp->ts_current_entry].disk_xfer_size = 0;
 		p->ttp->tte[qp->ts_current_entry].op_number = qp->e2e_header.sequence;

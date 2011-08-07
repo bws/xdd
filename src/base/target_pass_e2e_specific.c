@@ -100,6 +100,7 @@ xdd_targetpass_e2e_loop_dst(ptds_t *p) {
 			}
 			p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
 			p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
+			p->ttp->tte[qp->ts_current_entry].thread_id     = qp->my_thread_id;
 			p->ttp->tte[qp->ts_current_entry].op_type = OP_TYPE_WRITE;
 			p->ttp->tte[qp->ts_current_entry].op_number = -1; 		// to be filled in after data received
 			p->ttp->tte[qp->ts_current_entry].byte_location = -1; 	// to be filled in after data received
@@ -268,6 +269,7 @@ xdd_targetpass_e2e_task_setup_src(ptds_t *qp) {
 		}
 		p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
 		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
+		p->ttp->tte[qp->ts_current_entry].thread_id     = qp->my_thread_id;
 		p->ttp->tte[qp->ts_current_entry].op_type = qp->my_current_op_type;
 		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
 		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
@@ -310,6 +312,7 @@ xdd_targetpass_e2e_eof_src(ptds_t *p) {
 			}
 		p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
 		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
+		p->ttp->tte[qp->ts_current_entry].thread_id     = qp->my_thread_id;
 		p->ttp->tte[qp->ts_current_entry].op_type = OP_TYPE_EOF;
 		p->ttp->tte[qp->ts_current_entry].op_number = -1*qp->my_qthread_number;
 		p->ttp->tte[qp->ts_current_entry].byte_location = -1;

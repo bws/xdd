@@ -325,6 +325,7 @@ xdd_ts_reports(ptds_t *p) {
 
 	// Print a header line with the Quantities as they appear across the page
 	fprintf(p->tsfp,"QThread");
+	fprintf(p->tsfp,"ThreadID");
 	fprintf(p->tsfp,",Op");
 	fprintf(p->tsfp,",Pass");
 	fprintf(p->tsfp,",OP");
@@ -351,6 +352,7 @@ xdd_ts_reports(ptds_t *p) {
 	fprintf(p->tsfp,"\n");
 
 	// Print the UNITS of the above quantities
+	fprintf(p->tsfp,"Number");
 	fprintf(p->tsfp,"Number");
 	fprintf(p->tsfp,",Type");
 	fprintf(p->tsfp,",Number");
@@ -468,6 +470,7 @@ xdd_ts_reports(ptds_t *p) {
 				}
 
 				fprintf(p->tsfp,"%d,",ttp->tte[i].qthread_number);
+				fprintf(p->tsfp,"%d,",ttp->tte[i].thread_id);
 				fprintf(p->tsfp,"%s,",opc);
 				fprintf(p->tsfp,"%d,",ttp->tte[i].pass_number); 
 				fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].op_number); 

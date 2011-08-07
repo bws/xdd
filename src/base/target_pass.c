@@ -225,6 +225,7 @@ xdd_targetpass_task_setup(ptds_t *qp) {
 		}
 		p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
 		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
+		p->ttp->tte[qp->ts_current_entry].thread_id     = qp->my_thread_id;
 		p->ttp->tte[qp->ts_current_entry].op_type = qp->my_current_op_type;
 		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
 		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;

@@ -239,6 +239,7 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	float cutoff;
 	/* variables for the file writing loop below */
 	FILE *outfile;
+	FILE *outfilx;
 	/* bandwidths for each window in time */
 	float read_mbs,send_mbs,recv_mbs,write_mbs;
 
@@ -253,6 +254,14 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		fprintf(stderr,"Can not open output file: %s\n",outfilename);
 		exit(1);
 	}
+	/* try to open another file */
+                strcat(outfilename,".csv");
+		outfilx = fopen(outfilename, "w");
+	/* do we have a file pointer? */
+	if (outfilx == NULL) {
+		fprintf(stderr,"Can not open output file: %s\n",outfilename);
+		exit(1);
+        }
 
 	/* how many qthreads are there? */
 	int total_threads = 0;
@@ -266,7 +275,12 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	fprintf(outfile,"#reqsize: %d\n",src->reqsize);
 	fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
 	fprintf(outfile,"#qthreads: %d\n",total_threads);
-	fprintf(outfile,"#read_time    read_bw  send_time    send_bw  recv_time    recv_bw  write_time   write_bw  time_unit  bw_unit\n");
+	fprintf(outfile,"#read_time    read_bw  send_time    send_bw  recv_time    recv_bw  write_time   write_bw  time_unit  bw_unit thread_ids\n");
+	fprintf(outfilx,"#timestamp: %s",src->td);
+	fprintf(outfilx,"#reqsize: %d\n",src->reqsize);
+	fprintf(outfilx,"#filesize: %ld\n",src->reqsize*src->tt_size);
+	fprintf(outfilx,"#qthreads: %d\n",total_threads);
+	fprintf(outfilx,"#opnum,    tid,      read_time, opnum,    tid,  #ops,   #bytes,      send_time, opnum,    tid,  #ops,   #bytes,      recv_time, opnum,    tid,     write_time\n");
 
 	/* loop through tte entries */
 	for (i = 0; i < src->tt_size; i++) {
@@ -303,8 +317,15 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 			pclk2sec(recv_op[i]->net_end,src->res), recv_mbs,
 			pclk2sec(write_op[i]->disk_end,src->res), write_mbs,
 			"s", "MB/s");
+		/* write to another file another format */
+		fprintf(outfilx,"%6ld,%7d,%15.9f,%6ld,%7d,%6d,%9d,%15.9f,%6ld,%7d,%6d,%9d,%15.9f,%6ld,%7d,%15.9f\n",
+			read_op[i]->op_number, read_op[i]->thread_id, pclk2sec(read_op[i]->disk_end,src->res),
+			send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, pclk2sec(send_op[i]->net_end,src->res), 
+			recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, pclk2sec(recv_op[i]->net_end,src->res),
+			write_op[i]->op_number, write_op[i]->thread_id, pclk2sec(write_op[i]->disk_end,src->res));
 	}
 	fclose(outfile);
+	fclose(outfilx);
 }
 
 
