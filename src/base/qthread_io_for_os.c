@@ -45,7 +45,7 @@ xdd_io_for_os(ptds_t *qp) {
 	p = qp->target_ptds;
 
 	// Record the starting time for this write op
-	pclk_now(&qp->my_current_op_start_time);
+	nclk_now(&qp->my_current_op_start_time);
 	// Time stamp if requested
 	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 		p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
@@ -104,7 +104,7 @@ xdd_io_for_os(ptds_t *qp) {
 	} // End of NOOP operation
 
 	// Record the ending time for this op 
-	pclk_now(&qp->my_current_op_end_time);
+	nclk_now(&qp->my_current_op_end_time);
 	// Time stamp if requested
 	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 		p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
@@ -127,7 +127,7 @@ xdd_io_for_os(ptds_t *qp) {
 	p = qp->target_ptds;
 
 	// Record the starting time for this write op
-	pclk_now(&qp->my_current_op_start_time);
+	nclk_now(&qp->my_current_op_start_time);
 	// Time stamp if requested
 	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 		p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
@@ -182,7 +182,7 @@ xdd_io_for_os(ptds_t *qp) {
 	} // End of NOOP operation
 
 	// Record the ending time for this op 
-	pclk_now(&qp->my_current_op_end_time);
+	nclk_now(&qp->my_current_op_end_time);
 	// Time stamp if requested
 	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 		p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
@@ -222,7 +222,7 @@ xdd_io_for_os(ptds_t *p) {
 	 * For read operations, it is assumed that the data read was previously written by xdd
 	 * and is in the expected format.
 	 */
-	pclk_now(&p->my_current_start_time);
+	nclk_now(&p->my_current_start_time);
 	if (p->target_op_number == 0) /* record our starting time */
 		p->my_start_time = p->my_current_start_time;
 	if (p->seekhdr.seeks[p->my_current_op].operation == SO_OP_WRITE) {
@@ -247,7 +247,7 @@ xdd_io_for_os(ptds_t *p) {
 				current_position = *posp; 
 			}
 		}
-        pclk_now(&p->my_current_end_time);
+        nclk_now(&p->my_current_end_time);
 		/* Take a time stamp if necessary */
 		if ((p->ts_options & TS_ON) && (p->ts_options & TS_TRIGGERED)) {  
 			p->ttp->tte[p->ttp->tte_indx++].disk_end = p->my_current_end_time;

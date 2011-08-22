@@ -521,9 +521,9 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 	pthread_mutex_unlock(&bp->mutex);
 
 	// Now we wait here at this barrier until all the other threads arrive...
-	pclk_now(&occupantp->entry_time);
+	nclk_now(&occupantp->entry_time);
 	status = pthread_barrier_wait(&bp->pbar);
-	pclk_now(&occupantp->exit_time);
+	nclk_now(&occupantp->exit_time);
 
 	if ((status != 0) && (status != PTHREAD_BARRIER_SERIAL_THREAD)) {
 		fprintf(xgp->errout,"%s: xdd_barrier<pthread_barriers>: ERROR: pthread_barrier_wait failed: Barrier %s, status is %d, errno is %d\n", 

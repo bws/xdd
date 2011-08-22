@@ -299,7 +299,7 @@ xdd_raw_read_wait(ptds_t *p) {
 				bytes_received += status;
 			}
 			rawp->raw_msg_recv++;
-			pclk_now(&rawp->raw_msg.recvtime);
+			nclk_now(&rawp->raw_msg.recvtime);
 			rawp->raw_msg.recvtime += xgp->gts_delta;
 			if (status > 0) status = bytes_received;
 			if (status == sizeof(rawp->raw_msg)) { /* Successful receive */
@@ -412,7 +412,7 @@ xdd_raw_writer_send_msg(ptds_t *p) {
 
 
 	rawp = p->rawp;
-	pclk_now(&rawp->raw_msg.sendtime);
+	nclk_now(&rawp->raw_msg.sendtime);
 	rawp->raw_msg.sendtime += xgp->gts_delta;
 	status = send(rawp->raw_sd, (char *) &rawp->raw_msg, sizeof(rawp->raw_msg),0);
 	if (status != sizeof(rawp->raw_msg)) {

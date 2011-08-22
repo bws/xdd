@@ -211,7 +211,7 @@ xdd_targetpass_task_setup(ptds_t *qp) {
 	// Remember the operation number for this target
 	qp->target_op_number = p->my_current_op_number;
 	if (p->my_current_op_number == 0) 
-		pclk_now(&p->my_first_op_start_time);
+		nclk_now(&p->my_first_op_start_time);
 
    	// If time stamping is on then assign a time stamp entry to this QThread
    	if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {

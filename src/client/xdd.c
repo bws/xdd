@@ -91,7 +91,7 @@ main(int32_t argc,char *argv[]) {
 	xdd_start_interactive();
 
 	/* Record the approximate time that the targets will actually start running */
-	pclk_now(&xgp->run_start_time);
+	nclk_now(&xgp->run_start_time);
 
 	// Entering this barrier will tell all the Target threads to begin now that all the monitor threads have started
 	xdd_barrier(&xgp->main_targets_waitforstart_barrier,&barrier_occupant,1);

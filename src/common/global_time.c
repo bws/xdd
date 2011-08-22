@@ -167,7 +167,7 @@ clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp) {
     }
     /* Bounce times back and forth a bunch of times, ignoring errors. */
     for (i = 0; i < bounce; i++) {
-        pclk_now(&currentclock);
+        nclk_now(&currentclock);
         if (currentclock != PCLK_BAD) {
             out.client = (pclk_t) htonll(currentclock);
             out.delta  = (pclk_t) htonll(delta);
@@ -175,7 +175,7 @@ clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp) {
             send(sd, (char *) &out, sizeof out, 0);
             /* get the clock value back from the master time server */
             recv(sd, (char *) &in, sizeof in, 0);
-            pclk_now(&now);
+            nclk_now(&now);
             /* Find the quickest turnaround time and record that clock value. */
             remoteclock = (pclk_t) ntohll(in.server);
             roundtriptime = now - currentclock;
@@ -191,13 +191,13 @@ clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp) {
     }
     /* refine the delta a bit */
     for (i = 0; i < bounce; i++) {
-        pclk_now(&currentclock);
+        nclk_now(&currentclock);
         if (currentclock != PCLK_BAD) {
             /* send the current clock to the master time server */
             send(sd, (char *) &out, sizeof out, 0);
             /* get the clock value back from the master time server */
             recv(sd, (char *) &in, sizeof in, 0);
-            pclk_now(&now);
+            nclk_now(&now);
             /* Find the quickest turnaround time and record that clock value. */
             remoteclock = (pclk_t) ntohll(in.server);
             if (remoteclock > now+delta) {

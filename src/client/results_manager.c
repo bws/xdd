@@ -122,7 +122,7 @@ xdd_results_manager(void *n) {
 			xgp->current_pass_number++;
 			/* Insert a delay of "pass_delay" seconds if requested */
 			if ((xgp->pass_delay_usec > 0) && (xgp->current_pass_number < xgp->passes)) {
-				pclk_now(&pass_delay_start);
+				nclk_now(&pass_delay_start);
 				xgp->heartbeat_holdoff = 1;
 				fprintf(xgp->output,"\nStarting Pass Delay of %f seconds...",xgp->pass_delay);
 				fflush(xgp->output);
@@ -130,7 +130,7 @@ xdd_results_manager(void *n) {
 				fprintf(xgp->output,"Done\n");
 				fflush(xgp->output);
 				xgp->heartbeat_holdoff = 0;
-				pclk_now(&pass_delay_end);
+				nclk_now(&pass_delay_end);
 				// Figure out the accumulated pass delay time so that it can be subtracted later
 				xgp->pass_delay_accumulated_time += (pass_delay_end - pass_delay_start);
 			}
@@ -402,7 +402,7 @@ xdd_combine_results(results_t *to, results_t *from) {
 			to->earliest_start_time_this_pass = from->earliest_start_time_this_pass;
 		if (to->latest_end_time_this_pass <= from->latest_end_time_this_pass)
 			to->latest_end_time_this_pass = from->latest_end_time_this_pass;
-		to->elapsed_pass_time = (to->latest_end_time_this_pass - to->earliest_start_time_this_pass)/FLOAT_TRILLION;
+		to->elapsed_pass_time = (to->latest_end_time_this_pass - to->earliest_start_time_this_pass)/FLOAT_BILLION;
 		to->accumulated_elapsed_time += to->elapsed_pass_time; 	// Accumulated elapsed time is "virtual" time since the qthreads run in parallel
 		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N qthreads
 		to->latency = to->accumulated_latency/(from->my_qthread_number + 1); // This is the "average" latency or milliseconds per op for this target
@@ -474,7 +474,7 @@ xdd_combine_results(results_t *to, results_t *from) {
 		to->pass_delay_accumulated_time = xgp->pass_delay_accumulated_time;
 		if (to->latest_end_time_this_run <= to->earliest_start_time_this_run) 
 			to->elapsed_pass_time = -1.0;
-		else to->elapsed_pass_time = (to->latest_end_time_this_run - to->earliest_start_time_this_run - to->pass_delay_accumulated_time)/FLOAT_TRILLION;
+		else to->elapsed_pass_time = (to->latest_end_time_this_run - to->earliest_start_time_this_run - to->pass_delay_accumulated_time)/FLOAT_BILLION;
 		to->accumulated_elapsed_time += to->elapsed_pass_time; // Accumulated elapsed time is "virtual" time since the qthreads run in parallel
 		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N qthreads
 		to->latency = to->accumulated_latency/(from->my_target_number + 1); // This is the "average" latency or milliseconds per op for this target
@@ -709,16 +709,16 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p) {
 	else rp->optype = "mixed";
 
 	// These next values get converted from raw picoseconds to seconds or miliseconds 
-	rp->accumulated_op_time = (double)((double)p->my_accumulated_op_time / FLOAT_TRILLION); // pico to seconds
-	rp->accumulated_read_op_time = (double)((double)p->my_accumulated_read_op_time / FLOAT_TRILLION); // pico to seconds
-	rp->accumulated_write_op_time = (double)((double)p->my_accumulated_write_op_time / FLOAT_TRILLION); // pico to seconds
+	rp->accumulated_op_time = (double)((double)p->my_accumulated_op_time / FLOAT_BILLION); // pico to seconds
+	rp->accumulated_read_op_time = (double)((double)p->my_accumulated_read_op_time / FLOAT_BILLION); // pico to seconds
+	rp->accumulated_write_op_time = (double)((double)p->my_accumulated_write_op_time / FLOAT_BILLION); // pico to seconds
 	rp->accumulated_pattern_fill_time = (double)((double)p->my_accumulated_pattern_fill_time / FLOAT_BILLION); // pico to milli
 	rp->accumulated_flush_time = (double)((double)p->my_accumulated_flush_time / FLOAT_BILLION); // pico to milli
 	rp->earliest_start_time_this_run = (double)(p->first_pass_start_time); // picoseconds
 	rp->earliest_start_time_this_pass = (double)(p->my_pass_start_time); // picoseconds
 	rp->latest_end_time_this_run = (double)(p->my_pass_end_time); // picoseconds
 	rp->latest_end_time_this_pass = (double)(p->my_pass_end_time); // picoseconds
-	rp->elapsed_pass_time = (double)((double)(p->my_pass_end_time - p->my_pass_start_time) / FLOAT_TRILLION); // pico to seconds
+	rp->elapsed_pass_time = (double)((double)(p->my_pass_end_time - p->my_pass_start_time) / FLOAT_BILLION); // pico to seconds
 	if (rp->elapsed_pass_time == 0.0) 
 		rp->elapsed_pass_time = -1.0; // This is done to prevent and divide-by-zero problems
 	rp->accumulated_elapsed_time += rp->elapsed_pass_time; 
@@ -757,12 +757,12 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p) {
 	}
 
 	// E2E Times
-	rp->e2e_sr_time_this_pass = (double)p->e2e_sr_time/FLOAT_TRILLION; // E2E SendReceive Time in MicroSeconds
+	rp->e2e_sr_time_this_pass = (double)p->e2e_sr_time/FLOAT_BILLION; // E2E SendReceive Time in MicroSeconds
 	rp->e2e_io_time_this_pass = (double)rp->elapsed_pass_time; // E2E IO  Time in MicroSeconds
 	if (rp->e2e_io_time_this_pass == 0.0)
 		rp->e2e_sr_time_percent_this_pass = 0.0; // Percentage of IO Time spent in SendReceive
 	else rp->e2e_sr_time_percent_this_pass = (rp->e2e_sr_time_this_pass/rp->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
-	rp->e2e_wait_1st_msg = (double)p->e2e_wait_1st_msg/FLOAT_TRILLION; // MicroSeconds
+	rp->e2e_wait_1st_msg = (double)p->e2e_wait_1st_msg/FLOAT_BILLION; // MicroSeconds
 
 	// Extended Statistics
 	// The Hig/Low values are only updated when the -extendedstats option is specified

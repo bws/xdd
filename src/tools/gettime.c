@@ -127,18 +127,18 @@ gts_init_global_clock(void) {
 			return(0);
 		}
 		clk_initialize(gts_addr, gts_port, bounce, &delta);
-		pclk_now(&now);
+		nclk_now(&now);
 		global_time = now+delta;
 		if (verbose) 
 			fprintf(stdout,"Global Time now is ");
-		fprintf(stdout,"%lld", ((global_time/TRILLION)+add));
+		fprintf(stdout,"%lld", ((global_time/BILLION)+add));
 	}
 	if (verbose) {
-		fprintf(stdout,"\ndelta is %lld ticks or %lld seconds\n", delta, delta/TRILLION);
+		fprintf(stdout,"\ndelta is %lld ticks or %lld seconds\n", delta, delta/BILLION);
 	}
 
 	if (wait_for_time != 0) { // Wait for this particular time and then exit silently
-		wait_for_time *= TRILLION;
+		wait_for_time *= BILLION;
 		if (wait_for_time < global_time ) {
 			fprintf(stderr, "gettime: ***NOTICE*** The requested wait_for_time has already passed!\n");
 			return(1);
@@ -158,11 +158,11 @@ gts_init_global_clock(void) {
 			usleep(sleep_time_dw*1000);
 #endif
 #endif
-		pclk_now(&now);
+		nclk_now(&now);
 		global_time = now+delta;
 		if (verbose) 
 			fprintf(stdout,"Done waiting... global Time now is ");
-		fprintf(stdout,"%lld", ((global_time/TRILLION)+add));
+		fprintf(stdout,"%lld", ((global_time/BILLION)+add));
 	}
 
 	return(0);
@@ -176,7 +176,7 @@ gts_ts_overhead(struct tthdr *ttp) {
 	pclk_t  tv[101];
 	ttp->timer_oh = 0;
 	for (i = 0; i < 101; i++) {
-		pclk_now(&tv[i]);
+		nclk_now(&tv[i]);
 	}
 	for (i = 0; i < 100; i++) 
 		ttp->timer_oh += (tv[i+1]-tv[i]);

@@ -50,10 +50,10 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 		status = fdatasync(p->fd);
 
 	/* Get the ending time stamp */
-	pclk_now(&p->my_pass_end_time);
+	nclk_now(&p->my_pass_end_time);
 	p->my_elapsed_pass_time = p->my_pass_end_time - p->my_pass_start_time;
 
-	/* Get the current CPU user and system times and the effective current wall clock time using pclk_now() */
+	/* Get the current CPU user and system times and the effective current wall clock time using nclk_now() */
 	times(&p->my_current_cpu_times);
 
 	status = xdd_lockstep_after_pass(p);

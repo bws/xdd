@@ -62,14 +62,14 @@ xdd_target_open(ptds_t *p) {
 	if (status < 0)
 		return(-1);
 
-	pclk_now(&p->open_start_time); // Record the starting time of the open
+	nclk_now(&p->open_start_time); // Record the starting time of the open
 	// Set the default and optional open flags
 	p->target_open_flags |= O_CREAT;
 
 	// Call the OS-specific open call
 	xdd_target_open_for_os(p);
 
-	pclk_now(&p->open_end_time); // Record the ending time of the open
+	nclk_now(&p->open_end_time); // Record the ending time of the open
 
 	// Check the status of the OPEN operation to see if it worked
 	if (p->fd < 0) {
@@ -144,13 +144,13 @@ xdd_target_shallow_open(ptds_t *p) {
 	/* create the fully qualified target name */
 	xdd_target_name(p);
 
-	pclk_now(&p->open_start_time); // Record the starting time of the open
+	nclk_now(&p->open_start_time); // Record the starting time of the open
 
     /* Retrieve the settings from the parent thread */
     p->fd = p->target_ptds->fd;
     p->target_open_flags = p->target_ptds->target_open_flags;
 
-	pclk_now(&p->open_end_time); // Record the ending time of the open
+	nclk_now(&p->open_end_time); // Record the ending time of the open
 
 	// Check the status of the OPEN operation to see if it worked
 	if (p->fd < 0) {
@@ -554,7 +554,7 @@ xdd_target_open_for_os(ptds_t *p) {
 		disp = OPEN_ALWAYS;
 	else disp = OPEN_EXISTING;
 
-	pclk_now(&p->open_start_time); // Record the starting time of the open
+	nclk_now(&p->open_start_time); // Record the starting time of the open
 
 	if (p->rwratio < 1.0)  { /* open for write operations */
 		hfile = CreateFile(target_full_pathname, 
@@ -607,7 +607,7 @@ xdd_target_open_for_os(ptds_t *p) {
 			return((void *)-1);
 	}
 	
-	pclk_now(&p->open_end_time); // Record the ending time of the open
+	nclk_now(&p->open_end_time); // Record the ending time of the open
 	return(hfile);
 } // End of xdd_target_open_for_windows()
 #endif

@@ -86,7 +86,7 @@ xdd_targetpass_e2e_loop_dst(ptds_t *p) {
 		qp->my_current_op_type = OP_TYPE_WRITE;
 		qp->target_op_number = p->my_current_op_number;
 		if (p->my_current_op_number == 0) 
-			pclk_now(&p->my_first_op_start_time);
+			nclk_now(&p->my_first_op_start_time);
 
    		// If time stamping is on then assign a time stamp entry to this QThread
    		if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -255,7 +255,7 @@ xdd_targetpass_e2e_task_setup_src(ptds_t *qp) {
 	// Remember the operation number for this target
 	qp->target_op_number = p->my_current_op_number;
 	if (p->my_current_op_number == 0) 
-		pclk_now(&p->my_first_op_start_time);
+		nclk_now(&p->my_first_op_start_time);
 
    	// If time stamping is on then assign a time stamp entry to this QThread
    	if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {

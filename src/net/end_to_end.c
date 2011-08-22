@@ -56,7 +56,7 @@ xdd_e2e_src_send(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	qp->e2e_header.sendqnum = qp->my_qthread_number;
-	pclk_now(&qp->e2e_header.sendtime);
+	nclk_now(&qp->e2e_header.sendtime);
 	qp->e2e_header.sendtime += xgp->gts_delta;
 	qp->e2e_header.sequence = qp->target_op_number;
 	qp->e2e_header.location = qp->my_current_byte_location;
@@ -72,14 +72,14 @@ xdd_e2e_src_send(ptds_t *qp) {
 	maxmit = MAXMIT_TCP;
 	sent = 0;
         sentcalls = 0;
-	pclk_now(&qp->my_current_net_start_time);
+	nclk_now(&qp->my_current_net_start_time);
 	while (sent < qp->e2e_iosize) {
 		sendsize = (qp->e2e_iosize-sent) > maxmit ? maxmit : (qp->e2e_iosize-sent);
 		qp->e2e_send_status = sendto(qp->e2e_sd,(char *)qp->rwbuf+sent, sendsize, 0, (struct sockaddr *)&qp->e2e_sname, sizeof(struct sockaddr_in));
 		sent += qp->e2e_send_status;
                 sentcalls++;
 	}
-	pclk_now(&qp->my_current_net_end_time);
+	nclk_now(&qp->my_current_net_end_time);
 	// Time stamp if requested
 	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 		p->ttp->tte[qp->ts_current_entry].net_xfer_size = qp->e2e_iosize;
@@ -125,7 +125,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	p = qp->target_ptds;
 	// The following uses strictly TCP
 	if (!qp->e2e_wait_1st_msg) 
-		pclk_now(&e2e_wait_1st_msg_start_time);
+		nclk_now(&e2e_wait_1st_msg_start_time);
 
 	maxmit = MAXMIT_TCP;
 	headersize = sizeof(xdd_e2e_header_t);
@@ -175,7 +175,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 			rcvd_so_far = 0;
                         recvcalls = 0;
 			recvsize = 0;
-			pclk_now(&qp->my_current_net_start_time);
+			nclk_now(&qp->my_current_net_start_time);
 			while (rcvd_so_far < qp->e2e_iosize) {
 				recvsize = (qp->e2e_iosize-rcvd_so_far) > maxmit ? maxmit : (qp->e2e_iosize-rcvd_so_far);
 				qp->e2e_recv_status = recvfrom(qp->e2e_csd[qp->e2e_current_csd], (char *) qp->rwbuf+rcvd_so_far, recvsize, 0, NULL,NULL);
@@ -197,7 +197,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 				qp->e2e_recv_status = rcvd_so_far;
 			}
 
-			pclk_now(&qp->my_current_net_end_time);
+			nclk_now(&qp->my_current_net_end_time);
 
 			// This will record the amount of time that we waited from the time we started until we got the first packet
 			if (!qp->e2e_wait_1st_msg) 
@@ -331,7 +331,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	maxmit = MAXMIT_TCP;
 	p = qp->target_ptds;
 
-	pclk_now(&qp->my_current_net_start_time);
+	nclk_now(&qp->my_current_net_start_time);
 	qp->e2e_header.sendtime = qp->my_current_net_start_time;
 	qp->e2e_header.sendqnum = qp->my_qthread_number;
 	qp->e2e_header.sendtime += xgp->gts_delta;
@@ -361,7 +361,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 		sent += qp->e2e_send_status;
 		sentcalls++;
 	}
-	pclk_now(&qp->my_current_net_end_time);
+	nclk_now(&qp->my_current_net_end_time);
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
 	qp->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);

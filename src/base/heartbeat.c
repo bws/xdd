@@ -144,10 +144,10 @@ xdd_heartbeat(void *junk) {
 				prior_activity_index = activity_index;
 				activity_index = 4;
 				et = 0.0;
-			} else pclk_now(&now);
+			} else nclk_now(&now);
 
 			// Calculate the elapsed time so far
-			elapsed = ((double)((double)now - (double)earliest_start_time)) / FLOAT_TRILLION;
+			elapsed = ((double)((double)now - (double)earliest_start_time)) / FLOAT_BILLION;
 
 			// Display the activity indicator 
 			fprintf(p->hb.hb_file_pointer," + [%c]", activity_indicators[activity_index]);
@@ -201,8 +201,8 @@ xdd_heartbeat_legend(ptds_t *p) {
 	}
 
 	if (p->hb.hb_options & HB_ELAPSED) {  // Display the elapsed number of seconds this has been running
-		pclk_now(&now);
-		elapsed_seconds = ((double)((double)now - (double)xgp->run_start_time)) / FLOAT_TRILLION;
+		nclk_now(&now);
+		elapsed_seconds = ((double)((double)now - (double)xgp->run_start_time)) / FLOAT_BILLION;
 		fprintf(p->hb.hb_file_pointer,"/ELAPSED,%.0f,",elapsed_seconds);
 	}
 

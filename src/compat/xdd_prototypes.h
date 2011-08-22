@@ -170,6 +170,7 @@ int32_t	xdd_parse_arg_count_check(int32_t args, int32_t argc, char *option);
 void	pclk_initialize(pclk_t *pclkp);
 void	pclk_shutdown(void);
 void	pclk_now(pclk_t *pclkp);
+void	nclk_now(pclk_t *pclkp);
 
 // preallocate.c
 int32_t	xdd_target_preallocate_for_os(ptds_t *p);

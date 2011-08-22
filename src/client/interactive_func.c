@@ -276,7 +276,7 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 
 
 	p = qp->target_ptds;
-	pclk_now(&now);		// Current time
+	nclk_now(&now);		// Current time
 	fprintf(xgp->output,"    Current State is 0x%08x\n",qp->my_current_state);
 	if (qp->my_current_state & CURRENT_STATE_INIT)
 		fprintf(xgp->output,"    Initializing\n");

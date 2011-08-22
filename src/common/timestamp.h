@@ -47,21 +47,25 @@ struct tte {
     short 			net_processor_start;    // Processor number that this net op was started on
     short 			net_processor_end;	// Processor number that this net op ended on
 // 128 bits 16 bytes
-    int32_t			disk_xfer_size;	// Number of bytes transferred to/from disk
-    int32_t		 	net_xfer_size; 	// Number of bytes transferred to/from network
-    int32_t		 	net_xfer_calls; // Number of calls to send/recv to complete this op
+    int32_t			disk_xfer_size;	   // Number of bytes transferred to/from disk
+    int32_t		 	net_xfer_size;     // Number of bytes transferred to/from network
+    int32_t		 	net_xfer_calls;    // Number of calls to send/recv to complete this op
 // 192 bits 24 bytes
     int64_t		 	op_number; 	// Operation number
 // 256 bits 32 bytes
     int64_t		 	byte_location; 	// Location in bytes - aka Offset into the device/file
 // 320 bits 40 bytes
     pclk_t 			disk_start;  	// The starting time stamp of the disk operation
+    pclk_t 			disk_start_k;  	// The starting time stamp of the disk operation kernel
 // 384 bits 48 bytes
-    pclk_t 			disk_end;  	// The ending time stamp of the disk operation
+    pclk_t 			disk_end;  	    // The ending time stamp of the disk operation
+    pclk_t 			disk_end_k;     // The ending time stamp of the disk operation kernel
 // 448 bits 56 bytes
-    pclk_t 			net_start;  	// The starting time stamp of the net operation (e2e only)
+    pclk_t 			net_start;      // The starting time stamp of the net operation (e2e only)
+    pclk_t 			net_start_k;    // The starting time stamp of the net operation (e2e only) kernel
 // 512 bits 64 bytes
     pclk_t 			net_end;        // The ending time stamp of the net operation (e2e only)
+    pclk_t 			net_end_k;      // The ending time stamp of the net operation (e2e only) kernel
 // 520 bits
 //	struct timeval	usage_utime;	// usage_utime.tv_sec = usage.ru_utime.tv_sec;
 //	struct timeval	usage_stime;	// usage_utime.tv_sec = usage.ru_utime.tv_sec;
@@ -77,6 +81,7 @@ typedef struct tte tte_t;
 struct tthdr {
     uint32_t    magic;          /**< Magic number indicating the beginning of timestamp data */
     char       version[XDD_VERSION_BUFSZ];        /**< Version string for the timestamp data format */
+    int32_t    target_thread_id; // My system target thread ID (like a process ID)
     int32_t	reqsize; 	/**< size of these requests in 'blocksize'-byte blocks */
     int32_t 	blocksize; 	/**< size of each block in bytes */
     int64_t 	numents; 	/**< number of timestamp table entries */

@@ -284,7 +284,7 @@ nd = FD_SETSIZE;
 				 */
 				status = recv(csd[current_csd], (char *) &yourtime, sizeof yourtime, 0);
 				if (status == sizeof yourtime) { /* Successful receive */
-					pclk_now(&mytime.server);
+					nclk_now(&mytime.server);
 					if(mytime.server != PCLK_BAD) { /* Successful pclk read */
 						mytime.server = (pclk_t) htonll(mytime.server);
 						status = send(csd[current_csd], (char *) &mytime, sizeof mytime, 0);

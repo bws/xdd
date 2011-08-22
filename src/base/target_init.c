@@ -110,14 +110,14 @@ xdd_target_init(ptds_t *p) {
 	 * here so that we all start at *roughly* the same time
 	 */
 	if (xgp->gts_addr) {
-		pclk_now(&CurrentLocalTime);
+		nclk_now(&CurrentLocalTime);
 		while (CurrentLocalTime < xgp->ActualLocalStartTime) {
-		    TimeDelta = ((xgp->ActualLocalStartTime - CurrentLocalTime)/TRILLION);
+		    TimeDelta = ((xgp->ActualLocalStartTime - CurrentLocalTime)/BILLION);
 	    	    if (TimeDelta > 2) {
 			sleepseconds = TimeDelta - 2;
 			sleep(sleepseconds);
 		    }
-		    pclk_now(&CurrentLocalTime);
+		    nclk_now(&CurrentLocalTime);
 		}
 	}
 	if (xgp->global_options & GO_TIMER_INFO) {

@@ -43,7 +43,7 @@ xdd_ts_overhead(struct tthdr *ttp) {
 	pclk_t  tv[101];
 	ttp->timer_oh = 0;
 	for (i = 0; i < 101; i++) {
-		pclk_now(&tv[i]);
+		nclk_now(&tv[i]);
 	}
 	for (i = 0; i < 100; i++) 
 		ttp->timer_oh += (tv[i+1]-tv[i]);
@@ -86,7 +86,7 @@ xdd_ts_setup(ptds_t *p) {
 	if (p->ts_options & (TS_TRIGTIME | TS_TRIGOP)) 
 		p->ts_options &= ~TS_ALL; /* turn off the "time stamp all operations" flag if a trigger was requested */
 	if (p->ts_options & TS_TRIGTIME) { /* adjust the trigger time to an actual local time */
-		p->ts_trigtime *= TRILLION;
+		p->ts_trigtime *= BILLION;
 		p->ts_trigtime += xgp->ActualLocalStartTime;
 	}
 
@@ -135,6 +135,7 @@ xdd_ts_setup(ptds_t *p) {
         snprintf(p->ttp->version, sizeof(p->ttp->version), "%s", PACKAGE_STRING);
         
 	/* init entries in the trace table header */
+	p->ttp->target_thread_id = p->my_pid;
 	p->ttp->res = cycleval;
 	p->ttp->reqsize = p->iosize;
 	p->ttp->blocksize = p->block_size;
@@ -431,11 +432,11 @@ xdd_ts_reports(ptds_t *p) {
 			frelative_time = (double)relative_time;
 			floop_time = (double)loop_time;
 			if (disk_fio_time > 0.0) 
-				disk_irate = ((ttp->reqsize)/(disk_fio_time / TRILLION))/1000000.0;
+				disk_irate = ((ttp->reqsize)/(disk_fio_time / BILLION))/1000000.0;
 			else disk_irate = 0.0;
 			net_fio_time = (double)net_io_time[i];
 			if (net_fio_time > 0.0) 
-				net_irate = ((ttp->reqsize)/(net_fio_time / TRILLION))/1000000.0;
+				net_irate = ((ttp->reqsize)/(net_fio_time / BILLION))/1000000.0;
 			else net_irate = 0.0;
 			if (p->ts_options & TS_DETAILED) { /* Print the detailed report */
 				disk_start_ts = ttp->tte[i].disk_start + ttp->delta;

@@ -88,7 +88,7 @@ xdd_init_seek_list(ptds_t *p) {
 			bytes_per_sec = p->throttle * MILLION;
 			bytes_per_request = (p->reqsize * p->block_size);
 			seconds_per_op = bytes_per_request/bytes_per_sec;
-			pico_seconds_per_op = seconds_per_op * TRILLION;
+			pico_seconds_per_op = seconds_per_op * BILLION;
             if (p->throttle_variance) {
                 low_bw = (p->throttle - p->throttle_variance) * MILLION;
                 seconds_per_op_high = bytes_per_request / low_bw;
@@ -101,14 +101,14 @@ xdd_init_seek_list(ptds_t *p) {
             }
 		} else if (p->throttle_type & PTDS_THROTTLE_OPS){
 			seconds_per_op = 1.0 / p->throttle;
-			pico_seconds_per_op = seconds_per_op * TRILLION;
+			pico_seconds_per_op = seconds_per_op * BILLION;
             variance_seconds_per_op = 1.0 / p->throttle_variance;
-            pico_second_throttle_variance = variance_seconds_per_op * TRILLION;
+            pico_second_throttle_variance = variance_seconds_per_op * BILLION;
 		} else if (p->throttle_type & PTDS_THROTTLE_DELAY){
 			seconds_per_op = p->throttle;
-			pico_seconds_per_op = seconds_per_op * TRILLION;
+			pico_seconds_per_op = seconds_per_op * BILLION;
             variance_seconds_per_op = 1.0 / p->throttle_variance;
-            pico_second_throttle_variance = variance_seconds_per_op * TRILLION;
+            pico_second_throttle_variance = variance_seconds_per_op * BILLION;
 		}
 	} else pico_seconds_per_op = 0;
 	sp = &p->seekhdr;
@@ -192,7 +192,7 @@ xdd_init_seek_list(ptds_t *p) {
             // The actual time that an I/O operation should take place is somewhere between
             // the relative time plus or minus the variance. In Theory. Maybe.
             if (p->throttle_variance) {
-                variance_seconds_per_op = ((seconds_per_op_high-seconds_per_op_low) * xdd_random_float()) * TRILLION;
+                variance_seconds_per_op = ((seconds_per_op_high-seconds_per_op_low) * xdd_random_float()) * BILLION;
                 sp->seeks[rw_index].time1 = (relative_time - pico_second_throttle_variance) + variance_seconds_per_op;
 
             } else {

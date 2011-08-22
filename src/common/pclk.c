@@ -36,6 +36,7 @@
 /* -------- */
 #include <stdio.h>
 #include <unistd.h>
+#include <stdint.h>
 #include <sys/time.h>
 
 /* Depends on defs from unistd.h */
@@ -138,6 +139,57 @@ pclk_now(pclk_t *pclkp) {
     return;
 }
 #endif
+
+/*----------------------------------------------------------------------------*/
+/*
+ *  * nclk_now()
+ *   *
+ *    * Return the current value of the high resolution clock, in nanoseconds.
+ *     * This timer is designed to store results in a 64-bit integer wrt Epoch
+ *      * for direct comparison to timestamps from tools other than xdd, such
+ *       * as kernel tracing tools.
+ *        * Note that Epoch seconds x 1e9 + nanoseconds will consume 18 decimal digits
+ *         * This should fit into unsigned 64-bit integer.
+ *          */
+#ifdef WIN32
+void
+nclk_now(pclk_t *nclkp) {
+
+		QueryPerformanceCounter((LARGE_INTEGER *)nclkp);
+}
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#elif (LINUX)
+void
+nclk_now(pclk_t *nclkp) {
+
+#ifdef _POSIX_TIMERS
+        struct timespec current_time;
+        clock_gettime(CLOCK_REALTIME, &current_time);
+        *nclkp =  (pclk_t)(((pclk_t)current_time.tv_sec * BILLION) +
+                           ((pclk_t)current_time.tv_nsec ));
+#else
+        struct timeval current_time;
+        struct timezone tz;
+        gettimeofday(&current_time, &tz);
+        *nclkp =  (pclk_t)(((pclk_t)current_time.tv_sec  * BILLION) +
+                           ((pclk_t)current_time.tv_usec * THOUSAND));
+#endif
+    return;
+}
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+#elif (SOLARIS || AIX || OSX || FREEBSD )
+void
+nclk_now(pclk_t *nclkp) {
+    struct timeval current_time;
+    struct timezone tz;
+
+        gettimeofday(&current_time, &tz);
+    	*nclkp =  (pclk_t)(((pclk_t)current_time.tv_sec  * BILLION) +
+                           ((pclk_t)current_time.tv_usec * THOUSAND));
+    return;
+}
+#endif
+
 
 /*
  * Local variables:

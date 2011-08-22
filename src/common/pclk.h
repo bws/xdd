@@ -78,6 +78,12 @@ extern void pclk_shutdown(void);
  * Return the current value of the clock, in picoseconds.
  */
 extern void pclk_now(pclk_t *pclkp);
+/*
+ * nclk_now()
+ *
+ * Return the current value of the clock, in picoseconds.
+ */
+extern void nclk_now(pclk_t *pclkp);
 /* #define PCLK_TEST */
 #ifdef PCLK_TEST
 /*

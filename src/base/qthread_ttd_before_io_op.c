@@ -266,7 +266,7 @@ xdd_throttle_before_io_op(ptds_t *qp) {
 	 * issued. If we are past the issue time for this operation, just issue the operation.
 	 */
 	if (qp->throttle > 0.0) {
-		pclk_now(&now);
+		nclk_now(&now);
 		if (qp->throttle_type & PTDS_THROTTLE_DELAY) {
 			sleep_time = qp->throttle*1000000;
 		} else { // Process the throttle for IOPS or BW

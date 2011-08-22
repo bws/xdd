@@ -12,9 +12,8 @@
 #ifndef MIN
 #define MIN(a,b) (a < b ? a : b)
 #endif
-/* converts xdd pclk time to seconds, given:
- * p (pclk value) and r (timer resolution) */
-#define pclk2sec(p,r) ((float)p/(float)r/1.0e9)
+/* converts xdd nclk time to seconds, given p (nclk value) */
+#define nclk2sec(p) ((double)p/1.0e9)
 /* Bytes Per Unit... don't set to 0.  1000000 is MB/s */
 #define BPU (1000000.0)
 
@@ -33,12 +32,21 @@
 /* magic number to make sure we can read the file */
 #define BIN_MAGIC_NUMBER 0xDEADBEEF
 
+#define MAX_QTHREADS 1024
+int thread_id_src[MAX_QTHREADS];
+int thread_id_dst[MAX_QTHREADS];
+int total_threads_src;
+int total_threads_dst;
+        pclk_t src_start_norm,dst_start_norm;
+
 /* output file, if specified */
 #define OUTFILENAME_LEN 512
 char outfilename[OUTFILENAME_LEN];
+char kernfilename[OUTFILENAME_LEN];
+
+int kernel_trace = 0;
 /* number of seconds in the sliding window */
 int window_size;
-
 
 /* normalize timestamps */
 void normalize_time(tthdr_t *src, tthdr_t *dst);
@@ -50,6 +58,8 @@ void sort_by_time(tthdr_t *src, tthdr_t *dst, tte_t ***read_op,
 /* write all the outfiles */
 void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		tte_t **send_op, tte_t **recv_op, tte_t **write_op);
+void write_outfile_k(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
+		tte_t **send_op, tte_t **recv_op, tte_t **write_op);
 /* read, check, and store the src and dst file data */
 int xdd_getdata(char *file1, char *file2, tthdr_t **src, tthdr_t **dst);
 /* Read an XDD binary timestamp dump into a structure */
@@ -58,6 +68,11 @@ int xdd_readfile(char *filename, tthdr_t **tsdata, size_t *tsdata_size);
 int getoptions(int argc, char **argv);
 /* print command line usage */
 void printusage(char *progname);
+/* get total threads, thread pids */
+void xdd_getthreads(tthdr_t *src, tthdr_t *dst);
+
+int
+matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filespec, tthdr_t *xdd_data);
 
 
 int main(int argc, char **argv) {
@@ -82,15 +97,50 @@ int main(int argc, char **argv) {
 		fprintf(stderr,"xdd_getdata() failed... exiting.\n");
 		exit(1);
 	}
+        /* get total threads */
+        xdd_getthreads(src,dst);
+
+        /* match-add kernel events with xdd events if specfied */
+        /* at this point, src & dst contain all xdd events     */
+        if (kernel_trace || 1)
+        {
+          sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
+		getenv("HOME"),getenv("HOME"),src->target_thread_id);
+          system(kernfilename);
+		fprintf(stderr,"kernfilename %s tt_size %ld\n",kernfilename,src->tt_size);
+          sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
+		getenv("HOME"),src->target_thread_id,getenv("PWD"));
+          system(kernfilename);
+		fprintf(stderr,"kernfilename %s\n",kernfilename);
+          sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
+                getenv("PWD"),src->target_thread_id);
+		fprintf(stderr,"kernfilename %s\n",kernfilename);
+          matchadd_kernel_events(1,total_threads_src,thread_id_src,kernfilename,src);
+
+          sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
+		getenv("HOME"),getenv("HOME"),dst->target_thread_id);
+          system(kernfilename);
+		fprintf(stderr,"kernfilename %s tt_size %ld\n",kernfilename,dst->tt_size);
+          sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
+		getenv("HOME"),dst->target_thread_id,getenv("PWD"));
+          system(kernfilename);
+		fprintf(stderr,"kernfilename %s\n",kernfilename);
+          sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
+                getenv("PWD"),dst->target_thread_id);
+		fprintf(stderr,"kernfilename %s\n",kernfilename);
+          matchadd_kernel_events(0,total_threads_dst,thread_id_dst,kernfilename,dst);
+        }
 
 	/* get the MIN timestamp on each side and normalize the times */
 	normalize_time(src,dst);
 
 	/* sort timestamp entries for each operation (read/send/recv/write) */
+        /* kernel events co-located with matching xdd op */
 	sort_by_time(src,dst,&read_op,&send_op,&recv_op,&write_op);
 
-	/* write the outfile */
-	write_outfile(src,dst,read_op,send_op,recv_op,write_op);
+	/* write the outfile(s) */
+                               write_outfile  (src,dst,read_op,send_op,recv_op,write_op);
+        if (kernel_trace || 1) write_outfile_k(src,dst,read_op,send_op,recv_op,write_op);
 
 	/* free memory */
 	free(read_op);
@@ -103,6 +153,34 @@ int main(int argc, char **argv) {
 	return 0;
 }
 
+void
+xdd_getthreads(tthdr_t *src, tthdr_t *dst)
+{       
+       int i,k;
+        /* how many qthreads are there? */
+        total_threads_src = 0;
+        k = -1;
+        for (i = 0; i < src->tt_size; i++) {
+                total_threads_src = MAX(src->tte[i].qthread_number,total_threads_src);
+                if (k < total_threads_src && k < MAX_QTHREADS)
+                {
+                                k = total_threads_src;
+                  thread_id_src[k] = src->tte[i].thread_id;
+                }
+        }
+        total_threads_src += 1;
+        total_threads_dst = 0;
+        k = -1;
+        for (i = 0; i < dst->tt_size; i++) {
+                total_threads_dst = MAX(dst->tte[i].qthread_number,total_threads_dst);
+                if (k < total_threads_dst && k < MAX_QTHREADS)
+                {
+                                k = total_threads_dst;
+                  thread_id_dst[k] = dst->tte[i].thread_id;
+                }
+        }
+        total_threads_dst += 1;
+}
 
 /* subtract the timestamps by the minimum start times */
 void normalize_time(tthdr_t *src, tthdr_t *dst) {
@@ -125,24 +203,35 @@ void normalize_time(tthdr_t *src, tthdr_t *dst) {
 		dst_start = MIN(dst_start, dst->tte[i].net_start);
 	}
 
+        src_start_norm = src_start;
+        dst_start_norm = dst_start;
+
 	/* normalize timestamps */
 	for (i=0; i < src->tt_size; i++) {
-		src->tte[i].net_start -= src_start;
-		src->tte[i].net_end   -= src_start;
+		src->tte[i].net_start    -= src_start;
+		src->tte[i].net_start_k  -= src_start;
+		src->tte[i].net_end      -= src_start;
+		src->tte[i].net_end_k    -= src_start;
 		/* don't subtract from zero */
 		if (EOF_OP(src->tte[i].op_type) && (src->tte[i].disk_start == 0))
 			continue;
-		src->tte[i].disk_start-= src_start;
-		src->tte[i].disk_end  -= src_start;
+		src->tte[i].disk_start   -= src_start;
+		src->tte[i].disk_start_k -= src_start;
+		src->tte[i].disk_end     -= src_start;
+		src->tte[i].disk_end_k   -= src_start;
 	}
 	for (i=0; i < dst->tt_size; i++) {
-		dst->tte[i].net_start -= dst_start;
-		dst->tte[i].net_end   -= dst_start;
+		dst->tte[i].net_start    -= dst_start;
+		dst->tte[i].net_start_k  -= dst_start;
+		dst->tte[i].net_end      -= dst_start;
+		dst->tte[i].net_end_k    -= dst_start;
 		/* don't subtract from zero */
 		if (EOF_OP(dst->tte[i].op_type) && (dst->tte[i].disk_start == 0))
 			continue;
-		dst->tte[i].disk_start-= dst_start;
-		dst->tte[i].disk_end  -= dst_start;
+		dst->tte[i].disk_start   -= dst_start;
+		dst->tte[i].disk_start_k -= dst_start;
+		dst->tte[i].disk_end     -= dst_start;
+		dst->tte[i].disk_end_k   -= dst_start;
 	}
 }
 
@@ -230,7 +319,6 @@ void sort_by_time(tthdr_t *src, tthdr_t *dst, tte_t ***read_op,
 	*write_op = writeo;
 }
 
-
 /* write the outfile */
 void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
@@ -239,7 +327,6 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	float cutoff;
 	/* variables for the file writing loop below */
 	FILE *outfile;
-	FILE *outfilx;
 	/* bandwidths for each window in time */
 	float read_mbs,send_mbs,recv_mbs,write_mbs;
 
@@ -254,14 +341,6 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		fprintf(stderr,"Can not open output file: %s\n",outfilename);
 		exit(1);
 	}
-	/* try to open another file */
-                strcat(outfilename,".csv");
-		outfilx = fopen(outfilename, "w");
-	/* do we have a file pointer? */
-	if (outfilx == NULL) {
-		fprintf(stderr,"Can not open output file: %s\n",outfilename);
-		exit(1);
-        }
 
 	/* how many qthreads are there? */
 	int total_threads = 0;
@@ -274,13 +353,15 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	fprintf(outfile,"#timestamp: %s",src->td);
 	fprintf(outfile,"#reqsize: %d\n",src->reqsize);
 	fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
-	fprintf(outfile,"#qthreads: %d\n",total_threads);
-	fprintf(outfile,"#read_time    read_bw  send_time    send_bw  recv_time    recv_bw  write_time   write_bw  time_unit  bw_unit thread_ids\n");
-	fprintf(outfilx,"#timestamp: %s",src->td);
-	fprintf(outfilx,"#reqsize: %d\n",src->reqsize);
-	fprintf(outfilx,"#filesize: %ld\n",src->reqsize*src->tt_size);
-	fprintf(outfilx,"#qthreads: %d\n",total_threads);
-	fprintf(outfilx,"#opnum,    tid,      read_time, opnum,    tid,  #ops,   #bytes,      send_time, opnum,    tid,  #ops,   #bytes,      recv_time, opnum,    tid,     write_time\n");
+        fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
+        for (i = 0; i < total_threads_src; i++) { fprintf(outfile,"%d ",thread_id_src[i] );}
+                                                  fprintf(outfile,"\n");
+        fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
+        for (i = 0; i < total_threads_dst; i++) { fprintf(outfile,"%d ",thread_id_dst[i] );}
+                                                  fprintf(outfile,"\n");
+        fprintf(outfile,"#src_start_norm, dst_start_norm %lld %lld\n",src_start_norm,dst_start_norm);
+	fprintf(outfile,"#read_time      read_bw  send_time      send_bw  recv_time      recv_bw  write_time     write_bw  time_unit  bw_unit\n");
+//        fprintf(outfile,"#opnum,    tid,      read_time, opnum,    tid,  #ops,   #bytes,      send_time, opnum,    tid,  #ops,   #bytes,      recv_time, opnum,    tid,     write_time\n");
 
 	/* loop through tte entries */
 	for (i = 0; i < src->tt_size; i++) {
@@ -288,20 +369,20 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		read_mbs = send_mbs = recv_mbs = write_mbs = 0.0;
 
 		/* read disk */
-		cutoff = MAX( pclk2sec(read_op[i]->disk_end,src->res)-window_size, 0.0);
-		for (k = i; (k >= 0) && ( pclk2sec(read_op[k]->disk_end,src->res) > cutoff); k--)
+		cutoff = MAX( nclk2sec(read_op[i]->disk_end)-window_size, 0.0);
+		for (k = i; (k >= 0) && ( nclk2sec(read_op[k]->disk_end) > cutoff); k--)
 			read_mbs  += (float)read_op[k]->disk_xfer_size / BPU;
 		/* send net */
-		cutoff = MAX( pclk2sec(send_op[i]->net_end,src->res)-window_size ,0.0);
-		for (k = i; (k >= 0) && ( pclk2sec(send_op[k]->net_end,src->res) > cutoff); k--) 
+		cutoff = MAX( nclk2sec(send_op[i]->net_end)-window_size ,0.0);
+		for (k = i; (k >= 0) && ( nclk2sec(send_op[k]->net_end) > cutoff); k--) 
 			send_mbs  += (float)send_op[k]->net_xfer_size / BPU;
 		/* recv net */
-		cutoff = MAX( pclk2sec(recv_op[i]->net_end,dst->res)-window_size, 0.0);
-		for (k = i; (k >= 0) && ( pclk2sec(recv_op[k]->net_end,dst->res) > cutoff); k--) 
+		cutoff = MAX( nclk2sec(recv_op[i]->net_end)-window_size, 0.0);
+		for (k = i; (k >= 0) && ( nclk2sec(recv_op[k]->net_end) > cutoff); k--) 
 			recv_mbs  += (float)recv_op[k]->net_xfer_size / BPU;
 		/* write disk */
-		cutoff = MAX( pclk2sec(write_op[i]->disk_end,dst->res)-window_size, 0.0);
-		for (k = i; (k >= 0) && (pclk2sec(write_op[k]->disk_end,dst->res) > cutoff); k--) 
+		cutoff = MAX( nclk2sec(write_op[i]->disk_end)-window_size, 0.0);
+		for (k = i; (k >= 0) && (nclk2sec(write_op[k]->disk_end) > cutoff); k--) 
 			write_mbs += (float)write_op[k]->disk_xfer_size / BPU;
 
 		/* divide by the time in the sliding window */
@@ -311,21 +392,105 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		write_mbs /= (float)window_size;
 
 		/* write to file */
-		fprintf(outfile,"%10.4f %10.4f %10.4f %10.4f %10.4f %10.4f  %10.4f %10.4f  %9s %8s\n",
-			pclk2sec(read_op[i]->disk_end,src->res), read_mbs,
-			pclk2sec(send_op[i]->net_end,src->res), send_mbs,
-			pclk2sec(recv_op[i]->net_end,src->res), recv_mbs,
-			pclk2sec(write_op[i]->disk_end,src->res), write_mbs,
+		fprintf(outfile,"%12.6f %10.4f %12.6f %10.4f %12.6f %10.4f  %12.6f %10.4f  %9s %8s\n",
+			nclk2sec(read_op[i]->disk_end), read_mbs,
+			nclk2sec(send_op[i]->net_end), send_mbs,
+			nclk2sec(recv_op[i]->net_end), recv_mbs,
+			nclk2sec(write_op[i]->disk_end), write_mbs,
 			"s", "MB/s");
-		/* write to another file another format */
-		fprintf(outfilx,"%6ld,%7d,%15.9f,%6ld,%7d,%6d,%9d,%15.9f,%6ld,%7d,%6d,%9d,%15.9f,%6ld,%7d,%15.9f\n",
-			read_op[i]->op_number, read_op[i]->thread_id, pclk2sec(read_op[i]->disk_end,src->res),
-			send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, pclk2sec(send_op[i]->net_end,src->res), 
-			recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, pclk2sec(recv_op[i]->net_end,src->res),
-			write_op[i]->op_number, write_op[i]->thread_id, pclk2sec(write_op[i]->disk_end,src->res));
+//                fprintf(outfile,"%4ld,%6d,%21.9f,%4ld,%6d,%6d,%9d,%21.9f,%4ld,%6d,%6d,%9d,%21.9f,%4ld,%6d,%21.9f\n",
+//                        read_op[i]->op_number, read_op[i]->thread_id, nclk2sec(read_op[i]->disk_start),
+//                        send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, nclk2sec(send_op[i]->net_start),
+//                        recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, nclk2sec(recv_op[i]->net_start),
+//                        write_op[i]->op_number, write_op[i]->thread_id, nclk2sec(write_op[i]->disk_start));
+//                fprintf(outfile,"%4ld,%6d,%21.9f,%4ld,%6d,%6d,%9d,%21.9f,%4ld,%6d,%6d,%9d,%21.9f,%4ld,%6d,%21.9f\n",
+//                        read_op[i]->op_number, read_op[i]->thread_id, nclk2sec(read_op[i]->disk_end),
+//                        send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, nclk2sec(send_op[i]->net_end),
+//                        recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, nclk2sec(recv_op[i]->net_end),
+//                        write_op[i]->op_number, write_op[i]->thread_id, nclk2sec(write_op[i]->disk_end));
+//                fprintf(outfile,"%4ld %6d %20lld %4ld %6d %6d %9d %20lld %4ld %6d %6d %9d %20lld %4ld %6d %20lld\n",
+//                        read_op[i]->op_number, read_op[i]->thread_id, read_op[i]->disk_start,
+//                        send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, send_op[i]->net_start,
+//                        recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, recv_op[i]->net_start,
+//                        write_op[i]->op_number, write_op[i]->thread_id, write_op[i]->disk_start);
+//                fprintf(outfile,"%4ld %6d %20lld %4ld %6d %6d %9d %20lld %4ld %6d %6d %9d %20lld %4ld %6d %20lld\n",
+//                        read_op[i]->op_number, read_op[i]->thread_id, read_op[i]->disk_end,
+//                        send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, send_op[i]->net_end,
+//                        recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, recv_op[i]->net_end,
+//                        write_op[i]->op_number, write_op[i]->thread_id, write_op[i]->disk_end);
 	}
 	fclose(outfile);
-	fclose(outfilx);
+}
+
+/* write the outfile kernel */
+void write_outfile_k(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
+		tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
+	int64_t i,k;
+	float cutoff;
+	/* variables for the file writing loop below */
+	FILE *outfile;
+	/* bandwidths for each window in time */
+	float read_mbs,send_mbs,recv_mbs,write_mbs;
+
+	/* try to open another file */
+                strcat(outfilename,".k");
+		outfile = fopen(outfilename, "w");
+	/* do we have a file pointer? */
+	if (outfile == NULL) {
+		fprintf(stderr,"Can not open output file: %s\n",outfilename);
+		exit(1);
+        }
+
+	/* file header */
+        fprintf(outfile,"#timestamp: %s",src->td);
+        fprintf(outfile,"#reqsize: %d\n",src->reqsize);
+        fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
+        fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
+        for (i = 0; i < total_threads_src; i++) { fprintf(outfile,"%d ",thread_id_src[i] );}
+                                                  fprintf(outfile,"\n");
+        fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
+        for (i = 0; i < total_threads_dst; i++) { fprintf(outfile,"%d ",thread_id_dst[i] );}
+                                                  fprintf(outfile,"\n");
+        fprintf(outfile,"#src_start_norm, dst_start_norm %lld %lld\n",src_start_norm,dst_start_norm);
+	fprintf(outfile,"#read_time      read_bw  send_time      send_bw  recv_time      recv_bw  write_time     write_bw  time_unit  bw_unit\n");
+
+	/* loop through tte entries */
+	for (i = 0; i < src->tt_size; i++) {
+		/* make sure this is an op that matters */
+		read_mbs = send_mbs = recv_mbs = write_mbs = 0.0;
+
+		/* read disk */
+		cutoff = MAX( nclk2sec(read_op[i]->disk_end_k)-window_size, 0.0);
+		for (k = i; (k >= 0) && ( nclk2sec(read_op[k]->disk_end_k) > cutoff); k--)
+			read_mbs  += (float)read_op[k]->disk_xfer_size / BPU;
+		/* send net */
+		cutoff = MAX( nclk2sec(send_op[i]->net_end_k)-window_size ,0.0);
+		for (k = i; (k >= 0) && ( nclk2sec(send_op[k]->net_end_k) > cutoff); k--) 
+			send_mbs  += (float)send_op[k]->net_xfer_size / BPU;
+		/* recv net */
+		cutoff = MAX( nclk2sec(recv_op[i]->net_end_k)-window_size, 0.0);
+		for (k = i; (k >= 0) && ( nclk2sec(recv_op[k]->net_end_k) > cutoff); k--) 
+			recv_mbs  += (float)recv_op[k]->net_xfer_size / BPU;
+		/* write disk */
+		cutoff = MAX( nclk2sec(write_op[i]->disk_end_k)-window_size, 0.0);
+		for (k = i; (k >= 0) && (nclk2sec(write_op[k]->disk_end_k) > cutoff); k--) 
+			write_mbs += (float)write_op[k]->disk_xfer_size / BPU;
+
+		/* divide by the time in the sliding window */
+		read_mbs    /= (float)window_size;
+		send_mbs    /= (float)window_size;
+		recv_mbs    /= (float)window_size;
+		write_mbs   /= (float)window_size;
+
+		/* write to file */
+		fprintf(outfile,"%12.6f %10.4f %12.6f %10.4f %12.6f %10.4f  %12.6f %10.4f  %9s %8s\n",
+			nclk2sec(read_op[i]->disk_end_k), read_mbs,
+			nclk2sec(send_op[i]->net_end_k), send_mbs,
+			nclk2sec(recv_op[i]->net_end_k), recv_mbs,
+			nclk2sec(write_op[i]->disk_end_k), write_mbs,
+			"s", "MB/s");
+	}
+	fclose(outfile);
 }
 
 
@@ -513,6 +678,10 @@ int getoptions(int argc, char **argv) {
 				if (strlen(outfilename) == 0)
 					ierr++;
 				break;
+                        case 'k': /* use src, dst kernel trace files */
+                                kernel_trace = 1;
+                                argnum += 1;
+                                break;
 			case 'h': /* help */
 			default:
 				printusage(argv[0]);

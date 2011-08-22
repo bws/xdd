@@ -215,7 +215,7 @@ xdd_options_info(FILE *out) {
 	if (xgp->gts_hostname) {
 			fprintf(out,"Timeserver hostname, %s\n", xgp->gts_hostname);
 			fprintf(out,"Timeserver port number, %d\n", xgp->gts_port);
-			fprintf(out,"Global start time, %lld\n", (long long)xgp->gts_time/TRILLION);
+			fprintf(out,"Global start time, %lld\n", (long long)xgp->gts_time/BILLION);
 	}
 	fprintf(out,"Number of Targets, %d\n",xgp->number_of_targets);
 	fprintf(out,"Number of I/O Threads, %d\n",xgp->number_of_iothreads);

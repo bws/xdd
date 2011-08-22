@@ -113,18 +113,18 @@ xdd_init_global_clock(pclk_t *pclkp) {
 			return;
 		}
 		clk_initialize(xgp->gts_addr, xgp->gts_port, xgp->gts_bounce, &xgp->gts_delta);
-		pclk_now(&now);
+		nclk_now(&now);
 		xgp->ActualLocalStartTime = xgp->gts_time - xgp->gts_delta; 
-		xgp->gts_seconds_before_starting = ((xgp->ActualLocalStartTime - now) / TRILLION); 
+		xgp->gts_seconds_before_starting = ((xgp->ActualLocalStartTime - now) / BILLION); 
 		fprintf(xgp->errout,"Global Time now is %lld. Starting in %lld seconds at Global Time %lld\n",
-			(long long)(now+xgp->gts_delta)/TRILLION, 
+			(long long)(now+xgp->gts_delta)/BILLION, 
 			(long long)xgp->gts_seconds_before_starting, 
-			(long long)xgp->gts_time/TRILLION); 
+			(long long)xgp->gts_time/BILLION); 
 		fflush(xgp->errout);
 		*pclkp = xgp->ActualLocalStartTime;
 		return;
 	}
-	pclk_now(pclkp);
+	nclk_now(pclkp);
 	return;
 } /* end of xdd_init_global_clock() */
 

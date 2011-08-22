@@ -46,7 +46,7 @@ xdd_get_specific_qthread(ptds_t *p, int32_t q) {
 	int			i;
 	pclk_t		checktime;
 
-	pclk_now(&checktime);
+	nclk_now(&checktime);
 
 	// Sanity Check
 	if (q >= p->queue_depth) { // This should *NEVER* happen - famous last words...
@@ -69,7 +69,7 @@ xdd_get_specific_qthread(ptds_t *p, int32_t q) {
 	if (qp->qthread_target_sync & QTSYNC_BUSY) { 
 		// Set the "target waiting" bit, unlock the mutex, and lets wait for this QThread to become available - i.e. not busy
 		qp->qthread_target_sync |= QTSYNC_TARGET_WAITING;
-	pclk_now(&checktime);
+	nclk_now(&checktime);
 		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
 		status = sem_wait(&qp->this_qthread_is_available_sem);

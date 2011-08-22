@@ -93,7 +93,7 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 		if (trigp2->run_status == 0) {
 			if (trigp1->trigger_types & TRIGGER_STARTTIME) {
 			/* If we are past the start time then signal the specified target to start */
-				pclk_now(&tt);
+				nclk_now(&tt);
 				if (tt > (trigp1->start_trigger_time + p->my_pass_start_time)) {
 					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&p->occupant,0);
 				}
@@ -143,7 +143,7 @@ xdd_timelimit_before_io_op(ptds_t *p) {
     * Otherwise, return 0 and continue issuing I/Os.
  	*/
 	if (p->time_limit_ticks) { 
-		pclk_now(&current_time);
+		nclk_now(&current_time);
 		elapsed_time = current_time - p->my_pass_start_time;
 		if (elapsed_time >= p->time_limit_ticks) {
 			p->my_time_limit_expired = 1;
@@ -177,7 +177,7 @@ xdd_runtime_before_io_op(ptds_t *p) {
     * Otherwise, return 0 and continue issuing I/Os.
  	*/
 	if (xgp->run_time_ticks) { 
-		pclk_now(&current_time);
+		nclk_now(&current_time);
 		elapsed_time = current_time - xgp->run_start_time;
 		if (elapsed_time >= xgp->run_time_ticks) {
 			xgp->run_time_expired = 1;

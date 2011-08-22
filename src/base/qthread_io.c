@@ -173,7 +173,7 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS;
 	pthread_mutex_lock(&tep->tot_mutex);
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS;
-	pclk_now(&tep->tot_wait_ts);
+	nclk_now(&tep->tot_wait_ts);
 	tep->tot_wait_qthread_number = qp->my_qthread_number;
 	pthread_mutex_unlock(&tep->tot_mutex);
 	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO;
@@ -219,7 +219,7 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 	pthread_mutex_lock(&tep->tot_mutex);
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE;
 	tep->tot_post_qthread_number = qp->my_qthread_number;
-	pclk_now(&tep->tot_post_ts);
+	nclk_now(&tep->tot_post_ts);
 	
 	pthread_mutex_unlock(&tep->tot_mutex); //TMR
 	// Increment the specified semaphore to let the next QThread run 
@@ -420,7 +420,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 			(long long int)(qp->my_current_byte_location / (long long int)(p->iosize)),
 			tep->tot_update_qthread_number);
 	}  else { // Only update if there was no collision or if there is no ordering in which case collisons do not matter
-		pclk_now(&tep->tot_update_ts);
+		nclk_now(&tep->tot_update_ts);
 		tep->tot_update_qthread_number = qp->my_qthread_number;
 		tep->tot_op_number = qp->target_op_number;
 		tep->tot_byte_location = qp->my_current_byte_location;

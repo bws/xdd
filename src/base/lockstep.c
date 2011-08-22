@@ -105,7 +105,7 @@ xdd_lockstep_before_io_op(ptds_t *p) {
 		if (lsp->ls_interval_type & LS_INTERVAL_TIME) {
 			/* If we are past the start time then signal the specified target to start.
 			 */
-			pclk_now(&time_now);
+			nclk_now(&time_now);
 			if (time_now > (lsp->ls_interval_value + lsp->ls_interval_base_value)) {
 				ping_slave = TRUE;
 				lsp->ls_interval_base_value = time_now; /* reset the new base time */
@@ -178,7 +178,7 @@ xdd_lockstep_before_io_op(ptds_t *p) {
 			if (lsp->ls_task_type & LS_TASK_TIME) {
 				/* If we are past the start time then signal the specified target to start.
 				*/
-				pclk_now(&time_now);
+				nclk_now(&time_now);
 				if (time_now > (lsp->ls_task_value + lsp->ls_task_base_value)) {
 					slave_wait = TRUE;
 					lsp->ls_task_base_value = time_now;

@@ -54,19 +54,19 @@ xdd_timer_calibration_before_pass(void) {
 #endif
 
 	if (xgp->global_options & GO_TIMER_INFO) {
-		pclk_now(&t1);
+		nclk_now(&t1);
 		for (i=0; i<100; i++) 
-			pclk_now(&t2);
-		pclk_now(&t2);
+			nclk_now(&t2);
+		nclk_now(&t2);
 		t3=t2-t1;
 
 		fprintf(xgp->output,"XDD Timer Calibration Info: Average time to get time stamp=%llu nanoseconds\n",t3/100);
 
 #ifdef WIN32
 		for (i=1; i< 1001; i*=10) {
-			pclk_now(&t1);
+			nclk_now(&t1);
 			Sleep(i);
-			pclk_now(&t3);
+			nclk_now(&t3);
 			t3 -= t1;
 fprintf(xgp->output,"XDD Timer Calibration Info: Requested sleep time in microseconds=%d, Actual sleep time in microseconds=%llu\n",i*1000,t3/MILLION);
 		}
@@ -76,9 +76,9 @@ fprintf(xgp->output,"XDD Timer Calibration Info: Requested sleep time in microse
 			req.tv_nsec = i;
 			rem.tv_sec = 0;
 			rem.tv_nsec = 0;
-			pclk_now(&t1);
+			nclk_now(&t1);
 			status = nanosleep(&req, &rem);
-			pclk_now(&t3);
+			nclk_now(&t3);
 			if (status) { // This means that the nanosleep was interrupted early
 				req.tv_sec = rem.tv_sec;
 				req.tv_nsec = rem.tv_nsec;
@@ -289,7 +289,7 @@ xdd_target_ttd_before_pass(ptds_t *p) {
 			p->first_pass_start_time = PCLK_MAX;
 			p->my_pass_start_time = PCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
-			pclk_now(&p->first_pass_start_time);
+			nclk_now(&p->first_pass_start_time);
 			p->my_pass_start_time = p->first_pass_start_time;
 		}
 		// Get the current CPU user and system times 
@@ -301,7 +301,7 @@ xdd_target_ttd_before_pass(ptds_t *p) {
 			// multi-file copy support is added
 			p->my_pass_start_time = PCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
-			pclk_now(&p->my_pass_start_time);
+			nclk_now(&p->my_pass_start_time);
 		}
 		times(&p->my_starting_cpu_times_this_pass);
 	}

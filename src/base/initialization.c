@@ -83,7 +83,7 @@ xdd_initialization(int32_t argc,char *argv[]) {
 		xdd_destroy_all_barriers();
 		return(-1);
 	}
-	pclk_now(&xgp->base_time);
+	nclk_now(&xgp->base_time);
 
 	// Init the Global Clock 
 	// See global_clock.c

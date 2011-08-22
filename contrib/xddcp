@@ -130,6 +130,7 @@ function print_usage {
     echo " -t threads   - Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
     echo " -v           - Add verbose output to logs"
     echo " -w sec       - Add post-analysis: plot bandwidth over time with sliding window of 'sec' seconds. (sec >= 1)"
+    echo " -W sec       - Add post-analysis: -w option with kernel tracing. (sec >= 1)"
     #echo "-Y           - Force SSH to create psueo-terminal tty"
     echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
 }
@@ -1355,6 +1356,11 @@ EOF
 		echo "INFO: Failed to plot analysis data.  Skipping gnuplot" >/dev/stderr
 		return 1
 	fi
+	plot_tsdumps ${tsDataFile}.k ${plotPrefix}k >> ${myLogFile} 2>&1
+	if [ 0 -ne $? ]; then
+		echo "INFO: Failed to plot analysis data, kernel files.  Skipping gnuplot" >/dev/stderr
+		return 1
+        fi
 
 	echo "done"
 }
@@ -1474,6 +1480,20 @@ function xddcp_main {
 	    w) 
                 verboseFlag=1
 		binaryDumpFlag=1
+		windowSize=$OPTARG
+		expr $windowSize + 1 >/dev/null 2>&1
+		if [ $? -ne 0 ]; then
+			echo "INFO: Window size (-w arg) must be an integer." >/dev/stderr
+			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+		elif [ $windowSize -le 0 ]; then
+			echo "INFO: Window size (-w arg) must be greater than zero." >/dev/stderr
+			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+		fi
+                ;;
+	    W) 
+                verboseFlag=1
+		binaryDumpFlag=1
+		kernelTraceFlag=1
 		windowSize=$OPTARG
 		expr $windowSize + 1 >/dev/null 2>&1
 		if [ $? -ne 0 ]; then
