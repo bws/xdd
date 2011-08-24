@@ -1368,6 +1368,11 @@ EOF
 		echo "INFO: Failed to plot analysis data, kernel files.  Skipping gnuplot" >/dev/stderr
 		return 1
 	  fi
+  	  plot_tsdumps_dk ${tsDataFile}.k.d ${plotPrefix}d >> ${myLogFile} 2>&1
+       	  if [ 0 -ne $? ]; then
+		echo "INFO: Failed to plot analysis data, kernel files.  Skipping gnuplot" >/dev/stderr
+		return 1
+	  fi
 	fi
 
 	echo "done"

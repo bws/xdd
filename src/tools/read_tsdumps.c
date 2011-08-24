@@ -60,6 +60,8 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		tte_t **send_op, tte_t **recv_op, tte_t **write_op);
 void write_outfile_k(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		tte_t **send_op, tte_t **recv_op, tte_t **write_op);
+void write_outfile_d(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
+                tte_t **send_op, tte_t **recv_op, tte_t **write_op);
 /* read, check, and store the src and dst file data */
 int xdd_getdata(char *file1, char *file2, tthdr_t **src, tthdr_t **dst);
 /* Read an XDD binary timestamp dump into a structure */
@@ -141,6 +143,7 @@ int main(int argc, char **argv) {
 	/* write the outfile(s) */
                           write_outfile  (src,dst,read_op,send_op,recv_op,write_op);
         if (kernel_trace) write_outfile_k(src,dst,read_op,send_op,recv_op,write_op);
+        if (kernel_trace) write_outfile_d(src,dst,read_op,send_op,recv_op,write_op);
 
 	/* free memory */
 	free(read_op);
@@ -482,13 +485,62 @@ void write_outfile_k(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		recv_mbs    /= (float)window_size;
 		write_mbs   /= (float)window_size;
 
-		/* write to file */
+		/* write to file. use same time scale as write_outfile for comparison */
 		fprintf(outfile,"%12.6f %10.4f %12.6f %10.4f %12.6f %10.4f  %12.6f %10.4f  %9s %8s\n",
-			nclk2sec(read_op[i]->disk_end_k), read_mbs,
-			nclk2sec(send_op[i]->net_end_k), send_mbs,
-			nclk2sec(recv_op[i]->net_end_k), recv_mbs,
-			nclk2sec(write_op[i]->disk_end_k), write_mbs,
+			nclk2sec(read_op[i]->disk_end), read_mbs,
+			nclk2sec(send_op[i]->net_end), send_mbs,
+			nclk2sec(recv_op[i]->net_end), recv_mbs,
+			nclk2sec(write_op[i]->disk_end), write_mbs,
 			"s", "MB/s");
+	}
+	fclose(outfile);
+}
+
+/* write the outfile delta xdd-kernel */
+void write_outfile_d(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
+		tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
+	int64_t i;
+	/* variables for the file writing loop below */
+	FILE *outfile;
+
+	/* try to open another file */
+                strcat(outfilename,".d");
+		outfile = fopen(outfilename, "w");
+	/* do we have a file pointer? */
+	if (outfile == NULL) {
+		fprintf(stderr,"Can not open output file: %s\n",outfilename);
+		exit(1);
+        }
+
+	/* file header */
+        fprintf(outfile,"#timestamp: %s",src->td);
+        fprintf(outfile,"#reqsize: %d\n",src->reqsize);
+        fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
+        fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
+        for (i = 0; i < total_threads_src; i++) { fprintf(outfile,"%d ",thread_id_src[i] );}
+                                                  fprintf(outfile,"\n");
+        fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
+        for (i = 0; i < total_threads_dst; i++) { fprintf(outfile,"%d ",thread_id_dst[i] );}
+                                                  fprintf(outfile,"\n");
+        fprintf(outfile,"#src_start_norm, dst_start_norm %lld %lld\n",src_start_norm,dst_start_norm);
+	fprintf(outfile,"#   read_time   read_start     read_end   send_time   send_start     send_end");
+	fprintf(outfile,"#   recv_time   recv_start     recv_end   write_time  write_start    write_end\n");
+	fprintf(outfile,"#               (xdd-kern)     (xdd-kern)             (xdd-kern)     (xdd-kern)");
+	fprintf(outfile,"#               (xdd-kern)     (xdd-kern)             (xdd-kern)     (xdd-kern)  time_unit delta_unit\n");
+
+	/* loop through tte entries */
+	for (i = 0; i < src->tt_size; i++) {
+		/* write to file */
+		fprintf(outfile,"%12.6f %12lld %12lld %12.6f %12lld %12lld %12.6f %12lld %12lld %12.6f %12lld %12lld %9s\n",
+			nclk2sec(read_op[i]->disk_end),  read_op[i]->disk_start  - read_op[i]->disk_start_k, 
+			                                 read_op[i]->disk_end    - read_op[i]->disk_end_k, 
+			nclk2sec(send_op[i]->net_end),   send_op[i]->net_start   - send_op[i]->net_start_k,
+			                                 send_op[i]->net_end     - send_op[i]->net_end_k,
+			nclk2sec(recv_op[i]->net_end),   recv_op[i]->net_start   - recv_op[i]->net_start_k, 
+			                                 recv_op[i]->net_end     - recv_op[i]->net_end_k, 
+			nclk2sec(write_op[i]->disk_end), write_op[i]->disk_start - write_op[i]->disk_start_k,
+			                                 write_op[i]->disk_end   - write_op[i]->disk_end_k,
+			"s", "ns");
 	}
 	fclose(outfile);
 }

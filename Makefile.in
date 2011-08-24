@@ -255,6 +255,7 @@ fullinstall: install_pre
 	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps.$(OS)
 	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps
 	$(INSTALL) -c -m 755 contrib/plot_tsdumps $(INSTALL_DIR)/bin/plot_tsdumps
+	$(INSTALL) -c -m 755 contrib/plot_tsdumps_dk $(INSTALL_DIR)/bin/plot_tsdumps_dk
 	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
 
 install: install_pre fullinstall install_libs install_xddcp
