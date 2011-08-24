@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
 
         /* match-add kernel events with xdd events if specfied */
         /* at this point, src & dst contain all xdd events     */
-        if (kernel_trace || 1)
+        if (kernel_trace)
         {
           sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
 		getenv("HOME"),getenv("HOME"),src->target_thread_id);
@@ -139,8 +139,8 @@ int main(int argc, char **argv) {
 	sort_by_time(src,dst,&read_op,&send_op,&recv_op,&write_op);
 
 	/* write the outfile(s) */
-                               write_outfile  (src,dst,read_op,send_op,recv_op,write_op);
-        if (kernel_trace || 1) write_outfile_k(src,dst,read_op,send_op,recv_op,write_op);
+                          write_outfile  (src,dst,read_op,send_op,recv_op,write_op);
+        if (kernel_trace) write_outfile_k(src,dst,read_op,send_op,recv_op,write_op);
 
 	/* free memory */
 	free(read_op);
@@ -661,7 +661,7 @@ int getoptions(int argc, char **argv) {
 	window_size = 1;
 
 	/* loop through options */
-	while ((opt = getopt(argc, argv, "t:o:h")) != -1) {
+	while ((opt = getopt(argc, argv, "t:ko:h")) != -1) {
 		switch (opt) {
 			case 't': /* moving average */
 				window_size = atoi(optarg);
@@ -671,6 +671,10 @@ int getoptions(int argc, char **argv) {
 					ierr++;
 				}
 				break;
+                        case 'k': /* use src, dst kernel trace files */
+                                kernel_trace = 1;
+                                argnum += 1;
+                                break;
 			case 'o': /* output file name */
 				strncpy(outfilename,optarg,OUTFILENAME_LEN);
 				outfilename[OUTFILENAME_LEN-1] = '\0';
@@ -678,10 +682,6 @@ int getoptions(int argc, char **argv) {
 				if (strlen(outfilename) == 0)
 					ierr++;
 				break;
-                        case 'k': /* use src, dst kernel trace files */
-                                kernel_trace = 1;
-                                argnum += 1;
-                                break;
 			case 'h': /* help */
 			default:
 				printusage(argv[0]);
