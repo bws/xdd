@@ -418,8 +418,8 @@ function check_transfer_preconditions {
     fi
 
     # Check if file is a character special device (like zero or null)
-    local sfType=$(stat -c %F ${sourceSideFilename})
-    local dfType=$(stat -c %F ${destSidePathname})
+    local sfType=$(stat -c %F ${sourceSideFilename} 2>/dev/null)
+    local dfType=$(stat -c %F ${destSidePathname} 2>/dev/null)
 
     # Ensure file is large enough
     local totalBytes="$transferSize"
