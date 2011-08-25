@@ -279,8 +279,8 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
           }
            for (i = 0; i < xdd_data->tt_size; i++)
            {
-              fprintf(stderr,"%2d p %5d DB %7d, NB %7d No %5d Ds %19lld %19lld De %19lld %19lld Ns %19lld %19lld Ne %19lld %19lld\n",
-                 i, xdd_data->tte[i].thread_id, xdd_data->tte[i].disk_xfer_size, xdd_data->tte[i].net_xfer_size, xdd_data->tte[i].net_xfer_calls,
+              fprintf(stderr,"%2d p %5d %2d DB %7d, NB %7d No %5d Ds %19lld %19lld De %19lld %19lld Ns %19lld %19lld Ne %19lld %19lld\n",
+                 i, xdd_data->tte[i].thread_id, xdd_data->tte[i].qthread_number, xdd_data->tte[i].disk_xfer_size, xdd_data->tte[i].net_xfer_size, xdd_data->tte[i].net_xfer_calls,
                    xdd_data->tte[i].disk_start,xdd_data->tte[i].disk_start_k,
                    xdd_data->tte[i].disk_end,xdd_data->tte[i].disk_end_k,
                    xdd_data->tte[i].net_start,xdd_data->tte[i].net_start_k,
