@@ -41,6 +41,7 @@ INSTALL = $(XDD_DIR)/support/install-sh
 LD = $(CC_EXE)
 LN = ln -sf
 MKDIR = mkdir -p
+MV = mv -f
 RM = rm -f
 
 #
@@ -92,7 +93,9 @@ TOOLS_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOLS_SRC)))
 #
 CLIENT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
 GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
+GETHOSTIP_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETHOSTIP_EXE_SRC)))
 READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
+TRUNCATE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TRUNCATE_EXE_SRC)))
 TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TS_EXE_SRC)))
 
 #
@@ -137,7 +140,7 @@ SOFLAGS =
 #
 # Platform specific build settings
 #
-$(info Making xdd for $(OS))
+#$(info Making xdd for $(OS))
 ifeq '$(OS)' 'Linux'
 CPPFLAGS += -O0 -DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF)
 CFLAGS += -ggdb -fno-strict-aliasing -fPIC -Wall
@@ -171,6 +174,20 @@ endif
 
 all: xdd timeserver gettime read_tsdumps libs
 
+xdd: bin/xdd
+
+timeserver: bin/timeserver
+
+gettime: bin/gettime
+
+gethostip: bin/gethostip
+
+read_tsdumps: bin/read_tsdumps
+
+truncate: bin/truncate
+
+.PHONY: all xdd timeserver gethostip gettime read_tsdumps truncate
+
 #
 # Build rules for libraries
 #
@@ -188,29 +205,29 @@ $(LIB_DIR)/libxdd.so: $(LIB_DIR)/libxdd.so.$(VERSION)
 #
 # Build rules for executable targets
 #
-xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	mv -f $@ bin/xdd.$(OS)
-	$(RM) bin/xdd
-	$(LN) xdd.$(OS) bin/xdd
+bin/xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
+	$(LD) $(LDFLAGS) -o $@.$(OS) $^ $(LIBS)
+	$(LN) $@.$(OS) $@
 
-timeserver: $(COMMON_DIR)/pclk.o $(TS_EXE_OBJS) 
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	mv -f timeserver bin/timeserver.$(OS)
-	$(RM) bin/timeserver
-	$(LN) timeserver.$(OS) bin/timeserver
+bin/timeserver: $(COMMON_DIR)/pclk.o $(TS_EXE_OBJS) 
+	$(LD) $(LDFLAGS) -o $@.$(OS) $^ $(LIBS)
+	$(LN) $@.$(OS) $@
 
-gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/pclk.o $(GETTIME_EXE_OBJS) 
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	mv -f gettime bin/gettime.$(OS)
-	$(RM) bin/gettime
-	$(LN) gettime.$(OS) bin/gettime
+bin/gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/pclk.o $(GETTIME_EXE_OBJS) 
+	$(LD) $(LDFLAGS) -o $@.$(OS) $^ $(LIBS)
+	$(LN) $@.$(OS) $@
 
-read_tsdumps: $(READ_TSDUMPS_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	mv -f read_tsdumps bin/read_tsdumps.$(OS)
-	$(RM) bin/read_tsdumps
-	$(LN) read_tsdumps.$(OS) bin/read_tsdumps
+bin/read_tsdumps: $(READ_TSDUMPS_EXE_OBJS)
+	$(LD) $(LDFLAGS) -o $@.$(OS) $^ $(LIBS)
+	$(LN) $@.$(OS) $@
+
+bin/gethostip: $(GETHOSTIP_EXE_OBJS)
+	$(LD) $(LDFLAGS) -o $@.$(OS) $^ $(LIBS)
+	$(LN) $@.$(OS) $@
+
+bin/truncate: $(TRUNCATE_EXE_OBJS)
+	$(LD) $(LDFLAGS) -o $@.$(OS) $^ $(LIBS)
+	$(LN) $@.$(OS) $@
 
 #
 # Build rules for installation

@@ -218,13 +218,13 @@ if  ! test "x$xddcp_disable" = "xyes" ; then
    AC_SUBST(XDDCP_ENABLED, "true")
 fi
 
-gethostip_exists="no"
-AC_PATH_PROG([gethostip_exists], [gethostip], [no])
-if test "x$gethostip_exists" = "xno" ; then
+dnl gethostip_exists="no"
+dnl AC_PATH_PROG([gethostip_exists], [gethostip], [no])
+dnl if test "x$gethostip_exists" = "xno" ; then
 dnl   AC_MSG_WARN(Some features of xddcp unavailable.  No gethostip utility installed.)
-    AC_MSG_WARN(Support for xddcp disabled.  No working gethostip utility.)
-    xddcp_disable="yes"
-fi
+dnl     AC_MSG_WARN(Support for xddcp disabled.  No working gethostip utility.)
+dnl     xddcp_disable="yes"
+dnl fi
 
 netstat_exists="no"
 AC_PATH_PROG([netstat_exists], [netstat], [no])

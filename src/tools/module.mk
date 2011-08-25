@@ -10,3 +10,7 @@ TS_EXE_SRC := $(DIR)/timeserver.c
 GETTIME_EXE_SRC := $(DIR)/gettime.c
 
 READ_TSDUMPS_EXE_SRC := $(DIR)/read_tsdumps.c
+
+GETHOSTIP_EXE_SRC := $(DIR)/gethostip.c
+
+TRUNCATE_EXE_SRC := $(DIR)/truncate.c
