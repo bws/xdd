@@ -54,7 +54,7 @@ dnl Check operating system
 dnl
 PLATFORM=`uname`
 if test "$PLATFORM" = "AIX"; then
-   ARFLAGS="-X 64"
+   ARFLAGS="-rcs -X 64"
    CPPFLAGS="-DAIX -D_THREAD_SAFE"
    LIBS="-lnsl -lxnet -v"
 elif test "$PLATFORM" = "Linux"; then
@@ -79,7 +79,8 @@ if test "$CC" = "xlc_r"; then
    dnl AX_CFLAGS_AIX_OPTION([-q64])
    dnl AX_CFLAGS_AIX_OPTION([-qcpluscmt])
    dnl AX_CFLAGS_AIX_OPTION([-qthreaded])
-   CFLAGS="-q64 -qpluscmt -qthreaded"
+   CFLAGS="-q64 -qcpluscmt -qthreaded"
+   LDFLAGS="-q64 -qthreaded"
 elif test "$CC" = "gcc"; then
    AX_CFLAGS_GCC_OPTION([-ggdb])
    AX_CFLAGS_GCC_OPTION([-fno-strict-aliasing])
@@ -145,6 +146,9 @@ AC_CHECK_HEADER([sys/stat.h],
                 [], 
                 AC_MSG_ERROR(Must include headers for sys/stat.h))
 
+AC_CHECK_HEADER([utmpx.h],
+		[], [])
+
 dnl
 dnl Check for C libraries
 dnl
@@ -181,15 +185,7 @@ AC_SEARCH_LIBS([clock_gettime], [rt],
 	       [], 
 	       AC_MSG_WARN(Posix function clock_gettime not found.))
 
-dnl
-dnl Check for clock_gettime library
-dnl
-dnl if 
-dnl LIBS="-lrt"
-dnl AC_TRY_LINK([#include <pthread.h>],
-dnl	    [pthread_attr_init(NULL);],
-dnl	    [],
-dnl	    AC_MSG_ERROR([No suitable pthreads library to link against]))
+AC_CHECK_FUNCS([sched_getcpu])
 
 dnl
 dnl Check for MPI compiler
@@ -240,24 +236,6 @@ AC_CHECK_HEADERS([linux/magic.h],
 
 
 dnl
-dnl Check for sched_getcpu availability
-dnl
-utmpx_headers="no"
-sched_getcpu_support="no"
-AC_CHECK_HEADERS([utmpx.h],
-		 [utmpx_headers="yes"],
-		 [utmpx_headers="no"])
-
-AC_TRY_LINK([#define _GNU_SOURCE
-             #include <utmpx.h>],
-	    [sched_getcpu();],
-	    [sched_getcpu_support="yes"])
-if test "x$utmpx_headers" = "xyes" -a "x$sched_getcpu_support" = "xyes" ; then
-   AC_SUBST(CONFIG_UTMPX_ENABLED, "-DUTMPX_SUPPORT")
-fi
-
-
-dnl
 dnl Check whether to enable assertions
 dnl
 AC_HEADER_ASSERT
@@ -294,24 +272,11 @@ if test "x$tr_exists" = "xno" ; then
     xddcp_disable="yes"
 fi
 
-dnl truncate_exists="no"
-dnl AC_PATH_PROG([truncate_exists], [truncate], [no])
-dnl if test "x$truncate_exists" = "xno" ; then
-dnl     AC_MSG_WARN(Support for xddcp disabled.  No working truncate utility.)
-dnl     xddcp_disable="yes"
-dnl fi
-dnl 
-dnl if  ! test "x$xddcp_disable" = "xyes" ; then
-dnl    AC_SUBST(XDDCP_ENABLED, "true")
-dnl fi
-dnl 
-dnl gethostip_exists="no"
-dnl AC_PATH_PROG([gethostip_exists], [gethostip], [no])
-dnl if test "x$gethostip_exists" = "xno" ; then
-dnl   AC_MSG_WARN(Some features of xddcp unavailable.  No gethostip utility installed.)
-dnl     AC_MSG_WARN(Support for xddcp disabled.  No working gethostip utility.)
-dnl     xddcp_disable="yes"
-dnl fi
+if  ! test "x$xddcp_disable" = "xyes" ; then
+   AC_SUBST(XDDCP_ENABLED, "true")
+else
+   AC_SUBST(XDDCP_ENABLED, "false")
+fi
 
 netstat_exists="no"
 AC_PATH_PROG([netstat_exists], [netstat], [no])

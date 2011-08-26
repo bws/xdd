@@ -23,7 +23,7 @@
 # engine.  Its functionality loosely mimics the capabilities of scp and bbcp,
 # however, with hopefully much improved performance.
 #
-# Notes: XDDCP has only been tested on Linux environments.  The
+# Notes: XDDCP has been tested on AIX and Linux environments.  The
 # following POSIX utilities are required to utilize XDDCP:
 #    /bin/basename
 #    /bin/cat
@@ -314,8 +314,8 @@ function check_host_preconditions {
     local recursiveFlag=${5}
     local forceFlag=${6}
 
-    # Check for xdd.Linux binary
-    type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
+    # Check for xdd binary
+    type ${XDDCP_DEFAULT_XDD} &>/dev/null
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
     else
@@ -323,7 +323,7 @@ function check_host_preconditions {
     fi
 
     # Check for gethostip binary
-    type -P gethostip &>/dev/null
+    type gethostip &>/dev/null
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND
     fi
@@ -347,7 +347,7 @@ function check_host_preconditions {
     fi
 
     # Ensure tools required for force flag exist
-    type -P gethostip &>/dev/null
+    type gethostip &>/dev/null
     if [ $? -ne 0 ]; then
         echo "INFO: Force mode requires the gethostip command, force disabled."
         eval "forceFlag=0"
@@ -550,10 +550,10 @@ function get_destination_cmds {
     local srcHost=$(/bin/hostname)
     
     # Construct transfer settings
-    let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
-    let "numreqs   = $totalBytes / $xfer"
-    let "blocksize = 1024"
-    let "reqsize   = $xfer / $blocksize"
+    declare -i xfer=${XDDCP_DEFAULT_XFER_SIZE}
+    declare -i numreqs=$((totalBytes/xfer))
+    declare -i blocksize=1024
+    declare -i reqsize=$((xfer/blocksize))
 
     # Other variables
     local srcBase=$(/bin/basename $srcFile)
@@ -595,9 +595,9 @@ function get_destination_cmds {
     
     cat <<EOF
 # Ensure xdd is in the remote path
-type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
+type ${XDDCP_DEFAULT_XDD} &>/dev/null
 if [ 0 -ne \$? ]; then
-    echo "xdd.Linux is not in destination host PATH"
+    echo "xdd binary is not in destination host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
@@ -610,7 +610,7 @@ fi
 
 # Check that ports are available for binding
 declare -i port_conflict=0
-type -P gethostip &>/dev/null
+type gethostip &>/dev/null
 hasIpTranslator=\$?
 if [ 1 -ne \$hasIpTranslator ]; then
     declare -i tcount_idx=0
@@ -784,10 +784,10 @@ function get_source_cmds {
     local resumeOffset=${11}
 
     # Construct XDD transfer settings
-    let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
-    let "numReqs   = ${totalBytes} / $xfer"
-    let "blockSize = 1024"
-    let "reqSize   = $xfer / $blockSize"
+    xfer=${XDDCP_DEFAULT_XFER_SIZE}
+    numReqs=$((totalBytes/xfer))
+    blockSize=1024
+    reqSize=$((xfer/blockSize))
 
     # Construct the e2e destinations
     local e2eDestinations=""
@@ -853,9 +853,9 @@ function get_source_cmds {
     # Build the command string
     cat <<EOF
 # Ensure xdd is in the path
-type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
+type ${XDDCP_DEFAULT_XDD} &>/dev/null
 if [ 0 -ne \$? ]; then
-    echo "xdd.Linux is not in the source host PATH"
+    echo "xdd binary is not in the source host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
@@ -1435,7 +1435,7 @@ function xddcp_main {
                 ;;
 	    f) 
                 forceFlag=1
-		type -P gethostip &>/dev/null
+		type gethostip &>/dev/null
 		if [ $? -ne 0 ]; then
 		    echo "INFO: Force mode requires the gethostip command, force disabled."
                     forceFlag=0
@@ -1522,7 +1522,9 @@ function xddcp_main {
     destHost=$(gethostip -d $destHost)
 
     # Retry on failed transfer
-    for ((i=0; i<=$retryCount; i=$i+1)); do
+    retries=0
+    while [ $retries -le $retryCount ]; do
+        retries=$((retries+1))
 
         # Transfer according to source input type
 	rc=0
@@ -1568,9 +1570,9 @@ function xddcp_main {
 	    echo ""
 	    echo "Transfer complete.  Verify results with md5sum."
 	    break
-	elif [ $i -lt $retryCount ]; then
+	elif [ $retries -lt $retryCount ]; then
 	    # Print a retry message
-	    echo "Transfer failed.  Retry attempt: $((i+1))"
+	    echo "Transfer failed.  Retry attempt: $retries"
 	    sleep $XDDCP_DEFAULT_RETRY_SLEEP_SECS
 	    reset_global_data
 	else

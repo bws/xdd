@@ -21,10 +21,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <sysexits.h>
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE		/* For getopt_long */
-#endif
+#ifdef HAVE_GETOPT_H
 #include <getopt.h>
+#endif
 
 const char *program;
 
@@ -33,10 +32,6 @@ void usage(int exit_code)
     fprintf(stderr, "Usage: %s [-s size]... FILE...\n", program);
     exit(exit_code);
 }
-
-static struct option long_options[] = {
-    {"size", 1, NULL, 0},
-};
 
 int main(int argc, char *argv[])
 {
@@ -47,9 +42,8 @@ int main(int argc, char *argv[])
     
     program = argv[0];
     
-    while ( (opt = getopt_long(argc, argv, "s:", long_options, NULL)) != -1 ) {
+    while ( (opt = getopt(argc, argv, "s:")) != -1 ) {
         switch ( opt ) {
-            case 0:
             case 's':
                 tsize = atoi(optarg);
                 break;

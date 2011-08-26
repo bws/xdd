@@ -23,19 +23,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <sysexits.h>
-#define _GNU_SOURCE		/* For getopt_long */
+#ifdef HAVE_GETOPT_H
 #include <getopt.h>
-
-const struct option options[] =
-{
-  { "hexadecimal", 0, NULL, 'x' },
-  { "decimal",     0, NULL, 'd' },
-  { "dotted-quad", 0, NULL, 'd' },
-  { "full-output", 0, NULL, 'f' },
-  { "name",        0, NULL, 'n' },
-  { "help",        0, NULL, 'h' },
-  { NULL, 0, NULL, 0 }
-};
+#endif
 
 const char *program;
 
@@ -57,7 +47,7 @@ int main(int argc, char *argv[])
 
   program = argv[0];
 
-  while ( (opt = getopt_long(argc, argv, "dxfnh", options, NULL)) != -1 ) {
+  while ( (opt = getopt(argc, argv, "dxfnh")) != -1 ) {
     switch ( opt ) {
     case 'd':
       output |= 2;		/* Decimal output */
