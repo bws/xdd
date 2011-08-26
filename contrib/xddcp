@@ -35,14 +35,17 @@
 #    /bin/ps
 #    /bin/uname
 #
+# The following utilities are provided by the XDD distribution
+#
+#    gethostip
+#    truncate
+#    xdd
+#
 # The following utilities (non-POSIX) are required to utilize XDDCP:
 #    dirname
-#    gethostip
 #    ssh
 #    stat
 #    tr
-#    truncate
-#    xdd.Linux
 #
 # The following utilities are optionally used by XDDCP:
 #    netstat 
@@ -59,7 +62,7 @@ XDDCP_DEFAULT_TIMESTAMP="$(/bin/date -u +'%Y-%m-%d-%H%M%S')-GMT"
 XDDCP_DEFAULT_NETWORK_SLEEP_SECS=4
 XDDCP_DEFAULT_RETRY_SLEEP_SECS=4
 XDDCP_DEFAULT_NETWORK_CLEAR_SECS=2
-XDDCP_DEFAULT_XDD="xdd.$(/bin/uname)"
+XDDCP_DEFAULT_XDD="xdd"
 
 # XDDCP Error Codes
 XDDCP_ERR_CODE_INVALID_ARGS=101
