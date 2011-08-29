@@ -133,7 +133,7 @@ function print_usage {
     echo " -v           - Add verbose output to logs"
     echo " -w sec       - Add post-analysis: plot bandwidth over time with sliding window of 'sec' seconds. (sec >= 1)"
     #echo "-Y           - Force SSH to create psueo-terminal tty"
-    echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
+    echo "NOTE: 'xdd' must be in your PATH env on both source and destination hosts!!!"
 }
 
 #
@@ -1516,6 +1516,12 @@ function xddcp_main {
     # Ensure local option preconditions are met
     check_host_preconditions ${srcPath} ${fileListFlag} ${fileSizeFlag} \
 	${recursiveFlag} ${resumeFlag} ${forceFlag}
+
+    # The force flag only works on Linux, disable it everywhere else
+    if [ "Linux" != "$(/bin/uname)" ]; then
+	forceFlag=0
+	echo "Warning: File transfer forcing disabled for non-Linux platforms." >/dev/stderr
+    fi
 
     # Convert the destination host to its IP to avoid DNS round-robin issues
     gethostip -d $destHost &> /dev/null

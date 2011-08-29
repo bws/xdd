@@ -20,7 +20,7 @@ echo "source_file       - complete /filepath/name for source file on source host
 echo "destination_host  - destination host IP or Name over which data is transferred"
 echo "destination_file  - complete /filepath/name for destination file on destination host"
 echo "bytes_to_transfer - total bytes to transfer (default - size of source file)"
-echo "Note: 'xdd.Linux' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
+echo "Note: 'xdd' and script 'qipcrm' must be in your PATH env on both source and destination hosts!!!"
 exit -1
 fi
 
@@ -37,10 +37,10 @@ if [ $? -eq 1 ]; then
 	exit -1
 fi
 
-which xdd.Linux >/dev/null 2> /dev/null
+which xdd >/dev/null 2> /dev/null
 
 if [ $? -eq 1 ]; then
-        echo "xdd.Linux executable was not found.  Please make sure it in your PATH."
+        echo "xdd executable was not found.  Please make sure it in your PATH."
         exit 1
 fi
 
@@ -139,9 +139,9 @@ let "reqsize      = $xfer / $blocksize"
 qipcrm ${USER}
 #delete source file
 rm -f ${TDSource}
-pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
+pgrep -u ${USER} -f xdd | xargs kill -9 2> /dev/null
 #delete destination file
-ssh ${HDestin} "rm -f ${TDDestin}; qipcrm ${USER}; pgrep -u ${USER} -f xdd.Linux | xargs kill -9" 
+ssh ${HDestin} "rm -f ${TDDestin}; qipcrm ${USER}; pgrep -u ${USER} -f xdd | xargs kill -9" 
 #ssh ${HDestin} "mkdir -m 1777 /dev/shm/condata" 2> /dev/null
 
 #################################################
@@ -150,20 +150,20 @@ TSTAMP="`date +%y%m%d.%H%M%S`"
 test="nt1.qd"$queuedepth"."$xfer"x"$numreqs"."$bytesperpass".xdd_${TSTAMP}"
 #################################################
 
-#ssh ${HDestin} xdd.Linux -targets 1 ${TDDestin} -minall -numreqs $numreqs  -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op write -war writer ${HDestinIP} ${WARPORT1}  ${useDIO} &> ${test}.${HDestin}.out &
+#ssh ${HDestin} xdd -targets 1 ${TDDestin} -minall -numreqs $numreqs  -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op write -war writer ${HDestinIP} ${WARPORT1}  ${useDIO} &> ${test}.${HDestin}.out &
 
-ssh ${HDestin} "xdd.Linux -targets 1 ${TDDestin} -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op write -e2e isdestination -e2e dest ${HDestinIP} ${E2EPORT1}  ${useDIO} &> ${test}.${HDestin}.out &"
+ssh ${HDestin} "xdd -targets 1 ${TDDestin} -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op write -e2e isdestination -e2e dest ${HDestinIP} ${E2EPORT1}  ${useDIO} &> ${test}.${HDestin}.out &"
 
 sleep 6
 
-#ssh ${HSource} xdd.Linux -targets 1  ${TDSource} -minall -numreqs $numreqs -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${useDIO}  &> ${test}.${HSource}.out &
+#ssh ${HSource} xdd -targets 1  ${TDSource} -minall -numreqs $numreqs -reqsize $reqsize -blocksize $blocksize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${useDIO}  &> ${test}.${HSource}.out &
 
-#xdd.Linux -targets 1  ${TDSource} -noconfidump -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${uselocalDIO}  -timerinfo #&> ${test}.${HSource}.out &
+#xdd -targets 1  ${TDSource} -noconfidump -minall -bytes $bytesperpass -reqsize $reqsize -verbose -queuedepth $queuedepth -op read  -war writer ${HDestinIP} ${WARPORT1}  ${uselocalDIO}  -timerinfo #&> ${test}.${HSource}.out &
 #########################
 #make and move file
 #########################
-xdd.Linux -op write -datapattern random -bytes $bytesperpass -targets 1  ${TDSource}  > ${test}.${HSource}.out 2>&1
-xdd.Linux -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $queuedepth -op read -e2e issource -e2e dest ${HDestinIP} ${E2EPORT1}  ${uselocalDIO}  -timerinfo >> ${test}.${HSource}.out 2>&1 &
+xdd -op write -datapattern random -bytes $bytesperpass -targets 1  ${TDSource}  > ${test}.${HSource}.out 2>&1
+xdd -targets 1  ${TDSource} -minall -bytes $bytesperpass -reqsize $reqsize -queuedepth $queuedepth -op read -e2e issource -e2e dest ${HDestinIP} ${E2EPORT1}  ${uselocalDIO}  -timerinfo >> ${test}.${HSource}.out 2>&1 &
 
 wait
 
