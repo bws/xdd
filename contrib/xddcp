@@ -610,61 +610,63 @@ if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
-# Check that ports are available for binding
+# Check that ports are available for binding (Linux only)
 declare -i port_conflict=0
-type gethostip &>/dev/null
-hasIpTranslator=\$?
-if [ 1 -ne \$hasIpTranslator ]; then
-    declare -i tcount_idx=0
-    for iface in $destIfaces; do
-        tcount_idx=\$((tcount+1))
-        tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
-        iface_ip=\$(gethostip -d \$iface)
-        e2eLB=$e2ePort
-        e2eUB=\$((e2eLB+tcount))
+if [ "$(/bin/uname)" = "Linux" ]; then
+    type gethostip &>/dev/null
+    hasIpTranslator=\$?
+    if [ 1 -ne \$hasIpTranslator ]; then
+        declare -i tcount_idx=0
+        for iface in $destIfaces; do
+            tcount_idx=\$((tcount+1))
+                tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+            iface_ip=\$(gethostip -d \$iface)
+            e2eLB=$e2ePort
+            e2eUB=\$((e2eLB+tcount))
 #        echo "\$tcount_idx \$iface_ip \$e2eLB \$e2eUB" >>/tmp/bws
 #        echo "netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])" >>/tmp/bws
-        used_ports=\$(netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+            used_ports=\$(netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
 #        echo "Used ports: \$used_ports" >>/tmp/bws
-        for p in \$used_ports; do
-            if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
-                port_conflict=1
-                break
-            fi
+            for p in \$used_ports; do
+                if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
+                    port_conflict=1
+                    break
+                fi
+            done
         done
-    done
-fi
-
-# If a port conflict exists, user may want to kill running XDD's and retry
-if [ 1 -eq \$port_conflict ]; then
-    # Attempt to kill any running XDDs and re-check
-    if [ 1 -eq $forceFlag ]; then
-        xddpid=\$(/bin/ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
-        if [ ! -z "\$xddpid" ]; then
-            kill \$xddpid 2>/dev/null
-            sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
-            kill -9 \$xddpid 2>/dev/null
-            sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
-        fi
-    else
-        echo "Requested port \$p is in use"
-        exit ${XDDCP_ERR_CODE_DEST_PORT}
     fi
 
-    tcount_idx=0
-    for iface in $destIfaces; do
-        tcount_idx+=1
-        tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
-        e2eLB=$e2ePort
-        e2eUB=\$((e2eLB+tcount))
-        used_ports=\$(netstat -nlt |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
-        for p in \$used_ports; do
-            if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
-                echo "Requested port \$p is in use"
-                exit ${XDDCP_ERR_CODE_DEST_PORT}
+    # If a port conflict exists, user may want to kill running XDD's and retry
+    if [ 1 -eq \$port_conflict ]; then
+        # Attempt to kill any running XDDs and re-check
+        if [ 1 -eq $forceFlag ]; then
+            xddpid=\$(/bin/ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
+            if [ ! -z "\$xddpid" ]; then
+                kill \$xddpid 2>/dev/null
+                sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
+                kill -9 \$xddpid 2>/dev/null
+                sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
             fi
+        else
+            echo "Requested port \$p is in use"
+            exit ${XDDCP_ERR_CODE_DEST_PORT}
+        fi
+
+        tcount_idx=0
+        for iface in $destIfaces; do
+            tcount_idx+=1
+            tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+            e2eLB=$e2ePort
+            e2eUB=\$((e2eLB+tcount))
+            used_ports=\$(netstat -nlt |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+            for p in \$used_ports; do
+                if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
+                    echo "Requested port \$p is in use"
+                    exit ${XDDCP_ERR_CODE_DEST_PORT}
+                fi
+            done
         done
-    done
+    fi
 fi
 
 # If the supplied destination is a directory, append the source file name
