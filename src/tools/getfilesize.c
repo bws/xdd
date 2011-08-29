@@ -47,11 +47,35 @@ int main(int argc, char *argv[])
         int rc = stat(filename, &buffer);
         if (0 != rc) {
             /** Handle errors */
+	    switch(errno) {
+		case(EACCES):
+		    fprintf(stderr, "Unable to access file: %s\n", filename);
+		    break;
+		case(ENAMETOOLONG):
+		    fprintf(stderr, "Filename too long: %s\n", filename);
+		    break;
+		case(ENOTDIR):
+		    fprintf(stderr, "Invalid path segment: %s\n", filename);
+		    break;
+		case(EFAULT):
+		    fprintf(stderr, "Invalid buffer address.\n");
+		    break;
+		case(ENOENT):
+		    fprintf(stderr, "File does not exist: %s\n", filename);
+		    break;
+		case(EOVERFLOW):
+		    fprintf(stderr, "Overflow error.  Abort.\n");
+		    break;
+		default:
+		    fprintf(stderr, "Unknown error occurred during stat %d.\n",
+			    errno);
+		    break;
+	    }
             err = 1;
             break;
         }
         else {
-            printf("%llu\n", buffer.st_size);
+            printf("%llu\n", (long long unsigned)buffer.st_size);
         }
     }
     
