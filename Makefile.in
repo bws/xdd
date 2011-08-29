@@ -93,6 +93,7 @@ TOOLS_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOLS_SRC)))
 #
 CLIENT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
 GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
+GETFILESIZE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETFILESIZE_EXE_SRC)))
 GETHOSTIP_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETHOSTIP_EXE_SRC)))
 READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
 TRUNCATE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TRUNCATE_EXE_SRC)))
@@ -143,7 +144,7 @@ SOFLAGS = @CONFIG_SOFLAGS@
 #
 .DEFAULT: all
 
-all: xdd timeserver gettime read_tsdumps gethostip truncate libs
+all: xdd timeserver gettime read_tsdumps getfilesize  gethostip truncate libs
 
 xdd: bin/xdd
 
@@ -151,13 +152,15 @@ timeserver: bin/timeserver
 
 gettime: bin/gettime
 
+getfilesize: bin/getfilesize
+
 gethostip: bin/gethostip
 
 read_tsdumps: bin/read_tsdumps
 
 truncate: bin/truncate
 
-.PHONY: all xdd timeserver gethostip gettime read_tsdumps truncate
+.PHONY: all xdd timeserver getfilesize gethostip gettime read_tsdumps truncate
 
 #
 # Build rules for libraries
@@ -186,6 +189,9 @@ bin/gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/pclk.o $(GETTIME_EXE_OBJ
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/read_tsdumps: $(READ_TSDUMPS_EXE_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+bin/getfilesize: $(GETFILESIZE_EXE_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/gethostip: $(GETHOSTIP_EXE_OBJS)
@@ -228,6 +234,7 @@ fullinstall: install_pre
 	$(INSTALL) -c -m 755 bin/timeserver $(INSTALL_DIR)/bin/timeserver
 	$(INSTALL) -c -m 755 bin/gettime $(INSTALL_DIR)/bin/gettime
 	$(INSTALL) -c -m 755 bin/read_tsdumps $(INSTALL_DIR)/bin/read_tsdumps
+	$(INSTALL) -c -m 755 bin/getfilesize $(INSTALL_DIR)/bin/getfilesize
 	$(INSTALL) -c -m 755 bin/gethostip $(INSTALL_DIR)/bin/gethostip
 	$(INSTALL) -c -m 755 bin/truncate $(INSTALL_DIR)/bin/truncate
 	$(INSTALL) -c -m 755 contrib/plot_tsdumps $(INSTALL_DIR)/bin/plot_tsdumps

@@ -519,9 +519,11 @@ function get_file_size {
     local user=$4
 
     if [ 0 -eq "$remoteFlag" ]; then
-        echo $(stat -c %s $filename)
+        #BWS echo $(stat -c %s $filename)
+        echo $(getfilesize $filename)
     else
-        cmd="stat -c %s $filename"
+        #BWS cmd="stat -c %s $filename"
+        cmd="getfilesize $filename"
         remote_exec $cmd $host $user
     fi
 }
@@ -740,7 +742,8 @@ fi
 
 # Truncate the destination to the correct size if necessary
 if [ -e \$destination_file ]; then
-    cur_size=\$(stat -c '%s' \${destination_file})
+    #BWS cur_size=\$(stat -c '%s' \${destination_file})
+    cur_size=\$(getfilesize \${destination_file})
     if [ \$cur_size -gt $totalBytes ]; then
         truncate -s $totalBytes \${destination_file}
     fi
