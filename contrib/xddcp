@@ -681,7 +681,7 @@ fi
 
 # If the filename uses a relative path, path complement it
 path_char=\$(dirname \$destination_file |cut -c 1)
-if [ "." == \$path_char ]; then
+if [ "." = \$path_char ]; then
     default_dir=\$(/bin/pwd)
     destination_dir="\${default_dir}/\${destination_dir}"
     destination_file="\${default_dir}/\${destination_file}"
@@ -704,7 +704,7 @@ elif [ -e \$destination_file -a ! -w \$destination_file ]; then
 fi
 
 # Perform restart if necessary
-if [ 1 == $resumeFlag ]; then
+if [ 1 -eq $resumeFlag ]; then
     # Ensure sufficient permissions exist to create restart cookie
     if [ ! -w \$destination_dir ]; then
         echo "Restart option requires write access to: \$destination_dir"
@@ -809,10 +809,10 @@ function get_source_cmds {
 
     # Validate restart flag if necessary
     srcRestart=""
-    if [ 1 == $resumeFlag ]; then
-        if [ "enable" == "$resumeOffset" ]; then
+    if [ 1 -eq $resumeFlag ]; then
+        if [ "enable" = "$resumeOffset" ]; then
             srcRestart="-restart enable"
-        elif [ "capability" == "$resumeOffset" ]; then
+        elif [ "capability" = "$resumeOffset" ]; then
             error_exit $XDDCP_ERR_CODE_INV_RESTART
         elif [ 0 -le "$resumeOffset" ]; then
             echo "INFO: Resuming XDD file transfer at offset: $resumeOffset" >/dev/stderr
@@ -1062,7 +1062,7 @@ function transfer_file_list {
     local fileNames=""
     for name in $(/bin/cat ${srcFileList}); do
 	local pathChar=$(dirname $name |cut -c 1)
-	if [ "." == "$pathChar" ]; then
+	if [ "." = "$pathChar" ]; then
 	    fileNames="${srcFileSpecDir}/${name} $fileNames"
 	else
 	    fileNames="$name $fileNames"
@@ -1332,7 +1332,7 @@ if [ -d ${destPath} ]; then
 fi
 # If the filename uses a relative path, path complement it
 path_char=\$(dirname \$destination_file |cut -c 1)
-if [ "." == \$path_char ]; then
+if [ "." = \$path_char ]; then
 	destination_dir="\$(/bin/pwd)/\${destination_dir}"
 fi
 # If insufficient permissions for the log exist, direct to HOME
@@ -1383,7 +1383,7 @@ function xddcp_main {
     trap exit
 
     # Print a helpful message if user is just typing command to get syntax
-    if [ "$1" == "-h" ]; then
+    if [ "$1" = "-h" ]; then
         print_usage
         return 0
     elif [ $# -lt 2 ]; then
