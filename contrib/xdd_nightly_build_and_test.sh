@@ -91,7 +91,7 @@ mkdir -p $test_src_dir
 mkdir -p $test_dest_dir
 cd $test_dir
 cat >test_config <<EOF
-XDDTEST_XDD_EXE=$install_dir/bin/xdd.Linux
+XDDTEST_XDD_EXE=$install_dir/bin/xdd
 XDDTEST_XDDCP_EXE=$install_dir/bin/xddcp
 XDDTEST_XDDFT_EXE=$install_dir/bin/xddft
 XDDTEST_MPIL_EXE=$build_dir/xdd/contrib/mpil

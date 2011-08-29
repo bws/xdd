@@ -39,7 +39,7 @@ DEFAULT_PROCESS_COUNT=1
 DEFAULT_SEED=$(/bin/date +%s)
 DEFAULT_THREAD_COUNT=4
 DEFAULT_TIMESTAMP=$(/bin/date )
-XDD_EXE=$(which xdd.Linux)
+XDD_EXE=$(which xdd)
 DATE_STAMP=`/bin/date +%m.%d.%y.%H.%M.%S`
 
 #
@@ -58,7 +58,7 @@ function print_usage() {
     echo " -s SEED     - random seed to use [Default: $DEFAULT_SEED]"
     echo " -r count    - number of 16KiB IOPS per thread to perform [Default: $DEFAULT_IOP_COUNT]"
     echo " -o [0|1]    - Dis/enable direct I/O [Default: $DEFAULT_DIO_FLAG]"
-    echo "NOTE: 'xdd.Linux' must be in your PATH env!!"    
+    echo "NOTE: 'xdd' must be in your PATH env!!"    
 }
 
 function get_random_seed() {

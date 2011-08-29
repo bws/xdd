@@ -6,7 +6,7 @@
 #
 
 # Parameters
-xdd=xdd.Linux
+xdd=xdd
 xddcp=xddcp
 log_file=filetruncate1.log
 data_file=/data/xfs/${USER}/file

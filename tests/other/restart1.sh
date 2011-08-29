@@ -6,7 +6,7 @@
 #
 
 # Parameters
-xdd=xdd.Linux
+xdd=xdd
 xddcp=xddcp
 log_file=restart1.log
 data_file=/data/xfs/${USER}/file
@@ -37,9 +37,9 @@ sleep $i
 echo "kill -3 $pid"
 kill -3 $pid
 #2. Kill xdd at source
-                pgrep -u ${USER} -f xdd.Linux | xargs kill -9 2> /dev/null
+                pgrep -u ${USER} -f xdd | xargs kill -9 2> /dev/null
 #3. Kill xdd at destination
-ssh ${HDestin} "pgrep -u ${USER} -f xdd.Linux | xargs kill -9"
+ssh ${HDestin} "pgrep -u ${USER} -f xdd | xargs kill -9"
 #### end of kill methods
 sleep $i
 $xddcp -a ${data_file} ${HDestinIP}:${data_file} &

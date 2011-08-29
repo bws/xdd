@@ -133,7 +133,7 @@ function print_usage {
     echo " -v           - Add verbose output to logs"
     echo " -w sec       - Add post-analysis: plot bandwidth over time with sliding window of 'sec' seconds. (sec >= 1)"
     #echo "-Y           - Force SSH to create psueo-terminal tty"
-    echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
+    echo "NOTE: 'xdd' must be in your PATH env on both source and destination hosts!!!"
 }
 
 #
@@ -314,7 +314,7 @@ function check_host_preconditions {
     local recursiveFlag=${5}
     local forceFlag=${6}
 
-    # Check for xdd.Linux binary
+    # Check for xdd binary
     type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
@@ -597,7 +597,7 @@ function get_destination_cmds {
 # Ensure xdd is in the remote path
 type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
 if [ 0 -ne \$? ]; then
-    echo "xdd.Linux is not in destination host PATH"
+    echo "xdd is not in destination host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
@@ -855,7 +855,7 @@ function get_source_cmds {
 # Ensure xdd is in the path
 type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
 if [ 0 -ne \$? ]; then
-    echo "xdd.Linux is not in the source host PATH"
+    echo "xdd is not in the source host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 

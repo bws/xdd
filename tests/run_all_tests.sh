@@ -32,9 +32,9 @@ function handle_exit
     pkill -KILL -P $$ >/dev/null 2>&1
 
     # Kill any XDD processes that have been orphaned (transfer destinations)
-    pkill -u nightly -P 1 xdd.Linux >/dev/null 2>&1
+    pkill -u nightly -P 1 xdd >/dev/null 2>&1
     sleep 1
-    pkill -KILL -u nightly -P 1 xdd.Linux >/dev/null 2>&1
+    pkill -KILL -u nightly -P 1 xdd >/dev/null 2>&1
 
     # Kill any remaning members of process group (e.g. the timeout signaller)
     #kill -$$ >/dev/null 2>&1
@@ -56,9 +56,9 @@ function test_timeout_handler
         pkill -KILL -P $g_testPID >/dev/null 2>&1
 
         # Kill any XDD processes that are orphaned (destinations on transfers)
-        pkill -u nightly -P 1 xdd.Linux >/dev/null 2>&1
+        pkill -u nightly -P 1 xdd >/dev/null 2>&1
         sleep 1
-        pkill -KILL -u nightly -P 1 xdd.Linux >/dev/null 2>&1
+        pkill -KILL -u nightly -P 1 xdd >/dev/null 2>&1
 
         # Finally, kill the test script that has timed out
         rc=1
