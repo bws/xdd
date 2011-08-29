@@ -1514,6 +1514,12 @@ function xddcp_main {
     check_host_preconditions ${srcPath} ${fileListFlag} ${fileSizeFlag} \
 	${recursiveFlag} ${resumeFlag} ${forceFlag}
 
+    # The force flag only works on Linux, disable it everywhere else
+    if [ "Linux" != "$(/bin/uname)" ]; then
+	forceFlag=0
+	echo "Warning: File transfer forcing disabled for non-Linux platforms." >/dev/stderr
+    fi
+
     # Convert the destination host to its IP to avoid DNS round-robin issues
     gethostip -d $destHost &> /dev/null
     if [ 0 -ne $? ]; then
