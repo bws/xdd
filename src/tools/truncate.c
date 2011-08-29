@@ -64,6 +64,60 @@ int main(int argc, char *argv[])
         int rc = truncate(filename, tsize);
         if (0 != rc) {
             /** Handle errors */
+	    switch(errno) {
+		case(EACCES):
+		    fprintf(stderr, "Invalid permissions to access file: %s\n",
+			    filename);
+		    break;
+		case(EAGAIN):
+		    fprintf(stderr, "EAGAIN error for unknown reason %s\n",
+			    filename);
+		    break;
+		case(EDQUOT):
+		    fprintf(stderr, "Trauncate failed due to quota %s\n",
+			    filename);
+		    break;
+		case(EFBIG):
+		    fprintf(stderr, "Truncate size too large %s\n", filename);
+		    break;
+		case(EISDIR):
+		    fprintf(stderr, "Cannot truncate directory:  %s\n",
+			    filename);
+		    break;
+		case(EINTR):
+		    fprintf(stderr, "A signal was caught while processing %s\n",
+			    filename);
+		    break;
+		case(EIO):
+		    fprintf(stderr, "I/O error while processing %s\n",
+			    filename);
+		    break;
+		case(ELOOP):
+		    fprintf(stderr, "Too many symbolic links %s\n", filename);
+		    break;
+		case(EMFILE):
+		    fprintf(stderr, "EMFile error %s\n", filename);
+		    break;
+		case(ENAMETOOLONG):
+		    fprintf(stderr, "Pathname too long %s\n", filename);
+		    break;
+		case(ENOENT):
+		    fprintf(stderr, "Invalid path %s\n", filename);
+		    break;
+		case(ENOSPC):
+		    fprintf(stderr, "Could not allocate space for %s\n",
+			    filename);
+		    break;
+		case(EROFS):
+		    fprintf(stderr, "File is in read-only FS: %s\n", filename);
+		    break;
+		case(ETXTBSY):
+		    fprintf(stderr, "File is busy %s\n", filename);
+		    break;
+		default:
+		    fprintf(stderr, "Unknown error %d\n", errno);
+		    break;
+	    }
             err = 1;
             break;
         }
