@@ -22,20 +22,9 @@ source_file=$test_dir/file1
 dest_file=$XDDTEST_DEST_MOUNT/retry2/file1
 
 #
-# This test requires the gethostip command
-#
-type -P gethostip &>/dev/null
-hasIpTranslator=$?
-if [ 0 -ne $hasIpTranslator ]; then
-    echo "Acceptance XDDCP2: Retry Test 2 - Check: Skipped (gethostip missing)."
-    exit 2
-fi
- 
-
-#
 # Create the source file
 #
-$XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 8000 -qd 4 -datapattern random >/dev/null
+$XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4000 -qd 4 -datapattern random >/dev/null
 
 #
 # Start a long copy
