@@ -557,7 +557,7 @@ function remote_exec_with_fifo {
     
     # Construct ssh options
     if [ ! -z "${remoteUser}" ]; then
-        sshOpts="-q -l $remoteUser"
+        sshOpts="-q -o ServerAliveInterval 30 -l $remoteUser"
     fi
 
     # Local decl must be on seperate line so $? is correct
@@ -939,12 +939,17 @@ if [ ! -r "${srcFile}" ]; then
 fi
 
 # Add the command to the log file
-src_log="xdd.\$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+if [ $verbosity -gt 0 ]; then
+    src_log="xdd.\$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+else
+    src_log=/dev/null
+fi
 
 xdd_cmd="${XDDCP_XDD_EXE} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
-echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
+
 
 # Construct local transport endpoint
+echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
 \${xdd_cmd}
 
 src_xdd_rc=\$?
