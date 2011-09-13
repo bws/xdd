@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -x
 #
 # This program is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU General Public License as published by 
@@ -87,6 +87,7 @@ XDDCP_ERR_CODE_DEST_DIR_NOT_WR=120
 XDDCP_ERR_CODE_DEST_TGT_NOT_WR=121
 XDDCP_ERR_CODE_DEST_IP=122
 XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND=123
+XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT=124
 
 #
 # Global variables
@@ -1509,6 +1510,8 @@ function xddcp_main {
 		binaryDumpFlag=1
 		kernelTraceFlag=1
 		XDDCP_DEFAULT_IOTRACE="iotrace_init"
+		XDDCP_DEFAULT_IOTRACE_DEV="/dev/iotrace_data"
+		XDDCP_DEFAULT_IOTRACE_DECODE="decode"
 		windowSize=$OPTARG
 		expr $windowSize + 1 >/dev/null 2>&1
 		if [ $? -ne 0 ]; then
@@ -1518,6 +1521,20 @@ function xddcp_main {
 			echo "INFO: Window size (-w arg) must be greater than zero." >/dev/stderr
 			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		fi
+                type -P $XDDCP_DEFAULT_IOTRACE &>/dev/null
+                if [ $? -ne 0 ]; then
+                    echo "INFO: kernel trace mode requires the '$XDDCP_DEFAULT_IOTRACE' command. Install or use -w option."
+                    error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
+                fi
+                if [ ! -c $XDDCP_DEFAULT_IOTRACE_DEV ]; then
+                    echo "INFO: kernel trace mode requires the $XDDCP_DEFAULT_IOTRACE_DEV device. Install or use -w option."
+                    error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
+                fi
+                type -P $XDDCP_DEFAULT_IOTRACE_DECODE &>/dev/null
+                if [ $? -ne 0 ]; then
+                    echo "INFO: kernel trace mode requires the $XDDCP_DEFAULT_IOTRACE_DECODE command. Install or use -w option."
+                    error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
+                fi
                 ;;
             \?)
                 echo "INFO: Unsupported option: -$option $OPTARG" >/dev/stderr 
