@@ -1568,17 +1568,17 @@ function xddcp_main {
                 queueDepth=$OPTARG
                 ;;
 	    v) 
-		if [ verbosty -lt 1 ]; then
+		if [ $verbosity -lt 1 ]; then
                     verbosity=1
 		fi
                 ;;
 	    V) 
-		if [ verbosity -lt 2 ]; then
+		if [ $verbosity -lt 2 ]; then
                     verbosity=2
 		fi
                 ;;
 	    w) 
-                verbososity=2
+                verbosity=2
 		binaryDumpFlag=1
 		windowSize=$OPTARG
 		expr $windowSize + 1 >/dev/null 2>&1
