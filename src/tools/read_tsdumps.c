@@ -407,32 +407,6 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
                 if (write_op[i]->disk_end == 0 ) strncpy(&line[76],"?",1);
                 if (write_op[i]->disk_end == 0 ) strncpy(&line[89],"?",1);
 		fprintf(outfile,"%s",line);
-//		fprintf(outfile,"%1s%12.6f %10.4f %12.6f %10.4f %12.6f %10.4f  %12.6f %10.4f  %9s %8s\n",
-//			nclk2sec(read_op[i]->disk_end), read_mbs,
-//			nclk2sec(send_op[i]->net_end), send_mbs,
-//			nclk2sec(recv_op[i]->net_end), recv_mbs,
-//			nclk2sec(write_op[i]->disk_end), write_mbs,
-//			"s", "MB/s");
-//                fprintf(outfile,"%4ld,%6d,%21.9f,%4ld,%6d,%6d,%9d,%21.9f,%4ld,%6d,%6d,%9d,%21.9f,%4ld,%6d,%21.9f\n",
-//                        read_op[i]->op_number, read_op[i]->thread_id, nclk2sec(read_op[i]->disk_start),
-//                        send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, nclk2sec(send_op[i]->net_start),
-//                        recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, nclk2sec(recv_op[i]->net_start),
-//                        write_op[i]->op_number, write_op[i]->thread_id, nclk2sec(write_op[i]->disk_start));
-//                fprintf(outfile,"%4ld,%6d,%21.9f,%4ld,%6d,%6d,%9d,%21.9f,%4ld,%6d,%6d,%9d,%21.9f,%4ld,%6d,%21.9f\n",
-//                        read_op[i]->op_number, read_op[i]->thread_id, nclk2sec(read_op[i]->disk_end),
-//                        send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, nclk2sec(send_op[i]->net_end),
-//                        recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, nclk2sec(recv_op[i]->net_end),
-//                        write_op[i]->op_number, write_op[i]->thread_id, nclk2sec(write_op[i]->disk_end));
-//                fprintf(outfile,"%4ld %6d %20lld %4ld %6d %6d %9d %20lld %4ld %6d %6d %9d %20lld %4ld %6d %20lld\n",
-//                        read_op[i]->op_number, read_op[i]->thread_id, read_op[i]->disk_start,
-//                        send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, send_op[i]->net_start,
-//                        recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, recv_op[i]->net_start,
-//                        write_op[i]->op_number, write_op[i]->thread_id, write_op[i]->disk_start);
-//                fprintf(outfile,"%4ld %6d %20lld %4ld %6d %6d %9d %20lld %4ld %6d %6d %9d %20lld %4ld %6d %20lld\n",
-//                        read_op[i]->op_number, read_op[i]->thread_id, read_op[i]->disk_end,
-//                        send_op[i]->op_number, send_op[i]->thread_id, send_op[i]->net_xfer_calls, send_op[i]->net_xfer_size, send_op[i]->net_end,
-//                        recv_op[i]->op_number, recv_op[i]->thread_id, recv_op[i]->net_xfer_calls, recv_op[i]->net_xfer_size, recv_op[i]->net_end,
-//                        write_op[i]->op_number, write_op[i]->thread_id, write_op[i]->disk_end);
 	}
 	fclose(outfile);
 }
@@ -510,12 +484,6 @@ void write_outfile_k(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
                 if (write_op[i]->disk_end == 0 ) strncpy(&line[76],"?",1);
                 if (write_op[i]->disk_end == 0 ) strncpy(&line[89],"?",1);
 		fprintf(outfile,"%s",line);
-//		fprintf(outfile,"%12.6f %10.4f %12.6f %10.4f %12.6f %10.4f  %12.6f %10.4f  %9s %8s\n",
-//			nclk2sec(read_op[i]->disk_end), read_mbs,
-//			nclk2sec(send_op[i]->net_end), send_mbs,
-//			nclk2sec(recv_op[i]->net_end), recv_mbs,
-//			nclk2sec(write_op[i]->disk_end), write_mbs,
-//			"s", "MB/s");
 	}
 	fclose(outfile);
 }
@@ -557,14 +525,14 @@ void write_outfile_d(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 		/* write to file */
                 char line[256] = {" "};
 		sprintf(line,"%12.6f %10lld %10lld %12.6f %10lld %10lld %12.6f %10lld %10lld %12.6f %10lld %10lld\n",
-			nclk2sec(read_op[i]->disk_end),  read_op[i]->disk_start_k  - read_op[i]->disk_start, 
-			                                 read_op[i]->disk_end      - read_op[i]->disk_end_k, 
-			nclk2sec(send_op[i]->net_end),   send_op[i]->net_start_k   - send_op[i]->net_start,
-			                                 send_op[i]->net_end       - send_op[i]->net_end_k,
-			nclk2sec(recv_op[i]->net_end),   recv_op[i]->net_start_k   - recv_op[i]->net_start, 
-			                                 recv_op[i]->net_end       - recv_op[i]->net_end_k, 
-			nclk2sec(write_op[i]->disk_end), write_op[i]->disk_start_k - write_op[i]->disk_start,
-			                                 write_op[i]->disk_end     - write_op[i]->disk_end_k
+		 nclk2sec(read_op[i]->disk_end),  read_op[i]->disk_start_k  - read_op[i]->disk_start, 
+		                                  read_op[i]->disk_end      - read_op[i]->disk_end_k, 
+		 nclk2sec(send_op[i]->net_end),   send_op[i]->net_start_k   - send_op[i]->net_start,
+		                                  send_op[i]->net_end       - send_op[i]->net_end_k,
+		 nclk2sec(recv_op[i]->net_end),   recv_op[i]->net_start_k   - recv_op[i]->net_start, 
+		                                  recv_op[i]->net_end       - recv_op[i]->net_end_k, 
+		 nclk2sec(write_op[i]->disk_end), write_op[i]->disk_start_k - write_op[i]->disk_start,
+		                                  write_op[i]->disk_end     - write_op[i]->disk_end_k
 			);
                 if (read_op[i]->disk_end  == 0 ) strncpy(&line[3],"?",1); 
                 if (read_op[i]->disk_end  == 0 ) strncpy(&line[21],"?",1); 
@@ -573,16 +541,6 @@ void write_outfile_d(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
                 if (write_op[i]->disk_end == 0 ) strncpy(&line[126],"?",1);
                 if (write_op[i]->disk_end == 0 ) strncpy(&line[137],"?",1);
 		fprintf(outfile,"%s",line);
-//		fprintf(outfile,"%12.6f %10lld %10lld %12.6f %10lld %10lld %12.6f %10lld %10lld %12.6f %10lld %10lld\n",
-//			nclk2sec(read_op[i]->disk_end),  read_op[i]->disk_start_k  - read_op[i]->disk_start, 
-//			                                 read_op[i]->disk_end      - read_op[i]->disk_end_k, 
-//			nclk2sec(send_op[i]->net_end),   send_op[i]->net_start_k   - send_op[i]->net_start,
-//			                                 send_op[i]->net_end       - send_op[i]->net_end_k,
-//			nclk2sec(recv_op[i]->net_end),   recv_op[i]->net_start_k   - recv_op[i]->net_start, 
-//			                                 recv_op[i]->net_end       - recv_op[i]->net_end_k, 
-//			nclk2sec(write_op[i]->disk_end), write_op[i]->disk_start_k - write_op[i]->disk_start,
-//			                                 write_op[i]->disk_end     - write_op[i]->disk_end_k
-//			);
 	}
 	fclose(outfile);
 }
