@@ -33,9 +33,9 @@ function handle_exit
     pkill -KILL -P $g_parentPID >/dev/null 2>&1
 
     # Kill any XDD processes that have been orphaned (transfer destinations)
-    pkill -u nightly -P 1 xdd >/dev/null 2>&1
+    pkill -u nightly -P 1 -x xdd >/dev/null 2>&1
     sleep 1
-    pkill -KILL -u nightly -P 1 xdd >/dev/null 2>&1
+    pkill -KILL -u nightly -P 1 -x xdd >/dev/null 2>&1
 
     # Kill any remaning members of process group (e.g. the timeout signaller)
     #kill -$$ >/dev/null 2>&1
