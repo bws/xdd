@@ -5,6 +5,7 @@
 #
 # Executables to use
 #
+XDDTEST_XDD_PATH=../bin
 XDDTEST_XDD_EXE=../bin/xdd
 XDDTEST_XDDCP_EXE=../contrib/xddcp
 XDDTEST_XDDFT_EXE=../contrib/xddft
