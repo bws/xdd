@@ -34,7 +34,7 @@
  */
 /*----------------------------------------------------------------------------*/
 /*
- * Returns the difference (in picoseconds) between global and local
+ * Returns the difference (in nanoseconds) between global and local
  * senses of picsecond time.
  */
 #include <stdio.h>
@@ -103,14 +103,14 @@ globtim_err(char const *fmt, ...) {
  * to the calling routine.
  */
 void
-clk_initialize(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp) {
-    pclk_t tt;
+clk_initialize(in_addr_t addr, in_port_t port, int32_t bounce, nclk_t *nclkp) {
+    nclk_t tt;
 
-    pclk_initialize(&tt);
-    if (tt == PCLK_BAD)
-        globtim_err("\nglobal_time: Could not initialize picosecond clock"); 
+    nclk_initialize(&tt);
+    if (tt == NCLK_BAD)
+        globtim_err("\nglobal_time: Could not initialize nanosecond clock"); 
 
-    clk_delta(addr, port, bounce, pclkp);
+    clk_delta(addr, port, bounce, nclkp);
     return;
 
 } /* end of clk_initialize() */
@@ -125,20 +125,20 @@ clk_initialize(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp) {
  * 
  */
 void
-clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp) {
+clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, nclk_t *nclkp) {
     sd_t  sd;
     struct sockaddr_in sname;
     int32_t  i;
     int32_t  status;
-    pclk_t  delta = 0;
-    pclk_t  min = PCLK_MAX;
-    pclk_t  max = 0;
-    pclk_t  now = 0;
-    pclk_t  currentclock;
-    pclk_t  roundtriptime;
-    pclk_t  remoteclock;
-    pclk_time_t in;
-    pclk_time_t out;
+    nclk_t  delta = 0;
+    nclk_t  min = NCLK_MAX;
+    nclk_t  max = 0;
+    nclk_t  now = 0;
+    nclk_t  currentclock;
+    nclk_t  roundtriptime;
+    nclk_t  remoteclock;
+    nclk_time_t in;
+    nclk_time_t out;
 #if WIN32
     char optionvalue;
 #else
@@ -162,22 +162,22 @@ clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp) {
     sname.sin_port = htons(port);
     if (connect(sd, (struct sockaddr *) &sname, sizeof sname)) {
         globtim_err("\nglobal_time: Error connecting to socket");
-        *pclkp = -1;
+        *nclkp = -1;
         return;
     }
     /* Bounce times back and forth a bunch of times, ignoring errors. */
     for (i = 0; i < bounce; i++) {
         nclk_now(&currentclock);
-        if (currentclock != PCLK_BAD) {
-            out.client = (pclk_t) htonll(currentclock);
-            out.delta  = (pclk_t) htonll(delta);
+        if (currentclock != NCLK_BAD) {
+            out.client = (nclk_t) htonll(currentclock);
+            out.delta  = (nclk_t) htonll(delta);
             /* send the current clock to the master time server */
             send(sd, (char *) &out, sizeof out, 0);
             /* get the clock value back from the master time server */
             recv(sd, (char *) &in, sizeof in, 0);
             nclk_now(&now);
             /* Find the quickest turnaround time and record that clock value. */
-            remoteclock = (pclk_t) ntohll(in.server);
+            remoteclock = (nclk_t) ntohll(in.server);
             roundtriptime = now - currentclock;
             if (roundtriptime < min) {    /* Record quickest turnaround */
                 min = roundtriptime;
@@ -186,29 +186,29 @@ clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp) {
                 max = roundtriptime;
             }
         } else {
-        fprintf(stderr,"bounce %d BAD pclk\n", i );
+        fprintf(stderr,"bounce %d BAD nclk\n", i );
         }
     }
     /* refine the delta a bit */
     for (i = 0; i < bounce; i++) {
         nclk_now(&currentclock);
-        if (currentclock != PCLK_BAD) {
+        if (currentclock != NCLK_BAD) {
             /* send the current clock to the master time server */
             send(sd, (char *) &out, sizeof out, 0);
             /* get the clock value back from the master time server */
             recv(sd, (char *) &in, sizeof in, 0);
             nclk_now(&now);
             /* Find the quickest turnaround time and record that clock value. */
-            remoteclock = (pclk_t) ntohll(in.server);
+            remoteclock = (nclk_t) ntohll(in.server);
             if (remoteclock > now+delta) {
-//              fprintf(stderr,"bounce %d remote is ahead by %llu pico seconds\n", i, (remoteclock-(now+delta)));
+//              fprintf(stderr,"bounce %d remote is ahead by %llu nano seconds\n", i, (remoteclock-(now+delta)));
                 delta += (remoteclock-(now+delta));
             }
-        } else fprintf(stderr,"bounce %d BAD pclk\n", i );
+        } else fprintf(stderr,"bounce %d BAD nclk\n", i );
     }
     (void) closesocket(sd);
-//fprintf(stderr,"now+delta difference from remote is %llu pico seconds\n", ((now+delta)-remoteclock));
+//fprintf(stderr,"now+delta difference from remote is %llu nano seconds\n", ((now+delta)-remoteclock));
 //fprintf(stderr,"min roundtriptime=%lld, max roundtriptime=%lld, remoteclock=%llu, now=%llu, \ndelta=%llu\n",min,max,remoteclock,now,delta);
-    *pclkp = delta;
+    *nclkp = delta;
     return;
 } /* end of clk_delta() */

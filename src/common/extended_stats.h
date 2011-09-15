@@ -31,14 +31,14 @@
 struct xdd_extended_stats {
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS 
 	// These values are only updated when the -extendedstats option is specified
-	pclk_t		my_longest_op_time; 			// Longest op time that occured during this pass
-	pclk_t		my_longest_read_op_time; 		// Longest read op time that occured during this pass
-	pclk_t		my_longest_write_op_time; 		// Longest write op time that occured during this pass
-	pclk_t		my_longest_noop_op_time; 		// Longest noop op time that occured during this pass
-	pclk_t		my_shortest_op_time; 			// Shortest op time that occurred during this pass
-	pclk_t		my_shortest_read_op_time; 		// Shortest read op time that occured during this pass
-	pclk_t		my_shortest_write_op_time; 		// Shortest write op time that occured during this pass
-	pclk_t		my_shortest_noop_op_time; 		// Shortest noop op time that occured during this pass
+	nclk_t		my_longest_op_time; 			// Longest op time that occured during this pass
+	nclk_t		my_longest_read_op_time; 		// Longest read op time that occured during this pass
+	nclk_t		my_longest_write_op_time; 		// Longest write op time that occured during this pass
+	nclk_t		my_longest_noop_op_time; 		// Longest noop op time that occured during this pass
+	nclk_t		my_shortest_op_time; 			// Shortest op time that occurred during this pass
+	nclk_t		my_shortest_read_op_time; 		// Shortest read op time that occured during this pass
+	nclk_t		my_shortest_write_op_time; 		// Shortest write op time that occured during this pass
+	nclk_t		my_shortest_noop_op_time; 		// Shortest noop op time that occured during this pass
 
 	int64_t		my_longest_op_bytes; 			// Bytes xfered when the longest op time occured during this pass
 	int64_t	 	my_longest_read_op_bytes; 		// Bytes xfered when the longest read op time occured during this pass

@@ -55,17 +55,17 @@ struct tte {
 // 256 bits 32 bytes
     int64_t		 	byte_location; 	// Location in bytes - aka Offset into the device/file
 // 320 bits 40 bytes
-    pclk_t 			disk_start;  	// The starting time stamp of the disk operation
-    pclk_t 			disk_start_k;  	// The starting time stamp of the disk operation kernel
+    nclk_t 			disk_start;  	// The starting time stamp of the disk operation
+    nclk_t 			disk_start_k;  	// The starting time stamp of the disk operation kernel
 // 384 bits 48 bytes
-    pclk_t 			disk_end;  	    // The ending time stamp of the disk operation
-    pclk_t 			disk_end_k;     // The ending time stamp of the disk operation kernel
+    nclk_t 			disk_end;  	    // The ending time stamp of the disk operation
+    nclk_t 			disk_end_k;     // The ending time stamp of the disk operation kernel
 // 448 bits 56 bytes
-    pclk_t 			net_start;      // The starting time stamp of the net operation (e2e only)
-    pclk_t 			net_start_k;    // The starting time stamp of the net operation (e2e only) kernel
+    nclk_t 			net_start;      // The starting time stamp of the net operation (e2e only)
+    nclk_t 			net_start_k;    // The starting time stamp of the net operation (e2e only) kernel
 // 512 bits 64 bytes
-    pclk_t 			net_end;        // The ending time stamp of the net operation (e2e only)
-    pclk_t 			net_end_k;      // The ending time stamp of the net operation (e2e only) kernel
+    nclk_t 			net_end;        // The ending time stamp of the net operation (e2e only)
+    nclk_t 			net_end_k;      // The ending time stamp of the net operation (e2e only) kernel
 // 520 bits
 //	struct timeval	usage_utime;	// usage_utime.tv_sec = usage.ru_utime.tv_sec;
 //	struct timeval	usage_stime;	// usage_utime.tv_sec = usage.ru_utime.tv_sec;
@@ -85,9 +85,9 @@ struct tthdr {
     int32_t	reqsize; 	/**< size of these requests in 'blocksize'-byte blocks */
     int32_t 	blocksize; 	/**< size of each block in bytes */
     int64_t 	numents; 	/**< number of timestamp table entries */
-    pclk_t 	trigtime; 	/**< Time the time stamp started */
+    nclk_t 	trigtime; 	/**< Time the time stamp started */
     int64_t 	trigop;  	/**< Operation number that timestamping started */
-    int64_t 	res;  		/**< clock resolution - pico seconds per clock tick */
+    int64_t 	res;  		/**< clock resolution - nano seconds per clock tick */
     int64_t 	range;  	/**< range over which the IO took place */
     int64_t 	start_offset;	/**< offset of the starting block */
     int64_t 	target_offset;	/**< offset of the starting block for each proc*/
@@ -95,8 +95,8 @@ struct tthdr {
     uint64_t 	target_options;	/**< options used */
     char 	id[MAX_IDLEN]; 	/**< ID string */
     char 	td[CTIME_BUFSZ];  	/**< time and date */
-    pclk_t 	timer_oh; 	/**< Timer overhead in nanoseconds */
-    pclk_t 	delta;  	/**< Delta used for normalization */
+    nclk_t 	timer_oh; 	/**< Timer overhead in nanoseconds */
+    nclk_t 	delta;  	/**< Delta used for normalization */
     int64_t 	tt_bytes; 	/**< Size of the entire time stamp table in bytes */
     int64_t 	tt_size; 	/**< Size of the entire time stamp table in entries */
     int64_t 	tte_indx; 	/**< Index into the time stamp table */

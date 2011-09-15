@@ -51,7 +51,7 @@
 #include <sys/stat.h>
 
 // XDD include files
-#include "pclk.h"
+#include "nclk.h"
 #include "misc.h"
 // For Windows, ptds needs to be included here. 
 #include "ptds.h"

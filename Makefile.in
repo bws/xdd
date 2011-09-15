@@ -194,13 +194,13 @@ xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
 	$(RM) bin/xdd
 	$(LN) xdd.$(OS) bin/xdd
 
-timeserver: $(COMMON_DIR)/pclk.o $(TS_EXE_OBJS) 
+timeserver: $(COMMON_DIR)/nclk.o $(TS_EXE_OBJS) 
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 	mv -f timeserver bin/timeserver.$(OS)
 	$(RM) bin/timeserver
 	$(LN) timeserver.$(OS) bin/timeserver
 
-gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/pclk.o $(GETTIME_EXE_OBJS) 
+gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/nclk.o $(GETTIME_EXE_OBJS) 
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 	mv -f gettime bin/gettime.$(OS)
 	$(RM) bin/gettime

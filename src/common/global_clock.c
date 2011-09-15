@@ -99,8 +99,8 @@ xdd_init_global_clock_network(char *hostname) {
 /* xdd_init_global_clock() - Initialize the global clock if requested
  */
 void
-xdd_init_global_clock(pclk_t *pclkp) {
-	pclk_t  now;  /* the current time returned by pclk() */
+xdd_init_global_clock(nclk_t *nclkp) {
+	nclk_t  now;  /* the current time returned by nclk() */
 
 
 	/* Global clock stuff here */
@@ -109,7 +109,7 @@ xdd_init_global_clock(pclk_t *pclkp) {
 		if (xgp->gts_addr == -1) { /* Problem with the network */
 			fprintf(xgp->errout,"%s: Error initializing global clock - network malfunction\n",xgp->progname);
 			fflush(xgp->errout);
-                        *pclkp = 0;
+                        *nclkp = 0;
 			return;
 		}
 		clk_initialize(xgp->gts_addr, xgp->gts_port, xgp->gts_bounce, &xgp->gts_delta);
@@ -121,10 +121,10 @@ xdd_init_global_clock(pclk_t *pclkp) {
 			(long long)xgp->gts_seconds_before_starting, 
 			(long long)xgp->gts_time/BILLION); 
 		fflush(xgp->errout);
-		*pclkp = xgp->ActualLocalStartTime;
+		*nclkp = xgp->ActualLocalStartTime;
 		return;
 	}
-	nclk_now(pclkp);
+	nclk_now(nclkp);
 	return;
 } /* end of xdd_init_global_clock() */
 

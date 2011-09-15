@@ -92,7 +92,7 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"*target_full_pathname         '%s' Fully qualified path name to the target device/file\n",(p->target_full_pathname != NULL)?p->target_full_pathname:"NA");
 	fprintf(xgp->output,"target_extension              '%s' The target extension number \n",p->target_extension);
 	fprintf(xgp->output,"processor                      %d Processor/target assignments \n",p->processor);
-	fprintf(xgp->output,"start_delay                    %f number of picoseconds to delay the start  of this operation \n",p->start_delay);
+	fprintf(xgp->output,"start_delay                    %f number of nanoseconds to delay the start  of this operation \n",p->start_delay);
 
     fprintf(xgp->output,"Stuff REFERENCED during run time\n");
 	fprintf(xgp->output,"run_start_time                 %lld This is time t0 of this run - set by xdd_main \n",(long long int)p->run_start_time);
@@ -205,12 +205,12 @@ xdd_show_global_data(void) {
 /* information needed to access the Global Time Server */
 //	in_addr_t		gts_addr;               			/* Clock Server IP address */
 //	in_port_t		gts_port;               			/* Clock Server Port number */
-//	pclk_t			gts_time;               			/* global time on which to sync */
-//	pclk_t			gts_seconds_before_starting; 		/* number of seconds before starting I/O */
+//	nclk_t			gts_time;               			/* global time on which to sync */
+//	nclk_t			gts_seconds_before_starting; 		/* number of seconds before starting I/O */
 //	int32_t			gts_bounce;             			/* number of times to bounce the time off the global time server */
-//	pclk_t			gts_delta;              			/* Time difference returned by the clock initializer */
+//	nclk_t			gts_delta;              			/* Time difference returned by the clock initializer */
 //	char			*gts_hostname;          			/* name of the time server */
-//	pclk_t			ActualLocalStartTime;   			/* The time to start operations */
+//	nclk_t			ActualLocalStartTime;   			/* The time to start operations */
 
 // PThread structures for the main threads
 //	pthread_t 		Results_Thread;						// PThread struct for results manager

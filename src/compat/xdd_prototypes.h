@@ -77,15 +77,15 @@ int32_t	xdd_sockets_init(void);
 
 // global_clock.c
 in_addr_t xdd_init_global_clock_network(char *hostname);
-void	xdd_init_global_clock(pclk_t *pclkp);
+void	xdd_init_global_clock(nclk_t *nclkp);
 
 // global_data.c
 void	xdd_init_globals(char *progname);
 
 // global_time.c
 void	globtim_err(char const *fmt, ...);
-void	clk_initialize(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp);
-void	clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, pclk_t *pclkp);
+void	clk_initialize(in_addr_t addr, in_port_t port, int32_t bounce, nclk_t *nclkp);
+void	clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, nclk_t *nclkp);
 
 // heartbeat.c
 void *xdd_heartbeat(void *junk);
@@ -166,11 +166,11 @@ int32_t		xdd_atohex(unsigned char *destp, char *sourcep);
 // parse_func.c
 int32_t	xdd_parse_arg_count_check(int32_t args, int32_t argc, char *option);
 
-// pclk.c
-void	pclk_initialize(pclk_t *pclkp);
-void	pclk_shutdown(void);
-void	pclk_now(pclk_t *pclkp);
-void	nclk_now(pclk_t *pclkp);
+// nclk.c
+void	nclk_initialize(nclk_t *nclkp);
+void	nclk_shutdown(void);
+void	nclk_now(nclk_t *nclkp);
+void	nclk_now(nclk_t *nclkp);
 
 // preallocate.c
 int32_t	xdd_target_preallocate_for_os(ptds_t *p);

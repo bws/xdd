@@ -269,7 +269,7 @@ xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags) {
 void
 xdd_interactive_display_state_info(ptds_t *qp) {
 	int64_t		tmp;
-	pclk_t		now;		// Current time
+	nclk_t		now;		// Current time
 	int32_t		tot_offset; // Offset into TOT
 	tot_entry_t	*tep;
 	ptds_t		*p;			// Pointer to the parent Target Thread's PTDS

@@ -74,9 +74,9 @@ xdd_init_seek_list(ptds_t *p) {
 	double  seconds_per_op_high = 0; /* a floating point representation of the time per operation */
     double  low_bw, hi_bw;
 	double  bytes_per_request; /* self explanatory */
-	pclk_t  pico_seconds_per_op = 0; /* self explanatory */
-    pclk_t  pico_second_throttle_variance = 0; /* Max variance per operation */
-	pclk_t  relative_time; /* Time in picosecond relative to the first operation */
+	nclk_t  nano_seconds_per_op = 0; /* self explanatory */
+    nclk_t  nano_second_throttle_variance = 0; /* Max variance per operation */
+	nclk_t  relative_time; /* Time in nanosecond relative to the first operation */
 	int32_t  previous_percent_op; /* used to determine read/write operation */
 	int32_t  percent_op;  /* used to determine read/write operation */
 	int32_t  current_op;  /* Current operation - SO_OP_READ or SO_OP_WRITE or SO_OP_NOOP */
@@ -88,29 +88,29 @@ xdd_init_seek_list(ptds_t *p) {
 			bytes_per_sec = p->throttle * MILLION;
 			bytes_per_request = (p->reqsize * p->block_size);
 			seconds_per_op = bytes_per_request/bytes_per_sec;
-			pico_seconds_per_op = seconds_per_op * BILLION;
+			nano_seconds_per_op = seconds_per_op * BILLION;
             if (p->throttle_variance) {
                 low_bw = (p->throttle - p->throttle_variance) * MILLION;
                 seconds_per_op_high = bytes_per_request / low_bw;
                 hi_bw = (p->throttle + p->throttle_variance) * MILLION;
                 seconds_per_op_low = bytes_per_request / hi_bw;
-                pico_second_throttle_variance = seconds_per_op - (bytes_per_request / low_bw);
+                nano_second_throttle_variance = seconds_per_op - (bytes_per_request / low_bw);
             } else {
                 low_bw = bytes_per_sec;
                 hi_bw = bytes_per_sec;
             }
 		} else if (p->throttle_type & PTDS_THROTTLE_OPS){
 			seconds_per_op = 1.0 / p->throttle;
-			pico_seconds_per_op = seconds_per_op * BILLION;
+			nano_seconds_per_op = seconds_per_op * BILLION;
             variance_seconds_per_op = 1.0 / p->throttle_variance;
-            pico_second_throttle_variance = variance_seconds_per_op * BILLION;
+            nano_second_throttle_variance = variance_seconds_per_op * BILLION;
 		} else if (p->throttle_type & PTDS_THROTTLE_DELAY){
 			seconds_per_op = p->throttle;
-			pico_seconds_per_op = seconds_per_op * BILLION;
+			nano_seconds_per_op = seconds_per_op * BILLION;
             variance_seconds_per_op = 1.0 / p->throttle_variance;
-            pico_second_throttle_variance = variance_seconds_per_op * BILLION;
+            nano_second_throttle_variance = variance_seconds_per_op * BILLION;
 		}
-	} else pico_seconds_per_op = 0;
+	} else nano_seconds_per_op = 0;
 	sp = &p->seekhdr;
 	/* Initialize the random number generator */
 	initstate(sp->seek_seed, state, 256);
@@ -119,7 +119,7 @@ xdd_init_seek_list(ptds_t *p) {
 		xdd_load_seek_list(p);
 		sp->seek_options &= ~SO_SEEK_LOAD; /* only want to load seek list once */
 	} else { /* Generate a new seek list */ 
-		relative_time = pico_seconds_per_op + p->start_delay;
+		relative_time = nano_seconds_per_op + p->start_delay;
 		rw_op_index = 0;
 		rw_index = 0;
 		rw_index_incr = 1;
@@ -193,13 +193,13 @@ xdd_init_seek_list(ptds_t *p) {
             // the relative time plus or minus the variance. In Theory. Maybe.
             if (p->throttle_variance) {
                 variance_seconds_per_op = ((seconds_per_op_high-seconds_per_op_low) * xdd_random_float()) * BILLION;
-                sp->seeks[rw_index].time1 = (relative_time - pico_second_throttle_variance) + variance_seconds_per_op;
+                sp->seeks[rw_index].time1 = (relative_time - nano_second_throttle_variance) + variance_seconds_per_op;
 
             } else {
 			    sp->seeks[rw_index].time1 = relative_time;
 
             }
-			relative_time += pico_seconds_per_op;
+			relative_time += nano_seconds_per_op;
 
 			/* Increment to the next entry in the seek list */
 			rw_index += rw_index_incr;
@@ -355,7 +355,7 @@ xdd_load_seek_list(ptds_t *p) {
 	int32_t 	ordinal; 	/* ordinal number of the seek */
 	uint64_t 	loc;  		/* location */
 	int32_t 	reqsz; 		// Request Size
-	pclk_t		t1,t2; 		/* time1 and time2 */
+	nclk_t		t1,t2; 		/* time1 and time2 */
 	int32_t 	reqsz_high; 	/* highest request size*/
 	char 		rw;  		/* read or write operation */
 	char 		*status; 	/* status of the fgets */

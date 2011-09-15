@@ -39,8 +39,8 @@ struct restart {
 	int64_t			last_committed_byte_location;// Location (aka byte offset into file) that was last sent/written
 	int64_t			last_committed_length;	// Length of data that was last sent/written
 	int64_t			last_committed_op;		// Location (aka byte offset into file) that was last sent/written
-	pclk_t			last_update;			// Time stamp of last update to restart file
-	pclk_t			starting_time;			// When this restart operation started
+	nclk_t			last_update;			// Time stamp of last update to restart file
+	nclk_t			starting_time;			// When this restart operation started
 	struct tm		tm;						// The time structure contains the time the restart files were created
 	uint64_t		flags;					// Flags with various information as defined below
 	pthread_mutex_t	restart_lock;			// Lock on this structure to serialize updates 

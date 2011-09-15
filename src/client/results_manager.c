@@ -57,8 +57,8 @@ xdd_results_manager(void *n) {
 	int32_t		status;				// Status of the initialization subroutine
 	int			tmp_errno;			// Save the errno
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
-	pclk_t		pass_delay_start;	// Start of a pass delay if it is specified
-	pclk_t		pass_delay_end;		// End of a pass delay if it is specified
+	nclk_t		pass_delay_start;	// Start of a pass delay if it is specified
+	nclk_t		pass_delay_end;		// End of a pass delay if it is specified
 
 
 
@@ -708,17 +708,17 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p) {
 		rp->optype = "read";
 	else rp->optype = "mixed";
 
-	// These next values get converted from raw picoseconds to seconds or miliseconds 
-	rp->accumulated_op_time = (double)((double)p->my_accumulated_op_time / FLOAT_BILLION); // pico to seconds
-	rp->accumulated_read_op_time = (double)((double)p->my_accumulated_read_op_time / FLOAT_BILLION); // pico to seconds
-	rp->accumulated_write_op_time = (double)((double)p->my_accumulated_write_op_time / FLOAT_BILLION); // pico to seconds
-	rp->accumulated_pattern_fill_time = (double)((double)p->my_accumulated_pattern_fill_time / FLOAT_BILLION); // pico to milli
-	rp->accumulated_flush_time = (double)((double)p->my_accumulated_flush_time / FLOAT_BILLION); // pico to milli
-	rp->earliest_start_time_this_run = (double)(p->first_pass_start_time); // picoseconds
-	rp->earliest_start_time_this_pass = (double)(p->my_pass_start_time); // picoseconds
-	rp->latest_end_time_this_run = (double)(p->my_pass_end_time); // picoseconds
-	rp->latest_end_time_this_pass = (double)(p->my_pass_end_time); // picoseconds
-	rp->elapsed_pass_time = (double)((double)(p->my_pass_end_time - p->my_pass_start_time) / FLOAT_BILLION); // pico to seconds
+	// These next values get converted from raw nanoseconds to seconds or miliseconds 
+	rp->accumulated_op_time = (double)((double)p->my_accumulated_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_read_op_time = (double)((double)p->my_accumulated_read_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_write_op_time = (double)((double)p->my_accumulated_write_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_pattern_fill_time = (double)((double)p->my_accumulated_pattern_fill_time / FLOAT_BILLION); // nano to milli
+	rp->accumulated_flush_time = (double)((double)p->my_accumulated_flush_time / FLOAT_BILLION); // nano to milli
+	rp->earliest_start_time_this_run = (double)(p->first_pass_start_time); // nanoseconds
+	rp->earliest_start_time_this_pass = (double)(p->my_pass_start_time); // nanoseconds
+	rp->latest_end_time_this_run = (double)(p->my_pass_end_time); // nanoseconds
+	rp->latest_end_time_this_pass = (double)(p->my_pass_end_time); // nanoseconds
+	rp->elapsed_pass_time = (double)((double)(p->my_pass_end_time - p->my_pass_start_time) / FLOAT_BILLION); // nano to seconds
 	if (rp->elapsed_pass_time == 0.0) 
 		rp->elapsed_pass_time = -1.0; // This is done to prevent and divide-by-zero problems
 	rp->accumulated_elapsed_time += rp->elapsed_pass_time; 

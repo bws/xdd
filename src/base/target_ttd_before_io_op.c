@@ -67,7 +67,7 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 	ptds_t			*p2;	// Ptr to the ptds that we need to trigger
 	xdd_triggers_t	*trigp1;
 	xdd_triggers_t	*trigp2;
-	pclk_t			tt;	// Trigger Time
+	nclk_t			tt;	// Trigger Time
 
 
 	/* Check to see if we need to wait for another target to trigger us to start.
@@ -133,8 +133,8 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
  */
 int32_t
 xdd_timelimit_before_io_op(ptds_t *p) {
-	pclk_t	current_time;		// What time is it *now*?
-	pclk_t	elapsed_time;		// Elapsed time
+	nclk_t	current_time;		// What time is it *now*?
+	nclk_t	elapsed_time;		// Elapsed time
 
 
 	/* Check to see if a time limit (in seconds) was specified.
@@ -167,8 +167,8 @@ xdd_timelimit_before_io_op(ptds_t *p) {
  */
 int32_t
 xdd_runtime_before_io_op(ptds_t *p) {
-	pclk_t	current_time;		// What time is it *now*?
-	pclk_t	elapsed_time;		// Elapsed time
+	nclk_t	current_time;		// What time is it *now*?
+	nclk_t	elapsed_time;		// Elapsed time
 
 
 	/* Check to see if a time limit (in seconds) was specified.

@@ -66,7 +66,7 @@ struct xdd_global_data {
 	int32_t			current_pass_number;      			/* Current pass number at any given time */
 	double			pass_delay;             			/* number of seconds to delay between passes */
 	int32_t			pass_delay_usec;          			/* number of microseconds to delay between passes */
-	pclk_t			pass_delay_accumulated_time;		/* number of high-res clock ticks of accumulated time during all pass delays */
+	nclk_t			pass_delay_accumulated_time;		/* number of high-res clock ticks of accumulated time during all pass delays */
 	int64_t			max_errors;             			/* max number of errors to tollerate */
 	int64_t			max_errors_to_print;    			/* Maximum number of compare errors to print */
 	char			*output_filename;       			/* name of the output file */
@@ -86,10 +86,10 @@ struct xdd_global_data {
 	int32_t			number_of_iothreads;    			/* number of threads spawned for all targets */
 	char			*id;                    			/* ID string pointer */
 	double			run_time;                			/* Length of time to run all targets, all passes */
-	pclk_t			run_time_ticks;            			/* Length of time to run all targets, all passes - in high-res clock ticks*/
-	pclk_t			base_time;     						/* The time that xdd was started - set during initialization */
-	pclk_t			run_start_time; 					/* The time that the targets will start their first pass - set after initialization */
-	pclk_t			estimated_end_time;     			/* The time at which this run (all passes) should end */
+	nclk_t			run_time_ticks;            			/* Length of time to run all targets, all passes - in high-res clock ticks*/
+	nclk_t			base_time;     						/* The time that xdd was started - set during initialization */
+	nclk_t			run_start_time; 					/* The time that the targets will start their first pass - set after initialization */
+	nclk_t			estimated_end_time;     			/* The time at which this run (all passes) should end */
 	int32_t			number_of_processors;   			/* Number of processors */
 	char			random_init_state[256]; 			/* Random number generator state initalizer array */ 
 	int32_t			clock_tick;							/* Number of clock ticks per second */
@@ -107,12 +107,12 @@ struct xdd_global_data {
 /* information needed to access the Global Time Server */
 	in_addr_t		gts_addr;               			/* Clock Server IP address */
 	in_port_t		gts_port;               			/* Clock Server Port number */
-	pclk_t			gts_time;               			/* global time on which to sync */
-	pclk_t			gts_seconds_before_starting; 		/* number of seconds before starting I/O */
+	nclk_t			gts_time;               			/* global time on which to sync */
+	nclk_t			gts_seconds_before_starting; 		/* number of seconds before starting I/O */
 	int32_t			gts_bounce;             			/* number of times to bounce the time off the global time server */
-	pclk_t			gts_delta;              			/* Time difference returned by the clock initializer */
+	nclk_t			gts_delta;              			/* Time difference returned by the clock initializer */
 	char			*gts_hostname;          			/* name of the time server */
-	pclk_t			ActualLocalStartTime;   			/* The time to start operations */
+	nclk_t			ActualLocalStartTime;   			/* The time to start operations */
 	struct			utsname hostname;					/* The name of the computer this instance of XDD is running on */
 
 // PThread structures for the main threads

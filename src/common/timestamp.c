@@ -40,7 +40,7 @@
 void
 xdd_ts_overhead(struct tthdr *ttp) { 
 	int32_t  i;
-	pclk_t  tv[101];
+	nclk_t  tv[101];
 	ttp->timer_oh = 0;
 	for (i = 0; i < 101; i++) {
 		nclk_now(&tv[i]);
@@ -67,7 +67,7 @@ xdd_ts_overhead(struct tthdr *ttp) {
  */
 void
 xdd_ts_setup(ptds_t *p) {
-	pclk_t		cycleval; /* resolution of the clock in picoseconds per ticl */
+	nclk_t		cycleval; /* resolution of the clock in nanoseconds per ticl */
 	time_t 		t;  /* Time */
 	int64_t 	tt_entries; /* number of entries inthe time stamp table */
 	int32_t 	tt_bytes; /* size of time stamp table in bytes */
@@ -121,8 +121,8 @@ xdd_ts_setup(ptds_t *p) {
 	/* clear everything out of the trace table */
 	memset(p->ttp,0, tt_bytes);
 	/* get access to the high-res clock*/
-	pclk_initialize(&cycleval);
-	if (cycleval == PCLK_BAD) {
+	nclk_initialize(&cycleval);
+	if (cycleval == NCLK_BAD) {
 		fprintf(xgp->errout,"%s: Could not initialize high-resolution clock\n",
 			xgp->progname);
 		fflush(xgp->errout);
@@ -232,7 +232,7 @@ xdd_ts_cleanup(struct tthdr *ttp) {
  *    the time from time 0 to the end of the current I/O.
  *    The Dead Time is the time from the end of an I/O to
  *    the start of the next I/O - time between I/O.
- * IMPORTANT NOTE: All times are in pclk units of pico seconds.
+ * IMPORTANT NOTE: All times are in nclk units of nanoseconds.
  *    
  */
 void

@@ -280,7 +280,7 @@ xdd_raw_read_wait(ptds_t *p) {
 	} /* End of processing an incoming connection */
 	/* This section will check to see which of the Client Socket Descriptors
 		* are in the readset. For those csd's that are ready, a recv is issued to 
-		* receive the incoming data. The clock is then read from pclk() and the
+		* receive the incoming data. The clock is then read from nclk() and the
 		* new clock value is sent back to the client.
 		*/
 	for (rawp->raw_current_csd = 0; rawp->raw_current_csd < FD_SETSIZE; rawp->raw_current_csd++) {
@@ -307,7 +307,7 @@ xdd_raw_read_wait(ptds_t *p) {
 					fprintf(stderr,"xdd_raw_read_wait: Bad magic number %08x on recv %d\n",rawp->raw_msg.magic, rawp->raw_msg_recv);
 				}
 				if (rawp->raw_msg.recvtime < rawp->raw_msg.sendtime) {
-					fprintf(stderr,"xdd_raw_read_wait: msg %lld recv time before send time by %llu picoseconds\n",(long long)rawp->raw_msg.sequence,(long long)(rawp->raw_msg.sendtime-rawp->raw_msg.recvtime));
+					fprintf(stderr,"xdd_raw_read_wait: msg %lld recv time before send time by %llu nanoseconds\n",(long long)rawp->raw_msg.sequence,(long long)(rawp->raw_msg.sendtime-rawp->raw_msg.recvtime));
 				}
 				return(TRUE);
 			} /* end of successful recv processing */

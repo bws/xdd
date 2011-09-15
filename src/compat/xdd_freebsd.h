@@ -61,7 +61,7 @@
 #if (SNFS)
 #include <client/cvdrfile.h>
 #endif
-#include "pclk.h" /* pclk_t, prototype compatibility */
+#include "nclk.h" /* nclk_t, prototype compatibility */
 #include "misc.h"
 
 #define MP_MUSTRUN 1 /* ASsign this thread to a specific processor */

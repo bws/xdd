@@ -40,8 +40,8 @@ struct seek_entries {
 	int32_t operation; /**< read or write */
 	int32_t reqsize; /**< Size of data transfer in blocks */
 	uint64_t block_location; /**< Starting location in blocks */
-	pclk_t time1;  /**< Relative time in pico seconds that this operation should start */
-	pclk_t time2;  /**< not yet implemented */
+	nclk_t time1;  /**< Relative time in nano seconds that this operation should start */
+	nclk_t time2;  /**< not yet implemented */
 };
 typedef struct seek_entries seek_t;
 

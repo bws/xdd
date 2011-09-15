@@ -85,7 +85,7 @@ int32_t
 xdd_lockstep_before_io_op(ptds_t *p) {
 	int32_t	ping_slave;			// indicates whether or not to ping the slave 
 	int32_t	slave_wait;			// indicates the slave should wait before continuing on 
-	pclk_t   time_now;			// used by the lock step functions 
+	nclk_t   time_now;			// used by the lock step functions 
 	ptds_t	*p2;				// Secondary PTDS pointer
 	lockstep_t *lsp;			// Pointer to the lock step struct
 	lockstep_t *lsp2;			// Pointer to the lock step struct

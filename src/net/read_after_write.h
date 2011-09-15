@@ -34,8 +34,8 @@ struct xdd_raw_msg {
 	uint32_t			magic;					// Magic number 
 	uint32_t			filler; 
 	int64_t				sequence;				// Sequence number 
-	pclk_t				sendtime;				// Time this packet was sent in global pico seconds 
-	pclk_t				recvtime;				// Time this packet was received in global pico seconds 
+	nclk_t				sendtime;				// Time this packet was sent in global nano seconds 
+	nclk_t				recvtime;				// Time this packet was received in global nano seconds 
 	int64_t				location;				// Starting location in bytes for this operation 
 	int64_t				length;					// Length in bytes this operation 
 }; 

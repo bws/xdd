@@ -117,7 +117,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	int		recvcalls; 		// The number of calls to recvfrom() to receive recvsize bytes
 	int		headersize; 	// Size of the E2E Header
 	int		maxmit;			// Maximum TCP transmission size
-	pclk_t 	e2e_wait_1st_msg_start_time; // This is the time stamp of when the first message arrived
+	nclk_t 	e2e_wait_1st_msg_start_time; // This is the time stamp of when the first message arrived
 	int		errno_save;		// A copy of the errno
 	ptds_t	*p;
 
@@ -296,7 +296,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 
 			// Check the send/receive times for sanity
 			if ((qp->e2e_header.recvtime < qp->e2e_header.sendtime) && (xgp->gts_time > 0) ) { // Send and recv times look strange!!!
-				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: WARNING: Possible msg %lld recv time before send time by %llu picoseconds\n",
+				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: WARNING: Possible msg %lld recv time before send time by %llu nanoseconds\n",
 					xgp->progname,
 					qp->my_target_number,
 					qp->my_qthread_number,

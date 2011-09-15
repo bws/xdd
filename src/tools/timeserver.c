@@ -59,7 +59,7 @@
 #if (AIX)
 #include <sys/select.h>
 #endif
-#include "pclk.h"
+#include "nclk.h"
 #include "misc.h" /* bool */
 /* ------- */
 /* Renames */
@@ -189,9 +189,9 @@ main(int argc, char **argv) {
 	int  next_csd; /* index into the csd array of the next available csd */
 	int  current_csd; /* The current csd being used */
 	struct hostent *hostent;
-	pclk_time_t mytime;
-	pclk_time_t yourtime;
-	pclk_t tt;
+	nclk_time_t mytime;
+	nclk_time_t yourtime;
+	nclk_t tt;
 
 
 	fprintf(stderr,"%s\n",TIMESERVER_VERSION);
@@ -200,10 +200,10 @@ main(int argc, char **argv) {
 		timeserver_err("couldn't initialize sockets");
 	/* Parse the commandline arguments */
     parseargs(argc, argv);
-	/* Init the pico-second clock */
-    pclk_initialize(&tt);
-    if (tt == PCLK_BAD)
-		timeserver_err("couldn't initialize picosecond clock");
+	/* Init the nano-second clock */
+    nclk_initialize(&tt);
+    if (tt == NCLK_BAD)
+		timeserver_err("couldn't initialize nanosecond clock");
 	/* Get the name of the machine that we are running on */
 	status = gethostname(hostname, HOSTNAMELENGTH);
 	if (status != 0) {
@@ -268,7 +268,7 @@ nd = FD_SETSIZE;
 		} /* End of processing an incoming connection */
 		/* This section will check to see which of the Client Socket Descriptors
 		 * are in the readset. For those csd's that are ready, a recv is issued to 
-		 * receive the incoming data. The clock is then read from pclk() and the
+		 * receive the incoming data. The clock is then read from nclk() and the
 		 * new clock value is sent back to the client.
 		 */
 		for (current_csd = 0; current_csd < FD_SETSIZE; current_csd++) {
@@ -285,13 +285,13 @@ nd = FD_SETSIZE;
 				status = recv(csd[current_csd], (char *) &yourtime, sizeof yourtime, 0);
 				if (status == sizeof yourtime) { /* Successful receive */
 					nclk_now(&mytime.server);
-					if(mytime.server != PCLK_BAD) { /* Successful pclk read */
-						mytime.server = (pclk_t) htonll(mytime.server);
+					if(mytime.server != NCLK_BAD) { /* Successful nclk read */
+						mytime.server = (nclk_t) htonll(mytime.server);
 						status = send(csd[current_csd], (char *) &mytime, sizeof mytime, 0);
 						if (status == sizeof mytime) { /* Successful send */
 							continue; /* All is good; go on. */
 						} 
-					} /* end of successful pclk read */
+					} /* end of successful nclk read */
 				} /* end of successful recv processing */
 				else {
 					/* At this point, a recv returned an error in which case the connection
@@ -357,7 +357,7 @@ usage(char *fmt, ...) {
     fprintf(stderr, "\n\n");
     fprintf(stderr, "\tDefault port value is %uh, max is %uh; 0 means any\n",
 	DFL_FL_PORT, PORT_MAX);
-    fprintf(stderr, "\tDefault global_time value is %d picoseconds\n",
+    fprintf(stderr, "\tDefault global_time value is %d nanoseconds\n",
 	(int)DFL_FL_TIME);
     fprintf(stderr, "\n\n");
     exit(1);

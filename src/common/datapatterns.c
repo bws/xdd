@@ -171,8 +171,8 @@ void
 xdd_datapattern_fill(ptds_t *qp) {
 	int32_t  		j;					// random variables 
 	uint64_t 		*posp;             	// Position Pointer 
-	pclk_t			start_time;			// Used for calculating elapsed times of ops
-	pclk_t			end_time;			// Used for calculating elapsed times of ops
+	nclk_t			start_time;			// Used for calculating elapsed times of ops
+	nclk_t			end_time;			// Used for calculating elapsed times of ops
 
 
 	/* Sequenced Data Pattern */

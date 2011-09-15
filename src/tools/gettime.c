@@ -42,8 +42,8 @@ static char  *gts_hostname; /* name of the Global time server */
 static char  verbose; /* verbose */
 static int32_t  add;  /* Amount to add to the clock */
 static int32_t  bounce;  /* number of times to hit the Global Time server */
-static pclk_t  wait_for_time;  /* number of times to hit the Global Time server */
-static pclk_t  global_time;  /* The actual global time */ 
+static nclk_t  wait_for_time;  /* number of times to hit the Global Time server */
+static nclk_t  global_time;  /* The actual global time */ 
 static int32_t  sleep_time_dw;  /* number of milli seconds to wait  */
 /*----------------------------------------------------------------------------*/
 /* gts_init_global_clock_network() - Initialize the network so that we can
@@ -115,10 +115,10 @@ gts_init_global_clock_network(char *hostname) {
 /*----------------------------------------------------------------------------*/
 /* gts_init_global_clock() - Initialize the global clock if requested
  */
-pclk_t
+nclk_t
 gts_init_global_clock(void) {
-	pclk_t  delta;  /* time returned by clk_initialize() */
-	pclk_t  now;  /* the current time returned by pclk() */
+	nclk_t  delta;  /* time returned by clk_initialize() */
+	nclk_t  now;  /* the current time returned by nclk() */
 	/* Global clock stuff here */
 	if (gts_hostname) {
 		gts_addr = gts_init_global_clock_network(gts_hostname);
@@ -173,7 +173,7 @@ gts_init_global_clock(void) {
 void
 gts_ts_overhead(struct tthdr *ttp) { 
 	int32_t  i;
-	pclk_t  tv[101];
+	nclk_t  tv[101];
 	ttp->timer_oh = 0;
 	for (i = 0; i < 101; i++) {
 		nclk_now(&tv[i]);
@@ -212,7 +212,7 @@ gts_parse_args(int32_t argc, char *argv[]) {
 			continue;
 		}
     	else if (strcmp(argv[i], "-waitfortime") == 0) { /* wait for this time then exit */
-      		wait_for_time = (pclk_t)atoll(argv[i+1]);
+      		wait_for_time = (nclk_t)atoll(argv[i+1]);
       		i++;
 			continue;
 		}

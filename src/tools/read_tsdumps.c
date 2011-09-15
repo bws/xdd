@@ -37,7 +37,7 @@ int thread_id_src[MAX_QTHREADS];
 int thread_id_dst[MAX_QTHREADS];
 int total_threads_src;
 int total_threads_dst;
-        pclk_t src_start_norm,dst_start_norm;
+        nclk_t src_start_norm,dst_start_norm;
 
 /* output file, if specified */
 #define OUTFILENAME_LEN 512
@@ -188,7 +188,7 @@ xdd_getthreads(tthdr_t *src, tthdr_t *dst)
 /* subtract the timestamps by the minimum start times */
 void normalize_time(tthdr_t *src, tthdr_t *dst) {
 	int64_t i;
-	pclk_t src_start,dst_start;
+	nclk_t src_start,dst_start;
 	src_start = src->tte[0].disk_start;
 	dst_start = dst->tte[0].disk_start;
 
@@ -246,16 +246,16 @@ void tte_qsort(tte_t **list, size_t key_offset, int64_t low, int64_t high) {
 	 * in a tte_t element.  So if you pass a list of (tte_t *) elements,
 	 * and you want to sort the pointers based on what is in list[i]->disk_start,
 	 * pass offsetof(tte_t,disk_start) as key_offset.  This function is ONLY
-	 * intended to sort by pclk_t timestamps at the moment.  Passing any other
+	 * intended to sort by nclk_t timestamps at the moment.  Passing any other
 	 * offset will break stuff. */
 
-	/* get the pclk_t time value (specified by key_offset)
+	/* get the nclk_t time value (specified by key_offset)
 	 * from the given tte_t element in the list */
-	#define timevalue(i) ( *((pclk_t *)((char *)list[i] + key_offset)) )
+	#define timevalue(i) ( *((nclk_t *)((char *)list[i] + key_offset)) )
 
 	int64_t i,j;
 	tte_t *tmp = NULL;
-	pclk_t mid;
+	nclk_t mid;
 
 	i = low;
 	j = high;

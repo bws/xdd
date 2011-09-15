@@ -55,8 +55,8 @@
 int32_t
 xdd_target_init(ptds_t *p) {
 	int32_t		status;			// Status of function calls
-	pclk_t		CurrentLocalTime;	// Used the init the Global Clock
-	pclk_t		TimeDelta;		// Used the init the Global Clock
+	nclk_t		CurrentLocalTime;	// Used the init the Global Clock
+	nclk_t		TimeDelta;		// Used the init the Global Clock
 	uint32_t	sleepseconds;
 	
 

@@ -35,8 +35,8 @@
 struct	xdd_triggers	{
     // -------------------------------------------------------------------
 	// The following variables are used to implement the various trigger options 
-	pclk_t        		start_trigger_time; 		// Time to trigger another target to start 
-	pclk_t        		stop_trigger_time; 			// Time to trigger another target to stop 
+	nclk_t        		start_trigger_time; 		// Time to trigger another target to start 
+	nclk_t        		stop_trigger_time; 			// Time to trigger another target to stop 
 	int64_t       		start_trigger_op; 			// Operation number to trigger another target to start 
 	int64_t       		stop_trigger_op; 			// Operation number  to trigger another target to stop
 	double        		start_trigger_percent; 		// Percentage of ops before triggering another target to start 

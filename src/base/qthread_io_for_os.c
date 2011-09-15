@@ -200,8 +200,8 @@ xdd_io_for_os(ptds_t *qp) {
  */
 void
 xdd_io_for_os(ptds_t *p) {
-	pclk_t			start_time;			// Used for calculating elapsed times of ops
-	pclk_t			end_time;			// Used for calculating elapsed times of ops
+	nclk_t			start_time;			// Used for calculating elapsed times of ops
+	nclk_t			end_time;			// Used for calculating elapsed times of ops
 	uint64_t 		current_position;	/* seek location read from device */
 	uint32_t 		uj;                	/* Random unsigned variable */
 	LPVOID 			lpMsgBuf;

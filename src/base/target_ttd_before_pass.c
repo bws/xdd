@@ -43,7 +43,7 @@
  */
 void
 xdd_timer_calibration_before_pass(void) {
-	pclk_t	t1,t2,t3;
+	nclk_t	t1,t2,t3;
 #ifdef WIN32 
         int32_t i;
 #else
@@ -111,7 +111,7 @@ xdd_start_delay_before_pass(ptds_t *p) {
 
 	/* Check to see if this thread has a start delay time. If so, just hang out
 	 * until the start delay time has elapsed and then spring into action!
-	 * The start_delay time is stored as a pclk_t which is units of pico seconds.
+	 * The start_delay time is stored as a nclk_t which is units of nano seconds.
 	 */
 	if (p->start_delay <= 0.0)
 		return; // No start delay
@@ -234,11 +234,11 @@ xdd_init_ptds_before_pass(ptds_t *p) {
 		p->esp->my_longest_read_op_number = 0; 	// Number of the read operation where the longest op time occured during this pass
 		p->esp->my_longest_write_op_time = 0; 	// Longest write op time that occured during this pass
 		p->esp->my_longest_write_op_number = 0; 	// Number of the write operation where the longest op time occured during this pass
-		p->esp->my_shortest_op_time = PCLK_MAX; 	// Shortest op time that occurred during this pass
+		p->esp->my_shortest_op_time = NCLK_MAX; 	// Shortest op time that occurred during this pass
 		p->esp->my_shortest_op_number = 0; 		// Number of the operation where the shortest op time occured during this pass
-		p->esp->my_shortest_read_op_time = PCLK_MAX;	// Shortest read op time that occured during this pass
+		p->esp->my_shortest_read_op_time = NCLK_MAX;	// Shortest read op time that occured during this pass
 		p->esp->my_shortest_read_op_number = 0; 	// Number of the read operation where the shortest op time occured during this pass
-		p->esp->my_shortest_write_op_time = PCLK_MAX;// Shortest write op time that occured during this pass
+		p->esp->my_shortest_write_op_time = NCLK_MAX;// Shortest write op time that occured during this pass
 		p->esp->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
 	}
 
@@ -286,8 +286,8 @@ xdd_target_ttd_before_pass(ptds_t *p) {
 			// actual "first pass start time" is set to a LARGE number so that it later
 			// gets set to the time that the first packet of data was actually received.
 			// That is done by the Results Manager at the end of a pass.
-			p->first_pass_start_time = PCLK_MAX;
-			p->my_pass_start_time = PCLK_MAX;
+			p->first_pass_start_time = NCLK_MAX;
+			p->my_pass_start_time = NCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
 			nclk_now(&p->first_pass_start_time);
 			p->my_pass_start_time = p->first_pass_start_time;
@@ -299,7 +299,7 @@ xdd_target_ttd_before_pass(ptds_t *p) {
 		if ((p->target_options & TO_ENDTOEND) && (p->target_options & TO_E2E_DESTINATION)) {
 			// Same as above... Pass numbers greater than one will be used when the
 			// multi-file copy support is added
-			p->my_pass_start_time = PCLK_MAX;
+			p->my_pass_start_time = NCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
 			nclk_now(&p->my_pass_start_time);
 		}

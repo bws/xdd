@@ -33,8 +33,8 @@ struct xdd_e2e_header {
 	uint32_t 	magic;  			/**< Magic number */
 	int32_t  	sendqnum;  			/**< Sender's QThread Number  */
 	int64_t  	sequence; 			/**< Sequence number */
-	pclk_t  	sendtime; 			/**< Time this packet was sent in global pico seconds */
-	pclk_t  	recvtime; 			/**< Time this packet was received in global pico seconds */
+	nclk_t  	sendtime; 			/**< Time this packet was sent in global nano seconds */
+	nclk_t  	recvtime; 			/**< Time this packet was received in global nano seconds */
 	int64_t  	location; 			/**< Starting location in bytes for this operation relative to the beginning of the file*/
 	int64_t  	length;  			/**< Length of the user data in bytes this operation */
 };

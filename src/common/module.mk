@@ -11,7 +11,7 @@ COMMON_SRC := $(DIR)/access_pattern.c \
 	$(DIR)/global_data.c \
 	$(DIR)/global_time.c \
 	$(DIR)/memory.c \
-	$(DIR)/pclk.c \
+	$(DIR)/nclk.c \
 	$(DIR)/processor.c \
 	$(DIR)/ptds.c \
 	$(DIR)/timestamp.c

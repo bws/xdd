@@ -1505,7 +1505,7 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 		tmpf = atof(argv[4]);
 		mlsp->ls_interval_type = LS_INTERVAL_TIME;
 		mlsp->ls_interval_units = "SECONDS";
-		mlsp->ls_interval_value = (pclk_t)(tmpf * BILLION);
+		mlsp->ls_interval_value = (nclk_t)(tmpf * BILLION);
 		if (mlsp->ls_interval_value <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep interval time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
@@ -1566,7 +1566,7 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 		tmpf = atof(argv[6]);
 		slsp->ls_task_type = LS_TASK_TIME;
 		slsp->ls_task_units = "SECONDS";
-		slsp->ls_task_value = (pclk_t)(tmpf * BILLION);
+		slsp->ls_task_value = (nclk_t)(tmpf * BILLION);
 		if (slsp->ls_task_value <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
@@ -2243,7 +2243,7 @@ xddfunc_passdelay(int32_t argc, char *argv[], uint32_t flags)
 			fprintf(xgp->errout,"%s: pass delay time of %f is not valid. The pass delay time must be a number of seconds greater than 0.00 but less than the remaining life of the sun.\n",xgp->progname,xgp->pass_delay);
 			return(0);
 		}
-		xgp->pass_delay_usec = (pclk_t)(xgp->pass_delay * MILLION);
+		xgp->pass_delay_usec = (nclk_t)(xgp->pass_delay * MILLION);
 	}
     return(2);
 }
@@ -2698,14 +2698,14 @@ xddfunc_report_threshold(int32_t argc, char *argv[], uint32_t flags)
 		p = xdd_get_ptdsp(target_number, argv[0]);
 		if (p == NULL) return(-1);
 
-		p->report_threshold = (pclk_t)(threshold * BILLION);
+		p->report_threshold = (nclk_t)(threshold * BILLION);
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
 			p = xgp->ptdsp[0];
 			i = 0;
 			while (p) {
-				p->report_threshold = (pclk_t)(threshold * BILLION);
+				p->report_threshold = (nclk_t)(threshold * BILLION);
 				i++;
 				p = xgp->ptdsp[i];
 			}
@@ -2982,7 +2982,7 @@ xddfunc_runtime(int32_t argc, char *argv[], uint32_t flags)
 			fprintf(xgp->errout,"%s: run time of %f is not valid. The run time must be a number of seconds greater than 0.00 but less than the remaining life of the sun.\n",xgp->progname,xgp->run_time);
 			return(0);
 		}
-		xgp->run_time_ticks = (pclk_t)(xgp->run_time * BILLION);
+		xgp->run_time_ticks = (nclk_t)(xgp->run_time * BILLION);
 	}
     return(2);
 }
@@ -3456,7 +3456,7 @@ xddfunc_startdelay(int32_t argc, char *argv[], uint32_t flags)
     int args, i; 
     int target_number;
     double start_delay;
-    pclk_t start_delay_psec;
+    nclk_t start_delay_psec;
     ptds_t *p;
 
 		
@@ -3466,7 +3466,7 @@ xddfunc_startdelay(int32_t argc, char *argv[], uint32_t flags)
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
 	start_delay = atof(argv[args+1]);
-	start_delay_psec = (pclk_t)(start_delay * BILLION); 
+	start_delay_psec = (nclk_t)(start_delay * BILLION); 
 	if (start_delay < 0.0) {
 		fprintf(xgp->errout,"%s: Start Delay time of %f is not valid. The Start Delay time must be a number of seconds greater than or equal to 0.00 but less than the remaining life of the sun.\n",
 			xgp->progname,start_delay);
@@ -3546,7 +3546,7 @@ xddfunc_starttime(int32_t argc, char *argv[], uint32_t flags)
 			   	xgp->progname, argv[0]);
 		return(-1);
 	}
-	xgp->gts_time = (pclk_t) atoll(argv[1]);
+	xgp->gts_time = (nclk_t) atoll(argv[1]);
 	xgp->gts_time *= BILLION;
     return(2);
 }
@@ -3606,7 +3606,7 @@ xddfunc_starttrigger(int32_t argc, char *argv[], uint32_t flags)
 
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		trigp->start_trigger_time = (pclk_t)(tmpf * BILLION);
+		trigp->start_trigger_time = (nclk_t)(tmpf * BILLION);
 		if (trigp->start_trigger_time <= 0.0) {
 			fprintf(stderr,"%s: Invalid starttrigger time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
@@ -3697,7 +3697,7 @@ xddfunc_stoptrigger(int32_t argc, char *argv[], uint32_t flags)
 									* know the target number to trigger */
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		trigp->stop_trigger_time = (pclk_t)(tmpf * BILLION);
+		trigp->stop_trigger_time = (nclk_t)(tmpf * BILLION);
         return(5);
 	} else if (strcmp(when,"op") == 0){ /* get the number of operations to wait before triggering the other target */
 		trigp->stop_trigger_op = atoll(argv[4]);
@@ -3937,7 +3937,7 @@ xddfunc_targetstartdelay(int32_t argc, char *argv[], uint32_t flags)
     int args, i; 
     int target_number;
     double start_delay;
-    pclk_t start_delay_psec;
+    nclk_t start_delay_psec;
     ptds_t *p;
 
 	args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
@@ -3946,7 +3946,7 @@ xddfunc_targetstartdelay(int32_t argc, char *argv[], uint32_t flags)
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
 	start_delay = atof(argv[args+1]);
-	start_delay_psec = (pclk_t)(start_delay * BILLION); 
+	start_delay_psec = (nclk_t)(start_delay * BILLION); 
 	if (start_delay < 0.0) {
 		fprintf(xgp->errout,"%s: Target Start Delay time of %f is not valid. The Target Start Delay time must be a number of seconds greater than or equal to 0.00 but less than the remaining life of the sun.\n",
 			xgp->progname,start_delay);
@@ -4115,7 +4115,7 @@ xddfunc_timelimit(int32_t argc, char *argv[], uint32_t flags)
     int target_number;
     ptds_t *p;
 	double	time_limit;
-	pclk_t	time_limit_ticks;
+	nclk_t	time_limit_ticks;
 
     args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
@@ -4128,7 +4128,7 @@ xddfunc_timelimit(int32_t argc, char *argv[], uint32_t flags)
 		fprintf(xgp->errout,"%s: time limit of %f is not valid. The time limit must be a number of seconds greater than 0.00 but less than the remaining life of the sun.\n",xgp->progname,time_limit);
 		return(0);
 	}
-	time_limit_ticks = (pclk_t)(time_limit * BILLION);
+	time_limit_ticks = (nclk_t)(time_limit * BILLION);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(target_number, argv[0]);

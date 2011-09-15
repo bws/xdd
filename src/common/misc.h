@@ -64,6 +64,7 @@ typedef enum { false = 0, true } bool;
 /* Constants */
 /* --------- */
 // Base10 Numbers
+#define ONE		 		   1LL 			/**< 10^0, as opposed to 2^0 */
 #define THOUSAND 		1000LL 			/**< 10^3, as opposed to 2^10 */
 #define MILLION  		1000000LL 		/**< 10^6, as opposed to 2^20 */
 #define BILLION  		1000000000LL 	/**< 10^9, as opposed to 2^30 */

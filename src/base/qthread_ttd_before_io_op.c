@@ -252,9 +252,9 @@ xdd_e2e_before_io_op(ptds_t *qp) {
  */
 void	
 xdd_throttle_before_io_op(ptds_t *qp) {
-	pclk_t   sleep_time;         /* This is the number of pico seconds to sleep between I/O ops */
+	nclk_t   sleep_time;         /* This is the number of nano seconds to sleep between I/O ops */
 	int32_t  sleep_time_dw;     /* This is the amount of time to sleep in milliseconds */
-	pclk_t	now;
+	nclk_t	now;
 
 
 	if (qp->throttle <= 0.0)

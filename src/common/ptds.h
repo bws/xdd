@@ -157,7 +157,7 @@ struct ptds {
 	uint32_t			task_xfer_size;						// Number of bytes to transfer
 	uint64_t			task_byte_location;					// Offset into the file where this transfer starts
 	uint64_t			task_e2e_sequence_number;			// Sequence number of this task when part of an End-to-End operation
-	pclk_t				task_time_to_issue;					// Time to issue the I/O operation or 0 if not used
+	nclk_t				task_time_to_issue;					// Time to issue the I/O operation or 0 if not used
 
 
 	// command line option values 
@@ -168,18 +168,18 @@ struct ptds {
 	int64_t				bytes;   				// number of bytes to process overall 
 	int64_t				numreqs;  				// Number of requests to perform per pass per qthread
 	double				rwratio;  				// read/write ratios 
-	pclk_t				report_threshold;		// reporting threshold for long operations 
+	nclk_t				report_threshold;		// reporting threshold for long operations 
 	int32_t				reqsize;  				// number of *blocksize* byte blocks per operation for each target 
 	int32_t				retry_count;  			// number of retries to issue on an error 
 	double				time_limit;				// Time of a single pass in seconds
-	pclk_t				time_limit_ticks;		// Time of a single pass in high-res clock ticks
+	nclk_t				time_limit_ticks;		// Time of a single pass in high-res clock ticks
 	char				*target_directory; 		// The target directory for the target 
 	char				*target_basename; 		// Basename of the target/device
 	char				*target_full_pathname;	// Fully qualified path name to the target device/file
 	char				target_extension[32]; 	// The target extension number 
 	int32_t				processor;  			// Processor/target assignments 
 	double				start_delay; 			// number of seconds to delay the start  of this operation 
-	pclk_t				start_delay_psec;		// number of picoseconds to delay the start  of this operation 
+	nclk_t				start_delay_psec;		// number of nanoseconds to delay the start  of this operation 
     // ------------------ Throttle stuff --------------------------------------------------
 	// The following "throttle_" members are for the -throttle option
 	double				throttle;  				// Target Throttle assignments 
@@ -200,15 +200,15 @@ struct ptds {
 	int64_t				ts_current_entry; 		// Index into the Timestamp Table of the current entry
 	int64_t				ts_size;  				// Time Stamping Size in number of entries 
 	int64_t				ts_trigop;  			// Time Stamping trigger operation number 
-	pclk_t				ts_trigtime; 			// Time Stamping trigger time 
+	nclk_t				ts_trigtime; 			// Time Stamping trigger time 
 	char				*ts_binary_filename; 	// Timestamp filename for the binary output file for this Target
 	char				*ts_output_filename; 	// Timestamp report output filename for this Target
 	//
     // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
 	//
-	pclk_t				run_start_time; 			// This is time t0 of this run - set by xdd_main
-	pclk_t				first_pass_start_time; 		// Time the first pass started but before the first operation is issued
+	nclk_t				run_start_time; 			// This is time t0 of this run - set by xdd_main
+	nclk_t				first_pass_start_time; 		// Time the first pass started but before the first operation is issued
 	uint64_t			target_bytes_to_xfer_per_pass; 	// Number of bytes to xfer per pass for the entire target (all qthreads)
 	int32_t				block_size;  				// Size of a block in bytes for this target 
 	int32_t				queue_depth; 				// Command queue depth for each target 
@@ -227,8 +227,8 @@ struct ptds {
 	int32_t				results_run_barrier_index; 	// Where threads wait for all other threads at the completion of the run
 	//
 	// Time stamps and timing information - RESET AT THE START OF EACH PASS (or Operation on some)
-	pclk_t				my_pass_start_time; 		// The time stamp that this pass started but before the first operation is issued
-	pclk_t				my_pass_end_time; 			// The time stamp that this pass ended 
+	nclk_t				my_pass_start_time; 		// The time stamp that this pass started but before the first operation is issued
+	nclk_t				my_pass_end_time; 			// The time stamp that this pass ended 
 	struct	tms			my_starting_cpu_times_this_run;	// CPU times from times() at the start of this run
 	struct	tms			my_starting_cpu_times_this_pass;// CPU times from times() at the start of this pass
 	struct	tms			my_current_cpu_times;		// CPU times from times()
@@ -257,20 +257,20 @@ struct ptds {
 	int32_t				my_current_io_status; 		// I/O Status of the last I/O operation for this qthread
 	int32_t				my_current_io_errno; 		// The errno associated with the status of this I/O for this thread
 	int64_t				my_current_error_count;		// The number of I/O errors for this qthread
-	pclk_t				my_elapsed_pass_time; 		// Rime between the start and end of this pass
-	pclk_t				my_first_op_start_time;		// Time this qthread was able to issue its first operation for this pass
-	pclk_t				my_current_op_start_time; 	// Start time of the current op
-	pclk_t				my_current_op_end_time; 	// End time of the current op
-	pclk_t				my_current_op_elapsed_time;	// Elapsed time of the current op
-	pclk_t				my_current_net_start_time; 	// Start time of the current network op (e2e only)
-	pclk_t				my_current_net_end_time; 	// End time of the current network op (e2e only)
-	pclk_t				my_current_net_elapsed_time;// Elapsed time of the current network op (e2e only)
-	pclk_t				my_accumulated_op_time; 	// Accumulated time spent in I/O 
-	pclk_t				my_accumulated_read_op_time; // Accumulated time spent in read 
-	pclk_t				my_accumulated_write_op_time;// Accumulated time spent in write 
-	pclk_t				my_accumulated_noop_op_time;// Accumulated time spent in noops 
-	pclk_t				my_accumulated_pattern_fill_time; // Accumulated time spent in data pattern fill before all I/O operations 
-	pclk_t				my_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
+	nclk_t				my_elapsed_pass_time; 		// Rime between the start and end of this pass
+	nclk_t				my_first_op_start_time;		// Time this qthread was able to issue its first operation for this pass
+	nclk_t				my_current_op_start_time; 	// Start time of the current op
+	nclk_t				my_current_op_end_time; 	// End time of the current op
+	nclk_t				my_current_op_elapsed_time;	// Elapsed time of the current op
+	nclk_t				my_current_net_start_time; 	// Start time of the current network op (e2e only)
+	nclk_t				my_current_net_end_time; 	// End time of the current network op (e2e only)
+	nclk_t				my_current_net_elapsed_time;// Elapsed time of the current network op (e2e only)
+	nclk_t				my_accumulated_op_time; 	// Accumulated time spent in I/O 
+	nclk_t				my_accumulated_read_op_time; // Accumulated time spent in read 
+	nclk_t				my_accumulated_write_op_time;// Accumulated time spent in write 
+	nclk_t				my_accumulated_noop_op_time;// Accumulated time spent in noops 
+	nclk_t				my_accumulated_pattern_fill_time; // Accumulated time spent in data pattern fill before all I/O operations 
+	nclk_t				my_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
 	// Updated by the QThread at different times
 	char				my_time_limit_expired;		// Time limit expired indicator
 	char				abort;						// Abort this operation (either a QThread or a Target Thread)
@@ -292,8 +292,8 @@ struct ptds {
 #define	CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO		0x0000000000000800	// Waiting on the previous I/O op semaphore
 
 	// The following variables are used by the "-reopen" option
-	pclk_t        		open_start_time; 			// Time just before the open is issued for this target 
-	pclk_t        		open_end_time; 				// Time just after the open completes for this target 
+	nclk_t        		open_start_time; 			// Time just before the open is issued for this target 
+	nclk_t        		open_end_time; 				// Time just after the open completes for this target 
 
     // -------------------------------------------------------------------
 	// The following "e2e_" members are for the End to End ( aka -e2e ) option
@@ -328,12 +328,12 @@ struct ptds {
 	int64_t				e2e_prev_len; 			// The previous length from a e2e message from the source 
 	int64_t				e2e_data_recvd; 		// The amount of data that is received each time we call xdd_e2e_dest_recv()
 	int64_t				e2e_data_length; 		// The amount of data that is ready to be read for this operation 
-	pclk_t				e2e_wait_1st_msg;		// Time in picosecs destination waited for 1st source data to arrive 
-	pclk_t				e2e_first_packet_received_this_pass;// Time that the first packet was received by the destination from the source
-	pclk_t				e2e_last_packet_received_this_pass;// Time that the last packet was received by the destination from the source
-	pclk_t				e2e_first_packet_received_this_run;// Time that the first packet was received by the destination from the source
-	pclk_t				e2e_last_packet_received_this_run;// Time that the last packet was received by the destination from the source
-	pclk_t				e2e_sr_time; 			// Time spent sending or receiving data for End-to-End operation
+	nclk_t				e2e_wait_1st_msg;		// Time in nanosecs destination waited for 1st source data to arrive 
+	nclk_t				e2e_first_packet_received_this_pass;// Time that the first packet was received by the destination from the source
+	nclk_t				e2e_last_packet_received_this_pass;// Time that the last packet was received by the destination from the source
+	nclk_t				e2e_first_packet_received_this_run;// Time that the first packet was received by the destination from the source
+	nclk_t				e2e_last_packet_received_this_run;// Time that the last packet was received by the destination from the source
+	nclk_t				e2e_sr_time; 			// Time spent sending or receiving data for End-to-End operation
 	int32_t				e2e_address_table_host_count;	// Cumulative number of hosts represented in the e2e address table
 	int32_t				e2e_address_table_port_count;	// Cumulative number of ports represented in the e2e address table
 	int32_t				e2e_address_table_next_entry;	// Next available entry in the e2e_address_table

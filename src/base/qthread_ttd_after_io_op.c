@@ -47,7 +47,7 @@
  */
 void
 xdd_threshold_after_io_op(ptds_t *qp) {
-	pclk_t   excess_time;        /* Used by the report_threshold timing */
+	nclk_t   excess_time;        /* Used by the report_threshold timing */
 
 
 	if (qp->report_threshold) {

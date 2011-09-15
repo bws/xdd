@@ -39,7 +39,7 @@
  */
 int32_t
 xdd_initialization(int32_t argc,char *argv[]) {
-	pclk_t tt; 
+	nclk_t tt; 
 
 
 	// Initialize the Global Data Structure
@@ -76,9 +76,9 @@ xdd_initialization(int32_t argc,char *argv[]) {
 #endif
 
 	/* initialize the clocks */
-	pclk_initialize(&tt);
-	if (tt == PCLK_BAD) {
-		fprintf(xgp->errout, "%s: ERROR: Cannot initialize the picosecond clock\n",xgp->progname);
+	nclk_initialize(&tt);
+	if (tt == NCLK_BAD) {
+		fprintf(xgp->errout, "%s: ERROR: Cannot initialize the nanosecond clock\n",xgp->progname);
 		fflush(xgp->errout);
 		xdd_destroy_all_barriers();
 		return(-1);

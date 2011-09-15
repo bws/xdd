@@ -43,7 +43,7 @@ xdd_qthread(void *pin) {
 	int32_t  		status; 	// Status of various system calls
 	ptds_t			*qp;		// Pointer to this QThread's PTDS
 	ptds_t			*p;			// Pointer to this QThread's Target PTDS
-	pclk_t			checktime;
+	nclk_t			checktime;
 	int				mycpu;
 
 	qp = (ptds_t *)pin; 

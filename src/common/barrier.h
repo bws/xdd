@@ -144,8 +144,8 @@ struct xdd_occupant {
 	uint64_t				 	occupant_type;	// Bitfield that indicates the type of occupant
 	char						*occupant_name;	// Pointer to a character string that is the name of this occupant
 	struct		ptds			*occupant_ptds;	// Pointer to a PTDS if the occupant_type is a Target or QThread
-	pclk_t						entry_time;		// Time stamp of when this occupant entered a barrier - filled in by xdd_barrier()
-	pclk_t						exit_time;		// Time stamp of when this occupant was released from a barrier - filled in by xdd_barrier()
+	nclk_t						entry_time;		// Time stamp of when this occupant entered a barrier - filled in by xdd_barrier()
+	nclk_t						exit_time;		// Time stamp of when this occupant was released from a barrier - filled in by xdd_barrier()
 };
 typedef struct xdd_occupant xdd_occupant_t;
 #define XDD_OCCUPANT_TYPE_TARGET		0x0000000000000001ULL	// Occupant is a Target Thread

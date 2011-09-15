@@ -50,9 +50,9 @@ static	char	activity_indicators[8] = {'|','/','-','\\','*'};
 void *
 xdd_heartbeat(void *junk) {
 	int32_t 	i;						// If it is not obvious what "i" is then you should not be reading this
-	pclk_t 		now;					// Current time
-	pclk_t 		earliest_start_time;	// The earliest start time of the qthreads for a target
-	pclk_t 		latest_end_time;		// The latest End Time of all qthreads
+	nclk_t 		now;					// Current time
+	nclk_t 		earliest_start_time;	// The earliest start time of the qthreads for a target
+	nclk_t 		latest_end_time;		// The latest End Time of all qthreads
 	int64_t		total_bytes_xferred;	// The total number of bytes xferred for all qthreads for a target
 	int64_t		total_ops_issued;		// This is the total number of ops issued/completed up til now
 	double		elapsed;				// Elapsed time for this qthread
@@ -120,10 +120,10 @@ xdd_heartbeat(void *junk) {
 			if ((scattered_output)  || (i == 0))
 				xdd_heartbeat_legend(p);
 			total_bytes_xferred = 0;
-			earliest_start_time = PCLK_MAX;
+			earliest_start_time = NCLK_MAX;
 			latest_end_time = 0.0;
 			total_ops_issued = 0;
-			if (p->my_pass_start_time == PCLK_MAX) { // Haven't started yet...
+			if (p->my_pass_start_time == NCLK_MAX) { // Haven't started yet...
 				fprintf(p->hb.hb_file_pointer," + WAITING");
 				continue; 
 			}
@@ -175,7 +175,7 @@ DFLOW("\n----------------------heartbeat: Exit-------------------------\n");
  */
 void
 xdd_heartbeat_legend(ptds_t *p) {
-	pclk_t 		now;					// Current time
+	nclk_t 		now;					// Current time
 	double		elapsed_seconds;		// Elapsed time in seconds
 	time_t		current_time;			// For the Time of Day option
 	char		current_time_string[32];	// For the Time of Day option

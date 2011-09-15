@@ -44,7 +44,7 @@ xdd_get_specific_qthread(ptds_t *p, int32_t q) {
 	ptds_t		*qp;					// Pointer to a QThread PTDS
 	int			status;					// Status of the sem_wait system calls
 	int			i;
-	pclk_t		checktime;
+	nclk_t		checktime;
 
 	nclk_now(&checktime);
 
