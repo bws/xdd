@@ -36,10 +36,10 @@ done
 # Perform a recursive copy
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-scp $XDDTEST_XDD_EXE $XDDTEST_E2E_DEST:~/bin/xdd.Linux
+scp $XDDTEST_XDD_EXE $XDDTEST_E2E_DEST:~/bin/xdd
 $XDDTEST_XDDCP_EXE -r $test_dir $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT
 rc=$?
-ssh $XDDTEST_E2E_DEST "rm ~/bin/xdd.Linux"
+ssh $XDDTEST_E2E_DEST "rm ~/bin/xdd"
 
 test_passes=0
 if [ 0 -eq $rc ]; then

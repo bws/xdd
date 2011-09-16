@@ -41,15 +41,14 @@ $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4096 -qd 4
 # Start a long copy
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-scp $XDDTEST_XDD_EXE $XDDTEST_E2E_DEST:~/bin/xdd.Linux &>/dev/null
-$XDDTEST_XDDCP_EXE -a -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
+bash -x $XDDTEST_XDDCP_EXE -a -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
 #
 # Kill the destination side
 #
 sleep 10
-ssh $XDDTEST_E2E_DEST "killall xdd.Linux" &>/dev/null
+ssh $XDDTEST_E2E_DEST "killall xdd" &>/dev/null
 
 #
 # Let the retry complete

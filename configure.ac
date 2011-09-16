@@ -27,8 +27,10 @@ AC_INIT(XDD,7.0.0.pre-rc21)
 dnl
 dnl Include useful macros
 dnl
-m4_include(m4/ax_mpi.m4)
+m4_include(m4/ax_cflags_aix_option.m4)
+m4_include(m4/ax_cflags_gcc_option.m4)
 m4_include(m4/ax_check_gnu_make.m4)
+m4_include(m4/ax_mpi.m4)
 
 dnl
 dnl Check for GNU Make
@@ -48,12 +50,70 @@ AC_SUBST(CONFIG_BUILD_DIR)
 AC_SUBST(CONFIG_PROJECT_DIR)
 
 dnl
+dnl Check operating system
+dnl
+PLATFORM=`uname`
+if test "$PLATFORM" = "AIX"; then
+   ARFLAGS="-rcs -X 64"
+   CPPFLAGS="-DAIX -D_THREAD_SAFE"
+   LIBS="-lnsl -lxnet -v"
+elif test "$PLATFORM" = "Linux"; then
+   ARFLAGS="-rcs"
+   CPPFLAGS="-DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE"
+else
+   AC_MSG_ERROR(Unsupported build platform: $PLATFORM)
+fi
+
+dnl
 dnl Check for C compiler 
 dnl   On IBM systems we prefer the IBM compiler
-dnl
+CFLAGS=""
 AC_PROG_CC([xlc_r gcc])
 AC_LANG_C
 AC_SUBST(CC)
+
+dnl
+dnl Adjust compiler flags
+dnl
+if test "$CC" = "xlc_r"; then
+   dnl AX_CFLAGS_AIX_OPTION([-q64])
+   dnl AX_CFLAGS_AIX_OPTION([-qcpluscmt])
+   dnl AX_CFLAGS_AIX_OPTION([-qthreaded])
+   CFLAGS="-q64 -qcpluscmt -qthreaded"
+   LDFLAGS="-q64 -qthreaded"
+elif test "$CC" = "gcc"; then
+   AX_CFLAGS_GCC_OPTION([-ggdb])
+   AX_CFLAGS_GCC_OPTION([-fno-strict-aliasing])
+   AX_CFLAGS_GCC_OPTION([-fPIC])
+   AX_CFLAGS_GCC_OPTION([-Wall])
+fi
+
+dnl
+dnl Enable static linking for executables if requested
+dnl
+AC_ARG_ENABLE([static], [Enable static linking for executables (Default: no)],
+			enable_static="$enableval", enable_static="no")
+if test "x$enable_static" = "xyes"; then
+
+   dnl
+   dnl This may need to be changed for each compiler we support
+   dnl
+   if test "$CC" = "gcc"; then
+      LDFLAGS="-static"
+   elif test "$CC" = "xlc_r"; then
+      LDFLAGS="-bstatic"
+   fi		
+fi
+
+dnl
+dnl Determine flags to create shared objects
+dnl
+if test "$CC" = "xlc_r"; then
+   SOFLAGS="-G -q64 -qmkshrobj"
+elif test "$CC" = "gcc"; then
+   SOFLAGS="-shared -Wl,-soname,\$@"
+fi
+
 
 dnl
 dnl Check for C dependency generator
@@ -86,6 +146,31 @@ AC_CHECK_HEADER([sys/stat.h],
                 [], 
                 AC_MSG_ERROR(Must include headers for sys/stat.h))
 
+AC_CHECK_HEADER([utmpx.h],
+		[], [])
+
+dnl
+dnl Check for C libraries
+dnl
+AC_TRY_LINK([#include <stdlib.h>],
+	    [atoi("0");],
+	    [],
+	    AC_MSG_ERROR([No suitable C library to link against]))
+
+dnl
+dnl Check for pthreads libraries -- this depends on the compiler
+dnl
+if test "$CC" = "gcc"; then
+   CFLAGS="$CFLAGS -pthread"
+   LDFLAGS="$LDFLAGS -pthread"
+elif test "$CC" = "xlc_r"; then
+   LIBS="$LIBS -lpthread"
+fi
+AC_TRY_LINK([#include <pthread.h>],
+	    [pthread_attr_init(NULL);],
+	    [],
+	    AC_MSG_ERROR([No suitable pthreads library to link against]))
+
 dnl
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl
@@ -96,10 +181,16 @@ dnl Checks for library functions.
 dnl
 AC_CHECK_FUNC([memset])
 
+AC_SEARCH_LIBS([clock_gettime], [rt],
+	       [], 
+	       AC_MSG_WARN(Posix function clock_gettime not found.))
+
+AC_CHECK_FUNCS([sched_getcpu])
+
 dnl
 dnl Check for MPI compiler
 dnl
-AX_MPI([],AC_MSG_WARN(MPI C compiler not found.))
+AX_MPI([],,AC_MSG_WARN(MPI C compiler not found.))
 
 dnl
 dnl Check if XFS support should be enabled
@@ -145,32 +236,6 @@ AC_CHECK_HEADERS([linux/magic.h],
 
 
 dnl
-dnl Check for sched_getcpu availability
-dnl
-utmpx_headers="no"
-sched_getcpu_support="no"
-AC_CHECK_HEADERS([utmpx.h],
-		 [utmpx_headers="yes"],
-		 [utmpx_headers="no"])
-
-AC_TRY_LINK([#define _GNU_SOURCE
-             #include <utmpx.h>],
-	    [sched_getcpu();],
-	    [sched_getcpu_support="yes"])
-if test "x$utmpx_headers" = "xyes" -a "x$sched_getcpu_support" = "xyes" ; then
-   AC_SUBST(CONFIG_UTMPX_ENABLED, "-DUTMPX_SUPPORT")
-fi
-
-
-dnl
-dnl Sets the compilation options
-dnl
-CONFIG_CFLAGS="$CFLAGS"
-CONFIG_LDFLAGS="$LDFLAGS $LIBS"
-AC_SUBST(CONFIG_CFLAGS, "$CONFIG_CFLAGS")
-AC_SUBST(CONFIG_LDFLAGS, "$CONFIG_LDFLAGS")
-
-dnl
 dnl Check whether to enable assertions
 dnl
 AC_HEADER_ASSERT
@@ -207,23 +272,10 @@ if test "x$tr_exists" = "xno" ; then
     xddcp_disable="yes"
 fi
 
-truncate_exists="no"
-AC_PATH_PROG([truncate_exists], [truncate], [no])
-if test "x$truncate_exists" = "xno" ; then
-    AC_MSG_WARN(Support for xddcp disabled.  No working truncate utility.)
-    xddcp_disable="yes"
-fi
-
 if  ! test "x$xddcp_disable" = "xyes" ; then
    AC_SUBST(XDDCP_ENABLED, "true")
-fi
-
-gethostip_exists="no"
-AC_PATH_PROG([gethostip_exists], [gethostip], [no])
-if test "x$gethostip_exists" = "xno" ; then
-dnl   AC_MSG_WARN(Some features of xddcp unavailable.  No gethostip utility installed.)
-    AC_MSG_WARN(Support for xddcp disabled.  No working gethostip utility.)
-    xddcp_disable="yes"
+else
+   AC_SUBST(XDDCP_ENABLED, "false")
 fi
 
 netstat_exists="no"
@@ -239,6 +291,16 @@ dnl Set the default installation prefix
 dnl
 install_prefix='/opt/xdd'
 AC_PREFIX_DEFAULT("$install_prefix")
+
+dnl
+dnl Sets the compilation options
+dnl
+AC_SUBST(CONFIG_ARFLAGS, "$ARFLAGS")
+AC_SUBST(CONFIG_CFLAGS, "$CFLAGS")
+AC_SUBST(CONFIG_CPPFLAGS, "$CPPFLAGS")
+AC_SUBST(CONFIG_LDFLAGS, "$LDFLAGS")
+AC_SUBST(CONFIG_LIBS, "$LIBS")
+AC_SUBST(CONFIG_SOFLAGS, "$SOFLAGS")
 
 dnl
 dnl Generate output

@@ -23,26 +23,32 @@
 # engine.  Its functionality loosely mimics the capabilities of scp and bbcp,
 # however, with hopefully much improved performance.
 #
-# Notes: XDDCP has only been tested on Linux environments.  The
-# following POSIX utilities are required to utilize XDDCP:
+# Notes: XDDCP has been tested on AIX and Linux environments.  
+#
+# The following POSIX utilities are required to utilize XDDCP:
 #    /bin/basename
 #    /bin/cat
 #    /bin/cut
 #    /bin/date
 #    /bin/echo
+#    /bin/egrep
 #    /bin/grep
 #    /bin/hostname
 #    /bin/ps
 #    /bin/uname
 #
+# The following utilities are provided by the XDD distribution
+#    xdd-getfilesize
+#    xdd-gethostip
+#    xdd-truncate
+#    xdd
+#
 # The following utilities (non-POSIX) are required to utilize XDDCP:
 #    dirname
-#    gethostip
+#    mkfifo
 #    ssh
 #    stat
 #    tr
-#    truncate
-#    xdd.Linux
 #
 # The following utilities are optionally used by XDDCP:
 #    netstat 
@@ -59,9 +65,17 @@ XDDCP_DEFAULT_TIMESTAMP="$(/bin/date -u +'%Y-%m-%d-%H%M%S')-GMT"
 XDDCP_DEFAULT_NETWORK_SLEEP_SECS=4
 XDDCP_DEFAULT_RETRY_SLEEP_SECS=4
 XDDCP_DEFAULT_NETWORK_CLEAR_SECS=2
-XDDCP_DEFAULT_XDD="xdd.$(/bin/uname)"
-XDDCP_DEFAULT_XDD="$(/usr/bin/which $XDDCP_DEFAULT_XDD)"
-XDDCP_DEFAULT_IOTRACE=""
+XDDCP_DEFAULT_FIFO_PATH="/tmp/xddcp-$USER.$$"
+XDDCP_IOTRACE_EXE=""
+
+# XDD package executables
+XDDCP_XDD_EXE="xdd"
+XDDCP_GETHOSTIP_EXE="xdd-gethostip"
+XDDCP_TRUNCATE="xdd-truncate"
+XDDCP_GETFILESIZE_EXE="xdd-getfilesize"
+XDDCP_READTSDUMPS_EXE="xdd-read-tsdumps"
+XDDCP_PLOTTSDUMPS_EXE="xdd-plot-tsdumps"
+XDDCP_PLOTTSDUMPSDK_EXE="xdd-plot-tsdumps-dk"
 
 # XDDCP Error Codes
 XDDCP_ERR_CODE_INVALID_ARGS=101
@@ -87,7 +101,9 @@ XDDCP_ERR_CODE_DEST_DIR_NOT_WR=120
 XDDCP_ERR_CODE_DEST_TGT_NOT_WR=121
 XDDCP_ERR_CODE_DEST_IP=122
 XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND=123
-XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT=124
+XDDCP_ERR_CODE_FIFO_ACCESS=124
+XDDCP_ERR_CODE_FIFO_FAILED=125
+XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT=126
 
 #
 # Global variables
@@ -130,11 +146,12 @@ function print_usage {
     echo " -o s|d|b     - Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
     echo " -r           - Copy sub-directories and contents recursively"
     echo " -t threads   - Use 'threads' number of threads during transfer [Default: $XDDCP_DEFAULT_QUEUE_DEPTH]"
-    echo " -v           - Add verbose output to logs"
+    echo " -v           - Turn on logging"
+    echo " -V           - Add timestamping output to logs"
     echo " -w sec       - Add post-analysis: plot bandwidth over time with sliding window of 'sec' seconds. (sec >= 1)"
     echo " -W sec       - Add post-analysis: -w option with kernel tracing. (sec >= 1)"
     #echo "-Y           - Force SSH to create psueo-terminal tty"
-    echo "NOTE: 'xdd.Linux' must be in your PATH env on both source and destination hosts!!!"
+    echo "NOTE: 'xdd' must be in your PATH env on both source and destination hosts!!!"
 }
 
 #
@@ -143,7 +160,6 @@ function print_usage {
 function error_exit {
     local errorCode=$1
 
-    #trap "multilevel_exit_handler $errorCode" EXIT
     error_print $errorCode
 
 #    echo "Call stack: $FUNCNAME"
@@ -168,7 +184,7 @@ function error_print {
             echo "ERROR: Invalid source/destination format" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_XDD_NOT_FOUND) 
-            echo "ERROR: ${XDDCP_DEFAULT_XDD} executable not found" >/dev/stderr
+            echo "ERROR: ${XDDCP_XDD_EXE} executable not found" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_QIP_NOT_FOUND) 
             echo "ERROR: qipcrm executable not found" >/dev/stderr
@@ -195,7 +211,7 @@ function error_print {
             echo "ERROR: Requested transfer size is larger than file size" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_VERSION_MATCH) 
-            echo "ERROR: ${XDDCP_DEFAULT_XDD} versions differ on source and destination" >/dev/stderr
+            echo "ERROR: ${XDDCP_XDD_EXE} versions differ on source and destination" >/dev/stderr
             ;;
         $XDDCP_ERR_CODE_NO_REMOTE) 
             echo "ERROR: Local file transfers are not permitted" >/dev/stderr
@@ -230,6 +246,12 @@ function error_print {
 	    ;;
         $XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND)
 	    echo "ERROR: Could not find gethostip program." >/dev/stderr
+	    ;;
+        $XDDCP_ERR_CODE_FIFO_ACCESS)
+	    echo "ERROR: Invalid permissions to access FIFO." >/dev/stderr
+	    ;;
+        $XDDCP_ERR_CODE_FIFO_FAILED)
+	    echo "ERROR: Could not create FIFO." >/dev/stderr
 	    ;;
         \?) 
             echo "ERROR: Unknown error code" >/dev/stderr
@@ -315,16 +337,16 @@ function check_host_preconditions {
     local recursiveFlag=${5}
     local forceFlag=${6}
 
-    # Check for xdd.Linux binary
-    type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
+    # Check for xdd binary
+    XDDCP_XDD_EXE=$(type -P ${XDDCP_XDD_EXE})
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
     else
-        g_xddcpXddVersion=$(${XDDCP_DEFAULT_XDD} -version)
+        g_xddcpXddVersion=$(${XDDCP_XDD_EXE} -version)
     fi
 
     # Check for gethostip binary
-    type -P gethostip &>/dev/null
+    type gethostip &>/dev/null
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND
     fi
@@ -348,7 +370,7 @@ function check_host_preconditions {
     fi
 
     # Ensure tools required for force flag exist
-    type -P gethostip &>/dev/null
+    type gethostip &>/dev/null
     if [ $? -ne 0 ]; then
         echo "INFO: Force mode requires the gethostip command, force disabled."
         eval "forceFlag=0"
@@ -422,16 +444,16 @@ function check_transfer_preconditions {
     fi
 
     # Check if file is a character special device (like zero or null)
-    local sfType=$(stat -c %F ${sourceSideFilename})
-    local dfType=$(stat -c %F ${destSidePathname})
+    local sfType=$(stat -c %F ${sourceSideFilename} 2>/dev/null)
+    local dfType=$(stat -c %F ${destSidePathname} 2>/dev/null)
 
     # Ensure file is large enough
     local totalBytes="$transferSize"
     if [ "$sfType" != "character special file" ]; then
-        local trueSize="$(get_file_size $sourceSideFilename 0)"
-        #if [ $XDDCP_DEFAULT_XFER_SIZE -gt $trueSize ]; then
-        #    error_exit $XDDCP_ERR_CODE_SMALL_FILE
-        if [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
+        local trueSize="$($XDDCP_GETFILESIZE_EXE $sourceSideFilename)"
+        if [ $XDDCP_DEFAULT_XFER_SIZE -gt $trueSize ]; then
+            error_exit $XDDCP_ERR_CODE_SMALL_FILE
+        elif [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
             error_exit $XDDCP_ERR_CODE_XFER_SIZE
         fi
     elif [ "$sfType" = "character special file" ]; then
@@ -510,6 +532,46 @@ EOF
 }
 
 #
+# Perform a remote execution using a FIFO to capture stdout
+#
+function remote_exec_with_fifo {
+    #echo "remote_exec Args: $@" >/dev/stderr
+    local cmds="$1"
+    local fifoPath="$2"
+    local remoteHost="$3"
+    local remoteUser="$4"
+
+    # If a fifo exists, remove it
+    if [ -e "$fifoPath" ]; then
+	rm -f $fifoPath
+	rc=$?
+	if [ 0 -ne $rc ]; then
+	    echo "INFO: Unable to remove existing FIFO: $fifoPath"
+	    error_exit $XDDCP_ERR_CODE_FIFO_ACCESS
+	fi
+    fi
+
+    # Create a new fifo
+    mkfifo $fifoPath &>/dev/null
+    rc=$?
+    if [ 0 -ne $rc ]; then
+	echo "INFO: Unable to create FIFO: $fifoPath"
+	error_exit $XDDCP_ERR_CODE_FIFO_FAILED
+    fi
+    
+    # Construct ssh options
+    if [ ! -z "${remoteUser}" ]; then
+        sshOpts="-q -o ServerAliveInterval 30 -l $remoteUser"
+    fi
+
+    # Local decl must be on seperate line so $? is correct
+    ssh ${sshOpts} ${remoteHost} bash <<EOF > $fifoPath &
+$cmds
+EOF
+    return $?
+}
+
+#
 # Return the file size
 #
 function get_file_size {
@@ -520,9 +582,9 @@ function get_file_size {
     local user=$4
 
     if [ 0 -eq "$remoteFlag" ]; then
-        echo $(stat -c %s $filename)
+        echo $($XDDCP_GETFILESIZE_EXE $filename)
     else
-        cmd="stat -c %s $filename"
+        cmd="$XDDCP_GETFILESIZE_EXE $filename"
         remote_exec $cmd $host $user
     fi
 }
@@ -544,17 +606,17 @@ function get_destination_cmds {
     local serialOrderedFlag=${10}
     local recursionFlag=${11}
     local resumeFlag=${12}
-    local verboseFlag=${13}
+    local verbosity=${13}
     local binaryDumpFlag=${14}
 
     # Options that aren't yet settable
     local srcHost=$(/bin/hostname)
     
     # Construct transfer settings
-    let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
-    let "numreqs   = $totalBytes / $xfer"
-    let "blocksize = 1024"
-    let "reqsize   = $xfer / $blocksize"
+    declare -i xfer=${XDDCP_DEFAULT_XFER_SIZE}
+    declare -i numreqs=$((totalBytes/xfer))
+    declare -i blocksize=1024
+    declare -i reqsize=$((xfer/blocksize))
 
     # Other variables
     local srcBase=$(/bin/basename $srcFile)
@@ -585,85 +647,89 @@ function get_destination_cmds {
     fi
 
     # Verbose option
-    if [ 1 -eq $verboseFlag ]; then
-        local verboseOpt="-ts detailed -ts output e2e"
+    if [ 1 -eq $verbosity ]; then
+        local verboseOpt="-verbose"
+    elif [ 2 -eq $verbosity ]; then
+        local verboseOpt="-verbose -ts detailed -ts output e2e"
     fi
 
     # binary timestamp dump
     if [ 1 -eq $binaryDumpFlag ]; then
-        local binaryDumpPrefix="xdd.${destHost}.$(/bin/basename $destPath).${XDDCP_DEFAULT_TIMESTAMP}"
+        local binaryDumpPrefix="xdd-${destHost}-$(/bin/basename $destPath)-${XDDCP_DEFAULT_TIMESTAMP}"
     fi
     
     cat <<EOF
 # Ensure xdd is in the remote path
-type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
+type ${XDDCP_XDD_EXE} &>/dev/null
 if [ 0 -ne \$? ]; then
-    echo "xdd.Linux is not in destination host PATH"
+    echo "xdd binary is not in destination host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
 # Check that the correct version of XDD is available
-dest_version=\$(${XDDCP_DEFAULT_XDD} -version)
+dest_version=\$(${XDDCP_XDD_EXE} -version)
 if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
     echo "XDD source and destionation version mismatch."
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
-# Check that ports are available for binding
+# Check that ports are available for binding (Linux only)
 declare -i port_conflict=0
-type -P gethostip &>/dev/null
-hasIpTranslator=\$?
-if [ 1 -ne \$hasIpTranslator ]; then
-    declare -i tcount_idx=0
-    for iface in $destIfaces; do
-        tcount_idx=\$((tcount+1))
-        tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
-        iface_ip=\$(gethostip -d \$iface)
-        e2eLB=$e2ePort
-        e2eUB=\$((e2eLB+tcount))
+if [ "$(/bin/uname)" = "Linux" ]; then
+    type gethostip &>/dev/null
+    hasIpTranslator=\$?
+    if [ 1 -ne \$hasIpTranslator ]; then
+        declare -i tcount_idx=0
+        for iface in $destIfaces; do
+            tcount_idx=\$((tcount+1))
+                tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+            iface_ip=\$(gethostip -d \$iface)
+            e2eLB=$e2ePort
+            e2eUB=\$((e2eLB+tcount))
 #        echo "\$tcount_idx \$iface_ip \$e2eLB \$e2eUB" >>/tmp/bws
 #        echo "netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])" >>/tmp/bws
-        used_ports=\$(netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+            used_ports=\$(netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
 #        echo "Used ports: \$used_ports" >>/tmp/bws
-        for p in \$used_ports; do
-            if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
-                port_conflict=1
-                break
-            fi
+            for p in \$used_ports; do
+                if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
+                    port_conflict=1
+                    break
+                fi
+            done
         done
-    done
-fi
-
-# If a port conflict exists, user may want to kill running XDD's and retry
-if [ 1 -eq \$port_conflict ]; then
-    # Attempt to kill any running XDDs and re-check
-    if [ 1 -eq $forceFlag ]; then
-        xddpid=\$(/bin/ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
-        if [ ! -z "\$xddpid" ]; then
-            kill \$xddpid 2>/dev/null
-            sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
-            kill -9 \$xddpid 2>/dev/null
-            sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
-        fi
-    else
-        echo "Requested port \$p is in use"
-        exit ${XDDCP_ERR_CODE_DEST_PORT}
     fi
 
-    tcount_idx=0
-    for iface in $destIfaces; do
-        tcount_idx+=1
-        tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
-        e2eLB=$e2ePort
-        e2eUB=\$((e2eLB+tcount))
-        used_ports=\$(netstat -nlt |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
-        for p in \$used_ports; do
-            if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
-                echo "Requested port \$p is in use"
-                exit ${XDDCP_ERR_CODE_DEST_PORT}
+    # If a port conflict exists, user may want to kill running XDD's and retry
+    if [ 1 -eq \$port_conflict ]; then
+        # Attempt to kill any running XDDs and re-check
+        if [ 1 -eq $forceFlag ]; then
+            xddpid=\$(/bin/ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
+            if [ ! -z "\$xddpid" ]; then
+                kill \$xddpid 2>/dev/null
+                sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
+                kill -9 \$xddpid 2>/dev/null
+                sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
             fi
+        else
+            echo "Requested port \$p is in use"
+            exit ${XDDCP_ERR_CODE_DEST_PORT}
+        fi
+
+        tcount_idx=0
+        for iface in $destIfaces; do
+            tcount_idx+=1
+            tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+            e2eLB=$e2ePort
+            e2eUB=\$((e2eLB+tcount))
+            used_ports=\$(netstat -nlt |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+            for p in \$used_ports; do
+                if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
+                    echo "Requested port \$p is in use"
+                    exit ${XDDCP_ERR_CODE_DEST_PORT}
+                fi
+            done
         done
-    done
+    fi
 fi
 
 # If the supplied destination is a directory, append the source file name
@@ -678,14 +744,14 @@ fi
 
 # If the filename uses a relative path, path complement it
 path_char=\$(dirname \$destination_file |cut -c 1)
-if [ "." == \$path_char ]; then
+if [ "." = \$path_char ]; then
     default_dir=\$(/bin/pwd)
     destination_dir="\${default_dir}/\${destination_dir}"
     destination_file="\${default_dir}/\${destination_file}"
 fi
 
 # Create the log file name
-destination_log_base="xdd.${destHost}.\${destination_base}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+destination_log_base="xdd-${destHost}-\${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 destination_log="\${destination_dir}/\${destination_log_base}"
 
 # Ensure destination is writable
@@ -701,7 +767,7 @@ elif [ -e \$destination_file -a ! -w \$destination_file ]; then
 fi
 
 # Perform restart if necessary
-if [ 1 == $resumeFlag ]; then
+if [ 1 -eq $resumeFlag ]; then
     # Ensure sufficient permissions exist to create restart cookie
     if [ ! -w \$destination_dir ]; then
         echo "Restart option requires write access to: \$destination_dir"
@@ -709,10 +775,10 @@ if [ 1 == $resumeFlag ]; then
     fi
 
     # Create the name for a new restart cookie
-    restart_logfile="\${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.\${destination_base}.${XDDCP_DEFAULT_TIMESTAMP}.rst"
+    restart_logfile="\${destination_dir}/xdd-${srcHost}-${srcBase}-${destHost}-\${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}.rst"
 
     # Check for the existence a restart cookie
-    most_recent_restart_cookie=\$(/bin/ls \${destination_dir}/xdd.${srcHost}.${srcBase}.${destHost}.\${destination_base}.*.rst 2>/dev/null |tail -1)
+    most_recent_restart_cookie=\$(/bin/ls \${destination_dir}/xdd-${srcHost}-${srcBase}-${destHost}-\${destination_base}-*.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
        destination_restart="-restart file \${restart_logfile} -restart enable"
@@ -722,7 +788,9 @@ if [ 1 == $resumeFlag ]; then
 fi
 
 # If insufficient permissions for the log exist, direct to HOME
-if [ ! -w \$destination_dir -a -e \$destination_log -a ! -w \$destination_log ]; then
+if [ $verbosity -lt 1 ]; then
+    destination_log=/dev/null
+elif [ ! -w \$destination_dir -a -e \$destination_log -a ! -w \$destination_log ]; then
     echo "Logfile already exists and is not writable: \$destination_log" 
     exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
 elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
@@ -741,29 +809,28 @@ fi
 
 # Truncate the destination to the correct size if necessary
 if [ -e \$destination_file ]; then
-    cur_size=\$(stat -c '%s' \${destination_file})
+    cur_size=\$($XDDCP_GETFILESIZE_EXE \${destination_file})
     if [ \$cur_size -gt $totalBytes ]; then
-        truncate -s $totalBytes \${destination_file}
+        $XDDCP_TRUNCATE_EXE -s $totalBytes \${destination_file}
     fi
 fi
 
 # XDD Command
-xdd_cmd="${XDDCP_DEFAULT_IOTRACE} ${XDDCP_DEFAULT_XDD} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror -verbose > \${destination_log}"
+xdd_cmd="${XDDCP_IOTRACE_EXE} ${XDDCP_XDD_EXE} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror > \${destination_log}"
 
 # Log XDD Command
-#if [ 1 -eq $verboseFlag ]; then
-    echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
-#fi
+echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
 
 # Invoke XDD
 \${xdd_cmd} >> \${destination_log} 2>&1 &
 
-# Send the restart offset back to the source side via an exit code
+# Send the restart offset back to the source side via stdout
 if [ 1 -eq $resumeFlag ]; then
     echo "XDDCP RESTART TOKENS: \${destination_restart}"
 else
     echo "XDD started without restart capability"
 fi
+
 EOF
 }
 
@@ -780,15 +847,15 @@ function get_source_cmds {
     local srcDIOFlag=${6}
     local serialOrderedFlag=${7}
     local resumeFlag=${8}
-    local verboseFlag=${9}
+    local verbosity=${9}
     local binaryDumpFlag=${10}
     local resumeOffset=${11}
 
     # Construct XDD transfer settings
-    let "xfer      = ${XDDCP_DEFAULT_XFER_SIZE}"
-    let "numReqs   = ${totalBytes} / $xfer"
-    let "blockSize = 1024"
-    let "reqSize   = $xfer / $blockSize"
+    xfer=${XDDCP_DEFAULT_XFER_SIZE}
+    numReqs=$((totalBytes/xfer))
+    blockSize=1024
+    reqSize=$((xfer/blockSize))
 
     # Construct the e2e destinations
     local e2eDestinations=""
@@ -805,10 +872,10 @@ function get_source_cmds {
 
     # Validate restart flag if necessary
     srcRestart=""
-    if [ 1 == $resumeFlag ]; then
-        if [ "enable" == "$resumeOffset" ]; then
+    if [ 1 -eq $resumeFlag ]; then
+        if [ "enable" = "$resumeOffset" ]; then
             srcRestart="-restart enable"
-        elif [ "capability" == "$resumeOffset" ]; then
+        elif [ "capability" = "$resumeOffset" ]; then
             error_exit $XDDCP_ERR_CODE_INV_RESTART
         elif [ 0 -le "$resumeOffset" ]; then
             echo "INFO: Resuming XDD file transfer at offset: $resumeOffset" >/dev/stderr
@@ -835,13 +902,15 @@ function get_source_cmds {
     fi
 
     # Verbose option
-    if [ 1 -eq $verboseFlag ]; then
-        local verboseOpt="-ts detailed -ts output e2e"
+    if [ 1 -eq $verbosity ]; then
+        local verboseOpt="-verbose"
+    elif [ 2 -eq $verbosity ]; then
+        local verboseOpt="-verbose -ts detailed -ts output e2e"
     fi
 
     # binary timestamp dump option
     if [ 1 -eq $binaryDumpFlag ]; then
-        local binaryDumpOpt="-ts dump xdd.$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}"
+        local binaryDumpOpt="-ts dump xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
     fi
     
     # Determine if output can be sent to log file
@@ -854,14 +923,14 @@ function get_source_cmds {
     # Build the command string
     cat <<EOF
 # Ensure xdd is in the path
-type -P ${XDDCP_DEFAULT_XDD} &>/dev/null
+type ${XDDCP_XDD_EXE} &>/dev/null
 if [ 0 -ne \$? ]; then
-    echo "xdd.Linux is not in the source host PATH"
+    echo "xdd binary is not in the source host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
 # Check that the correct version of XDD is available
-source_version=\$(${XDDCP_DEFAULT_XDD} -version)
+source_version=\$(${XDDCP_XDD_EXE} -version)
 if [ "\$source_version" != "$g_xddcpXddVersion" ]; then
     echo "XDD source and destionation version mismatch."
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
@@ -874,12 +943,16 @@ if [ ! -r "${srcFile}" ]; then
 fi
 
 # Add the command to the log file
-src_log="xdd.\$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+if [ $verbosity -gt 0 ]; then
+    src_log="xdd.\$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+else
+    src_log=/dev/null
+fi
 
-xdd_cmd="${XDDCP_DEFAULT_IOTRACE} ${XDDCP_DEFAULT_XDD} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
-echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
+xdd_cmd="${XDDCP_IOTRACE_EXE} ${XDDCP_XDD_EXE} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
 
 # Construct local transport endpoint
+echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
 \${xdd_cmd}
 
 src_xdd_rc=\$?
@@ -934,7 +1007,7 @@ function start_destination_xdd {
     local orderedFlag=${8}
     local recursionFlag=${9}
     local resumeFlag=${10}
-    local verboseFlag=${11}
+    local verbosity=${11}
     local binaryDumpFlag=${12}
     local remoteFlag=${13}
     local destHost=${14}
@@ -947,7 +1020,7 @@ function start_destination_xdd {
     local destCmds=$(get_destination_cmds "$destHost" "$destIfaces" \
         "$queueDepth" "$srcPath" "$destPath" \
         "$totalBytes" "$e2ePort" "$dioFlag" "$forceFlag" "$orderedFlag" \
-        "$recursionFlag" "$resumeFlag" "$verboseFlag" "$binaryDumpFlag")
+        "$recursionFlag" "$resumeFlag" "$verbosity" "$binaryDumpFlag")
     execRC=$?
     if [ 0 -ne $execRC ]; then
         error_exit $execRC
@@ -955,20 +1028,44 @@ function start_destination_xdd {
 
     # Execute destination side commands
     if [ 1 -eq ${remoteFlag} ]; then
-        destResult=$(remote_exec "${destCmds}" "${destHost}" "${destUser}")
+        remote_exec_with_fifo "${destCmds}" "${XDDCP_DEFAULT_FIFO_PATH}" "${destHost}" "${destUser}"
         execRC=$?
     else
-        destResult=$(local_exec "${destCmds}")
-        execRC=$?
+	error_exit $UNKNOWN
+        #destResult=$(local_exec "${destCmds}")
+        #execRC=$?
     fi
 
-    # Extract the resume offset from the remote output
-    if [ 0 -eq $execRC -a 1 -eq $resumeFlag ]; then
-        g_xddcpResumeOffset=$(/bin/echo $destResult |rev |cut -d ' ' -f 1 |rev)
-        if [ -z "$g_xddcpResumeOffset" ]; then
+    if [ 0 -eq $execRC ]; then
+        # The destination side pauses to block on IO, 
+	# so read the IO to allow the destination to start
+	while read line; do
+	    if [ -z "$line" ]; then
+		break;
+	    elif [ 1 -eq $resumeFlag ]; then
+	        # Search each line for the resume offset
+		restartLine=$(echo $line |grep "RESTART TOKENS")
+		if [ ! -z "$restartLine" ]; then
+		    g_xddcpResumeOffset=$(/bin/echo $restartLine |rev |cut -d ' ' -f 1 |rev)
+
+		    # If the restart value is non-numeric, just set it to 0
+		    echo "$g_xddcpResumeOffset" |egrep "^[0-9]+$" &>/dev/null
+		    if [ 0 -ne $? ]; then
+			g_xddcpResumeOffset=0
+		    fi
+		fi
+	    fi
+	    echo $line
+	done < ${XDDCP_DEFAULT_FIFO_PATH}
+
+        # Trigger an error if no restart is found
+        if [ 1 -eq $resumeFlag -a -z "$g_xddcpResumeOffset" ]; then
             error_exit $XDDCP_ERR_CODE_INV_RESTART
-        fi
+	fi
     fi
+
+    # Remove the fifo, as it is no longer needed
+    rm -f ${XDDCP_DEFAULT_FIFO_PATH}
 
     return $execRC
 }
@@ -985,7 +1082,7 @@ function start_source_xdd {
     local dioFlag=${5}
     local orderedFlag=${6}
     local resumeFlag=${7}
-    local verboseFlag=${8}
+    local verbosity=${8}
     local binaryDumpFlag=${9}
     local resumeOffset=${10}
     local destHost=${11}
@@ -997,7 +1094,7 @@ function start_source_xdd {
     local execRC=1
     srcCmds=$(get_source_cmds "${destHost}" "${path}" "${totalBytes}" \
 	"${queueDepth}" "${e2ePort}" "${dioFlag}" "${orderedFlag}" \
-	"${resumeFlag}" "${verboseFlag}" "${binaryDumpFlag}" "${resumeOffset}")
+	"${resumeFlag}" "${verbosity}" "${binaryDumpFlag}" "${resumeOffset}")
     execRC=$?
     if [ 0 -ne $execRC ]; then
         error_exit $execRC
@@ -1042,7 +1139,7 @@ function transfer_file_list {
     local fileSizeFlag=${16}
     local forceFlag=${17}
     local resumeFlag=${18}
-    local verboseFlag=${19}
+    local verbosity=${19}
     local binaryDumpFlag=${20}
 
     # Perform precondition checks for file list transfers
@@ -1058,7 +1155,7 @@ function transfer_file_list {
     local fileNames=""
     for name in $(/bin/cat ${srcFileList}); do
 	local pathChar=$(dirname $name |cut -c 1)
-	if [ "." == "$pathChar" ]; then
+	if [ "." = "$pathChar" ]; then
 	    fileNames="${srcFileSpecDir}/${name} $fileNames"
 	else
 	    fileNames="$name $fileNames"
@@ -1090,7 +1187,7 @@ function transfer_file_list {
 	    "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
 	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-	    "${verboseFlag}" "${binaryDumpFlag}"
+	    "${verbosity}" "${binaryDumpFlag}"
 	    
 	rc=$?
 
@@ -1124,7 +1221,7 @@ function transfer_recursive_path {
     local fileSizeFlag=${16}
     local forceFlag=${17}
     local resumeFlag=${18}
-    local verboseFlag=${19}
+    local verbosity=${19}
     local binaryDumpFlag=${20}
 
     # Perform precondition checks for file list transfers
@@ -1161,7 +1258,7 @@ function transfer_recursive_path {
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-		"${verboseFlag}" "${binaryDumpFlag}"
+		"${verbosity}" "${binaryDumpFlag}"
 	else
 	    # If we are performing multiple transfers, need to wait for the destination side to hang up
 	    if [ 0 -ne $g_transferCount ]; then
@@ -1175,7 +1272,7 @@ function transfer_recursive_path {
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-		"${verboseFlag}" "${binaryDumpFlag}"
+		"${verbosity}" "${binaryDumpFlag}"
 
 	    rc=$?
 	    if [ 0 -ne $rc ]; then
@@ -1210,7 +1307,7 @@ function transfer_file {
     local fileSizeFlag=${16}
     local forceFlag=${17}
     local resumeFlag=${18}
-    local verboseFlag=${19}
+    local verbosity=${19}
     local binaryDumpFlag=${20}
 
     # Check the transfer preconditions
@@ -1231,7 +1328,7 @@ function transfer_file {
     start_destination_xdd "${srcFileSpec}" "${destFileSpec}" "${totalBytes}" \
         "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
         "${destOrderedFlag}" "${recursiveFlag}" "${resumeFlag}" \
-	"${verboseFlag}" "${binaryDumpFlag}" \
+	"${verbosity}" "${binaryDumpFlag}" \
 	"${destRemoteFlag}" "${destHost}" "${destUser}" "${destHost}"
     rc=$?
 
@@ -1244,10 +1341,14 @@ function transfer_file {
 	start_source_xdd "${srcFileSpec}" "${totalBytes}" \
             "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
             "${srcOrderedFlag}" "${resumeFlag}" \
-	    "${verboseFlag}" "${binaryDumpFlag}" \
+	    "${verbosity}" "${binaryDumpFlag}" \
             "${g_xddcpResumeOffset}" "${destHost}" \
             "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
 	rc=$?
+
+	# Wait on the destination side
+	wait
+	destRC=$?
 
 	# Increment the transfer count if the source completed successfully
 	if [ 0 -eq $rc ]; then
@@ -1255,8 +1356,6 @@ function transfer_file {
 	    g_transferCount=$((g_transferCount+1))
 	else
 	    echo "INFO: Source-side XDD exited with an error: $rc" >/dev/stderr
-	    # BWS - Removing to support retry
-            #error_exit $rc
 	fi
     else
 	echo "INFO: Destination-side XDD exited with an error: $rc" >/dev/stderr
@@ -1282,8 +1381,8 @@ function post_transfer_analysis {
 	# where the timestamp dumps should be right now
 	local srcBase=$(/bin/basename $srcPath)
 	local dstBase=$(/bin/basename $destPath)
-	local srcBinDump="xdd.$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
-	local dstBinDump="xdd.${destHost}.${dstBase}.${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+	local srcBinDump="xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+	local dstBinDump="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
 
 	# where our data will be stored afterwards
 	local dataDir="${srcHost}_to_${destHost}_${srcBase}_${XDDCP_DEFAULT_TIMESTAMP}"
@@ -1304,8 +1403,8 @@ function post_transfer_analysis {
 
 	# print a helpful tidbit to the logfile
 	echo "To change the sliding window size without rerunning the transfer, run:" >> ${myLogFile}
-	echo "    read_tsdumps -t [window_size] [-k] -o xfer.dat src_${srcHost}.bin dest_${destHost}.bin" >> ${myLogFile}
-	echo "    plot_tsdumps xfer.dat xfer" >> ${myLogFile}
+	echo "    $XDDCP_READTSDUMPS_EXE -t [window_size] -o xfer.dat src_${srcHost}.bin dest_${destHost}.bin" >> ${myLogFile}
+	echo "    $XDDCP_PLOTTSDUMPS_EXE xfer.dat xfer" >> ${myLogFile}
 	echo "" >> ${myLogFile}
 
 	# copy local bin file
@@ -1329,7 +1428,7 @@ if [ -d ${destPath} ]; then
 fi
 # If the filename uses a relative path, path complement it
 path_char=\$(dirname \$destination_file |cut -c 1)
-if [ "." == \$path_char ]; then
+if [ "." = \$path_char ]; then
 	destination_dir="\$(/bin/pwd)/\${destination_dir}"
 fi
 # If insufficient permissions for the log exist, direct to HOME
@@ -1350,26 +1449,26 @@ EOF
 
 	# read the tsdumps and plot output
 	if [ 1 -eq $kernelTrace ]; then
-	  read_tsdumps -t ${windowSize} -k -o ${tsDataFile} ${newSrcBin} ${newDstBin} >> ${myLogFile} 2>&1
+	  $XDDCP_READTSDUMPS_EXE -t ${windowSize} -k -o ${tsDataFile} ${newSrcBin} ${newDstBin} >> ${myLogFile} 2>&1
 	else
-	  read_tsdumps -t ${windowSize}    -o ${tsDataFile} ${newSrcBin} ${newDstBin} >> ${myLogFile} 2>&1
+	  $XDDCP_READTSDUMPS_EXE -t ${windowSize}    -o ${tsDataFile} ${newSrcBin} ${newDstBin} >> ${myLogFile} 2>&1
 	fi
 	if [ 0 -ne $? ]; then
 		echo "INFO: Failed to read timestamp dumps in ${dataDir}.  Skipping analysis" >/dev/stderr
 		return 1
 	fi
-	plot_tsdumps ${tsDataFile} ${plotPrefix} >> ${myLogFile} 2>&1
+	$XDDCP_PLOTTSDUMPS_EXE ${tsDataFile} ${plotPrefix} >> ${myLogFile} 2>&1
 	if [ 0 -ne $? ]; then
 		echo "INFO: Failed to plot analysis data.  Skipping gnuplot" >/dev/stderr
 		return 1
 	fi
 	if [ 1 -eq $kernelTrace ]; then
-  	  plot_tsdumps ${tsDataFile}.k ${plotPrefix}k >> ${myLogFile} 2>&1
+  	  $XDDCP_PLOTTSDUMPS_EXE ${tsDataFile}.k ${plotPrefix}k >> ${myLogFile} 2>&1
        	  if [ 0 -ne $? ]; then
 		echo "INFO: Failed to plot analysis data, kernel files.  Skipping gnuplot" >/dev/stderr
 		return 1
 	  fi
-  	  plot_tsdumps_dk ${tsDataFile}.k.d ${plotPrefix}d >> ${myLogFile} 2>&1
+  	  $XDDCP_PLOTTSDUMPSDK_EXE ${tsDataFile}.k.d ${plotPrefix}d >> ${myLogFile} 2>&1
        	  if [ 0 -ne $? ]; then
 		echo "INFO: Failed to plot analysis data, kernel files.  Skipping gnuplot" >/dev/stderr
 		return 1
@@ -1396,7 +1495,7 @@ function xddcp_main {
     trap exit
 
     # Print a helpful message if user is just typing command to get syntax
-    if [ "$1" == "-h" ]; then
+    if [ "$1" = "-h" ]; then
         print_usage
         return 0
     elif [ $# -lt 2 ]; then
@@ -1419,7 +1518,7 @@ function xddcp_main {
     srcDIOFlag=0
     srcOrderedFlag=0
     sshOption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
-    verboseFlag=0
+    verbosity=0
     binaryDumpFlag=0
     kernelTraceFlag=0
     windowSize=0
@@ -1454,7 +1553,7 @@ function xddcp_main {
                 ;;
 	    f) 
                 forceFlag=1
-		type -P gethostip &>/dev/null
+		type $XDDCP_GETHOSTIP_EXE &>/dev/null
 		if [ $? -ne 0 ]; then
 		    echo "INFO: Force mode requires the gethostip command, force disabled."
                     forceFlag=0
@@ -1490,10 +1589,17 @@ function xddcp_main {
                 queueDepth=$OPTARG
                 ;;
 	    v) 
-                verboseFlag=1
+		if [ $verbosity -lt 1 ]; then
+                    verbosity=1
+		fi
+                ;;
+	    V) 
+		if [ $verbosity -lt 2 ]; then
+                    verbosity=2
+		fi
                 ;;
 	    w) 
-                verboseFlag=1
+                verbosity=2
 		binaryDumpFlag=1
 		windowSize=$OPTARG
 		expr $windowSize + 1 >/dev/null 2>&1
@@ -1506,12 +1612,9 @@ function xddcp_main {
 		fi
                 ;;
 	    W) 
-                verboseFlag=1
+                verbosity=2
 		binaryDumpFlag=1
 		kernelTraceFlag=1
-		XDDCP_DEFAULT_IOTRACE="iotrace_init"
-		XDDCP_DEFAULT_IOTRACE_DEV="/dev/iotrace_data"
-		XDDCP_DEFAULT_IOTRACE_DECODE="decode"
 		windowSize=$OPTARG
 		expr $windowSize + 1 >/dev/null 2>&1
 		if [ $? -ne 0 ]; then
@@ -1521,18 +1624,18 @@ function xddcp_main {
 			echo "INFO: Window size (-w arg) must be greater than zero." >/dev/stderr
 			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		fi
-                type -P $XDDCP_DEFAULT_IOTRACE &>/dev/null
+                XDDCP_IOTRACE_EXE=$(type -P iotrace_init)
                 if [ $? -ne 0 ]; then
-                    echo "INFO: kernel trace mode requires the '$XDDCP_DEFAULT_IOTRACE' command. Install or use -w option."
+                    echo "INFO: kernel trace mode requires the 'iotrace_init' command. Install or use -w option."
                     error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
                 fi
-                if [ ! -c $XDDCP_DEFAULT_IOTRACE_DEV ]; then
-                    echo "INFO: kernel trace mode requires the $XDDCP_DEFAULT_IOTRACE_DEV device. Install or use -w option."
+                if [ ! -c /dev/iotrace_data ]; then
+                    echo "INFO: kernel trace mode requires the '/dev/iotrace_data' device. Install or use -w option."
                     error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
                 fi
-                type -P $XDDCP_DEFAULT_IOTRACE_DECODE &>/dev/null
+                XDDCP_IOTRACE_DECODE=$(type -P decode)
                 if [ $? -ne 0 ]; then
-                    echo "INFO: kernel trace mode requires the $XDDCP_DEFAULT_IOTRACE_DECODE command. Install or use -w option."
+                    echo "INFO: kernel trace mode requires the 'decode' command. Install or use -w option."
                     error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
                 fi
                 ;;
@@ -1564,44 +1667,50 @@ function xddcp_main {
     check_host_preconditions ${srcPath} ${fileListFlag} ${fileSizeFlag} \
 	${recursiveFlag} ${resumeFlag} ${forceFlag}
 
+    # The force flag only works on Linux, disable it everywhere else
+    if [ "Linux" != "$(/bin/uname)" ]; then
+	forceFlag=0
+	echo "Warning: File transfer forcing disabled for non-Linux platforms." >/dev/stderr
+    fi
+
     # Convert the destination host to its IP to avoid DNS round-robin issues
-    gethostip -d $destHost &> /dev/null
+    $XDDCP_GETHOSTIP_EXE -d $destHost &> /dev/null
     if [ 0 -ne $? ]; then
         error_exit $XDD_ERR_CODE_DEST_IP
     fi
-    destHost=$(gethostip -d $destHost)
+    destIP=$($XDDCP_GETHOSTIP_EXE -d $destHost)
 
     # Retry on failed transfer
-    for ((i=0; i<=$retryCount; i=$i+1)); do
-
+    retries=0
+    while [ $retries -le $retryCount ]; do
         # Transfer according to source input type
 	rc=0
 	if [ 1 -eq $fileListFlag ]; then
 	    transfer_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destHost}" "${destUser}" \
+		"${destPath}" "${destIP}" "${destUser}" \
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-		"${verboseFlag}" "${binaryDumpFlag}"
+		"${verbosity}" "${binaryDumpFlag}"
 	    rc=$?
 	elif [ 1 -eq $recursiveFlag ]; then
 	    transfer_recursive_path "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destHost}" "${destUser}" \
+		"${destPath}" "${destIP}" "${destUser}" \
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-		"${verboseFlag}" "${binaryDumpFlag}"
+		"${verbosity}" "${binaryDumpFlag}"
 	    rc=$?
 	else
 	    transfer_file "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destHost}" "${destUser}" \
+		"${destPath}" "${destIP}" "${destUser}" \
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-		"${verboseFlag}" "${binaryDumpFlag}"
+		"${verbosity}" "${binaryDumpFlag}"
 	    rc=$?
 	fi
 
@@ -1610,7 +1719,7 @@ function xddcp_main {
 	# Perform post transfer analysis
 	if [ 1 -eq ${binaryDumpFlag} ]; then
 	    post_transfer_analysis "${srcPath}" "${srcHost}" "${srcUser}" \
-		"${destPath}" "${destHost}" "${destUser}" "${windowSize}" \
+		"${destPath}" "${destIP}" "${destUser}" "${windowSize}" \
 		"${kernelTraceFlag}"
 	fi
 
@@ -1619,9 +1728,10 @@ function xddcp_main {
 	    echo ""
 	    echo "Transfer complete.  Verify results with md5sum."
 	    break
-	elif [ $i -lt $retryCount ]; then
+	elif [ $retries -lt $retryCount ]; then
 	    # Print a retry message
-	    echo "Transfer failed.  Retry attempt: $((i+1))"
+            retries=$((retries+1))
+	    echo "Transfer failed.  Retry attempt: $retries"
 	    sleep $XDDCP_DEFAULT_RETRY_SLEEP_SECS
 	    reset_global_data
 	else

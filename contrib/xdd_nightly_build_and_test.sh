@@ -80,6 +80,13 @@ make install >>$install_log 2>&1
 INSTALL_RC=$?
 
 #
+# Quickly soft link a path to tonights executables
+#
+mkdir -p $HOME/sw
+rmdir $HOME/sw/xdd
+ln -s $install_dir $HOME/sw/xdd
+
+#
 # Run the nightly tests
 #
 export PATH=$install_dir/bin:$PATH
@@ -91,7 +98,8 @@ mkdir -p $test_src_dir
 mkdir -p $test_dest_dir
 cd $test_dir
 cat >test_config <<EOF
-XDDTEST_XDD_EXE=$install_dir/bin/xdd.Linux
+XDDTEST_XDD_PATH=$install_dir/bin
+XDDTEST_XDD_EXE=$install_dir/bin/xdd
 XDDTEST_XDDCP_EXE=$install_dir/bin/xddcp
 XDDTEST_XDDFT_EXE=$install_dir/bin/xddft
 XDDTEST_MPIL_EXE=$build_dir/xdd/contrib/mpil
@@ -105,6 +113,11 @@ XDDTEST_E2E_DEST=natureboy
 EOF
 $build_dir/xdd/tests/run_all_tests.sh >>$test_log 2>&1
 TEST_RC=$?
+
+#
+# Remove the soft link
+#
+rmdir $HOME/sw/xdd
 
 #
 # Mail the results of the build and test to durmstrang-io

@@ -22,11 +22,11 @@
 #
 # Autoconf provided values
 #
+VERSION := @PACKAGE_VERSION@
 XDD_DIR := @CONFIG_PROJECT_DIR@
 BUILD_DIR := @CONFIG_BUILD_DIR@
 INSTALL_DIR := @prefix@
 XDDCP_ENABLED := @XDDCP_ENABLED@
-XFS_ENABLED_DEF := @CONFIG_XFS_ENABLED@
 CC_EXE := @CC@
 DEPC_EXE := @DEPC_PATH@
 
@@ -35,12 +35,14 @@ DEPC_EXE := @DEPC_PATH@
 #
 AR = ar
 CC = $(CC_EXE)
+CP = cp
 DEPC = $(DEPC_EXE)
 DEPGEN = $(XDD_DIR)/support/depend.sh
 INSTALL = $(XDD_DIR)/support/install-sh
 LD = $(CC_EXE)
 LN = ln -sf
 MKDIR = mkdir -p
+MV = mv -f
 RM = rm -f
 
 #
@@ -92,7 +94,10 @@ TOOLS_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOLS_SRC)))
 #
 CLIENT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
 GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
+GETFILESIZE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETFILESIZE_EXE_SRC)))
+GETHOSTIP_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETHOSTIP_EXE_SRC)))
 READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
+TRUNCATE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TRUNCATE_EXE_SRC)))
 TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TS_EXE_SRC)))
 
 #
@@ -120,9 +125,10 @@ INCLUDES = -I$(BASE_DIR) -I$(CLIENT_DIR) -I$(COMMON_DIR) \
 		-I$(COMPAT_DIR) -I$(FS_DIR) -I$(NET_DIR) \
 		-I$(TOOLS_DIR)
 
-ARFLAGS = -rcs 
+ARFLAGS = @CONFIG_ARFLAGS@
 
-CPPFLAGS = @DEFS@ \
+CPPFLAGS = @CONFIG_CPPFLAGS@ \
+	@DEFS@ \
 	$(CONFIDENCE_ENABLED) \
 	$(INCLUDES)
 
@@ -130,46 +136,32 @@ CFLAGS =  @CONFIG_CFLAGS@
 
 LDFLAGS = @CONFIG_LDFLAGS@ 
 
-LIBS = -lpthread
+LIBS = @CONFIG_LIBS@
 
-SOFLAGS =
-
-#
-# Platform specific build settings
-#
-$(info Making xdd for $(OS))
-ifeq '$(OS)' 'Linux'
-CPPFLAGS += -O0 -DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE $(XFS_ENABLED_DEF)
-CFLAGS += -ggdb -fno-strict-aliasing -fPIC -Wall
-LDFLAGS += -ggdb
-LIBS += -lrt
-SOFLAGS += -shared -Wl,-soname,$@
-endif
-ifeq '$(OS)' 'Darwin'
-CPPFLAGS += -DOSX -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
-endif
-ifeq '$(OS)' 'FreeBSD'
-CPPFLAGS += -DFREEBSD -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
-endif
-ifeq '$(OS)' 'Solaris' 
-CPPFLAGS += -DSOLARIS
-LIBS += -lsocket -lnsl -lpthread  -lxnet -lposix4 -v 
-endif
-ifeq '$(OS)' 'AIX'
-ARFLAGS += -X 64
-CPPFLAGS += -DAIX -D_THREAD_SAFE
-CFLAGS += -q64 -qcpluscmt -qthreaded
-LDFLAGS += -g -q64 -qcpluscmt -qthreaded
-LIBS += -lnsl -lxnet -v
-SOFLAGS += -G -q64 -qmkshrobj
-endif
+SOFLAGS = @CONFIG_SOFLAGS@
 
 #
 # Build rules
 #
 .DEFAULT: all
 
-all: xdd timeserver gettime read_tsdumps libs
+all: xdd xdd-tserver xdd-gettime xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate libs
+
+xdd: bin/xdd
+
+xdd-tserver: bin/xdd-tserver
+
+xdd-gettime: bin/xdd-gettime
+
+xdd-getfilesize: bin/xdd-getfilesize
+
+xdd-gethostip: bin/xdd-gethostip
+
+xdd-read-tsdumps: bin/xdd-read-tsdumps
+
+xdd-truncate: bin/xdd-truncate
+
+.PHONY: all xdd xdd-tserver xdd-getfilesize xdd-gethostip xdd-gettime xdd-read-tsdumps xdd-truncate
 
 #
 # Build rules for libraries
@@ -183,34 +175,31 @@ $(LIB_DIR)/libxdd.so.$(VERSION): $(XDD_OBJS)
 	$(CC) $(SOFLAGS) -o $@ $^
 
 $(LIB_DIR)/libxdd.so: $(LIB_DIR)/libxdd.so.$(VERSION)
-	$(LN) libxdd.so.$(VERSION) $@
+	$(CP) $^ $@
 
 #
 # Build rules for executable targets
 #
-xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
+bin/xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	mv -f $@ bin/xdd.$(OS)
-	$(RM) bin/xdd
-	$(LN) xdd.$(OS) bin/xdd
 
-timeserver: $(COMMON_DIR)/nclk.o $(TS_EXE_OBJS) 
+bin/xdd-tserver: $(COMMON_DIR)/nclk.o $(TS_EXE_OBJS) 
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	mv -f timeserver bin/timeserver.$(OS)
-	$(RM) bin/timeserver
-	$(LN) timeserver.$(OS) bin/timeserver
 
-gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/nclk.o $(GETTIME_EXE_OBJS) 
+bin/xdd-gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/nclk.o $(GETTIME_EXE_OBJS) 
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	mv -f gettime bin/gettime.$(OS)
-	$(RM) bin/gettime
-	$(LN) gettime.$(OS) bin/gettime
 
-read_tsdumps: $(READ_TSDUMPS_EXE_OBJS)
+bin/xdd-read-tsdumps: $(READ_TSDUMPS_EXE_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
-	mv -f read_tsdumps bin/read_tsdumps.$(OS)
-	$(RM) bin/read_tsdumps
-	$(LN) read_tsdumps.$(OS) bin/read_tsdumps
+
+bin/xdd-getfilesize: $(GETFILESIZE_EXE_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+bin/xdd-gethostip: $(GETHOSTIP_EXE_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+bin/xdd-truncate: $(TRUNCATE_EXE_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 #
 # Build rules for installation
@@ -228,17 +217,13 @@ ifeq (true,$(XDDCP_ENABLED))
 endif
 
 fastinstall: all
-	$(RM) /sbin/xdd.$(OS) /sbin/xdd
-	cp bin/xdd.$(OS) /sbin
-	$(LN) /sbin/xdd.$(OS) /sbin/xdd
-	$(RM) /sbin/timeserver.$(OS) /sbin/timeserver
-	cp bin/timeserver.$(OS) /sbin
-	$(LN) /sbin/timeserver.$(OS) /sbin/timeserver
-	$(RM) /sbin/gettime.$(OS) /sbin/gettime
-	cp bin/gettime.$(OS) /sbin
-	$(LN) /sbin/gettime.$(OS) /sbin/gettime
-	cp bin/read_tsdumps.$(OS) /sbin
-	$(LN) /sbin/read_tsdumps.$(OS) /sbin/read_tsdumps
+	$(RM) /sbin/xdd
+	cp bin/xdd /sbin
+	$(RM) /sbin/xdd-tserver
+	cp bin/xdd-tserver /sbin
+	$(RM) /sbin/xdd-gettime
+	cp bin/xdd-gettime /sbin
+	cp bin/xdd-read-tsdumps /sbin
 
 install_libs: install_pre
 	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
@@ -246,16 +231,15 @@ install_libs: install_pre
 	$(LN) $(INSTALL_DIR)/lib/libxdd.so.$(VERSION) $(INSTALL_DIR)/lib/libxdd.so
 
 fullinstall: install_pre
-	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd.$(OS)
-	$(INSTALL) -c -m 755 bin/xdd.$(OS) $(INSTALL_DIR)/bin/xdd
-	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver.$(OS)
-	$(INSTALL) -c -m 755 bin/timeserver.$(OS) $(INSTALL_DIR)/bin/timeserver
-	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime.$(OS)
-	$(INSTALL) -c -m 755 bin/gettime.$(OS) $(INSTALL_DIR)/bin/gettime
-	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps.$(OS)
-	$(INSTALL) -c -m 755 bin/read_tsdumps.$(OS) $(INSTALL_DIR)/bin/read_tsdumps
-	$(INSTALL) -c -m 755 contrib/plot_tsdumps $(INSTALL_DIR)/bin/plot_tsdumps
-	$(INSTALL) -c -m 755 contrib/plot_tsdumps_dk $(INSTALL_DIR)/bin/plot_tsdumps_dk
+	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd
+	$(INSTALL) -c -m 755 bin/xdd-tserver $(INSTALL_DIR)/bin/xdd-tserver
+	$(INSTALL) -c -m 755 bin/xdd-gettime $(INSTALL_DIR)/bin/xdd-gettime
+	$(INSTALL) -c -m 755 bin/xdd-read-tsdumps $(INSTALL_DIR)/bin/xdd-read-tsdumps
+	$(INSTALL) -c -m 755 bin/xdd-getfilesize $(INSTALL_DIR)/bin/xdd-getfilesize
+	$(INSTALL) -c -m 755 bin/xdd-gethostip $(INSTALL_DIR)/bin/xdd-gethostip
+	$(INSTALL) -c -m 755 bin/xdd-truncate $(INSTALL_DIR)/bin/xdd-truncate
+	$(INSTALL) -c -m 755 contrib/xdd-plot-tsdumps $(INSTALL_DIR)/bin/xdd-plot-tsdumps
+	$(INSTALL) -c -m 755 contrib/xdd-plot-tsdumps-dk $(INSTALL_DIR)/bin/xdd-plot-tsdumps-dk
 	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
 
 install: install_pre fullinstall install_libs install_xddcp
@@ -322,14 +306,14 @@ oclean:
 
 clean: depclean libclean oclean 
 	$(info Cleaning the $(OS) executable files )
-	$(RM) bin/xdd.$(OS) \
-		bin/xdd \
-		bin/timeserver.$(OS) \
-		bin/timeserver \
-		bin/gettime.$(OS) \
-		bin/gettime \
-		bin/read_tsdumps.$(OS) \
-		bin/read_tsdumps \
+	$(RM) 	bin/xdd \
+		bin/xdd-tserver\
+		bin/xdd-getfilesize \
+		bin/xdd-gethostip \
+		bin/xdd-gettime \
+		bin/xdd-read-tsdumps \
+		bin/xdd-truncate \
+		bin/xdd-read-tsdumps \
 		a.out 
 
 spotless: clean
@@ -337,6 +321,8 @@ spotless: clean
 	$(RM) GNUMakefile
 	$(RM) Makefile
 	$(RM) config.log config.status
+
+.PHONY: testclean depclean docclean libclean oclean clean spotless
 
 #
 # Include dependency makefiles if building source target
@@ -358,4 +344,4 @@ endif
 #
 # Make meta-directives
 #
-.PHONY: all clean depclean doc docclean fastinstall install libclean oclean spotless tarball testclean
+.PHONY: all doc fastinstall install tarball
