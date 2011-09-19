@@ -2,7 +2,7 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the gethostip program
+# Validate the truncate program
 #
 
 #
