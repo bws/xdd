@@ -50,7 +50,7 @@ function test_timeout_handler
     g_testTimedOut=0
     if [ 0 -ne $g_testPID ]; then
         echo "Test timeout triggered for process: $g_testPID"
-
+	
         # Kill any of the test script's children processes
         pkill -P $g_testPID >/dev/null 2>&1
         sleep 1
@@ -177,7 +177,7 @@ ssh $XDDTEST_E2E_DEST bash <<EOF
     fi
 EOF
 if [ $? != 0 ]; then
-    echo "Cannot read and write loc: $XDDTEST_DEST_MOUNT" >>$test_log 2>&1
+    echo "Cannot read and write loc: $XDDTEST_DEST_MOUNT" >>$all_test_log 2>&1
     tail -1 $all_test_log >/dev/stderr
     exit 4
 fi

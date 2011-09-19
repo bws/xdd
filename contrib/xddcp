@@ -69,13 +69,13 @@ XDDCP_DEFAULT_FIFO_PATH="/tmp/xddcp-$USER.$$"
 XDDCP_IOTRACE_EXE=""
 
 # XDD package executables
-XDDCP_XDD_EXE="xdd"
-XDDCP_GETHOSTIP_EXE="xdd-gethostip"
-XDDCP_TRUNCATE="xdd-truncate"
-XDDCP_GETFILESIZE_EXE="xdd-getfilesize"
-XDDCP_READTSDUMPS_EXE="xdd-read-tsdumps"
-XDDCP_PLOTTSDUMPS_EXE="xdd-plot-tsdumps"
-XDDCP_PLOTTSDUMPSDK_EXE="xdd-plot-tsdumps-dk"
+XDDCP_XDD_EXE="$(type -P xdd)"
+XDDCP_GETHOSTIP_EXE="$(type -P xdd-gethostip)"
+XDDCP_TRUNCATE_EXE="$(type -P xdd-truncate)"
+XDDCP_GETFILESIZE_EXE="$(type -P xdd-getfilesize)"
+XDDCP_READTSDUMPS_EXE="$(type -P xdd-read-tsdumps)"
+XDDCP_PLOTTSDUMPS_EXE="$(type -P xdd-plot-tsdumps)"
+XDDCP_PLOTTSDUMPSDK_EXE="$(type -P xdd-plot-tsdumps-dk)"
 
 # XDDCP Error Codes
 XDDCP_ERR_CODE_INVALID_ARGS=101
