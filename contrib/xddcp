@@ -69,13 +69,13 @@ XDDCP_DEFAULT_FIFO_PATH="/tmp/xddcp-$USER.$$"
 XDDCP_IOTRACE_EXE=""
 
 # XDD package executables
-XDDCP_XDD_EXE="$(type -P xdd)"
-XDDCP_GETHOSTIP_EXE="$(type -P xdd-gethostip)"
-XDDCP_TRUNCATE_EXE="$(type -P xdd-truncate)"
-XDDCP_GETFILESIZE_EXE="$(type -P xdd-getfilesize)"
-XDDCP_READTSDUMPS_EXE="$(type -P xdd-read-tsdumps)"
-XDDCP_PLOTTSDUMPS_EXE="$(type -P xdd-plot-tsdumps)"
-XDDCP_PLOTTSDUMPSDK_EXE="$(type -P xdd-plot-tsdumps-dk)"
+XDDCP_XDD_EXE="xdd"
+XDDCP_GETHOSTIP_EXE="xdd-gethostip"
+XDDCP_TRUNCATE_EXE="xdd-truncate"
+XDDCP_GETFILESIZE_EXE="xdd-getfilesize"
+XDDCP_READTSDUMPS_EXE="xdd-read-tsdumps"
+XDDCP_PLOTTSDUMPS_EXE="xdd-plot-tsdumps"
+XDDCP_PLOTTSDUMPSDK_EXE="xdd-plot-tsdumps-dk"
 
 # XDDCP Error Codes
 XDDCP_ERR_CODE_INVALID_ARGS=101
@@ -337,13 +337,8 @@ function check_host_preconditions {
     local recursiveFlag=${5}
     local forceFlag=${6}
 
-    # Check for xdd binary
-    XDDCP_XDD_EXE=$(type -P ${XDDCP_XDD_EXE})
-    if [ 0 -ne $? ]; then
-        error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
-    else
-        g_xddcpXddVersion=$(${XDDCP_XDD_EXE} -version)
-    fi
+    # Set the XDD version information
+    g_xddcpXddVersion=$(${XDDCP_XDD_EXE} -version)
 
     # Check for gethostip binary
     type gethostip &>/dev/null
@@ -673,6 +668,9 @@ if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
+# Path complement xdd so that iotracing can function
+xdd_exe_path=\$(type -P ${XDDCP_XDD_EXE})
+
 # Check that ports are available for binding (Linux only)
 declare -i port_conflict=0
 if [ "$(/bin/uname)" = "Linux" ]; then
@@ -816,7 +814,7 @@ if [ -e \$destination_file ]; then
 fi
 
 # XDD Command
-xdd_cmd="${XDDCP_IOTRACE_EXE} ${XDDCP_XDD_EXE} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror > \${destination_log}"
+xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror > \${destination_log}"
 
 # Log XDD Command
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
@@ -936,6 +934,9 @@ if [ "\$source_version" != "$g_xddcpXddVersion" ]; then
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
+# Path complement xdd so that iotracing can function
+xdd_exe_path=\$(type -P ${XDDCP_XDD_EXE})
+
 # Ensure source side file exists
 if [ ! -r "${srcFile}" ]; then
     echo "ERROR: Cannot read source file: ${srcFile}"
@@ -949,7 +950,7 @@ else
     src_log=/dev/null
 fi
 
-xdd_cmd="${XDDCP_IOTRACE_EXE} ${XDDCP_XDD_EXE} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
+xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
 
 # Construct local transport endpoint
 echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
@@ -1553,11 +1554,6 @@ function xddcp_main {
                 ;;
 	    f) 
                 forceFlag=1
-		type $XDDCP_GETHOSTIP_EXE &>/dev/null
-		if [ $? -ne 0 ]; then
-		    echo "INFO: Force mode requires the gethostip command, force disabled."
-                    forceFlag=0
-		fi
                 ;;
 	    h) 
                 print_usage 
