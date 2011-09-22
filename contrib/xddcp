@@ -109,7 +109,8 @@ XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT=126
 # Global variables
 #
 g_xddcpXddVersion="-1"
-g_xddcpDestXddPid="-1"
+g_xddcpFifoPath=""
+g_xddcpDestSSHPid="-1"
 g_xddcpSrcXddPid="-1"
 g_xddcpResumeOffset="0"
 g_transferCount="0"
@@ -118,7 +119,7 @@ g_transferCount="0"
 # Reset global variables before retry
 #
 function reset_global_data {
-    g_xddcpDestXddPid="-1"
+    g_xddcpDestSSHPid="-1"
     g_xddcpSrcXddPid="-1"
     g_xddcpResumeOffset="0"
 }
@@ -265,10 +266,22 @@ function error_print {
 function handle_signal_common {
     local signum=$1
 
-    # Attempt to deliver the signal to XDD
+    # Attempt to deliver the signal to source-side XDD
     if [ -1 -ne $g_xddcpSrcXddPid ]; then
         kill -$signum $g_xddcpSrcXddPid &>/dev/null
+	sleep 1
     fi
+
+    # Attempt to destroy any open SSH sessions
+    if [ -1 -ne $g_xddcpDestSSHPid ]; then
+	kill $g_xddcpDestSSHPid &>/dev/null
+    fi
+
+    # Remove the FIFO if it still exists
+    if [ -e "$g_xddcpFifoPath" ]; then
+	rm -f $g_xddcpFifoPath &>/dev/null
+    fi
+
     echo "INFO:  Transfer cancelled by user." >/dev/stderr
 }
 
@@ -562,8 +575,12 @@ function remote_exec_with_fifo {
     # Local decl must be on seperate line so $? is correct
     ssh ${sshOpts} ${remoteHost} bash <<EOF > $fifoPath &
 $cmds
+wait
 EOF
-    return $?
+    rc=$?
+    g_xddcpDestSSHPid=$!
+    g_xddcpFifoPath=$fifoPath
+    return $rc
 }
 
 #
@@ -828,7 +845,6 @@ if [ 1 -eq $resumeFlag ]; then
 else
     echo "XDD started without restart capability"
 fi
-
 EOF
 }
 
@@ -1041,7 +1057,7 @@ function start_destination_xdd {
         # The destination side pauses to block on IO, 
 	# so read the IO to allow the destination to start
 	while read line; do
-	    if [ -z "$line" ]; then
+	    if [ 0 -eq $resumeFlag ]; then
 		break;
 	    elif [ 1 -eq $resumeFlag ]; then
 	        # Search each line for the resume offset
@@ -1490,9 +1506,9 @@ function xddcp_main {
     # Note: We still need to pass the signal thru for Posix compliance.  See
     #  http://www.cons.org/cracauer/sigint.html
     #
-    trap 'handle_signal_common 2; trap 2; kill -2 $$' 2 
-    trap 'handle_signal_common 3; trap 3; kill -3 $$' 3 
-    trap 'handle_signal_common 15; trap 15; kill -15 $$' 15
+    trap 'handle_signal_common 2; trap 2; echo "sending 2"; kill -2 $$' 2 
+    trap 'handle_signal_common 3; trap 3; echo "sending 3"; kill -3 $$' 3 
+    trap 'handle_signal_common 15; trap 15; echo "sending 15"; kill -15 $$' 15
     trap exit
 
     # Print a helpful message if user is just typing command to get syntax
@@ -1524,7 +1540,7 @@ function xddcp_main {
     kernelTraceFlag=0
     windowSize=0
 
-    while getopts ":FYacd:hn:o:p:rst:vw:W:" option; do
+    while getopts ":FYacd:hn:o:p:rst:vVw:W:" option; do
         case $option in
             F) 
                 fileListFlag=1
