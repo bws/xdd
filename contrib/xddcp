@@ -1401,6 +1401,7 @@ function post_transfer_analysis {
 	local dstBase=$(/bin/basename $destPath)
 	local srcBinDump="xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
 	local dstBinDump="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+	local dstLogFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 
 	# where our data will be stored afterwards
 	local dataDir="${srcHost}_to_${destHost}_${srcBase}_${XDDCP_DEFAULT_TIMESTAMP}"
@@ -1464,6 +1465,30 @@ EOF
 		echo "INFO: Failed to copy ${dstBinDump} over ssh.  Skipping analysis" >/dev/stderr
 		return 1
 	fi
+
+        (ssh ${sshOpts} ${destHost} /bin/bash <<EOF
+# Really after destination log file which should be here by all previous checks
+# If the supplied destination is a directory, append the source file name
+destination_file=${destPath}
+destination_dir=\$(dirname ${destPath})
+if [ -d ${destPath} ]; then
+        destination_file=${destPath}/${srcBase}
+        destination_dir=${destPath}
+fi
+# If the filename uses a relative path, path complement it
+path_char=\$(dirname \$destination_file |cut -c 1)
+if [ "." = \$path_char ]; then
+        destination_dir="\$(/bin/pwd)/\${destination_dir}"
+fi
+# If insufficient permissions for the log exist, direct to HOME
+if [ ! -w \$destination_dir ]; then
+        destination_dir="./"
+fi
+# send the file back through cpio
+cd \${destination_dir}
+ls ${dstLogFile} | /bin/cpio -o 2>/dev/null
+EOF
+) | /bin/cpio -i >> ${myLogFile} 2>&1
 
 	# read the tsdumps and plot output
 	if [ 1 -eq $kernelTrace ]; then
