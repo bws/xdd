@@ -63,9 +63,11 @@ void write_outfile_k(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 void write_outfile_d(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
                 tte_t **send_op, tte_t **recv_op, tte_t **write_op);
 /* read, check, and store the src and dst file data */
-int xdd_getdata(char *file1, char *file2, tthdr_t **src, tthdr_t **dst);
+int xdd_getdata(char *file1, char *file2, tthdr_t **src, tthdr_t **dst, size_t *tsdata_size);
 /* Read an XDD binary timestamp dump into a structure */
 int xdd_readfile(char *filename, tthdr_t **tsdata, size_t *tsdata_size);
+/* Write an XDD binary timestamp structure to file */
+int xdd_writefile(char *filename, tthdr_t *tsdata, size_t tsdata_size);
 /* parse command line options */
 int getoptions(int argc, char **argv);
 /* print command line usage */
@@ -80,6 +82,7 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
 int main(int argc, char **argv) {
 
 	int fn,argnum,retval;
+        size_t tsdata_size;
 	/* tsdumps for the source and destination sides */
 	tthdr_t *src = NULL;
 	tthdr_t *dst = NULL;
@@ -94,7 +97,7 @@ int main(int argc, char **argv) {
 	fn = MAX(argnum,1);
 
 	/* get the src and dst data structs */
-	retval = xdd_getdata(argv[fn],argv[fn+1],&src,&dst);
+	retval = xdd_getdata(argv[fn],argv[fn+1],&src,&dst,&tsdata_size);
 	if (retval == 0) {
 		fprintf(stderr,"xdd_getdata() failed... exiting.\n");
 		exit(1);
@@ -131,6 +134,21 @@ int main(int argc, char **argv) {
                 getenv("PWD"),dst->target_thread_id);
 		fprintf(stderr,"kernfilename %s\n",kernfilename);
           matchadd_kernel_events(0,total_threads_dst,thread_id_dst,kernfilename,dst);
+          /* write out the src and dst data structs that now contain kernel data */
+          sprintf(kernfilename,"%s/%sk", getenv("PWD"),argv[fn]);
+		fprintf(stderr,"kernfilename %s\n",kernfilename);
+          retval = xdd_writefile(kernfilename,src,tsdata_size);
+          if (retval == 0) {
+		fprintf(stderr,"xdd_writefile() failed... exiting.\n");
+		exit(1);
+	  }
+          sprintf(kernfilename,"%s/%sk", getenv("PWD"),argv[fn+1]);
+		fprintf(stderr,"kernfilename %s\n",kernfilename);
+          retval = xdd_writefile(kernfilename,dst,tsdata_size);
+          if (retval == 0) {
+		fprintf(stderr,"xdd_writefile() failed... exiting.\n");
+		exit(1);
+	  }
         }
 
 	/* get the MIN timestamp on each side and normalize the times */
@@ -549,11 +567,10 @@ void write_outfile_d(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
  * Reads file1 and file2, then returns the respective
  * source and destination structures.
  *****************************************************/
-int xdd_getdata(char *file1, char *file2, tthdr_t **src, tthdr_t **dst) {
+int xdd_getdata(char *file1, char *file2, tthdr_t **src, tthdr_t **dst, size_t *tsdata_size) {
 
 	char *filename = NULL;
 	tthdr_t *tsdata = NULL;
-	size_t tsdata_size = 0;
 
 	/* read file1 and file2 */
 	char i;
@@ -564,7 +581,7 @@ int xdd_getdata(char *file1, char *file2, tthdr_t **src, tthdr_t **dst) {
 			filename = file2;
 
 		/* read xdd timestamp dump */
-		int retval = xdd_readfile(filename, &tsdata, &tsdata_size);
+		int retval = xdd_readfile(filename, &tsdata, tsdata_size);
 		if (retval == 0) {
 			fprintf(stderr,"Failed to read binary XDD timestamp dump: %s\n",filename);
 			return 0;
@@ -680,6 +697,45 @@ int xdd_readfile(char *filename, tthdr_t **tsdata, size_t *tsdata_size) {
 
 	*tsdata = tdata;
 	*tsdata_size = tsize;
+
+	/* close file */
+	fclose(tsfd);
+
+	return 1;
+}
+
+
+/*********************************************************
+ * Write an XDD binary timestamp dump from a structure
+ *
+ * IN:
+ *   filename    - name of .bin file to write to
+ *   tsdata      - pointer to timestamp structure
+ *   tsdata_size - size of    timestamp structure
+ * OUT:
+ * RETURN:
+ *   1 if succeeded, 0 if failed
+ *********************************************************/
+int xdd_writefile(char *filename, tthdr_t *tsdata, size_t tsdata_size) {
+
+	FILE *tsfd;
+	size_t result = 0;
+
+	/* open file */
+	tsfd = fopen(filename, "wb");
+
+	if (tsfd == NULL) {
+		fprintf(stderr,"Can not open file: %s\n",filename);
+		return 0;
+	}
+
+	/* write structure */
+	result = fwrite(tsdata,tsdata_size,1,tsfd);
+
+	if (result == 0) {
+		fprintf(stderr,"Error writing file: %s\n",filename);
+		return 0;
+	}
 
 	/* close file */
 	fclose(tsfd);
