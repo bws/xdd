@@ -37,6 +37,11 @@ function handle_exit
     sleep 1
     pkill -KILL -u nightly -P 1 -x xdd >/dev/null 2>&1
 
+    # Kill any outbound SSH processes that have been left open
+    pkill -u nightly -x ssh >/dev/null 2>&1
+    sleep 1
+    pkill -KILL -u nightly -x ssh >/dev/null 2>&1
+
     # Kill any remaning members of process group (e.g. the timeout signaller)
     #kill -$$ >/dev/null 2>&1
 }

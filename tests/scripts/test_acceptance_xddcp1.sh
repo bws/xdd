@@ -22,17 +22,6 @@ source_file=$test_dir/file1
 dest_file=$XDDTEST_DEST_MOUNT/retry1/file1
 
 #
-# This test requires the gethostip command
-#
-type -P gethostip &>/dev/null
-hasIpTranslator=$?
-if [ 0 -ne $hasIpTranslator ]; then
-    echo "Acceptance XDDCP1: Retry Test 1 - Check: Skipped (gethostip missing)."
-    exit 2
-fi
- 
-
-#
 # Create the source file
 #
 $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern random >/dev/null
@@ -48,7 +37,7 @@ pid=$!
 # Kill the destination side
 #
 sleep 10
-ssh $XDDTEST_E2E_DEST "killall xdd" &>/dev/null
+ssh $XDDTEST_E2E_DEST "pkill -9 -x xdd" &>/dev/null
 
 #
 # Let the retry complete

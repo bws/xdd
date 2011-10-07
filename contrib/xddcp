@@ -1057,6 +1057,7 @@ function start_destination_xdd {
         # The destination side pauses to block on IO, 
 	# so read the IO to allow the destination to start
 	while read line; do
+	    echo $line
 	    if [ 0 -eq $resumeFlag ]; then
 		break;
 	    elif [ 1 -eq $resumeFlag ]; then
@@ -1070,9 +1071,9 @@ function start_destination_xdd {
 		    if [ 0 -ne $? ]; then
 			g_xddcpResumeOffset=0
 		    fi
+		    break
 		fi
 	    fi
-	    echo $line
 	done < ${XDDCP_DEFAULT_FIFO_PATH}
 
         # Trigger an error if no restart is found
