@@ -246,7 +246,7 @@ function error_print {
 	    echo "ERROR: Could not resolve destination IP address." >/dev/stderr
 	    ;;
         $XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND)
-	    echo "ERROR: Could not find gethostip program." >/dev/stderr
+	    echo "ERROR: Could not find xdd-gethostip program." >/dev/stderr
 	    ;;
         $XDDCP_ERR_CODE_FIFO_ACCESS)
 	    echo "ERROR: Invalid permissions to access FIFO." >/dev/stderr
@@ -354,7 +354,7 @@ function check_host_preconditions {
     g_xddcpXddVersion=$(${XDDCP_XDD_EXE} -version)
 
     # Check for gethostip binary
-    type gethostip &>/dev/null
+    type $XDDCP_GETHOSTIP_EXE &>/dev/null
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND
     fi
@@ -378,7 +378,7 @@ function check_host_preconditions {
     fi
 
     # Ensure tools required for force flag exist
-    type gethostip &>/dev/null
+    type $XDDCP_GETHOSTIP_EXE &>/dev/null
     if [ $? -ne 0 ]; then
         echo "INFO: Force mode requires the gethostip command, force disabled."
         eval "forceFlag=0"
@@ -691,14 +691,14 @@ xdd_exe_path=\$(type -P ${XDDCP_XDD_EXE})
 # Check that ports are available for binding (Linux only)
 declare -i port_conflict=0
 if [ "$(/bin/uname)" = "Linux" ]; then
-    type gethostip &>/dev/null
+    type $XDDCP_GETHOSTIP_EXE &>/dev/null
     hasIpTranslator=\$?
     if [ 1 -ne \$hasIpTranslator ]; then
         declare -i tcount_idx=0
         for iface in $destIfaces; do
             tcount_idx=\$((tcount+1))
                 tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
-            iface_ip=\$(gethostip -d \$iface)
+            iface_ip=\$($XDDCP_GETHOSTIP_EXE -d \$iface)
             e2eLB=$e2ePort
             e2eUB=\$((e2eLB+tcount))
 #        echo "\$tcount_idx \$iface_ip \$e2eLB \$e2eUB" >>/tmp/bws
