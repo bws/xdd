@@ -94,7 +94,9 @@ xdd_init_io_buffers(ptds_t *p) {
 #endif
 #endif 
 	} else { /* Allocate memory the normal way */
-#if (IRIX || SOLARIS || LINUX || AIX || OSX || FREEBSD)
+#if (AIX || LINUX)
+		posix_memalign(&rwbuf, sysconf(_SC_PAGESIZE), p->e2e_iosize);
+#elif (IRIX || SOLARIS || LINUX || OSX || FREEBSD)
 		rwbuf = valloc(p->e2e_iosize);
 #else
 		rwbuf = malloc(p->e2e_iosize);

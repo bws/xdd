@@ -486,19 +486,13 @@ function check_transfer_preconditions {
 #
 function local_exec {
     local cmds="$1"
-    /bin/bash <<EOF
+    /bin/bash --login <<EOF
 $cmds
 EOF
     
     # If the transfer failed, trigger appropriate error
     local rc=$?
     return $rc
-
-# BWS - removed to allow immediate retry capabilities
-#    if [ 0 -ne "$rc" ]; then
-#	echo "BWS Exiting 3?"
-#        error_exit "$rc"
-#    fi
 }
 
 #
@@ -518,7 +512,7 @@ function remote_exec {
     # Local decl must be on seperate line so $? is correct
     local destRC=""
     local remoteOutput=""
-    remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
+    remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash --login <<EOF
 $cmds
 EOF
         )
@@ -573,7 +567,7 @@ function remote_exec_with_fifo {
     fi
 
     # Local decl must be on seperate line so $? is correct
-    ssh ${sshOpts} ${remoteHost} bash <<EOF > $fifoPath &
+    ssh ${sshOpts} ${remoteHost} /bin/bash --login <<EOF > $fifoPath &
 $cmds
 wait
 EOF
@@ -674,14 +668,14 @@ function get_destination_cmds {
 # Ensure xdd is in the remote path
 type ${XDDCP_XDD_EXE} &>/dev/null
 if [ 0 -ne \$? ]; then
-    echo "xdd binary is not in destination host PATH"
+    echo "xdd binary is not in destination host PATH" >/dev/stderr
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
 # Check that the correct version of XDD is available
 dest_version=\$(${XDDCP_XDD_EXE} -version)
 if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
-    echo "XDD source and destionation version mismatch."
+    echo "XDD source and destionation version mismatch." >/dev/stderr
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
@@ -726,7 +720,7 @@ if [ "$(/bin/uname)" = "Linux" ]; then
                 sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
             fi
         else
-            echo "Requested port \$p is in use"
+            echo "Requested port \$p is in use" >/dev/stderr
             exit ${XDDCP_ERR_CODE_DEST_PORT}
         fi
 
@@ -739,7 +733,7 @@ if [ "$(/bin/uname)" = "Linux" ]; then
             used_ports=\$(netstat -nlt |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
             for p in \$used_ports; do
                 if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
-                    echo "Requested port \$p is in use"
+                    echo "Requested port \$p is in use" >/dev/stderr
                     exit ${XDDCP_ERR_CODE_DEST_PORT}
                 fi
             done
@@ -771,13 +765,13 @@ destination_log="\${destination_dir}/\${destination_log_base}"
 
 # Ensure destination is writable
 if [ ! -d \$destination_dir ]; then
-    echo "Destination directory does not exist: \${destination_dir}"
-    exit ${XDDCP_ERR_CODE_DEST_DIR_NOT_XST}
+    echo "Destination directory does not exist: \${destination_dir}" >/dev/stderr
+    exit ${XDDCP_ERR_CODE_DEST_DIR_NOT_XST} 
 elif [ -d \$destination_dir -a ! -e \$destination_file -a ! -w \$destination_dir ]; then
     echo "Destination directory is not writable: \$destination_dir"
     exit ${XDDCP_ERR_CODE_DEST_DIR_NOT_WR}
 elif [ -e \$destination_file -a ! -w \$destination_file ]; then
-    echo "Destination target exists but is not writable: \$destination_file"
+    echo "Destination target exists but is not writable: \$destination_file" >/dev/stderr
     exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
 fi
 
@@ -785,7 +779,7 @@ fi
 if [ 1 -eq $resumeFlag ]; then
     # Ensure sufficient permissions exist to create restart cookie
     if [ ! -w \$destination_dir ]; then
-        echo "Restart option requires write access to: \$destination_dir"
+        echo "Restart option requires write access to: \$destination_dir" >/dev/stderr
         exit ${XDDCP_ERR_CODE_DEST_DIR_NOT_WR}
     fi
 
@@ -806,7 +800,7 @@ fi
 if [ $verbosity -lt 1 ]; then
     destination_log=/dev/null
 elif [ ! -w \$destination_dir -a -e \$destination_log -a ! -w \$destination_log ]; then
-    echo "Logfile already exists and is not writable: \$destination_log" 
+    echo "Logfile already exists and is not writable: \$destination_log" >/dev/stderr
     exit ${XDDCP_ERR_CODE_DEST_TGT_NOT_WR}
 elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
     home_dir_log="./\${destination_log_base}"
@@ -835,6 +829,7 @@ xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -target \${destination_file} -op 
 
 # Log XDD Command
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
+echo "Destination-side invocation: \${xdd_cmd}" >/dev/stderr
 
 # Invoke XDD
 \${xdd_cmd} >> \${destination_log} 2>&1 &
@@ -1127,11 +1122,6 @@ function start_source_xdd {
         execRC=$?
     fi
 
-    # BWS - Modify to get the retry count working
-    #if [ 0 -ne $execRC ]; then
-    #    error_exit $execRC
-    #fi
-
     return $execRC
 }
 
@@ -1362,18 +1352,25 @@ function transfer_file {
 	    "${verbosity}" "${binaryDumpFlag}" \
             "${g_xddcpResumeOffset}" "${destHost}" \
             "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
-	rc=$?
+	srcRC=$?
 
 	# Wait on the destination side
 	wait
 	destRC=$?
 
 	# Increment the transfer count if the source completed successfully
-	if [ 0 -eq $rc ]; then
+	if [ 0 -eq $srcRC -a 0 -eq $destRC ]; then
             # Increment the number of transfers
 	    g_transferCount=$((g_transferCount+1))
-	else
-	    echo "INFO: Source-side XDD exited with an error: $rc" >/dev/stderr
+        else
+	    if [ 0 -ne $destRC ]; then
+	        echo "INFO: Destination-side XDD exited with an error: $destRC" >/dev/stderr
+                rc=$destRC
+            fi
+            if [ 0 -ne $srcRC ]; then
+	        echo "INFO: Source-side XDD exited with an error: $srcRC" >/dev/stderr
+                rc=$srcRC
+            fi
 	fi
     else
 	echo "INFO: Destination-side XDD exited with an error: $rc" >/dev/stderr
@@ -1437,7 +1434,7 @@ function post_transfer_analysis {
 	if [ ! -z "${destUser}" ]; then
 		sshOpts="-q -l $remoteUser"
 	fi
-	(ssh ${sshOpts} ${destHost} /bin/bash <<EOF
+	(ssh ${sshOpts} ${destHost} /bin/bash --login <<EOF
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
 destination_dir=\$(dirname ${destPath})
@@ -1466,7 +1463,7 @@ EOF
 		return 1
 	fi
 
-        (ssh ${sshOpts} ${destHost} /bin/bash <<EOF
+        (ssh ${sshOpts} ${destHost} /bin/bash --login <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
