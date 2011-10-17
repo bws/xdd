@@ -83,6 +83,7 @@ int main(int argc, char **argv) {
 
 	int fn,argnum,retval;
         size_t tsdata_size;
+        char *iotrace_data_dir;
 	/* tsdumps for the source and destination sides */
 	tthdr_t *src = NULL;
 	tthdr_t *dst = NULL;
@@ -109,12 +110,15 @@ int main(int argc, char **argv) {
         /* at this point, src & dst contain all xdd events     */
         if (kernel_trace)
         {
+          if ((iotrace_data_dir=getenv("TRACE_LOG_LOC")) == NULL)
+               iotrace_data_dir=getenv("HOME");
+     
           sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
-		getenv("HOME"),getenv("HOME"),src->target_thread_id);
+		iotrace_data_dir, iotrace_data_dir, src->target_thread_id);
           system(kernfilename);
 		fprintf(stderr,"kernfilename %s tt_size %ld\n",kernfilename,src->tt_size);
           sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
-		getenv("HOME"),src->target_thread_id,getenv("PWD"));
+		iotrace_data_dir, src->target_thread_id,getenv("PWD"));
           system(kernfilename);
 		fprintf(stderr,"kernfilename %s\n",kernfilename);
           sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
@@ -123,11 +127,11 @@ int main(int argc, char **argv) {
           matchadd_kernel_events(1,total_threads_src,thread_id_src,kernfilename,src);
 
           sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
-		getenv("HOME"),getenv("HOME"),dst->target_thread_id);
+		iotrace_data_dir, iotrace_data_dir, dst->target_thread_id);
           system(kernfilename);
 		fprintf(stderr,"kernfilename %s tt_size %ld\n",kernfilename,dst->tt_size);
           sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
-		getenv("HOME"),dst->target_thread_id,getenv("PWD"));
+		iotrace_data_dir, dst->target_thread_id,getenv("PWD"));
           system(kernfilename);
 		fprintf(stderr,"kernfilename %s\n",kernfilename);
           sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
