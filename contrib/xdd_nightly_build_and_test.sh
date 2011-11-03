@@ -83,7 +83,7 @@ INSTALL_RC=$?
 # Quickly soft link a path to tonights executables
 #
 mkdir -p $HOME/sw
-rmdir $HOME/sw/xdd
+rm $HOME/sw/xdd
 ln -s $install_dir $HOME/sw/xdd
 
 #
