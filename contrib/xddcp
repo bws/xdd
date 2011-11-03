@@ -518,7 +518,7 @@ function remote_exec {
     # Local decl must be on seperate line so $? is correct
     local destRC=""
     local remoteOutput=""
-    remoteOutput=$(ssh ${sshOpts} ${remoteHost} bash <<EOF
+    remoteOutput=$(ssh ${sshOpts} ${remoteHost} /bin/bash <<EOF
 $cmds
 EOF
         )
@@ -573,7 +573,7 @@ function remote_exec_with_fifo {
     fi
 
     # Local decl must be on seperate line so $? is correct
-    ssh ${sshOpts} ${remoteHost} bash <<EOF > $fifoPath &
+    ssh ${sshOpts} ${remoteHost} /bin/bash <<EOF > $fifoPath &
 $cmds
 wait
 EOF
@@ -1070,6 +1070,7 @@ function start_destination_xdd {
 		    if [ 0 -ne $? ]; then
 			g_xddcpResumeOffset=0
 		    fi
+		    break;
 		fi
 	    fi
 	    echo $line
@@ -1347,10 +1348,10 @@ function transfer_file {
         "${destOrderedFlag}" "${recursiveFlag}" "${resumeFlag}" \
 	"${verbosity}" "${binaryDumpFlag}" \
 	"${destRemoteFlag}" "${destHost}" "${destUser}" "${destHost}"
-    rc=$?
+    destRC=$?
 
     # Continue if the destination started correctly
-    if [ 0 -eq $rc ]; then
+    if [ 0 -eq $destRC ]; then
         # Wait to ensure the destination side has setup network and accepting
         sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
 
@@ -1361,21 +1362,30 @@ function transfer_file {
 	    "${verbosity}" "${binaryDumpFlag}" \
             "${g_xddcpResumeOffset}" "${destHost}" \
             "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
-	rc=$?
+	srcRC=$?
 
 	# Wait on the destination side
 	wait
 	destRC=$?
 
 	# Increment the transfer count if the source completed successfully
-	if [ 0 -eq $rc ]; then
+	if [ 0 -ne $destRC ]; then
+	    rc=$destRC
+	    echo "INFO: Destination-side XDD exited with an error: $destRC" >/dev/stderr
+	    echo "INFO: Source-side XDD exited with code: $srcRC" >/dev/stderr
+	elif [ 0 -ne $srcRC ]; then
+	    rc=$srcRC
+	    echo "INFO: Source-side XDD exited with an error: $srcRC" >/dev/stderr
+	else
+	    # Signal success
+	    rc=0
+
             # Increment the number of transfers
 	    g_transferCount=$((g_transferCount+1))
-	else
-	    echo "INFO: Source-side XDD exited with an error: $rc" >/dev/stderr
 	fi
     else
-	echo "INFO: Destination-side XDD exited with an error: $rc" >/dev/stderr
+	rc=$destRC
+	echo "INFO: Destination-side XDD exited with an error during launch: $destRC" >/dev/stderr
     fi
  
     return $rc
