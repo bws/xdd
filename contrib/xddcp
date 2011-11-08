@@ -655,8 +655,6 @@ function get_destination_cmds {
     # Verbose option
     if [ 1 -eq $verbosity ]; then
         local verboseOpt="-verbose"
-    elif [ 2 -eq $verbosity ]; then
-        local verboseOpt="-verbose -ts detailed -ts output e2e"
     fi
 
     # binary timestamp dump
@@ -811,7 +809,12 @@ elif [ ! -w \$destination_dir -a ! -w \$destination_log ]; then
     echo "Warning: Writing log to: \$home_dir_log"
     destination_log=\$home_dir_log
 fi
-
+# Verbose option
+  if [ 1 -eq $verbosity ]; then
+        verboseopt="-verbose"
+elif [ 2 -eq $verbosity ]; then
+        verboseopt="-verbose -ts detailed -ts output \$(dirname \${destination_log})/$binaryDumpPrefix"
+fi
 if [ 1 -eq $binaryDumpFlag ]; then
 	binary_dump_opts="-ts dump \$(dirname \${destination_log})/$binaryDumpPrefix"
 fi
@@ -825,11 +828,14 @@ if [ -e \$destination_file ]; then
 fi
 
 # XDD Command
-xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} ${verboseOpt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror > \${destination_log}"
+xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} \${verboseopt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror > \${destination_log}"
 
 # Log XDD Command
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
 echo "Destination-side invocation: \${xdd_cmd}" >/dev/stderr
+
+# Set iotrace log files location
+export TR_RUN_LOG=\${destination_dir}
 
 # Invoke XDD
 \${xdd_cmd} >> \${destination_log} 2>&1 &
@@ -914,7 +920,7 @@ function get_source_cmds {
     if [ 1 -eq $verbosity ]; then
         local verboseOpt="-verbose"
     elif [ 2 -eq $verbosity ]; then
-        local verboseOpt="-verbose -ts detailed -ts output e2e"
+        local verboseOpt="-verbose -ts detailed -ts output xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
     fi
 
     # binary timestamp dump option
@@ -962,6 +968,9 @@ else
 fi
 
 xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
+
+# Set iotrace log files location
+export TR_RUN_LOG=\${PWD}
 
 # Construct local transport endpoint
 echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
@@ -1400,6 +1409,7 @@ function post_transfer_analysis {
 	local dstBase=$(/bin/basename $destPath)
 	local srcBinDump="xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
 	local dstBinDump="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+	local dstCsvFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.csv"
 	local dstLogFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 
 	# where our data will be stored afterwards
@@ -1431,7 +1441,7 @@ function post_transfer_analysis {
 		echo "INFO: Failed to copy ${srcBinDump}.  Skipping analysis" >/dev/stderr
 		return 1
 	fi
-	# get destination bin file
+	# get/copy destination bin file from destination to source host
 	local destRC=""
 	if [ ! -z "${destUser}" ]; then
 		sshOpts="-q -l $remoteUser"
@@ -1465,6 +1475,7 @@ EOF
 		return 1
 	fi
 
+	# get/copy destination log file from destination to source host
         (ssh ${sshOpts} ${destHost} /bin/bash --login <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
@@ -1489,8 +1500,67 @@ ls ${dstLogFile} | /bin/cpio -o 2>/dev/null
 EOF
 ) | /bin/cpio -i >> ${myLogFile} 2>&1
 
+        # get/copy destination timestamp csv file from destination to source host
+        (ssh ${sshOpts} ${destHost} /bin/bash --login <<EOF
+# Really after destination log file which should be here by all previous checks
+# If the supplied destination is a directory, append the source file name
+destination_file=${destPath}
+destination_dir=\$(dirname ${destPath})
+if [ -d ${destPath} ]; then
+        destination_file=${destPath}/${srcBase}
+        destination_dir=${destPath}
+fi
+# If the filename uses a relative path, path complement it
+path_char=\$(dirname \$destination_file |cut -c 1)
+if [ "." = \$path_char ]; then
+        destination_dir="\$(/bin/pwd)/\${destination_dir}"
+fi
+# If insufficient permissions for the log exist, direct to HOME
+if [ ! -w \$destination_dir ]; then
+        destination_dir="./"
+fi
+# send the file back through cpio
+cd \${destination_dir}
+ls ${dstCsvFile} | /bin/cpio -o 2>/dev/null
+EOF
+) | /bin/cpio -i >> ${myLogFile} 2>&1
+
+	# get/copy destination iotrace_data.out file from destination to source host
+	if [ 1 -eq $kernelTrace ]; then
+        (ssh ${sshOpts} ${destHost} /bin/bash --login <<EOF
+# Really after destination log file which should be here by all previous checks
+# If the supplied destination is a directory, append the source file name
+destination_file=${destPath}
+destination_dir=\$(dirname ${destPath})
+if [ -d ${destPath} ]; then
+        destination_file=${destPath}/${srcBase}
+        destination_dir=${destPath}
+fi
+# If the filename uses a relative path, path complement it
+path_char=\$(dirname \$destination_file |cut -c 1)
+if [ "." = \$path_char ]; then
+        destination_dir="\$(/bin/pwd)/\${destination_dir}"
+fi
+# If insufficient permissions for the log exist, direct to HOME
+if [ ! -w \$destination_dir ]; then
+        destination_dir="./"
+fi
+# send the file back through cpio
+cd \${destination_dir}
+ls iotrace_data*out | /bin/cpio -o 2>/dev/null
+EOF
+) | /bin/cpio -i >> ${myLogFile} 2>&1
+fi
+	destRC=$?
+	if [ 0 -ne $destRC ]; then
+		echo "INFO: Failed to copy iotrace_data.pid.out over ssh.  Skipping analysis" >/dev/stderr
+		return 1
+	fi
+
 	# read the tsdumps and plot output
 	if [ 1 -eq $kernelTrace ]; then
+        # Set iotrace log files location
+          export TR_RUN_LOG=\${PWD}
 	  $XDDCP_READTSDUMPS_EXE -t ${windowSize} -k -o ${tsDataFile} ${newSrcBin} ${newDstBin} >> ${myLogFile} 2>&1
 	else
 	  $XDDCP_READTSDUMPS_EXE -t ${windowSize}    -o ${tsDataFile} ${newSrcBin} ${newDstBin} >> ${myLogFile} 2>&1

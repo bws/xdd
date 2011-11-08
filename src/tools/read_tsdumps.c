@@ -110,7 +110,7 @@ int main(int argc, char **argv) {
         /* at this point, src & dst contain all xdd events     */
         if (kernel_trace)
         {
-          if ((iotrace_data_dir=getenv("TRACE_LOG_LOC")) == NULL)
+          if ((iotrace_data_dir=getenv("TR_RUN_LOG")) == NULL)
                iotrace_data_dir=getenv("HOME");
      
           sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
