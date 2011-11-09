@@ -11,7 +11,7 @@
 source ./test_config
 
 # Perform pre-test 
-echo "Beginning XDDCP Post Analysis w Kernel Tracing Test 1 . . ."
+echo "Beginning XDDCP Post Analysis w/o Kernel Tracing Test 1 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/postanalysis-w
 rm -rf $test_dir
 mkdir -p $test_dir
@@ -61,6 +61,16 @@ fi
 
 # Perform post-test cleanup
 #rm -rf $test_dir
+#create directory to save all source side files
+test_dir=$XDDTEST_LOCAL_MOUNT/postanalysis-w
+rm   -rf           $test_dir
+mkdir -p           $test_dir
+mv $(hostname -s)* $test_dir
+mv *bin            $test_dir
+mv *csv            $test_dir
+mv *log            $test_dir
+#mv *out            $test_dir
+#mv *ascii          $test_dir
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

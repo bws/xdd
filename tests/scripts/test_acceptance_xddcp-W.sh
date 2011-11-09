@@ -73,6 +73,17 @@ fi
 
 # Perform post-test cleanup
 #rm -rf $test_dir
+#create directory to save all source side files
+test_dir=$XDDTEST_LOCAL_MOUNT/postanalysis-W
+rm   -rf           $test_dir
+mkdir -p           $test_dir
+mv $(hostname -s)* $test_dir
+mv *bin            $test_dir
+mv *csv            $test_dir
+mv *log            $test_dir
+mv *out            $test_dir
+mv *ascii          $test_dir
+mv dictionary*     $test_dir
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
