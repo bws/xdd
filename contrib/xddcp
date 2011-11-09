@@ -1404,9 +1404,10 @@ function post_transfer_analysis {
 	local srcUser=${3}
 	local destPath=${4}
 	local destHost=${5}
-	local destUser=${6}
-	local windowSize=${7}
-	local kernelTrace=${8}
+	local destIP=${6}
+	local destUser=${7}
+	local windowSize=${8}
+	local kernelTrace=${9}
 
 	# where the timestamp dumps should be right now
 	local srcBase=$(/bin/basename $srcPath)
@@ -1450,7 +1451,7 @@ function post_transfer_analysis {
 	if [ ! -z "${destUser}" ]; then
 		sshOpts="-q -l $remoteUser"
 	fi
-	(ssh ${sshOpts} ${destHost} /bin/bash --login <<EOF
+	(ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
 destination_dir=\$(dirname ${destPath})
@@ -1480,7 +1481,7 @@ EOF
 	fi
 
 	# get/copy destination log file from destination to source host
-        (ssh ${sshOpts} ${destHost} /bin/bash --login <<EOF
+        (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
@@ -1505,7 +1506,7 @@ EOF
 ) | /bin/cpio -i >> ${myLogFile} 2>&1
 
         # get/copy destination timestamp csv file from destination to source host
-        (ssh ${sshOpts} ${destHost} /bin/bash --login <<EOF
+        (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
@@ -1531,7 +1532,7 @@ EOF
 
 	# get/copy destination iotrace_data.out file from destination to source host
 	if [ 1 -eq $kernelTrace ]; then
-        (ssh ${sshOpts} ${destHost} /bin/bash --login <<EOF
+        (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
@@ -1830,7 +1831,7 @@ function xddcp_main {
 	# Perform post transfer analysis
 	if [ 1 -eq ${binaryDumpFlag} ]; then
 	    post_transfer_analysis "${srcPath}" "${srcHost}" "${srcUser}" \
-		"${destPath}" "${destIP}" "${destUser}" "${windowSize}" \
+		"${destPath}" "${destHost}" "${destIP}" "${destUser}" "${windowSize}" \
 		"${kernelTraceFlag}"
 	fi
 
