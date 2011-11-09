@@ -601,19 +601,20 @@ function get_file_size {
 function get_destination_cmds {
     #echo "get_destination_cmds Args: $@" >/dev/stderr
     local destHost=${1}
-    local destIfaces=${2}
-    local destIfaceThreads=${3}
-    local srcFile=${4}
-    local destPath=${5}
-    local totalBytes=${6}
-    local e2ePort=${7}
-    local dioFlag=${8}
-    local forceFlag=${9}
-    local serialOrderedFlag=${10}
-    local recursionFlag=${11}
-    local resumeFlag=${12}
-    local verbosity=${13}
-    local binaryDumpFlag=${14}
+    local destIP=${2}
+    local destIfaces=${3}
+    local destIfaceThreads=${4}
+    local srcFile=${5}
+    local destPath=${6}
+    local totalBytes=${7}
+    local e2ePort=${8}
+    local dioFlag=${9}
+    local forceFlag=${10}
+    local serialOrderedFlag=${11}
+    local recursionFlag=${12}
+    local resumeFlag=${13}
+    local verbosity=${14}
+    local binaryDumpFlag=${15}
 
     # Options that aren't yet settable
     local srcHost=$(/bin/hostname)
@@ -832,7 +833,6 @@ xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -target \${destination_file} -op 
 
 # Log XDD Command
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
-echo "Destination-side invocation: \${xdd_cmd}" >/dev/stderr
 
 # Set iotrace log files location
 export TR_RUN_LOG=\${destination_dir}
@@ -903,7 +903,7 @@ function get_source_cmds {
     # Construct source XDD settings
     local srcBase=$(/bin/basename ${srcFile})
     local srcQD="-queuedepth ${queueDepth}"
-    local srcLog="xdd.$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+    local srcLog="xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 
     # Direct I/O option
     if [ 1 -eq $srcDIOFlag ]; then
@@ -962,7 +962,7 @@ fi
 
 # Add the command to the log file
 if [ $verbosity -gt 0 ]; then
-    src_log="xdd.\$(/bin/hostname).${srcBase}.${XDDCP_DEFAULT_TIMESTAMP}.log"
+    src_log="xdd-\$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 else
     src_log=/dev/null
 fi
@@ -1032,13 +1032,14 @@ function start_destination_xdd {
     local binaryDumpFlag=${12}
     local remoteFlag=${13}
     local destHost=${14}
-    local destUser=${15}
-    local destIfaces=${16}
+    local destIP=${15}
+    local destUser=${16}
+    local destIfaces=${17}
 
     # Get destination commands
     local execRC=1
     local destResult=""
-    local destCmds=$(get_destination_cmds "$destHost" "$destIfaces" \
+    local destCmds=$(get_destination_cmds "$destHost" "$destIP" "$destIfaces" \
         "$queueDepth" "$srcPath" "$destPath" \
         "$totalBytes" "$e2ePort" "$dioFlag" "$forceFlag" "$orderedFlag" \
         "$recursionFlag" "$resumeFlag" "$verbosity" "$binaryDumpFlag")
@@ -1049,7 +1050,7 @@ function start_destination_xdd {
 
     # Execute destination side commands
     if [ 1 -eq ${remoteFlag} ]; then
-        remote_exec_with_fifo "${destCmds}" "${XDDCP_DEFAULT_FIFO_PATH}" "${destHost}" "${destUser}"
+        remote_exec_with_fifo "${destCmds}" "${XDDCP_DEFAULT_FIFO_PATH}" "${destIP}" "${destUser}"
         execRC=$?
     else
 	error_exit $UNKNOWN
@@ -1146,18 +1147,19 @@ function transfer_file_list {
     local srcOrderedFlag=${6}
     local destFileSpec=${7}
     local destHost=${8}
-    local destUser=${9}
-    local destRemoteFlag=${10}
-    local destDIOFlag=${11}
-    local destOrderedFlag=${12}
-    local totalBytes=${13}
-    local queueDepth=${14}
-    local e2ePort=${15}
-    local fileSizeFlag=${16}
-    local forceFlag=${17}
-    local resumeFlag=${18}
-    local verbosity=${19}
-    local binaryDumpFlag=${20}
+    local destIP=${9}
+    local destUser=${10}
+    local destRemoteFlag=${11}
+    local destDIOFlag=${12}
+    local destOrderedFlag=${13}
+    local totalBytes=${14}
+    local queueDepth=${15}
+    local e2ePort=${16}
+    local fileSizeFlag=${17}
+    local forceFlag=${18}
+    local resumeFlag=${19}
+    local verbosity=${20}
+    local binaryDumpFlag=${21}
 
     # Perform precondition checks for file list transfers
     check_file_list_preconditions "${srcFileList}" "1" "${fileSizeFlag}" \
@@ -1200,7 +1202,7 @@ function transfer_file_list {
 	#Transfer the file
 	transfer_file "${srcFileSpec}" "${srcHost}" "${srcUser}" \
 	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-	    "${destFileSpec}" "${destHost}" "${destUser}" \
+	    "${destFileSpec}" "${destHost}" "${destIP}" "${destUser}" \
 	    "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
 	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
@@ -1228,18 +1230,19 @@ function transfer_recursive_path {
     local srcOrderedFlag=${6}
     local destPath=${7}
     local destHost=${8}
-    local destUser=${9}
-    local destRemoteFlag=${10}
-    local destDIOFlag=${11}
-    local destOrderedFlag=${12}
-    local totalBytes=${13}
-    local queueDepth=${14}
-    local e2ePort=${15}
-    local fileSizeFlag=${16}
-    local forceFlag=${17}
-    local resumeFlag=${18}
-    local verbosity=${19}
-    local binaryDumpFlag=${20}
+    local destIP=${9}
+    local destUser=${10}
+    local destRemoteFlag=${11}
+    local destDIOFlag=${12}
+    local destOrderedFlag=${13}
+    local totalBytes=${14}
+    local queueDepth=${15}
+    local e2ePort=${16}
+    local fileSizeFlag=${17}
+    local forceFlag=${18}
+    local resumeFlag=${19}
+    local verbosity=${20}
+    local binaryDumpFlag=${21}
 
     # Perform precondition checks for file list transfers
     check_file_list_preconditions "${srcFileList}" "1" "${fileSizeFlag}" \
@@ -1255,7 +1258,7 @@ function transfer_recursive_path {
 	# Modify the destination path for file list transfers
 	local srcName=$(/bin/basename $srcPath)
 	local destFileSpec=${destPath}/${srcName}
-	create_destination_directory "${destFileSpec}" "${destRemoteFlag}" "${destHost}" "${destUser}"
+	create_destination_directory "${destFileSpec}" "${destRemoteFlag}" "${destIP}" "${destUser}"
 	rc=$?
 	if [ 0 -ne $rc ]; then
 	    echo "INFO: Failure while creating directory ${destFileSpec}"
@@ -1271,7 +1274,7 @@ function transfer_recursive_path {
 	if [ -d "$srcFileSpec" ]; then
 	    transfer_recursive_path "${srcFileSpec}" "${srcHost}" "${srcUser}" \
 		"${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destFileSpec}" "${destHost}" "${destUser}" \
+		"${destFileSpec}" "${destHost}" "${destIP}" "${destUser}" \
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
@@ -1285,7 +1288,7 @@ function transfer_recursive_path {
 	    #local destFileSpec=$destPath/$(basename $entry)
 	    transfer_file "${srcFileSpec}" "${srcHost}" "${srcUser}" \
 		"${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destFileSpec}" "${destHost}" "${destUser}" \
+		"${destFileSpec}" "${destHost}" "${destIP}" "${destUser}" \
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
@@ -1314,23 +1317,24 @@ function transfer_file {
     local srcOrderedFlag=${6}
     local destFileSpec=${7}
     local destHost=${8}
-    local destUser=${9}
-    local destRemoteFlag=${10}
-    local destDIOFlag=${11}
-    local destOrderedFlag=${12}
-    local totalBytes=${13}
-    local queueDepth=${14}
-    local e2ePort=${15}
-    local fileSizeFlag=${16}
-    local forceFlag=${17}
-    local resumeFlag=${18}
-    local verbosity=${19}
-    local binaryDumpFlag=${20}
+    local destIP=${9}
+    local destUser=${10}
+    local destRemoteFlag=${11}
+    local destDIOFlag=${12}
+    local destOrderedFlag=${13}
+    local totalBytes=${14}
+    local queueDepth=${15}
+    local e2ePort=${16}
+    local fileSizeFlag=${17}
+    local forceFlag=${18}
+    local resumeFlag=${19}
+    local verbosity=${20}
+    local binaryDumpFlag=${21}
 
     # Check the transfer preconditions
     check_transfer_preconditions "${srcFileSpec}" "${destFileSpec}" \
-	"${srcRemoteFlag}" "${destRemoteFlag}" "${srcDIOFlag}" "${destDIOFlag}" \
-	"${fileSizeFlag}" "${totalBytes}"
+	"${srcRemoteFlag}" "${destRemoteFlag}" "${srcDIOFlag}" \
+	"${destDIOFlag}" "${fileSizeFlag}" "${totalBytes}"
 
     # Determine the source file size
     if [ 0 -eq $fileSizeFlag ]; then
@@ -1346,7 +1350,7 @@ function transfer_file {
         "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
         "${destOrderedFlag}" "${recursiveFlag}" "${resumeFlag}" \
 	"${verbosity}" "${binaryDumpFlag}" \
-	"${destRemoteFlag}" "${destHost}" "${destUser}" "${destHost}"
+	"${destRemoteFlag}" "${destHost}" "${destIP}" "${destUser}" "${destIP}"
     destRC=$?
 
     # Continue if the destination started correctly
@@ -1795,7 +1799,7 @@ function xddcp_main {
 	if [ 1 -eq $fileListFlag ]; then
 	    transfer_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destIP}" "${destUser}" \
+		"${destPath}" "${destHost}" "${destIP}" "${destUser}" \
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
@@ -1804,7 +1808,7 @@ function xddcp_main {
 	elif [ 1 -eq $recursiveFlag ]; then
 	    transfer_recursive_path "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destIP}" "${destUser}" \
+		"${destPath}" "${destHost}" "${destIP}" "${destUser}" \
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
@@ -1813,7 +1817,7 @@ function xddcp_main {
 	else
 	    transfer_file "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destIP}" "${destUser}" \
+		"${destPath}" "${destHost}" "${destIP}" "${destUser}" \
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \

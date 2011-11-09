@@ -9,6 +9,7 @@ xdd-7.0.0 RC21
 * XDDCP does not create log files by default (must use -v to create logs)
 * XDDCP supported on AIX running on Power7
 * XDDCP now waits for the destination to complete before exiting
+* XDDCP now supports Durmstrang's kernel level I/O tracing tool
 
 xdd-7.0.0 RC20
 ==============
