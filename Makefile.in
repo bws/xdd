@@ -249,6 +249,7 @@ install: install_pre fullinstall install_libs install_xddcp
 #
 # Miscellaneous build rules
 #
+XDDVERSION := $(VERSION)
 baseversion:
 	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > $(BASE_DIR)/xdd_base_version.h
 

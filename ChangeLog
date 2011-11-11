@@ -11,17 +11,14 @@ xdd-7.0.0 RC21
 * XDDCP now waits for the destination to complete before exiting
 * XDDCP now supports Durmstrang's kernel level I/O tracing tool
 * XDDCP log files now use '-' rather than '.' as field seperator
+* XDDCP: Allow small file transfers, enable force mode as default,
+* XDD: Fix name resolution so that a name resolution cache is used in XDD
 
 xdd-7.0.0 RC20
 ==============
 * XDD: Fix deadlock issue(s) in networking code.
 * XDDCP: Modify so that hostnames are resolved once by xddcp.  Note, this
     does not fix the name resolution in XDD.
-
-xdd-7.0.0 RC21
-==============
-* XDDCP: Allow small file transfers, enable force mode as default,
-	only install xddcp if the gethostip utility exists.
 
 xdd-7.0.0 RC19
 ==============

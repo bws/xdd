@@ -17,32 +17,43 @@ numbers are in the format MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE].  This
 is the standard convention for most Linux software packaged and publicly 
 available:
 	> cd xdd
-	> vi Makefile # and edit the VERSION variable
+	> vi configure.ac # And edit the version number
+	> autoconf
+	> ./configure --prefix=$HOME/sw/xdd
 	> make baseversion
+	> make
+	> make install
 
 3.  Test the new features:
-	> make
 	> ./run_some_tests.sh . . .
 
 4.  If the tests don't pass, we go back to before step 1.  Otherwise, we 
 continue cutting the release.
 
-5.  Tag the code.
+5.  Ensure the ChangeLog is up to date
+	> vi ChangeLog
+
+6.  Tag the code.
 	> git commit -a	
 	> git tag -a xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE]
 
-6.  Push everything back up to the durmstrang repository:
+7.  Push everything back up to the durmstrang repository:
 	> git push
 	> git push --tags
 
-7.  At this point, the release is ready.  It can be retrieved by anyone with 
+8.  At this point, the release is ready.  It can be retrieved by anyone with 
     access to the repository.  To retrieve the release, run the following command:
 	> git archive --format=tar --prefix=TAG_NAME/ --remote=ssh://home.ccs.ornl.gov/ccs/proj/csc040/var/git/xdd.git TAG_NAME |gzip > TAG_NAME.tar.gz
 
-    Where TAG_NAME is in the format xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE] (e.g. xdd-7.0.0.rc1)
+    Where TAG_NAME is in the format: 
+	xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE] (e.g. xdd-7.0.0.rc1)
     Another way to format the command is:
 	> TAG_NAME=foo && git archive --format=tar --prefix=${TAG_NAME}/ --remote=ssh://home.ccs.ornl.gov/ccs/proj/csc040/var/git/xdd.git $TAG_NAME |gzip >$TAG_NAME.tar.gz
 
 The resulting tar file now contains the released code only.
 
-
+9.  Prepare for the next release
+	> vi configure.ac # And set the version in AC_INIT to pre-nextrelease
+	> autoconf
+	> git commit -a
+	> git push
