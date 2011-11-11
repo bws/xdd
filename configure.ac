@@ -22,7 +22,7 @@ dnl
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
-AC_INIT(XDD,7.0.0.rc21)
+AC_INIT(XDD,7.0.0.pre-rc22)
 
 dnl
 dnl Include useful macros
