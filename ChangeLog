@@ -1,6 +1,13 @@
 -----------------------
 XDD Release ChangeLog
 -----------------------
+xdd-7.0.0 RC21-1
+==============
+* Fix build system regression that prevented pre-allocation
+* XFS packages for CentOS 6 are broken.  Must install libuuid-devel
+  by hand
+* XDDCP names timestamps consistently for all verbosity levels
+
 xdd-7.0.0 RC21
 ==============
 * XDD now provides its own utilties for resolving IPs, truncating files, and
