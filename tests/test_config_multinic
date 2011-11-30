@@ -23,5 +23,5 @@ XDDTEST_OUTPUT_DIR=./output
 #
 # Hosts to use for E2E transfers
 #
-XDDTEST_E2E_SOURCE=pod10
-XDDTEST_E2E_DEST=pod11
+XDDTEST_E2E_SOURCE=osb
+XDDTEST_E2E_DEST=osc
