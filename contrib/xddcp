@@ -658,9 +658,15 @@ function get_destination_cmds {
         local verboseOpt="-verbose"
     fi
 
+    # If the supplied destination is a directory, append the source file name
+    local destination_base=$(/bin/basename $destPath)
+    if [ -d $destPath ]; then
+          destination_base=$srcBase
+    fi
+
     # binary timestamp dump
     if [ 1 -eq $binaryDumpFlag -o 2 -eq $verbosity ]; then
-        local binaryDumpPrefix="xdd-${destHost}-$(/bin/basename $destPath)-${XDDCP_DEFAULT_TIMESTAMP}"
+        local binaryDumpPrefix="xdd-${destHost}-${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}"
     fi
     
     cat <<EOF
@@ -1412,6 +1418,10 @@ function post_transfer_analysis {
 	# where the timestamp dumps should be right now
 	local srcBase=$(/bin/basename $srcPath)
 	local dstBase=$(/bin/basename $destPath)
+        # If the supplied destination is a directory, append the source file name
+        if [ -d $destPath ]; then
+          dstBase=$srcBase
+        fi
 	local srcBinDump="xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
 	local dstBinDump="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
 	local dstCsvFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.csv"
