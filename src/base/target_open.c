@@ -274,9 +274,9 @@ xdd_target_existence_check(ptds_t *p) {
 	}
 	/* Perform sanity checks */
 	if (p->target_options & TO_DIO) {
-		/* make sure it is a regular file, otherwise fail */
-		if ( (p->statbuf.st_mode & S_IFMT) != S_IFREG) {
-			fprintf(xgp->errout,"%s: xdd_target_existence_check: WARNING: Target number %d name %s must be a regular file when used with the -dio flag\n",
+		/* make sure it is a regular file(even if it does NOT exist) or block device, otherwise fail */
+  		if ( !(p->target_options & TO_REGULARFILE) && !(S_ISBLK(p->statbuf.st_mode))) {
+			fprintf(xgp->errout,"%s: xdd_target_existence_check: WARNING: Target number %d name %s must be a regular file or block special file (aka block device) when used with the -dio flag\n",
 				xgp->progname,
 				p->my_target_number,
 				p->target_full_pathname);
