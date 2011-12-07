@@ -17,11 +17,15 @@ numbers are in the format MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE].  This
 is the standard convention for most Linux software packaged and publicly 
 available:
 	> cd xdd
-	> vi Makefile # and edit the VERSION variable
+	> vi configure.ac # and edit the VERSION variable
+	> autoconf
+	> ./configure --prefix=$HOME/sw/xdd
 	> make baseversion
+	> make
+	> make install
+	> xdd -version
 
 3.  Test the new features:
-	> make
 	> ./run_some_tests.sh . . .
 
 4.  If the tests don't pass, we go back to before step 1.  Otherwise, we 
