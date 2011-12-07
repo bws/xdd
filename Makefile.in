@@ -128,7 +128,7 @@ INCLUDES = -I$(BASE_DIR) -I$(CLIENT_DIR) -I$(COMMON_DIR) \
 ARFLAGS = @CONFIG_ARFLAGS@
 
 CPPFLAGS = @CONFIG_CPPFLAGS@ \
-	@DEFS@ \
+	@DEFS@ @CONFIG_XFS_ENABLED@ \
 	$(CONFIDENCE_ENABLED) \
 	$(INCLUDES)
 
@@ -249,6 +249,7 @@ install: install_pre fullinstall install_libs install_xddcp
 #
 # Miscellaneous build rules
 #
+XDDVERSION := $(VERSION)
 baseversion:
 	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > $(BASE_DIR)/xdd_base_version.h
 
