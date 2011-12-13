@@ -328,11 +328,18 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	fprintf(out, "\t\tQueue Depth, %d\n",p->queue_depth);
 	/* Timestamp options */
 	if (p->ts_options & TS_ON) {
-		fprintf(out, "\t\tTimestamping, enabled for %s %s\n",(p->ts_options & TS_DETAILED)?"DETAILED":"", (p->ts_options & TS_SUMMARY)?"SUMMARY":"");
-		fprintf(out, "\t\tTimestamp ASCII output file name, %s\n",p->ts_output_filename);
-		if (p->ts_options & TS_DUMP) 
-			fprintf(out, "\t\tTimestamp binary output file name, %s\n",p->ts_binary_filename);
-	} else fprintf(out, "\t\tTimestamping, disabled\n");
+                fprintf(out, "\t\tTimestamping, enabled with options, %s %s %s %s %s\n",
+                   ( p->ts_options & TS_DETAILED   )?"DETAILED":"", 
+                   ( p->ts_options & TS_SUMMARY    )?"SUMMARY":"",
+                   ( p->ts_options & TS_NORMALIZE  )?"NORMALIZE":"",
+                   ( p->ts_options & TS_APPEND     )?"APPEND":"",
+                   ( p->ts_options & TS_WRAP       )?"WRAP":"",
+                   ( p->ts_options & TS_ONESHOT    )?"ONESHOT":"");
+                if ( p->ts_options & TS_TRIGTIME   ) fprintf(out,"TRIGTIME %llu",p->ts_trigtime);
+                if ( p->ts_options & TS_TRIGOP     ) fprintf(out,":TRIGOP %ld",p->ts_trigop);
+		if ( p->ts_output_filename != NULL ) fprintf(out, "\t\tTimestamp ASCII output file name, %s\n",p->ts_output_filename);
+		if ( p->ts_options & TS_DUMP       ) fprintf(out, "\t\tTimestamp binary output file name, %s\n",p->ts_binary_filename);
+	} else                                       fprintf(out, "\t\tTimestamping, disabled\n");
 
 	// Print the heartbeat interval and options
 	if (p->hb.hb_interval > 0) { // Display the Heartbeat information

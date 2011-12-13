@@ -171,17 +171,20 @@ xdd_ts_setup(ptds_t *p) {
 	snprintf(p->ts_binary_filename,ts_filename_size,"%s.target.%04d.bin",xgp->ts_binary_filename_prefix,p->my_target_number);
 
 	// Now do the ASCII output file name
-	ts_filename_size = strlen(xgp->ts_output_filename_prefix) + 32;
-    p->ts_output_filename = malloc(ts_filename_size);
-	if (p->ts_output_filename == NULL) {
+	// If -ts output filename option not used, then dont set it.
+    if ( xgp->ts_output_filename_prefix != NULL ) {
+      ts_filename_size = strlen(xgp->ts_output_filename_prefix) + 32;
+      p->ts_output_filename = malloc(ts_filename_size);
+  	  if (p->ts_output_filename == NULL) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp output filename\n",
 			xgp->progname,p->my_target_number, ts_filename_size);
 		fflush(xgp->errout);
 		perror("Reason");
 		p->ts_options &= ~TS_ON;
 		return;
-	}
-	snprintf(p->ts_output_filename,ts_filename_size,"%s.target.%04d.csv",xgp->ts_output_filename_prefix,p->my_target_number);
+	  }
+	  snprintf(p->ts_output_filename,ts_filename_size,"%s.target.%04d.csv",xgp->ts_output_filename_prefix,p->my_target_number);
+    }
 	return;
 } /* end of xdd_ts_setup() */
 /*----------------------------------------------------------------------------*/
