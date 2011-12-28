@@ -348,7 +348,7 @@ struct ptds {
 	struct lockstep				*lockstepp;		// pointer to the lockstep structure used by the lockstep option
 	struct restart				*restartp;		// pointer to the restart structure used by the restart monitor
 	struct ptds					*pm1;			// ptds minus  1 - used for report print queueing - don't ask 
-#if (LINUX)
+#if (LINUX || DARWIN)
 	struct stat			statbuf;				// Target File Stat buffer used by xdd_target_open()
 #elif (AIX || SOLARIS)
 	struct stat64		statbuf;				// Target File Stat buffer used by xdd_target_open()

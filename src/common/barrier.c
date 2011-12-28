@@ -382,8 +382,12 @@ xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
 		bp->flags &= ~XDD_BARRIER_FLAG_INITIALIZED; // NOT initialized!!!
 		return(-1);
 	}
-	// Init barrier 
+	// Init barrier
+#ifdef HAVE_PTHREAD_BARRIER
 	status = pthread_barrier_init(&bp->pbar, 0, threads);
+#else
+	status = xint_barrier_init(&bp->pbar, threads);
+#endif
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_init_barrier<pthread_barriers>: ERROR in pthread_barrier_init for barrier '%s', status=%d",
 			xgp->progname, barrier_name, status);
@@ -436,7 +440,11 @@ xdd_destroy_barrier(struct xdd_barrier *bp) {
 		errno = status; // Set the errno
 		perror("Reason");
 	}
+#ifdef HAVE_PTHREAD_BARRIER
 	status = pthread_barrier_destroy(&bp->pbar);
+#else
+	status = xint_barrier_destroy(&bp->pbar);
+#endif
 	if (status && !(xgp->global_options & GO_INTERACTIVE_EXIT)) { // If this is an exit requested by the interactive debugger then do not display error messages...
 		fprintf(xgp->errout,"%s: xdd_destroy_barrier<pthread_barriers>: ERROR: pthread_barrier_destroy: errno %d destroying barrier '%s'\n",
 			xgp->progname,status,bp->name);
@@ -522,15 +530,26 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 
 	// Now we wait here at this barrier until all the other threads arrive...
 	nclk_now(&occupantp->entry_time);
+#ifdef HAVE_PTHREAD_BARRIER
 	status = pthread_barrier_wait(&bp->pbar);
 	nclk_now(&occupantp->exit_time);
-
 	if ((status != 0) && (status != PTHREAD_BARRIER_SERIAL_THREAD)) {
 		fprintf(xgp->errout,"%s: xdd_barrier<pthread_barriers>: ERROR: pthread_barrier_wait failed: Barrier %s, status is %d, errno is %d\n", 
 			xgp->progname, bp->name, status, errno);
 		perror("Reason");
 		status = -1;
 	}
+#else
+	status = xint_barrier_wait(&bp->pbar);
+	nclk_now(&occupantp->exit_time);
+	if (status != 0) {
+		fprintf(xgp->errout,"%s: xdd_barrier<pthread_barriers>: ERROR: xint_barrier_wait failed: Barrier %s, status is %d, errno is %d\n", 
+			xgp->progname, bp->name, status, errno);
+		perror("Reason");
+		status = -1;
+	}
+#endif
+
 	if ((occupantp->occupant_type & XDD_OCCUPANT_TYPE_TARGET ) ||
 		(occupantp->occupant_type & XDD_OCCUPANT_TYPE_QTHREAD)) {
 		// Clear this thread's PTDS->current_barrier

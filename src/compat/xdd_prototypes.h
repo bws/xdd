@@ -28,6 +28,10 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef XDD_PROTOTYPES_H
+#define XDD_PROTOTYPES_H
+
+#include <restart.h>
 
 /* XDD function prototypes */
 // access_pattern.c
@@ -39,15 +43,9 @@ int32_t	xdd_load_seek_list(ptds_t *p);
 int32_t	xdd_init_barrier_chain(void);
 void	xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, ptds_t *p);
 void	xdd_destroy_all_barriers(void);
-#ifdef SYSV_SEMAPHORES
-int32_t	xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name);
-void	xdd_destroy_barrier(struct xdd_barrier *bp);
-int32_t	xdd_barrier(struct xdd_barrier *bp);
-#else
 int32_t	xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name);
 void	xdd_destroy_barrier(struct xdd_barrier *bp);
 int32_t	xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner);
-#endif
 
 // datapatterns.c
 void	xdd_datapattern_buffer_init(ptds_t *p);
@@ -116,7 +114,7 @@ int 	xdd_interactive_run(int32_t tokens, char *cmdline, uint32_t flags);
 int 	xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags);
 int 	xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags);
 int 	xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags);
-int		xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags);
+int	xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_ptds(int32_t tokens, char *cmdline, uint32_t flags);
@@ -394,3 +392,5 @@ void	xdd_start_results_manager();
 void	xdd_start_heartbeat();
 void	xdd_start_restart_monitor();
 void	xdd_start_interactive();
+
+#endif

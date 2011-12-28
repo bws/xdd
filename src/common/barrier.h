@@ -138,6 +138,9 @@
 // An occupant_type of TARGET will have an occupant_name of "target_#". 
 // Finally, an occupant_type of MAIN will have an occupant_name of "main".
 //
+
+#include <pthread.h>
+
 struct xdd_occupant {
 	struct		xdd_occupant	*prev_occupant;	// Previous occupant on the chain
 	struct		xdd_occupant	*next_occupant;	// Next occupant on the chain
@@ -169,14 +172,11 @@ struct xdd_barrier {
 	int32_t					counter; 		// Couter used to keep track of how many threads have entered the barrier
 	int32_t					threads; 		/// The number of threads that need to enter this barrier before occupants are released
 #ifdef WIN32
-	HANDLE				sem;  			// The semaphore Object
+    HANDLE				sem;  			// The semaphore Object
+#elifdef HAVE_PTHREAD_BARRIER_T
+    pthread_barrier_t	pbar;			// The PThreads Barrier 
 #else
-#ifdef SYSV_SEMAPHORES
-	int32_t				sem;			// SystemV Semaphore ID
-	int32_t				semid_base; 	// The unique base name of this SysV semaphore
-#else
-	pthread_barrier_t	pbar;			// The PThreads Barrier 
-#endif
+    xint_barrier_t pbar;
 #endif
 	pthread_mutex_t 	mutex;  		// Locking Mutex for access to the semaphore chain
 };

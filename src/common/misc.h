@@ -31,48 +31,31 @@
 
 #ifndef MISC_H
 #define MISC_H
-#ifdef WIN32
-#define __INTEL__
-#endif
 
-/* -------- */
-/* Includes */
-/* -------- */
-#if (LINUX || AIX || IRIX || SOLARIS || OSX || FREEBSD )
-#ifndef NDEBUG /* These are only needed if Assert() expands to something */
-#include <stdio.h> /* fprintf(), stderr */
-#include <unistd.h> /* pause() */
-#endif /* NDEBUG */
-#endif
-#include <limits.h> /* ULONG_MAX */
-#if ( IRIX )
+#include <stdio.h>
+#include <unistd.h>
+#include <limits.h>
 #include <sys/types.h>
-#include <sys/param.h> /* NBPSCTR */
-#endif /* IRIX */
-/* ------- */
-/* Renames */
-/* ------- */
-#define private static  /* Differentiate scope from visibility */
-#define reg register /* Just an abbreviation */
-/* ----- */
-/* Types */
-/* ----- */
-typedef enum { false = 0, true } bool;
-#if !(IRIX || SOLARIS )
-#endif /* ! IRIX */
-/* --------- */
-/* Constants */
-/* --------- */
-// Base10 Numbers
-#define ONE		 		   1LL 			/**< 10^0, as opposed to 2^0 */
-#define THOUSAND 		1000LL 			/**< 10^3, as opposed to 2^10 */
-#define MILLION  		1000000LL 		/**< 10^6, as opposed to 2^20 */
-#define BILLION  		1000000000LL 	/**< 10^9, as opposed to 2^30 */
-#define TRILLION 		1000000000000LL /**< 10^12, as opposed to 2^40 */
+#include <sys/param.h>
+
+/* Some reckless renames */
+//#define private static
+//#define reg register
+
+/* Boolean definition */
+typedef enum {false = 0, true} bool;
+
+/* Define Base10 numeric constants */
+#define ONE   		1LL 			/**< 10^0, as opposed to 2^0 */
+#define THOUSAND 	1000LL 			/**< 10^3, as opposed to 2^10 */
+#define MILLION  	1000000LL 		/**< 10^6, as opposed to 2^20 */
+#define BILLION  	1000000000LL 	/**< 10^9, as opposed to 2^30 */
+#define TRILLION 	1000000000000LL /**< 10^12, as opposed to 2^40 */
 #define FLOAT_MILLION 	1000000.0 		/**< 10^6 as floating point */
 #define FLOAT_BILLION 	1000000000.0 	/**< 10^9 as floating point */
 #define FLOAT_TRILLION 	1000000000000.0 /**< 10^12 as floating point */
-// Base2 Numbers
+
+/* Define Base2 numeric constants */
 #define LL_KILOBYTE 	1024LL 			/**< 2^10 as Long long Int */
 #define LL_MEGABYTE 	1048576LL 		/**< 2^20 as Long Long Int */
 #define LL_GIGABYTE 	1073741824LL 	/**< 2^30 as Long Long Int */
@@ -81,88 +64,39 @@ typedef enum { false = 0, true } bool;
 #define FLOAT_MEGABYTE 	1048576.0 		/**< 2^20 as floating point */
 #define FLOAT_GIGABYTE 	1073741824.0 	/**< 2^30 as floating point */
 #define FLOAT_TERABYTE 	1099511627776.0 /**< 2^40 as floating point */
-#ifndef DOUBLE_MAX
-#define DOUBLE_MAX 		1.7976931348623158e+308 /* max value of a double float*/
-#define NATIONAL_DEBT DOUBLE_MAX
-#endif
 
-//-----------------------------------------------------------------
-/* Windows defines these values a different way... */
-// Signed 64-bit integer
+/* Define some maximum values if needed */
+#ifndef DOUBLE_MAX
+#define DOUBLE_MAX 	1.7976931348623158e+308 /* max value of a double float*/
+#endif
 #ifndef LLONG_MAX
 #define LLONG_MAX 9223372036854775807LL
 #endif
 #ifndef LLONG_MIN
 #define LLONG_MIN (-LLONG_MAX - 1LL)
 #endif
-#if (LINUX || AIX || IRIX || SOLARIS || OSX || FREEBSD )
 #ifndef LONGLONG_MIN
 #define LONGLONG_MIN LLONG_MIN
 #endif
 #ifndef LONGLONG_MAX
 #define LONGLONG_MAX LLONG_MAX
 #endif
-#else
-#define LONGLONG_MIN _I64_MIN
-#define LONGLONG_MAX _I64_MAX
-#endif
-// Unsigned 64-bit integer
 #ifndef ULLONG_MAX
 #define ULLONG_MAX 18446744073709551615LL
 #endif
 #ifndef ULONGLONG_MAX
 #define ULONGLONG_MAX ULLONG_MAX
 #endif
-/* ------ */
-/* Macros */
-/* ------ */
-/*
- * ntohll(n), htonll(h)
- *
- * Convert between network and host byte order for 64-bit long long
- * values.
- */
-#ifdef __INTEL__
-/*
- * Defining them in terms of each other is technically not
- * safe, but it works for the normal big/little endian cases.
- */
 
-#if (SOLARIS || LINUX)
-/*  These definitions are for SOLARIS running on an Intel platform */
-#ifndef __int64
-#define __int64 long long
-#endif
-#ifndef __int32
-#define __int32 int
-#endif
-#endif /* SOLARIS definitions */
-//---------------------------------
-#ifndef ntohll
-#define ntohll(n) \
-	    (((__int64) ntohl((unsigned __int32) ((n) & 0xffffffff))) << 32 \
-		| (__int64) ntohl((unsigned __int32) ((n) >> 32)))
-#endif /* end of ntohll definition */
-//---------------------------------
-#ifndef htonll
-#define htonll(h)   ntohll(h)
-#endif
-//---------------------------------
-#else /* ! __INTEL__ */
-#ifndef ntohll
-#define ntohll(n)   (n)  /* It's a no-op for most everyone else */
-#endif
-#ifndef htonll
-#define htonll(h)   (h)  /* It's a no-op for most everyone else */
-#endif
-#endif /* ! __INTEL__ */
-//---------------------------------
-#if WIN32 
 /*
  * Windows defines a LONGLONG type to hold long data; problem is
  * it's a floating point, rather than an integral type.  So this
  * kludge is used to convert a LONGLONG to its long long form.
  */
+#ifdef WIN32 
+
+/* Enable Intel on Windows? */
+#define __INTEL__
 
 #define LONG_LONG(LLvar) (*(long long *) &(LLvar).QuadPart)
 #define pause()    /* Not defined in Windows env */

@@ -362,6 +362,30 @@ xdd_target_open_for_os(ptds_t *p) {
 } // End of xdd_target_open_for_aix()
 #endif
 
+#if DARWIN
+/*----------------------------------------------------------------------------*/
+/* xdd_target_open_for_darwin() - Open routine for aix
+ */
+int32_t
+xdd_target_open_for_os(ptds_t *p) {
+        /* open the target */
+    if (p->rwratio == 0.0) {
+	p->fd = open(p->target_full_pathname,p->target_open_flags|O_WRONLY, 0666); /* write only */
+    } else if (p->rwratio == 1.0) { /* read only */
+	p->target_open_flags &= ~O_CREAT;
+	p->fd = open(p->target_full_pathname,p->target_open_flags|O_RDONLY, 0777); /* Read only */
+    } else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
+	p->target_open_flags &= ~O_CREAT;
+	p->fd = open(p->target_full_pathname,p->target_open_flags|O_RDWR, 0666);
+    }
+
+    // Modify the file control to allow direct I/O if requested
+    if (p->target_options & TO_DIO)
+	fcntl(p->fd, F_NOCACHE, 1);
+
+    return(0);
+} // End of xdd_target_open_for_darwin()
+#endif
 
 #if SOLARIS
 /*----------------------------------------------------------------------------*/
@@ -420,95 +444,6 @@ xdd_target_open_for_os(ptds_t *p) {
 	}
 	return(0);
 } // End of xdd_target_open_for_solaris()
-#endif
-
-#if OSX
-/*----------------------------------------------------------------------------*/
-/* xdd_target_open_for_osx() - Open routine for osx
- */
-int32_t
-xdd_target_open_for_os(ptds_t *p) {
-	struct stat64 statbuf; /* buffer for file statistics */
-
-//////////////////////////////tbd //////////////////////////////////////////////
-
-	flags |= O_LARGEFILE;
-	/* setup for DIRECTIO & perform sanity checks */
-	if (p->target_options & TO_DIO) {
-			/* make sure it is a regular file, otherwise fail */
-			if ( (statbuf.st_mode & S_IFMT) != S_IFREG) {
-				fprintf(xgp->errout,"%s (%d): xdd_open_target: target %s must be a regular file when used with the -dio flag\n",
-					xgp->progname,
-					p->my_target_number,
-					target_full_pathname);
-				fflush(xgp->errout);
-				return(-1);
-			}
-		i = directio(fd,DIRECTIO_ON);
-		if (i < 0) {
-			fprintf(xgp->errout,"(%d) %s: xdd_open_target: could not set DIRECTIO flag for: %s\n",
-					p->my_target_number,xgp->progname,target_full_pathname);
-			fflush(xgp->errout);
-			perror("reason");
-			return(-1);
-		}
-	} /* end of IF stmnt that opens with DIO */
-	// Generic 64-bit UNIX open stuff - for Solaris, AIX, FREEBSD, and MacOSX
-	if (p->rwratio == 0.0) {
-		fd = open64(target_full_pathname,flags|O_WRONLY, 0666); /* write only */
-	} else if (p->rwratio == 1.0) { /* read only */
-		flags &= ~O_CREAT;
-		fd = open64(target_full_pathname,flags|O_RDONLY, 0777); /* Read only */
-	} else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
-		flags &= ~O_CREAT;
-		fd = open64(target_full_pathname,flags|O_RDWR, 0666);
-	}
-	i = fstat64(fd,&statbuf);
-	return(0);
-} // End of xdd_target_open_for_osx()
-#endif
-
-#if FREEBSD
-/*----------------------------------------------------------------------------*/
-/* xdd_target_open_for_freebsd() - Open routine for freebsd
- */
-int32_t
-xdd_target_open_for_os(ptds_t *p) {
-	struct stat64 statbuf; /* buffer for file statistics */
-//////////////////////////////tbd //////////////////////////////////////////////
-	flags |= O_LARGEFILE;
-	/* setup for DIRECTIO & perform sanity checks */
-	if (p->target_options & TO_DIO) {
-			/* make sure it is a regular file, otherwise fail */
-			if ( (statbuf.st_mode & S_IFMT) != S_IFREG) {
-				fprintf(xgp->errout,"%s (%d): xdd_open_target: target %s must be a regular file when used with the -dio flag\n",
-					xgp->progname,
-					p->my_target_number,
-					target_full_pathname);
-				fflush(xgp->errout);
-				return(-1);
-			}
-		i = directio(fd,DIRECTIO_ON);
-		if (i < 0) {
-			fprintf(xgp->errout,"(%d) %s: xdd_open_target: could not set DIRECTIO flag for: %s\n",
-					p->my_target_number,xgp->progname,p->target_full_pathname);
-			fflush(xgp->errout);
-			perror("reason");
-			return(-1);
-		}
-	} /* end of IF stmnt that opens with DIO */
-	// Generic 64-bit UNIX open stuff - for Solaris, AIX, FREEBSD, and MacOSX
-	if (p->rwratio == 0.0) {
-		p->fd = open64(p->target_full_pathname,p->flags|O_WRONLY, 0666); /* write only */
-	} else if (p->rwratio == 1.0) { /* read only */
-		flags &= ~O_CREAT;
-		p->fd = open64(p->target_full_pathname,p->flags|O_RDONLY, 0777); /* Read only */
-	} else if ((p->rwratio > 0.0) && (p->rwratio < 1.0)) { /* read/write mix */
-		flags &= ~O_CREAT;
-		p->fd = open64(p->target_full_pathname,p->flags|O_RDWR, 0666);
-	}
-	return(0);
-} // End of xdd_target_open_for_freebsd()
 #endif
 
 #ifdef WIN32

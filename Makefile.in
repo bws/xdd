@@ -145,7 +145,7 @@ SOFLAGS = @CONFIG_SOFLAGS@
 #
 .DEFAULT: all
 
-all: xdd xdd-tserver xdd-gettime xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate libs
+all: xdd xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate libs
 
 xdd: bin/xdd
 

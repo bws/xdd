@@ -28,6 +28,10 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef GLOBAL_DATA_H
+#define GLOBAL_DATA_H
+
+#include <sys/utsname.h>
 
 // Bit field definitions for the xdd_global_options - The "GO_XXXX" definitions are specifically for the Global Options 
 
@@ -191,4 +195,6 @@ typedef	struct 		xdd_global_data 	xdd_global_data_t;
 xdd_global_data_t   		*xgp;   					// pointer to the xdd global data that xdd_main uses
 #else
 extern  xdd_global_data_t   *xgp;						// pointer to the xdd global data that all routines use 
+#endif
+
 #endif

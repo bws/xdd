@@ -39,36 +39,33 @@
  */
 void
 xdd_schedule_options(void) {
-	int32_t status;  /* status of a system call */
-	struct sched_param param; /* for the scheduler */
+#ifdef HAVE_SCHEDSCHEDULER
+    int32_t status;  /* status of a system call */
+    struct sched_param param; /* for the scheduler */
 
-	if (xgp->global_options & GO_NOPROCLOCK) 
-                return;
-#if !(OSX)
-#if (IRIX || SOLARIS || AIX || LINUX || FREEBSD)
-	if (getuid() != 0)
-		fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to lock processes\n",xgp->progname);
-#endif 
-	/* lock ourselves into memory for the duration */
-	status = mlockall(MCL_CURRENT | MCL_FUTURE);
-	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_schedule_options: cannot lock process into memory\n",xgp->progname);
-		perror("Reason");
+    if (xgp->global_options & GO_NOPROCLOCK) 
+	return;
+    if (getuid() != 0)
+	fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to lock processes\n",xgp->progname);
+    /* lock ourselves into memory for the duration */
+    status = mlockall(MCL_CURRENT | MCL_FUTURE);
+    if (status < 0) {
+	fprintf(xgp->errout,"%s: xdd_schedule_options: cannot lock process into memory\n",xgp->progname);
+	perror("Reason");
+    }
+    if (xgp->global_options & GO_MAXPRI) {
+	if (getuid() != 0) 
+	    fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to max priority\n",xgp->progname);
+
+	/* reset the priority to max max max */
+	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
+	status = sched_setscheduler(0,SCHED_FIFO,&param);
+	if (status == -1) {
+	    fprintf(xgp->errout,"%s: xdd_schedule_options: cannot reschedule priority\n",xgp->progname);
+	    perror("Reason");
 	}
-	if (xgp->global_options & GO_MAXPRI) {
-#if (IRIX || SOLARIS || AIX || LINUX || FREEBSD)
-		if (getuid() != 0) 
-			fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to max priority\n",xgp->progname);
+    }
 #endif
-		/* reset the priority to max max max */
-		param.sched_priority = sched_get_priority_max(SCHED_FIFO);
-		status = sched_setscheduler(0,SCHED_FIFO,&param);
-		if (status == -1) {
-			fprintf(xgp->errout,"%s: xdd_schedule_options: cannot reschedule priority\n",xgp->progname);
-			perror("Reason");
-		}
-	}
-#endif // if not OSX
 } /* end of xdd_schedule_options() */
  
 /*

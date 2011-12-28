@@ -28,6 +28,11 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef TARGET_OFFSET_TABLE_H
+#define TARGET_OFFSET_TABLE_H
+
+#include <pthread.h>
+#include <semaphore.h>
 
 #define TOT_MULTIPLIER 20
 /** typedef unsigned long long iotimer_t; */
@@ -51,8 +56,9 @@ typedef struct tot_entry tot_entry_t;
  * the time stamp trace table data 
  */
 struct tot {
-	int 				tot_entries;  				// Number of tot entries
+	int 				tot_entries;  			// Number of tot entries
 	struct 				tot_entry tot_entry[1]; 	// The ToT
 };
 typedef struct tot tot_t;
 
+#endif

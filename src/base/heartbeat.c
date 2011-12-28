@@ -33,6 +33,7 @@
  * functions when xdd is started.
  */
 #include "xdd.h"
+#include <stdint.h>
 /*----------------------------------------------------------------------------*/
 /* xdd_heartbeat() 
  * Heartbeat runs as a separate thread that will periodically interogate the

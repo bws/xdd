@@ -61,10 +61,58 @@
 #endif
 #include "nclk.h"
 #include "misc.h" /* bool */
+
 /* ------- */
 /* Renames */
 /* ------- */
 #define private static
+
+/* ------ */
+/* Macros used only by the time server */
+/* ------ */
+/*
+ * ntohll(n), htonll(h)
+ *
+ * Convert between network and host byte order for 64-bit long long
+ * values.
+ */
+#ifdef __INTEL__
+/*
+ * Defining them in terms of each other is technically not
+ * safe, but it works for the normal big/little endian cases.
+ */
+
+#if (SOLARIS || LINUX)
+/*  These definitions are for SOLARIS running on an Intel platform */
+#ifndef __int64
+#define __int64 long long
+#endif
+#ifndef __int32
+#define __int32 int
+#endif
+#endif /* SOLARIS definitions */
+//---------------------------------
+#ifndef ntohll
+#define ntohll(n) \
+	    (((__int64) ntohl((unsigned __int32) ((n) & 0xffffffff))) << 32 \
+		| (__int64) ntohl((unsigned __int32) ((n) >> 32)))
+#endif /* end of ntohll definition */
+//---------------------------------
+#ifndef htonll
+#define htonll(h)   ntohll(h)
+#endif
+//---------------------------------
+#else /* ! __INTEL__ */
+#ifndef ntohll
+#define ntohll(n)   (n)  /* It's a no-op for most everyone else */
+#endif
+#ifndef htonll
+#define htonll(h)   (h)  /* It's a no-op for most everyone else */
+#endif
+#endif /* ! __INTEL__ */
+//---------------------------------
+
+
 /* ----- */
 /* Types */
 /* ----- */

@@ -7,9 +7,7 @@ COMMON_SRC := $(DIR)/access_pattern.c \
 	$(DIR)/barrier.c \
 	$(DIR)/datapatterns.c \
 	$(DIR)/debug.c \
-	$(DIR)/global_clock.c \
 	$(DIR)/global_data.c \
-	$(DIR)/global_time.c \
 	$(DIR)/memory.c \
 	$(DIR)/nclk.c \
 	$(DIR)/processor.c \

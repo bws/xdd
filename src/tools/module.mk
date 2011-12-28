@@ -5,9 +5,9 @@ DIR := src/tools
 
 TOOLS_SRC :=
 
-TS_EXE_SRC := $(DIR)/timeserver.c
+TS_EXE_SRC := $(DIR)/global_time.c $(DIR)/timeserver.c
 
-GETTIME_EXE_SRC := $(DIR)/gettime.c
+GETTIME_EXE_SRC := $(DIR)/global_clock.c $(DIR)/global_time.c $(DIR)/gettime.c
 
 READ_TSDUMPS_EXE_SRC := $(DIR)/read_tsdumps.c $(DIR)/matchadd_kernel_events.c
 

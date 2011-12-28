@@ -35,22 +35,18 @@
 /* Includes */
 /* -------- */
 #include <stdio.h>
+#include <time.h>
 #include <unistd.h>
 #include <stdint.h>
 #include <sys/time.h>
-
-/* Depends on defs from unistd.h */
-#if (LINUX) && (_POSIX_TIMERS) 
-#include <time.h> /* nclk_t, prototype compatibility */
-#endif
-
+#include "misc.h"
 #include "nclk.h" /* nclk_t, prototype compatibility */
 
 /* --------------- */
 /* Private globals */
 /* --------------- */
 /* Nothing works until the nclk subsystem is initialized. */
-private bool     nclk_initialized = false;
+static bool     nclk_initialized = false;
 /*----------------------------------------------------------------------------*/
 /* nclk_initialize()
  *
@@ -68,7 +64,7 @@ nclk_initialize(nclk_t *nclkp) {
 	// Since we use the "nanosecond" clocks in Linux, 
 	// the number of nanoseconds per nanosecond "tick" is 1
     *nclkp =  ONE;
-#elif (SOLARIS || AIX || OSX || FREEBSD )
+#elif (SOLARIS || AIX || DARWIN || FREEBSD )
 	// Since we use the "gettimeofday" clocks in this OS, 
 	// the number of nanoseconds per microsecond "tick" is 1,000
     *nclkp =  THOUSAND;
@@ -125,7 +121,7 @@ nclk_now(nclk_t *nclkp) {
     return;
 }
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-#elif (SOLARIS || AIX || OSX || FREEBSD )
+#elif (SOLARIS || AIX || DARWIN || FREEBSD )
 void
 nclk_now(nclk_t *nclkp) {
     struct timeval current_time;

@@ -115,7 +115,7 @@ xdd_io_for_os(ptds_t *qp) {
 } // End of xdd_io_for_linux()
 #endif 
 
-#ifdef AIX
+#if defined(AIX) || defined(DARWIN)
 /*----------------------------------------------------------------------------*/
 /* xdd_io_for_os() - This subroutine is only used on AIX systems
  * This will initiate the system calls necessary to perform an I/O operation

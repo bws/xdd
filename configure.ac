@@ -57,17 +57,23 @@ if test "$PLATFORM" = "AIX"; then
    ARFLAGS="-rcs -X 64"
    CPPFLAGS="-DAIX -D_THREAD_SAFE"
    LIBS="-lnsl -lxnet -v"
+   CFLAGS=""
+   dnl On IBM systems we prefer the IBM compiler
 elif test "$PLATFORM" = "Linux"; then
    ARFLAGS="-rcs"
    CPPFLAGS="-DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE"
+   CFLAGS=""
+elif test "$PLATFORM" = "Darwin"; then
+   ARFLAGS="-rcs"
+   CPPFLAGS="-DDARWIN -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE"
+   CFLAGS=""
 else
    AC_MSG_ERROR(Unsupported build platform: $PLATFORM)
 fi
 
 dnl
-dnl Check for C compiler 
-dnl   On IBM systems we prefer the IBM compiler
-CFLAGS=""
+dnl Ensure compiler provides C
+dnl
 AC_PROG_CC([xlc_r gcc])
 AC_LANG_C
 AC_SUBST(CC)
@@ -81,11 +87,16 @@ if test "$CC" = "xlc_r"; then
    dnl AX_CFLAGS_AIX_OPTION([-qthreaded])
    CFLAGS="-q64 -qcpluscmt -qthreaded"
    LDFLAGS="-q64 -qthreaded"
+elif test "$CC" = "bws_clang"; then
+   CFLAGS="-g"
+   LDFLAGS="-g"
 elif test "$CC" = "gcc"; then
    AX_CFLAGS_GCC_OPTION([-ggdb])
    AX_CFLAGS_GCC_OPTION([-fno-strict-aliasing])
    AX_CFLAGS_GCC_OPTION([-fPIC])
    AX_CFLAGS_GCC_OPTION([-Wall])
+else
+   AC_MSG_ERROR(Unsupported compiler type: $CC)
 fi
 
 dnl
@@ -110,8 +121,10 @@ dnl Determine flags to create shared objects
 dnl
 if test "$CC" = "xlc_r"; then
    SOFLAGS="-G -q64 -qmkshrobj"
-elif test "$CC" = "gcc"; then
+elif test "$CC" = "gcc" -a "$PLATFORM" = "Linux"; then
    SOFLAGS="-shared -Wl,-soname,\$@"
+elif test "$CC" = "gcc" -a "$PLATFORM" = "Darwin"; then
+   SOFLAGS="-undefined dynamic_lookup -dynamiclib"
 fi
 
 
@@ -131,26 +144,44 @@ dnl
 AC_HEADER_STDC
 
 dnl
-dnl Headers common to all supported platforms
+dnl Ensure required POSIX headers are supplied
 dnl
 AC_CHECK_HEADER([fcntl.h], 
                 [], 
-                AC_MSG_ERROR(Must include headers for fcntl.h))
+                AC_MSG_ERROR(Required header fcntl.h not found))
+AC_CHECK_HEADER([limits.h], 
+                [], 
+                AC_MSG_ERROR(Required header limits.h not found))
+AC_CHECK_HEADER([time.h], 
+                [], 
+                AC_MSG_ERROR(Required header time.h not found))
 AC_CHECK_HEADER([unistd.h], 
                 [], 
-                AC_MSG_ERROR(Must include headers for unistd.h))
-AC_CHECK_HEADER([sys/types.h], 
+                AC_MSG_ERROR(Required header unistd.h not found))
+AC_CHECK_HEADER([sys/param.h], 
                 [], 
-                AC_MSG_ERROR(Must include headers for sys/types.h))
+                AC_MSG_ERROR(Required header sys/param.h not found))
 AC_CHECK_HEADER([sys/stat.h], 
                 [], 
-                AC_MSG_ERROR(Must include headers for sys/stat.h))
-
-AC_CHECK_HEADER([utmpx.h],
-		[], [])
+                AC_MSG_ERROR(Required header sys/stat.h not found))
+AC_CHECK_HEADER([sys/time.h], 
+                [], 
+                AC_MSG_ERROR(Required header sys/time.h not found))
+AC_CHECK_HEADER([sys/types.h], 
+                [], 
+                AC_MSG_ERROR(Required header sys/types.h not found))
+AC_CHECK_HEADER([sys/utsname.h], 
+                [], 
+                AC_MSG_ERROR(Required header sys/utsname.h not found))
 
 dnl
-dnl Check for C libraries
+dnl Check for optional POSIX headers
+dnl
+AC_CHECK_HEADERS([sched.h], [], []) 
+AC_CHECK_HEADERS([utmpx.h], [], [])
+
+dnl
+dnl Check for C library function
 dnl
 AC_TRY_LINK([#include <stdlib.h>],
 	    [atoi("0");],
@@ -172,6 +203,13 @@ AC_TRY_LINK([#include <pthread.h>],
 	    AC_MSG_ERROR([No suitable pthreads library to link against]))
 
 dnl
+dnl Check for pthread's pthread_barrier_t
+dnl 
+AC_TRY_COMPILE([#include <pthread.h],
+            [pthread_barrier_t pb;],
+            CFLAGS="$CFLAGS -DHAVE_PTHREAD_BARRIER_T",
+            [])
+dnl
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl
 AC_TYPE_SIZE_T
@@ -179,13 +217,17 @@ AC_TYPE_SIZE_T
 dnl
 dnl Checks for library functions.
 dnl
-AC_CHECK_FUNC([memset])
+AC_CHECK_FUNCS([memset])
 
+dnl
+dnl Checks for POSIX functions
+dnl
 AC_SEARCH_LIBS([clock_gettime], [rt],
 	       [], 
 	       AC_MSG_WARN(Posix function clock_gettime not found.))
 
 AC_CHECK_FUNCS([sched_getcpu])
+AC_CHECK_FUNCS([sched_setscheduler])
 
 dnl
 dnl Check for MPI compiler

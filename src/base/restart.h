@@ -28,6 +28,9 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef RESTART_H
+#define RESTART_H
+
 struct restart {
 	FILE			*fp;					// File pointer for the restart file
 	char			*restart_filename;		// Name of the restart file
@@ -52,3 +55,4 @@ typedef struct restart restart_t;
 #define	RESTART_FLAG_SUCCESSFUL_COMPLETION		0x0000000000000004		// Indicates that the e2e (aka copy) operation completed successfully
 #define	RESTART_FLAG_RESTART_FILE_NOW_CLOSED	0x0000000000000008		// Indicates that the restart file has been closed
 
+#endif

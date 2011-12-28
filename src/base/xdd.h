@@ -33,8 +33,8 @@
 #include "xdd_win32.h"
 #elif LINUX
 #include "xdd_linux.h"
-#elif OSX
-#include "xdd_osx.h"
+#elif DARWIN
+#include "xdd_darwin.h"
 #elif FREEBSD
 #include "xdd_freebsd.h"
 #elif SOLARIS
