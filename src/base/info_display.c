@@ -328,7 +328,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	fprintf(out, "\t\tQueue Depth, %d\n",p->queue_depth);
 	/* Timestamp options */
 	if (p->ts_options & TS_ON) {
-                fprintf(out, "\t\tTimestamping, enabled with options, %s %s %s %s %s\n",
+                fprintf(out, "\t\tTimestamping, enabled with options, %s %s %s %s %s %s\n",
                    ( p->ts_options & TS_DETAILED   )?"DETAILED":"", 
                    ( p->ts_options & TS_SUMMARY    )?"SUMMARY":"",
                    ( p->ts_options & TS_NORMALIZE  )?"NORMALIZE":"",

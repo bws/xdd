@@ -841,7 +841,7 @@ xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -target \${destination_file} -op 
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
 
 # Set iotrace log files location
-export TR_RUN_LOG=\${destination_dir}
+export TRACE_LOG_LOC=\${destination_dir}
 
 # Invoke XDD
 \${xdd_cmd} >> \${destination_log} 2>&1 &
@@ -976,7 +976,7 @@ fi
 xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${srcRestart} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
 
 # Set iotrace log files location
-export TR_RUN_LOG=\${PWD}
+export TRACE_LOG_LOC=\${PWD}
 
 # Construct local transport endpoint
 echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
@@ -1428,17 +1428,14 @@ function post_transfer_analysis {
 	local dstLogFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 
 	# where our data will be stored afterwards
-	local dataDir="${srcHost}_to_${destHost}_${srcBase}_${XDDCP_DEFAULT_TIMESTAMP}"
-	local myLogFile="${dataDir}/post_transfer_analysis.log"
-	local newSrcBin="${dataDir}/src_${srcHost}.bin"
-	local newDstBin="${dataDir}/dest_${destHost}.bin"
-	local tsDataFile="${dataDir}/xfer.dat"
-	local plotPrefix="${dataDir}/xfer"
+	local dataPrefix="xdd-${srcHost}_to_${destHost}_${srcBase}_${XDDCP_DEFAULT_TIMESTAMP}"
+	local dataDir="."
+ 	local myLogFile="${dataDir}/ANALYSIS_${dataPrefix}.log"
+ 	local tsPlotPrefix="${dataDir}/ANALYSIS_${dataPrefix}"
 
 	echo "Running post transfer analysis... "
 
-	# create data directory and check for writability
-	mkdir ${dataDir}
+	# check dataDir for writability
 	if [ ! -d ${dataDir} ] || [ ! -w ${dataDir} ]; then
 		echo "INFO: Can not write to ${dataDir}.  Skipping analysis." >/dev/stderr
 		return 1
@@ -1446,16 +1443,10 @@ function post_transfer_analysis {
 
 	# print a helpful tidbit to the logfile
 	echo "To change the sliding window size without rerunning the transfer, run:" >> ${myLogFile}
-	echo "    $XDDCP_READTSDUMPS_EXE -t [window_size] -o xfer.dat src_${srcHost}.bin dest_${destHost}.bin" >> ${myLogFile}
-	echo "    $XDDCP_PLOTTSDUMPS_EXE xfer.dat xfer" >> ${myLogFile}
+	echo "    $XDDCP_READTSDUMPS_EXE -t [window_size] -o plot_prefix src_${srcHost}.bin dest_${destHost}.bin" >> ${myLogFile}
+	echo "    gnuplot plotit" >> ${myLogFile}
 	echo "" >> ${myLogFile}
 
-	# copy local bin file
-	cp ${srcBinDump} ${newSrcBin} >> ${myLogFile} 2>&1
-	if [ 0 -ne $? ]; then
-		echo "INFO: Failed to copy ${srcBinDump}.  Skipping analysis" >/dev/stderr
-		return 1
-	fi
 	# get/copy destination bin file from destination to source host
 	local destRC=""
 	if [ ! -z "${destUser}" ]; then
@@ -1484,11 +1475,6 @@ ls ${dstBinDump} | /bin/cpio -o 2>/dev/null
 EOF
 ) | /bin/cpio -i >> ${myLogFile} 2>&1
 	destRC=$?
-	cp ${dstBinDump} ${newDstBin} >> ${myLogFile} 2>&1
-	if [ 0 -ne $destRC ]; then
-		echo "INFO: Failed to copy ${dstBinDump} over ssh.  Skipping analysis" >/dev/stderr
-		return 1
-	fi
 
 	# get/copy destination log file from destination to source host
         (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
@@ -1575,31 +1561,14 @@ fi
 	# read the tsdumps and plot output
 	if [ 1 -eq $kernelTrace ]; then
         # Set iotrace log files location
-          export TR_RUN_LOG=\${PWD}
-	  $XDDCP_READTSDUMPS_EXE -t ${windowSize} -k -o ${tsDataFile} ${newSrcBin} ${newDstBin} >> ${myLogFile} 2>&1
+          export TRACE_LOG_LOC=\${PWD}
+	  $XDDCP_READTSDUMPS_EXE -t ${windowSize} -k -o ${tsPlotPrefix} ${srcBinDump} ${dstBinDump} >> ${myLogFile} 2>&1
 	else
-	  $XDDCP_READTSDUMPS_EXE -t ${windowSize}    -o ${tsDataFile} ${newSrcBin} ${newDstBin} >> ${myLogFile} 2>&1
+	  $XDDCP_READTSDUMPS_EXE -t ${windowSize}    -o ${tsPlotPrefix} ${srcBinDump} ${dstBinDump} >> ${myLogFile} 2>&1
 	fi
 	if [ 0 -ne $? ]; then
-		echo "INFO: Failed to read timestamp dumps in ${dataDir}.  Skipping analysis" >/dev/stderr
+		echo "INFO: Failed to read timestamp dumps with prefix ${dataPrefix} in ${dataDir}.  Skipping analysis" >/dev/stderr
 		return 1
-	fi
-	$XDDCP_PLOTTSDUMPS_EXE ${tsDataFile} ${plotPrefix} >> ${myLogFile} 2>&1
-	if [ 0 -ne $? ]; then
-		echo "INFO: Failed to plot analysis data.  Skipping gnuplot" >/dev/stderr
-		return 1
-	fi
-	if [ 1 -eq $kernelTrace ]; then
-  	  $XDDCP_PLOTTSDUMPS_EXE ${tsDataFile}.k ${plotPrefix}k >> ${myLogFile} 2>&1
-       	  if [ 0 -ne $? ]; then
-		echo "INFO: Failed to plot analysis data, kernel files.  Skipping gnuplot" >/dev/stderr
-		return 1
-	  fi
-  	  $XDDCP_PLOTTSDUMPSDK_EXE ${tsDataFile}.k.d ${plotPrefix}d >> ${myLogFile} 2>&1
-       	  if [ 0 -ne $? ]; then
-		echo "INFO: Failed to plot analysis data, kernel files.  Skipping gnuplot" >/dev/stderr
-		return 1
-	  fi
 	fi
 
 	echo "done"

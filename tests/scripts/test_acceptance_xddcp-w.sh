@@ -43,17 +43,17 @@ if [ 0 -eq $rc ]; then
     # Check for existence of post analysis files with kernel tracing
     #
     test_passes=1
-    xfer_files=$(ls -1 $(hostname -s)*/xfer* | wc -l)
-    if [ "$xfer_files" != "6" ]; then
+    xfer_files=$(ls -1 ANALYSIS*/analysis.dat | wc -l)
+    if [ "$xfer_files" != "1" ]; then
 	test_passes=0
 	echo "ERROR: Failure in Post Analysis with Kernel Tracing Test 1"
-	echo "\tNumber of xfer* files is: $xfer_files, should be 6"
+	echo "\tfile analysis.dat is missing"
     fi
-    xfer_files=$(ls -1 $(hostname -s)*/xfer*eps | wc -l)
-    if [ "$xfer_files" != "5" ]; then
+    xfer_files=$(ls -1 ANALYSIS*/*eps | wc -l)
+    if [ "$xfer_files" != "9" ]; then
 	test_passes=0
 	echo "ERROR: Failure in Post Analysis with Kernel Tracing Test 1"
-	echo "\tNumber of xfer*eps files is: $xfer_files, should be 5"
+	echo "\tNumber of *eps files is: $xfer_files, should be 9"
     fi
 else
     echo "ERROR: XDDCP exited with: $rc"
@@ -65,7 +65,7 @@ fi
 test_dir=$XDDTEST_LOCAL_MOUNT/postanalysis-w
 rm   -rf           $test_dir
 mkdir -p           $test_dir
-mv $(hostname -s)* $test_dir
+mv ANALYSIS*       $test_dir
 mv *bin            $test_dir
 mv *csv            $test_dir
 mv *log            $test_dir
