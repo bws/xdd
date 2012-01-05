@@ -39,6 +39,7 @@ int thread_id_src[MAX_QTHREADS];
 int thread_id_dst[MAX_QTHREADS];
 int total_threads_src = 0;
 int total_threads_dst = 0;
+double op_mix = 0.0;
 nclk_t src_start_norm,dst_start_norm;
 
 /* output file, if specified */
@@ -68,8 +69,8 @@ int xdd_writefile(char *filename, tthdr_t *tsdata, size_t tsdata_size);
 int getoptions(int argc, char **argv);
 /* print command line usage */
 void printusage(char *progname);
-/* get total threads, thread pids */
-void xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[]);
+/* get total threads, thread pids, operation mix (%read,%write) */
+void xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix);
 
 int
 matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filespec, tthdr_t *xdd_data);
@@ -156,8 +157,8 @@ int main(int argc, char **argv) {
         }
 
         /* get total threads */
-        if (src != NULL) xdd_getthreads(src,&total_threads_src, thread_id_src);
-        if (dst != NULL) xdd_getthreads(dst,&total_threads_dst, thread_id_dst);
+        if (src != NULL) xdd_getthreads(src,&total_threads_src, thread_id_src, &op_mix);
+        if (dst != NULL) xdd_getthreads(dst,&total_threads_dst, thread_id_dst, &op_mix);
         /* If e2e, better have same number of threads. */
         if (total_threads_src > 0 && total_threads_dst > 0 && total_threads_src != total_threads_dst) {
           fprintf(stderr,"Warning: source (%d) and destination (%d) files don't have the same number of I/O threads.\n",
@@ -191,6 +192,8 @@ int main(int argc, char **argv) {
             sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
                 current_work_dir, src->target_thread_id);
             matchadd_kernel_events(1,total_threads_src,thread_id_src,kernfilename,src);
+            if (op_mix > 0.0)
+            matchadd_kernel_events(0,total_threads_src,thread_id_src,kernfilename,src);
             /* write out the src and dst data structs that now contain kernel data */
             sprintf(kernfilename,"%s/%sk", current_work_dir, srcfilename);
             retval = xdd_writefile(kernfilename,src,tsdata_size);
@@ -218,6 +221,8 @@ int main(int argc, char **argv) {
             sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
                 current_work_dir, dst->target_thread_id);
             matchadd_kernel_events(0,total_threads_dst,thread_id_dst,kernfilename,dst);
+            if (op_mix > 0.0)
+            matchadd_kernel_events(1,total_threads_dst,thread_id_dst,kernfilename,dst);
             sprintf(kernfilename,"%s/%sk", current_work_dir, dstfilename);
             retval = xdd_writefile(kernfilename,dst,tsdata_size);
             if (retval == 0) {
@@ -260,11 +265,16 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
-
+/* get total threads, thread ids, operation mix */
 void
-xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[])
+xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix)
 {       
        int i, k = -1, tothreads = 0;
+       uint64_t read_ops = 0, write_ops = 0;
+       if (*op_mix > 0.0) {
+          fprintf(stderr,"xdd_getthreads: op_mix = %10.4f ..should be 0.0\n",*op_mix);
+          exit (-1);
+       }
         /* how many qthreads are there? */
         for (i = 0; i < tsdata->tt_size; i++) {
                 tothreads = MAX(tsdata->tte[i].qthread_number,tothreads);
@@ -273,8 +283,11 @@ xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[])
                             k = tothreads;
                   thread_id[k] = tsdata->tte[i].thread_id;
                 }
+                read_ops  +=  READ_OP(tsdata->tte[i].op_type);
+                write_ops += WRITE_OP(tsdata->tte[i].op_type);
         }
         *total_threads = tothreads + 1;
+        *op_mix        = (read_ops && write_ops) ? (double)read_ops/(double)write_ops : 0.0;
        return;
 }
 
@@ -648,7 +661,7 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
      }
   }
   else
-  if (read_op!=NULL) {
+  if (read_op!=NULL && op_mix == 0.0) {
         fprintf(outfile,"set title \"XDD Read\"\n");
         fprintf(outfile,"set output \"%s/read.eps\"\n",                       outfilebase);
         fprintf(outfile,"plot\\\n");
@@ -663,7 +676,7 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
      }
   }
   else
-  if (write_op!=NULL) {
+  if (write_op!=NULL && op_mix == 0.0) {
         fprintf(outfile,"set title \"XDD Write\"\n");
         fprintf(outfile,"set output \"%s/write.eps\"\n",                      outfilebase);
         fprintf(outfile,"plot\\\n");
@@ -676,6 +689,25 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
         fprintf(outfile,"'%s' using 13:15 title 'write_disk_entr' lw 2,\\\n", datfilename);
         fprintf(outfile,"'%s' using 13:16 title 'write_disk_exit' lw 2\n",    datfilename);
      }
+  }
+  else 
+  if (op_mix > 0.0) {
+        fprintf(outfile,"set title \"XDD Mixed Read/Write %-7.0f%%\"\n",op_mix*100.0);
+        fprintf(outfile,"set output \"%s/mixed.eps\"\n",                       outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:2  title 'mixed_disk'  lw 2\n",         datfilename);
+     if (kernel_trace) {
+        fprintf(outfile,"set logscale y\n");
+        fprintf(outfile,"set ylabel \"Delta Time (ns) |xdd-kernel|\"\n");
+        fprintf(outfile,"set output \"%s/mixed_k.eps\"\n",                     outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:3  title 'mixed_disk_entr'  lw 2,\\\n", datfilename);
+        fprintf(outfile,"'%s' using  1:4  title 'mixed_disk_exit'  lw 2\n",    datfilename);
+     }
+  }
+  else {
+        fprintf(stderr,"write_outfile: Case not recognized\n");
+        exit(1);
   }
 	fclose(outfile);
         memset(line,0,strlen(line));
@@ -878,11 +910,11 @@ void printusage(char *progname) {
 	fprintf(stderr, "USAGE: %s [OPTIONS] TimestampFile [TimestampFile]\n\n",progname);
 
 	fprintf(stderr, "This program takes 1 or 2 XDD timestamp dump files\n");
-	fprintf(stderr, "from a single node I/O operation or file transfer,\n");
+	fprintf(stderr, "from single node I/O operations or 2 node file transfer,\n");
         fprintf(stderr, "and determines the approximate bandwidth at\n");
 	fprintf(stderr, "any given time by using a sliding window approach.\n");
-	fprintf(stderr, "If only 1 file given, read or write operations are assumed\n");
-	fprintf(stderr, "If 2 files are given, an e2e file transfer is assumed\n\n");
+	fprintf(stderr, "If 1 file  is  given, read, write, or mixed operations on 1 node are assumed\n");
+	fprintf(stderr, "If 2 files are given, an e2e file transfer between 2 nodes is assumed\n\n");
 
 	fprintf(stderr, "For instance, using '-t 5' will set the window size to 5 seconds\n");
 	fprintf(stderr, "At each point in time during the transfer, it will calculate\n");
@@ -902,17 +934,19 @@ void printusage(char *progname) {
 	fprintf(stderr, "*Assumes iotrace kernel module installed and utilities 'iotrace_init' and 'decode' in $PATH*\n\n");
 	fprintf(stderr, "     1. specify iotrace log files location (default $HOME) with: \n\n");
 	fprintf(stderr, "           'export TRACE_LOG_LOC=$PWD' \n\n");
-	fprintf(stderr, "     2. execute XDD using the following example as a guide:\n\n");
-	fprintf(stderr, "         'iotrace_init ${full path}/xdd -op [read | write] -ts dump [filename] [other xdd options..]'\n\n");
-	fprintf(stderr, "        ( This generates XDD and kernel timestamp dump files:\n");
+	fprintf(stderr, "     2. run XDD using these examples as a guide:\n\n");
+	fprintf(stderr, "         '             ${full path}/xdd -op [read | write] -ts dump [filename] [other xdd options..]'\n");
+	fprintf(stderr, "        ( This generates XDD timestamp dump file: filename].bin\n\n");
+	fprintf(stderr, "         'iotrace_init ${full path}/xdd -op [read | write] -ts dump [filename] [other xdd options..]'\n");
+	fprintf(stderr, "        ( This generates both XDD and kernel timestamp dump files:\n\n");
 	fprintf(stderr, "         [filename].bin, iotrace_data.PID.out, dictionary.DATE )\n\n");
-	fprintf(stderr, "     3. if using '-k' option below, convert kernel binary timestamp dump to ascii with:\n\n");
-	fprintf(stderr, "          'decode dictionary.DATE iotrace_data.PID.out'\n\n");
-	fprintf(stderr, "     4. execute %s using the following example as a guide:\n\n",progname);
+	fprintf(stderr, "     3. execute %s using the following example as a guide:\n\n",progname);
 	fprintf(stderr, "           '%s -t [secs] -k -o [result_dir] [filename].bin'\n\n",progname);
 	fprintf(stderr, "        ( [secs] moving average, plot results in directory [results_dir]. \n\n");
-	fprintf(stderr, "          if '-k' specified, %s generates a combined timestamp dump '[filename].bink' with XDD+kernel data )\n\n",progname);
-	fprintf(stderr, "In XDDCP, just pass the -w or -W flag to invoke this program and analysis automatically.\n\n");
+	fprintf(stderr, "          if '-k' specified, %s generates files:\n",progname);
+        fprintf(stderr, "             'iotrace_data.PID.out.ascii' ascii version of iotrace_data.PID.out\n\n");
+        fprintf(stderr, "              '[filename].bink' combined timestamp file with XDD+kernel data)\n\n");
+	fprintf(stderr, "In XDDCP, the -w or -W flag invokes this program and analysis automatically.\n\n");
 
 	fprintf(stderr, "OPTIONS:\n");
 	fprintf(stderr, "\t -h             \t print this usage text\n");
