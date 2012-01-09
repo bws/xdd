@@ -35,7 +35,7 @@ fi
 #
 # write postanalysis with xdd-read-tsdumps
 #
-XDD_READ_TSDUMPS_EXE=$(/bin/basename $XDDTEST_XDD_EXE)/xdd-read-tsdumps
+XDD_READ_TSDUMPS_EXE=$(/bin/dirname $XDDTEST_XDD_EXE)/xdd-read-tsdumps
 iotrace_init $XDD_READ_TSDUMPS_EXE -t 1 -k -o ANALYSIS_write xdd-write-tsdump.bin
 
 rc=$?
