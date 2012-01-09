@@ -36,7 +36,7 @@ fi
 # write postanalysis with xdd-read-tsdumps
 #
 XDD_READ_TSDUMPS_EXE=$(dirname $XDDTEST_XDD_EXE)/xdd-read-tsdumps
-iotrace_init $XDD_READ_TSDUMPS_EXE -t 1 -k -o ANALYSIS_write xdd-write-tsdump.bin
+$XDD_READ_TSDUMPS_EXE -t 1 -k -o ANALYSIS_write xdd-write-tsdump.target.0000.bin
 
 rc=$?
 if [ 0 -ne $rc ]; then
@@ -56,7 +56,7 @@ fi
 #
 # read postanalysis with xdd-read-tsdumps
 #
-iotrace_init $XDD_READ_TSDUMPS_EXE -t 1 -k -o ANALYSIS_read xdd-read-tsdump.bin
+$XDD_READ_TSDUMPS_EXE -t 1 -k -o ANALYSIS_read xdd-read-tsdump.target.0000.bin
 
 rc=$?
 if [ 0 -ne $rc ]; then
@@ -77,7 +77,7 @@ fi
 #
 # read postanalysis with xdd-read-tsdumps
 #
-iotrace_init $XDD_READ_TSDUMPS_EXE -t 1 -k -o ANALYSIS_mixed xdd-mixed-tsdump.bin
+$XDD_READ_TSDUMPS_EXE -t 1 -k -o ANALYSIS_mixed xdd-mixed-tsdump.target.0000.bin
 
 rc=$?
 if [ 0 -ne $rc ]; then

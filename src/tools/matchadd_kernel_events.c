@@ -279,13 +279,6 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                   fprintf(stderr, "xddop# %d pid %d op %d size %d != %ld\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].disk_xfer_size,size_op);
                 }
               }
-//              fprintf(stderr,"xddop# %d pid %d size %ld, nops_op %ld deltasecs %10lld %10lld %10lld %10lld\n",
-//                 i, thread_id[k], size_op, nops_op,
-//                   xdd_data->tte[i].net_start_k-xdd_data->tte[i].net_start,
-//                   xdd_data->tte[i].disk_start_k-xdd_data->tte[i].disk_start,
-//                   xdd_data->tte[i].net_end-xdd_data->tte[i].net_end_k,
-//                   xdd_data->tte[i].disk_end-xdd_data->tte[i].disk_end_k);
-            
             }
            }
           }
@@ -299,5 +292,6 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                    xdd_data->tte[i].net_start,xdd_data->tte[i].net_start_k,
                    xdd_data->tte[i].net_end,xdd_data->tte[i].net_end_k);
            }
+          fclose(fp);
           return (0);
 }
