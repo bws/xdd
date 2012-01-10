@@ -5501,7 +5501,7 @@ _ACEOF
 cat confdefs.h >>conftest.$ac_ext
 cat >>conftest.$ac_ext <<_ACEOF
 /* end confdefs.h.  */
-#include <pthread.h
+#include <pthread.h>
 int
 main ()
 {

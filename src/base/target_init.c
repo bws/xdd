@@ -217,9 +217,9 @@ xdd_target_init_barriers(ptds_t *p) {
 	}
 
 	// Initialize the semaphores used to control QThread selection
-	status = sem_init(&p->any_qthread_available_sem, 0, 0);
+	status = pthread_cond_init(&p->any_qthread_available_condition, NULL);
 	if (status) {
-		fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot initialize any_qthread_available semaphore.\n",
+		fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot initialize any_qthread_available condvar.\n",
 			xgp->progname, 
 			p->my_target_number);
 		fflush(xgp->errout);
@@ -242,7 +242,8 @@ xdd_target_init_barriers(ptds_t *p) {
 	p->totp->tot_entries = TOT_MULTIPLIER * p->queue_depth;
 	// Initialize all the semaphores in the ToT
 	for (i = 0; i < p->totp->tot_entries; i++) {
-		status = sem_init(&p->totp->tot_entry[i].tot_sem, 0, 0);
+	    status = pthread_cond_init(&p->totp->tot_entry[i].tot_condition, 0);
+		//status = sem_init(&p->totp->tot_entry[i].tot_sem, 0, 0);
 		// The "tot_mutex" is used by the QThreads when updating information in the TOT Entry
 		status += pthread_mutex_init(&p->totp->tot_entry[i].tot_mutex, 0);
 		if (status) {

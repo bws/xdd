@@ -38,7 +38,8 @@
 /** typedef unsigned long long iotimer_t; */
 struct tot_entry {
 	pthread_mutex_t		tot_mutex;				// Mutex that is locked when updating items in this entry
-	sem_t				tot_sem;				// Semaphore that is posted by the QThread that is processing it
+    //sem_t				tot_sem;				// Semaphore that is posted by the QThread that is processing it
+    pthread_cond_t tot_condition;
 	nclk_t				tot_wait_ts;			// Time that another QThread starts to wait on this
 	nclk_t				tot_post_ts;			// Time that the responsible QThread posts this semaphore
 	nclk_t				tot_update_ts;			// Time that the responsible QThread updates the byte_location and io_size

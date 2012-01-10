@@ -175,21 +175,14 @@ xdd_qthread_wait_for_previous_io(ptds_t *qp) {
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS;
 	nclk_now(&tep->tot_wait_ts);
 	tep->tot_wait_qthread_number = qp->my_qthread_number;
-	pthread_mutex_unlock(&tep->tot_mutex);
+
+	
 	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO;
-	status = sem_wait(&tep->tot_sem);
-	if (status) {
-		fprintf(xgp->errout,"%s: xdd_qthread_wait_for_previous_io: Target %d QThread %d: ERROR: Bad status from sem_wait: status=%d, errno=%d, target_op_number=%lld, tot_offset=%d\n",
-			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number,
-			status,
-			errno,
-			(long long int)qp->target_op_number,
-			tot_offset);
-		return(-1);	
+	while (tep->tot_post_qthread_number != qp->my_qthread_number) {
+	    pthread_cond_wait(&tep->tot_condition, &tep->tot_mutex);
 	}
 	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO;
+	pthread_mutex_unlock(&tep->tot_mutex);
 
 	return(0);
 } // End of xdd_qthread_wait_for_previous_io()
@@ -223,7 +216,8 @@ xdd_qthread_release_next_io(ptds_t *qp) {
 	
 	pthread_mutex_unlock(&tep->tot_mutex); //TMR
 	// Increment the specified semaphore to let the next QThread run 
-	status = sem_post(&tep->tot_sem);
+	//status = sem_post(&tep->tot_sem);
+	status = pthread_cond_broadcast(&tep->tot_condition);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_release_next_io: Target %d QThread %d: ERROR: Bad status from sem_post: status=%d, errno=%d, target_op_number=%lld, tot_offset=%d\n",
 			xgp->progname,

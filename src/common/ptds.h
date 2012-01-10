@@ -134,7 +134,8 @@ struct ptds {
 
 	// Target-specific semaphores and associated pointers
 	tot_t				*totp;								// Pointer to the target_offset_table for this target
-	sem_t				any_qthread_available_sem;			// The xdd_get_any_available_qthread() routine waits on this for any QThread to become available
+    //sem_t				any_qthread_available_sem;			// The xdd_get_any_available_qthread() routine waits on this for any QThread to become available
+    pthread_cond_t any_qthread_available_condition;
 
 	// QThread-specific semaphores and associated pointers
 	pthread_mutex_t		qthread_target_sync_mutex;			// Used to serialize access to the QThread-Target Synchronization flags
@@ -143,8 +144,9 @@ struct ptds {
 #define	QTSYNC_BUSY					0x00000002				// This QThread is busy
 #define	QTSYNC_TARGET_WAITING		0x00000004				// The parent Target is waiting for this QThread to become available, set by xdd_get_specific_qthread, reset by qthread.
 #define	QTSYNC_EOF_RECEIVED			0x00000008				// This QThread received an EOF packet from the Source Side of an E2E Operation
-	sem_t				this_qthread_is_available_sem;		// xdd_get_specific_qthread() routine waits on this for any QThread to become available
-
+    //sem_t				this_qthread_is_available_sem;		// xdd_get_specific_qthread() routine waits on this for any QThread to become available
+    pthread_cond_t this_qthread_is_available_condition;
+    
 	xdd_barrier_t		qthread_targetpass_wait_for_task_barrier;	// The barrier where the QThread waits for targetpass() to release it with a task to perform
 
 // The task variables

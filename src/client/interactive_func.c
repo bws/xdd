@@ -214,7 +214,7 @@ xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags) {
 	int		sem_val;
 	int		status;
 
-
+/*
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
 		p = xgp->ptdsp[target_number];
 		if (p) {
@@ -231,7 +231,7 @@ xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags) {
 		} else {
 		fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
 		}
-	}
+                }*/
 }
 
 /*----------------------------------------------------------------------------*/
@@ -470,7 +470,7 @@ xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
 	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitQT,PostQT,UpdateQT,SemVal,Mutex State\n");
 	for (tot_offset = 0; tot_offset < p->totp->tot_entries; tot_offset++) {
 		tep = &p->totp->tot_entry[tot_offset];
-		status = sem_getvalue(&tep->tot_sem, &sem_val);
+		//status = sem_getvalue(&tep->tot_sem, &sem_val);
 		if (status) {
 			save_errno = errno;
 			fprintf(fp,"Error getting semaphore value for tot_sem at offset %d in the TOT\n",tot_offset);

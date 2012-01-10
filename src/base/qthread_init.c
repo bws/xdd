@@ -118,18 +118,20 @@ xdd_qthread_init(ptds_t *qp) {
 	// Initialize the qthread ordering semaphores - these are "non-shared" semaphores 
 
 	// Init the semaphore used by targetpass and qthread 
-	status = sem_init(&qp->this_qthread_is_available_sem, 0, 0);
-	if (status) {
-		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize this_qthread_is_available semaphore.\n",
-			xgp->progname, 
-			qp->my_target_number,
-			qp->my_qthread_number);
-		fflush(xgp->errout);
-		return(-1);
-	}
+	//status = sem_init(&qp->this_qthread_is_available_sem, 0, 0);
+	status = pthread_cond_init(&qp->this_qthread_is_available_condition, 0);
+	//if (status) {
+	//	fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize this_qthread_is_available semaphore.\n",
+	//		xgp->progname, 
+	//		qp->my_target_number,
+	//		qp->my_qthread_number);
+	//	fflush(xgp->errout);
+	//	return(-1);
+	//}
 
 	// Indicate to the Target Thread that this QThread is available
-	status = sem_post(&p->any_qthread_available_sem);
+	status = pthread_cond_broadcast(&p->any_qthread_available_condition);
+	//status = sem_post(&p->any_qthread_available_sem);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
 			xgp->progname,

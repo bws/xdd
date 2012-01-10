@@ -205,7 +205,7 @@ AC_TRY_LINK([#include <pthread.h>],
 dnl
 dnl Check for pthread's pthread_barrier_t
 dnl 
-AC_TRY_COMPILE([#include <pthread.h],
+AC_TRY_COMPILE([#include <pthread.h>],
             [pthread_barrier_t pb;],
             CFLAGS="$CFLAGS -DHAVE_PTHREAD_BARRIER_T",
             [])

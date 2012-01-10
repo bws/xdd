@@ -41,10 +41,9 @@
  */
 ptds_t *
 xdd_get_specific_qthread(ptds_t *p, int32_t q) {
-	ptds_t		*qp;					// Pointer to a QThread PTDS
-	int			status;					// Status of the sem_wait system calls
-	int			i;
-	nclk_t		checktime;
+	ptds_t *qp;					// Pointer to a QThread PTDS
+	int i;
+	nclk_t checktime;
 
 	nclk_now(&checktime);
 
@@ -67,28 +66,22 @@ xdd_get_specific_qthread(ptds_t *p, int32_t q) {
 	// Wait for this specific QThread to become available
 	pthread_mutex_lock(&qp->qthread_target_sync_mutex);
 	if (qp->qthread_target_sync & QTSYNC_BUSY) { 
-		// Set the "target waiting" bit, unlock the mutex, and lets wait for this QThread to become available - i.e. not busy
-		qp->qthread_target_sync |= QTSYNC_TARGET_WAITING;
-	nclk_now(&checktime);
-		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-		p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		status = sem_wait(&qp->this_qthread_is_available_sem);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_get_specified_qthread: Target %d: WARNING: Bad status from sem_wait on this_qthread_is_available semaphore: status=%d, errno=%d\n",
-				xgp->progname,
-				p->my_target_number,
-				status,
-				errno);
-		}
-		p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
-		qp->qthread_target_sync |= QTSYNC_BUSY; // Indicate that this QThread is now busy
-		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-		// Upon waking up from this sem_wait(), this QThread should now be available
-	} else {
-		qp->qthread_target_sync |= QTSYNC_BUSY; // Indicate that this QThread is now busy
-		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-	}
+            // Set the "target waiting" bit, unlock the mutex,
+            // and lets wait for this QThread to become available - i.e. not busy
+            p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+            qp->qthread_target_sync |= QTSYNC_TARGET_WAITING;
+            nclk_now(&checktime);
+
+            while (qp->qthread_target_sync & QTSYNC_BUSY) {
+                pthread_cond_wait(&qp->this_qthread_is_available_condition,
+                                  &qp->qthread_target_sync_mutex);            
+            }
+            p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+        }
+        
+        // Indicate that this QThread is now busy, and unlock
+        qp->qthread_target_sync |= QTSYNC_BUSY; 
+        pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 
 	// At this point we have a pointer to the specified QThread
 	return(qp);
@@ -105,66 +98,68 @@ xdd_get_any_available_qthread(ptds_t *p) {
 	ptds_t		*qp;					// Pointer to a QThread PTDS
 	int			status;					// Status of the sem_wait system calls
 	int			eof;					// Number of QThreads that have reached End-of-File on the destination side of an E2E operation
+        pthread_mutex_t any_qthread_mutex = PTHREAD_MUTEX_INITIALIZER;
+        int found_available_qthread = 0;
 
+        
 	// Just wait for any QThread to become available
-	qp = 0;
-	while (qp == 0) {
-		p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-		status = sem_wait(&p->any_qthread_available_sem);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_get_any_available_qthread: Target %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
-				xgp->progname,
-				p->my_target_number,
-				status,
-				errno);
-		}
-		p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-		// At this point we know that at least ONE QThread has indicated that it is not busy. 
-		// The following WHILE loop looks for the QThread that is not busy,
-		// marks it "BUSY", and returns that QThread pointer (qp).
+        pthread_mutex_lock(&any_qthread_mutex);
+        while (0 == found_available_qthread) {
+            p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+            pthread_cond_wait(&p->any_qthread_available_condition, &any_qthread_mutex);
+            p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+        }
+                
+        // At this point we know that at least ONE QThread has indicated that it is not busy. 
+        // The following WHILE loop looks for the QThread that is not busy,
+        // marks it "BUSY", and returns that QThread pointer (qp).
 
-		// Get the first QThread pointer from this Target
-		qp = p->next_qp;
-		eof = 0;
-		while (qp) {
-			pthread_mutex_lock(&qp->qthread_target_sync_mutex);
-			if (qp->qthread_target_sync & QTSYNC_BUSY)  { 
-				pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-				qp = qp->next_qp;
-				continue;
-			}
-			// If this is the Destination Side of an E2E then check to see if this target has received its EOF
-			if ((qp->target_options & TO_E2E_DESTINATION) && 
-				(qp->qthread_target_sync & QTSYNC_EOF_RECEIVED)) {
-				eof++;
-				if (eof == p->queue_depth) { // This means that all QThreads have received the EOF packets - return 0
-					pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-					return(0);
-				}
-				// This particular QThread has received its EOF so it cannot be used at the moment
-				pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-				qp = qp->next_qp;
-				continue;
-			}
+        // Get the first QThread pointer from this Target
+        qp = p->next_qp;
+        eof = 0;
+        while (qp) {
+            pthread_mutex_lock(&qp->qthread_target_sync_mutex);
+            if (qp->qthread_target_sync & QTSYNC_BUSY)  { 
+                pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+                qp = qp->next_qp;
+                continue;
+            }
+            
+            // If this is the Destination Side of an E2E then check to see if this target has received its EOF
+            if ((qp->target_options & TO_E2E_DESTINATION) && 
+                (qp->qthread_target_sync & QTSYNC_EOF_RECEIVED)) {
+                eof++;
+                if (eof == p->queue_depth) { // This means that all QThreads have received the EOF packets - return 0
+                    pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+                    return(0);
+                }
+                // This particular QThread has received its EOF so it cannot be used at the moment
+                pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+                qp = qp->next_qp;
+                continue;
+            }
 
-			// Got a QThread - mark it BUSY
-			qp->qthread_target_sync |= QTSYNC_BUSY; // Indicate that this QThread is now busy
-			pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-			break; // qp now points to the QThread to use
-		} // End of WHILE (qp) that scans the QThread Chain looking for the QThread that said it was Available
+            // Got a QThread - mark it BUSY
+            qp->qthread_target_sync |= QTSYNC_BUSY; // Indicate that this QThread is now busy
+            pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+            break; // qp now points to the QThread to use
+        } // End of WHILE (qp) that scans the QThread Chain looking for the QThread that said it was Available
 
-		// At this point:
-		//    The variable "qp" is either 0 or it points to a valid QThread  
-		//    If "qp" is non-zero then we will break out of this WHILE loop and return it to the caller
-		//    If "qp" is zero it could be due to one of the following:
-		//    	(1) All the QThreads are currently busy which is odd because at least one of them set the "any_qthread_available" semaphore...
-		//    	(2) All QThreads are either BUSY or have received their EOF packet - this is normal - keep waiting for all the others to receive their EOF
-		if ((qp == 0) & !(p->target_options & TO_E2E_DESTINATION)) { // When there are no available QThreads - This should *never* happen - famous last words!
-			fprintf(xgp->errout,"%s: xdd_get_any_available_qthread: Target %d: INTERNAL ERROR: Looking for *any qthread available* but did not find one... - going to go wait for another one...\n",
-				xgp->progname,
-				p->my_target_number);
-		}
-	} // END of WHILE that looks for *any qthread available*
+        // At this point:
+        //    The variable "qp" is either 0 or it points to a valid QThread  
+        //    If "qp" is non-zero then we will break out of this WHILE loop and return it to the caller
+        //    If "qp" is zero it could be due to one of the following:
+        //    	(1) All the QThreads are currently busy which is odd because at least one of them set the "any_qthread_available" semaphore...
+        //    	(2) All QThreads are either BUSY or have received their EOF packet - this is normal - keep waiting for all the others to receive their EOF
+        if ((qp == 0) & !(p->target_options & TO_E2E_DESTINATION)) { // When there are no available QThreads - This should *never* happen - famous last words!
+            fprintf(xgp->errout,"%s: xdd_get_any_available_qthread: Target %d: INTERNAL ERROR: Looking for *any qthread available* but did not find one... - going to go wait for another one...\n",
+                    xgp->progname,
+                    p->my_target_number);
+        }
+
+        pthread_mutex_unlock(&any_qthread_mutex);
+        pthread_mutex_destroy(&any_qthread_mutex);
+        
 	return(qp);
 } // End of xdd_get_any_available_qthread()
 

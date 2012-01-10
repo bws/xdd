@@ -144,23 +144,26 @@ xdd_qthread(void *pin) {
 		mycpu=xdd_get_processor();
 		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
 		if (qp->qthread_target_sync & QTSYNC_TARGET_WAITING) {
-			// Release the target that is waiting on this QThread
-			status = sem_post(&qp->this_qthread_is_available_sem);
-			if (status) {
-				fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on this_qthread_is_available semaphore: status=%d, errno=%d\n",
-					xgp->progname,
-					qp->my_target_number,
-					qp->my_qthread_number,
-					status,
-					errno);
-			}
+		    // Release the target that is waiting on this QThread
+		    //status = sem_post(&qp->this_qthread_is_available_sem);
+		    status = pthread_cond_broadcast(&qp->this_qthread_is_available_condition);
+		    if (status) {
+			fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on this_qthread_is_available semaphore: status=%d, errno=%d\n",
+				xgp->progname,
+				qp->my_target_number,
+				qp->my_qthread_number,
+				status,
+				errno);
+		    }
 			// Turn off the TARGET_WAITING Flag
 			qp->qthread_target_sync &= ~QTSYNC_TARGET_WAITING; 
 		}
 
 		nclk_now(&checktime);
+		
 		// Release the QThread Locator which might be waiting for ANY avaiable QThread
-		status = sem_post(&p->any_qthread_available_sem);
+		//status = sem_post(&p->any_qthread_available_sem);
+		status = pthread_cond_broadcast(&p->any_qthread_available_condition);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on sem_any_qthread_available semaphore: status=%d, errno=%d\n",
 				xgp->progname,
