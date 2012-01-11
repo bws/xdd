@@ -207,7 +207,7 @@ dnl Check for pthread's pthread_barrier_t
 dnl 
 AC_TRY_COMPILE([#include <pthread.h>],
             [pthread_barrier_t pb;],
-            CFLAGS="$CFLAGS -DHAVE_PTHREAD_BARRIER_T",
+            CPPFLAGS="$CPPFLAGS -DHAVE_PTHREAD_BARRIER_T",
             [])
 dnl
 dnl Checks for typedefs, structures, and compiler characteristics.
