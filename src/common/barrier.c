@@ -181,180 +181,7 @@ xdd_destroy_all_barriers(void) {
 		perror("Reason");
 	}
 } /* end of xdd_destroy_all_barriers() */
-// This section uses SystemV named semaphores to implement barriers
-#ifdef SYSV_SEMAPHORES
-//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV//SYSTEMV
-/*----------------------------------------------------------------------------*/
-/* xdd_init_barrier() - Will initialize the specified pthread_barrier
- */
-int32_t
-xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
-	int32_t 		status; 			// status of various system calls 
 
-
-	/* Init barrier mutex lock */
-	bp->threads = threads;
-	bp->counter = 0;
-	strncpy(bp->name,barrier_name,XDD_BARRIER_NAME_LENGTH-1);
-	bp->name[XDD_BARRIER_NAME_LENGTH-1] = '\0';
-	status = pthread_mutex_init(&bp->mutex, 0);
-	if (status) {
-		sprintf(errmsg,"Error initializing %s barrier mutex",barrier_name);
-		perror(errmsg);
-		bp->flags &= ~XDD_BARRIER_FLAG_INITIALIZED; // NOT initialized!!!
-		return(-1);
-	}
-	/* Init barrier semaphore
-         * The semid base needs to be unique among all instances of xdd running on a given system.
-	 * To make it unique system-wide it will be a 32-bit unsigned integer with the
-	 * high-order 16 bits being the lower 16 bits of the process id (P) and the
-	 * low order 16 bits being the low order 16 bits of the current barrier count (C)
- 	 *    "PPPPPPPPPPPPPPPPCCCCCCCCCCCCCCCC" >> "bit31 .... bit0" of semid_base
-	 */
-	bp->semid_base = (int32_t)getpid() << 16; // Shift low order 16 bits of PID to high order 16 bits
-	bp->semid_base |= (xgp->barrier_count & 0x0000ffff); // Lop off the high order 16 bits 
-
-	bp->semid = semget(bp->semid_base, MAXSEM, IPC_CREAT | 0600);
-
-	if ((int)bp->semid == -1) {
-		sprintf(errmsg,"%s: xdd_init_barrier: ERROR: Cannot get semaphore for barrier '%s': semget",xgp->progname, barrier_name);
-		perror(errmsg);
-		bp->flags &= ~XDD_BARRIER_FLAG_INITIALIZED; // NOT initialized!!!
-		return(-1);
-	}
-	status = semctl( bp->semid, MAXSEM, SETALL, zeros);
-	bp->flags |= XDD_BARRIER_FLAG_INITIALIZED; // Initialized!!
-
-	/* Get the xdd init barrier mutex so that we can put this barrier on the barrier chain */
-	pthread_mutex_lock(&xgp->barrier_chain_mutex);
-	if (xgp->barrier_count == 0) { // Add first one to the chain
-		xgp->barrier_chain_first = bp;
-		xgp->barrier_chain_last = bp;
-		bp->prev_barrier = bp;
-		bp->next_barrier = bp;
-	} else { // Add this barrier to the end of the chain
-		bp->next_barrier = xgp->barrier_chain_first; // The last one on the chain points back to the first barrier on the chain as its "next" 
-		bp->prev_barrier = xgp->barrier_chain_last;
-		xgp->barrier_chain_last->next_barrier = bp;
-		xgp->barrier_chain_last = bp;
-	} // Done adding this barrier to the chain
-	xgp->barrier_count++;
-	pthread_mutex_unlock(&xgp->barrier_chain_mutex);
-	return(0);
-} // End of xdd_init_barrier() POSIX
-
-/*----------------------------------------------------------------------------*/
-/* xdd_destroy_barrier() - Will destroy all the barriers and semphores.
- * The barrier counter variable (bp->counter) is normally set to zero or some
- * positive value once they have been initialized. Only barriers that have been 
- * initialized can be destroyed. If the counter variable is -1 then it has not
- * been initialized or has already been destroyed and should not be destroyed
- * again. Upcon destroying this barrier, this routine will set bp->counter to -1.
- */
-void
-xdd_destroy_barrier(struct xdd_barrier *bp) {
-	int32_t		status; 			// Status of various system calls
-	uint16_t 	zeros[32] = {0}; 	// Required bu semctl
-
-
-	if ((bp->flags &= XDD_BARRIER_FLAG_INITIALIZED) == 0) 
-		return;
-
-	bp->flags &= ~XDD_BARRIER_FLAG_INITIALIZED; // NOT initialized!!!
-	if (bp->counter == -1) // Barrier is already destroyed?
-		return;
-	status = pthread_mutex_destroy(&bp->mutex);
-	if (status) {
-		fprintf(xgp->errout,"%s: ERROR: xdd_destroy_barrier<SysV>: Error destroying mutex for barrier '%s'",
-			xgp->progname,bp->name);
-		perror("Reason");
-	}
-	status = semctl( bp->sem, MAXSEM, IPC_RMID, zeros);
-	if (status == -1) {
-		fprintf(xgp->errout,"%s: ERROR: xdd_destroy_barrier<SysV>: semctl error destroying barrier '%s'",
-			xgp->progname,bp->name);
-		perror("Reason");
-	}
-	bp->counter = -1;
-	bp->sem = 0;
-	strcpy(bp->name,"DESTROYED");
-	// Remove this barrier from the chain and relink the barrier before this one to the barrier after this one
-	pthread_mutex_lock(&xgp->barrier_chain_mutex);
-	if (xgp->barrier_count == 1) { // This is the last barrier on the chain
-		xgp->barrier_chain_first = NULL;
-		xgp->barrier_chain_last = NULL;
-	} else { // Remove this barrier from the chain
-		if (xgp->barrier_chain_first == bp) 
-			xgp->barrier_chain_first = bp->next_barrier;
-		if (xgp->barrier_chain_last == bp) 
-			xgp->barrier_chain_last = bp->prev_barrier;
-		if (bp->prev_barrier) 
-			bp->prev_barrier->next_barrier = bp->next_barrier;
-		if (bp->next_barrier) 
-			bp->next_barrier->prev_barrier = bp->prev_barrier;
-	}
-	bp->prev_barrier = NULL;
-	bp->next_barrier = NULL;
-	xgp->barrier_count--;
-	pthread_mutex_unlock(&xgp->barrier_chain_mutex);
-} // End of xdd_destroy_barrier() 
-/*----------------------------------------------------------------------------*/
-/* xdd_barrier() - This is the actual barrier subroutine. 
- * The caller will block in this subroutine until all required threads enter
- * this subroutine <barrier> at which time they will all be released.
- * THIS SUBROUTINE IMPLEMENTS BARRIERS USING SYSTEMV SEMAPHORES
- */
-int32_t
-xdd_barrier(struct xdd_barrier *bp) {
-	struct sembuf sb; /* Semaphore operation buffer */
-	volatile int32_t local_counter = 0; /* copy of the barrier counter */
-	int32_t threadsm1;  /* this is the number of threads minus 1 */
-	int32_t status;  /* status of the semop system call */
-
-
-	/* "threads" is the number of participating threads */
-	threadsm1 = bp->threads - 1;
-	if (threadsm1 == 0) return(0); /* If there is only one thread then why bother sleeping */
-	/* increment the semaphore counter in this barrier */
-	pthread_mutex_lock(&bp->mutex);
-	local_counter = bp->counter;
-	bp->counter++;
-	/* If the local counter (before incrementing) is equal to the 
-	 * number of threads minus 1 then all the threads have arrived
-	 * at this barrier. Therefore, the sem_op can be set to the
-	 * number of threads minus 1 and added to the semaphore counter
-	 * where it will equal zero and all sleeping threads will be woken up.
-	 * Otherwise, set the sem_op to -1 which will decrement the 
-	 * semaphore counter one more time.
-	 */
-	if (local_counter == threadsm1) {
-		bp->counter = 0;
-		sb.sem_op = threadsm1;
-	} else sb.sem_op = -1;
-	pthread_mutex_unlock(&bp->mutex);
-	/* set up the semaphore sturcture */
-	sb.sem_flg = 0;
-	sb.sem_num = 0;
-	/* issue the semaphore operation */
-	status = semop(bp->semid, &sb, 1);
-	if (status) {
-		if (errno == EIDRM) /* ignore the fact that it has been removed */
-			return(0);
-		fprintf(xgp->errout,"%s: xdd_barrier: ERROR: semop failed on semaphore '%s', status is %d, errno is %d, threadsm1=%d\n", 
-			xgp->progname, 
-			bp->name, 
-			status, 
-			errno, 
-			threadsm1);
-		fflush(xgp->errout);
-		perror("Error on semop");
-		return(-1);
-	}
-	return(0);
-} /* end of xdd_barrier() */
-// End of SYSTEMV Semaphore code
-
-#else // Use POSIX pthread_barriers by default
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // This section uses POSIX pthread_barriers to implement barriers
 /*----------------------------------------------------------------------------*/
@@ -383,7 +210,7 @@ xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
 		return(-1);
 	}
 	// Init barrier
-#ifdef HAVE_PTHREAD_BARRIER
+#ifdef HAVE_PTHREAD_BARRIER_T
 	status = pthread_barrier_init(&bp->pbar, 0, threads);
 #else
 	status = xint_barrier_init(&bp->pbar, threads);
@@ -440,7 +267,7 @@ xdd_destroy_barrier(struct xdd_barrier *bp) {
 		errno = status; // Set the errno
 		perror("Reason");
 	}
-#ifdef HAVE_PTHREAD_BARRIER
+#ifdef HAVE_PTHREAD_BARRIER_T
 	status = pthread_barrier_destroy(&bp->pbar);
 #else
 	status = xint_barrier_destroy(&bp->pbar);
@@ -530,7 +357,7 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 
 	// Now we wait here at this barrier until all the other threads arrive...
 	nclk_now(&occupantp->entry_time);
-#ifdef HAVE_PTHREAD_BARRIER
+#ifdef HAVE_PTHREAD_BARRIER_T
 	status = pthread_barrier_wait(&bp->pbar);
 	nclk_now(&occupantp->exit_time);
 	if ((status != 0) && (status != PTHREAD_BARRIER_SERIAL_THREAD)) {
@@ -568,4 +395,3 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 	return(status);
 } // End of xdd_barrier() POSIX
 // End of POSIX pthread_barrier code
-#endif
