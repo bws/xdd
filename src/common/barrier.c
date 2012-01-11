@@ -383,7 +383,7 @@ xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
 		return(-1);
 	}
 	// Init barrier
-#ifdef HAVE_PTHREAD_BARRIER
+#ifdef HAVE_PTHREAD_BARRIER_T
 	status = pthread_barrier_init(&bp->pbar, 0, threads);
 #else
 	status = xint_barrier_init(&bp->pbar, threads);
@@ -440,7 +440,7 @@ xdd_destroy_barrier(struct xdd_barrier *bp) {
 		errno = status; // Set the errno
 		perror("Reason");
 	}
-#ifdef HAVE_PTHREAD_BARRIER
+#ifdef HAVE_PTHREAD_BARRIER_T
 	status = pthread_barrier_destroy(&bp->pbar);
 #else
 	status = xint_barrier_destroy(&bp->pbar);
@@ -530,7 +530,7 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 
 	// Now we wait here at this barrier until all the other threads arrive...
 	nclk_now(&occupantp->entry_time);
-#ifdef HAVE_PTHREAD_BARRIER
+#ifdef HAVE_PTHREAD_BARRIER_T
 	status = pthread_barrier_wait(&bp->pbar);
 	nclk_now(&occupantp->exit_time);
 	if ((status != 0) && (status != PTHREAD_BARRIER_SERIAL_THREAD)) {

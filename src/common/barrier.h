@@ -173,7 +173,7 @@ struct xdd_barrier {
 	int32_t					threads; 		/// The number of threads that need to enter this barrier before occupants are released
 #ifdef WIN32
     HANDLE				sem;  			// The semaphore Object
-#elifdef HAVE_PTHREAD_BARRIER_T
+#elif (defined HAVE_PTHREAD_BARRIER_T)
     pthread_barrier_t	pbar;			// The PThreads Barrier 
 #else
     xint_barrier_t pbar;
