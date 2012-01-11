@@ -137,6 +137,7 @@ void parse_line (
           }
          *ts_end_op = ts_exit;
          *found = 1;
+          if (DEBUG)
           fprintf(stderr,"kern %8s thread_pid %d size %8ld  start %ld end %ld, sum %ld, nops %ld\n",
              operation, thread_pid, *size_op, (*ts_beg_op),(*ts_end_op), sum_size_op, *nops_op);
         }
@@ -220,6 +221,7 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
               if (issource)
               {
               /* find next op. Deal with xdd eofi, i.e., don't look for trace events that did not happen */
+                if (DEBUG)
                 fprintf(stderr,"%2d xdd  pread64  thread_pid %d size %8d  start %lld end %lld opt %d\n",
                    i,xdd_data->tte[i].thread_id, xdd_data->tte[i].disk_xfer_size, xdd_data->tte[i].disk_start, xdd_data->tte[i].disk_end,xdd_data->tte[i].op_type );
                 if (READ_OP(xdd_data->tte[i].op_type) && xdd_data->tte[i].disk_xfer_size)
@@ -231,30 +233,40 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                   if ( xdd_data->tte[i].disk_xfer_size != size_op) 
                     fprintf(stderr, "xddop# %d pid %d size %d != %ld\n",i,thread_id[k],xdd_data->tte[i].disk_xfer_size,size_op);
                 }
-                ts_beg_op = ts_end_op = size_op   = nops_op = 0;
-                fprintf(stderr,"%2d xdd  sendto   thread_pid %d size %7d  start %lld end %lld opt %d\n",
-                   i,xdd_data->tte[i].thread_id, xdd_data->tte[i].net_xfer_size, xdd_data->tte[i].net_start, xdd_data->tte[i].net_end,xdd_data->tte[i].op_type );
-                parse_file_next_op(thread_id[k],fp,"sendto",&ts_beg_op,&ts_end_op,&size_op,&nops_op);
-                xdd_data->tte[i].net_start_k      = ts_beg_op;
-                xdd_data->tte[i].net_end_k        = ts_end_op;
-                if ( xdd_data->tte[i].net_xfer_size != size_op && size_op > 0) 
-                  fprintf(stderr, "xddop# %d pid %d size %d != %ld\n",i,thread_id[k],xdd_data->tte[i].net_xfer_size,size_op);
-                if ( xdd_data->tte[i].net_xfer_calls != nops_op && nops_op > 0) 
-                  fprintf(stderr, "xddop# %d pid %d nops %d != %ld\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
+                if ( xdd_data->tte[i].net_xfer_size > 0 )
+                {
+                  ts_beg_op = ts_end_op = size_op   = nops_op = 0;
+                if (DEBUG)
+                  fprintf(stderr,"%2d xdd  sendto   thread_pid %d size %7d  start %lld end %lld opt %d\n",
+                     i,xdd_data->tte[i].thread_id, xdd_data->tte[i].net_xfer_size, xdd_data->tte[i].net_start, xdd_data->tte[i].net_end,xdd_data->tte[i].op_type );
+                  parse_file_next_op(thread_id[k],fp,"sendto",&ts_beg_op,&ts_end_op,&size_op,&nops_op);
+                  xdd_data->tte[i].net_start_k      = ts_beg_op;
+                  xdd_data->tte[i].net_end_k        = ts_end_op;
+                  if ( xdd_data->tte[i].net_xfer_size != size_op && size_op > 0) 
+                    fprintf(stderr, "xddop# %d pid %d size %d != %ld\n",i,thread_id[k],xdd_data->tte[i].net_xfer_size,size_op);
+                  if ( xdd_data->tte[i].net_xfer_calls != nops_op && nops_op > 0) 
+                    fprintf(stderr, "xddop# %d pid %d nops %d != %ld\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
+                }
               }
-              else
+              else /* is destination, parse for net op first (recvfrom) */
               {
-                fprintf(stderr,"%2d xdd  recvfrom thread_pid %d size %7d  start %lld end %lld opt %d\n",
-                   i,xdd_data->tte[i].thread_id, xdd_data->tte[i].net_xfer_size, xdd_data->tte[i].net_start, xdd_data->tte[i].net_end,xdd_data->tte[i].op_type );
-                ts_beg_op = ts_end_op = size_op = nops_op = 0;
-                parse_file_next_op(thread_id[k],fp,"recvfrom",&ts_beg_op,&ts_end_op,&size_op,&nops_op);
-                xdd_data->tte[i].net_start_k      = ts_beg_op;
-                xdd_data->tte[i].net_end_k        = ts_end_op;
-                /* xdd eof stuff */
-                if ( xdd_data->tte[i].net_xfer_size != size_op && xdd_data->tte[i].net_xfer_size != sizeof(xdd_e2e_header_t)) 
-                  fprintf(stderr, "xddop# %d pid %d op %d size %d != %ld\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].net_xfer_size,size_op);
-                if ( xdd_data->tte[i].net_xfer_calls != nops_op && nops_op > 0) 
-                  fprintf(stderr, "xddop# %d pid %d nops %d != %ld\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
+                /* parse for net op only if there was an app net op */
+                if ( xdd_data->tte[i].net_xfer_size > 0 )
+                {
+                if (DEBUG)
+                  fprintf(stderr,"%2d xdd  recvfrom thread_pid %d size %7d  start %lld end %lld opt %d\n",
+                     i,xdd_data->tte[i].thread_id, xdd_data->tte[i].net_xfer_size, xdd_data->tte[i].net_start, xdd_data->tte[i].net_end,xdd_data->tte[i].op_type );
+                  ts_beg_op = ts_end_op = size_op = nops_op = 0;
+                  parse_file_next_op(thread_id[k],fp,"recvfrom",&ts_beg_op,&ts_end_op,&size_op,&nops_op);
+                  xdd_data->tte[i].net_start_k      = ts_beg_op;
+                  xdd_data->tte[i].net_end_k        = ts_end_op;
+                  /* xdd eof stuff */
+                  if ( xdd_data->tte[i].net_xfer_size != size_op && xdd_data->tte[i].net_xfer_size != sizeof(xdd_e2e_header_t)) 
+                    fprintf(stderr, "xddop# %d pid %d op %d size %d != %ld\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].net_xfer_size,size_op);
+                  if ( xdd_data->tte[i].net_xfer_calls != nops_op && nops_op > 0) 
+                    fprintf(stderr, "xddop# %d pid %d nops %d != %ld\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
+                }
+                if (DEBUG)
                 fprintf(stderr,"%2d xdd  pwrite64 thread_pid %d size %8d  start %lld end %lld opt %d\n",
                    i,xdd_data->tte[i].thread_id, xdd_data->tte[i].disk_xfer_size, xdd_data->tte[i].disk_start, xdd_data->tte[i].disk_end,xdd_data->tte[i].op_type );
                 if (WRITE_OP(xdd_data->tte[i].op_type) && xdd_data->tte[i].disk_xfer_size)
@@ -267,16 +279,10 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                   fprintf(stderr, "xddop# %d pid %d op %d size %d != %ld\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].disk_xfer_size,size_op);
                 }
               }
-//              fprintf(stderr,"xddop# %d pid %d size %ld, nops_op %ld deltasecs %10lld %10lld %10lld %10lld\n",
-//                 i, thread_id[k], size_op, nops_op,
-//                   xdd_data->tte[i].net_start_k-xdd_data->tte[i].net_start,
-//                   xdd_data->tte[i].disk_start_k-xdd_data->tte[i].disk_start,
-//                   xdd_data->tte[i].net_end-xdd_data->tte[i].net_end_k,
-//                   xdd_data->tte[i].disk_end-xdd_data->tte[i].disk_end_k);
-            
             }
            }
           }
+           if (DEBUG)
            for (i = 0; i < xdd_data->tt_size; i++)
            {
               fprintf(stderr,"%2d p %5d %2d DB %7d, NB %7d No %5d Ds %19lld %19lld De %19lld %19lld Ns %19lld %19lld Ne %19lld %19lld\n",
@@ -286,5 +292,6 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                    xdd_data->tte[i].net_start,xdd_data->tte[i].net_start_k,
                    xdd_data->tte[i].net_end,xdd_data->tte[i].net_end_k);
            }
+          fclose(fp);
           return (0);
 }
