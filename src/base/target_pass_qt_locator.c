@@ -147,3 +147,12 @@ xdd_get_any_available_qthread(ptds_t *p) {
     return qp;        
 } // End of xdd_get_any_available_qthread()
 
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

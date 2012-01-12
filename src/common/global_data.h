@@ -127,8 +127,6 @@ struct xdd_global_data {
 	pthread_t 		Interactive_Thread;					// PThread struct for Interactive Control processor Thread
 
 // Thread Barriers 
-	pthread_mutex_t	xdd_init_barrier_mutex;				/* Locking mutex for the xdd_init_barrier() routine */
-
 	pthread_mutex_t	barrier_chain_mutex;				/* Locking mutex for the barrier chain */
 	xdd_barrier_t	*barrier_chain_first;        		/* First barrier on the chain */
 	xdd_barrier_t	*barrier_chain_last;        		/* Last barrier on the chain */

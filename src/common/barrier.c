@@ -164,7 +164,6 @@ xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, ptds_t
  */
 void
 xdd_destroy_all_barriers(void) {
-	int32_t status;
 	int32_t i;
 	xdd_barrier_t *bp;
 
@@ -174,11 +173,6 @@ xdd_destroy_all_barriers(void) {
 		/* Get the xdd init barrier mutex so that we can take this barrier off the barrier chain */
 		bp = xgp->barrier_chain_first;
 		xdd_destroy_barrier(bp);
-	}
-	status = pthread_mutex_destroy(&xgp->xdd_init_barrier_mutex);
-	if (status) {
-		fprintf(xgp->errout,"%s: xdd_destroy_all_barriers: ERROR destroying xgp->xdd_init_barrier_mutex, status=%d", xgp->progname, status);
-		perror("Reason");
 	}
 } /* end of xdd_destroy_all_barriers() */
 
@@ -395,3 +389,13 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 	return(status);
 } // End of xdd_barrier() POSIX
 // End of POSIX pthread_barrier code
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */
