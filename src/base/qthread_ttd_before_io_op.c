@@ -70,7 +70,7 @@ xdd_dio_before_io_op(ptds_t *qp) {
 	// Otherwise, it is necessary to open this target file with DirectIO disabaled
 	qp->my_current_pass_number = qp->target_ptds->my_current_pass_number;
 	qp->target_options &= ~TO_DIO;
-#if (SOLARIS || OSX || WIN32)
+#if (SOLARIS || WIN32)
 	// In this OS it is necessary to close the file descriptor before reopening in BUFFERED I/O Mode
 	close(qp->fd);
 	qp->fd = 0;
@@ -101,18 +101,18 @@ xdd_raw_before_io_op(ptds_t *qp) {
 
 #if (IRIX || SOLARIS || AIX )
 	struct stat64	statbuf;
-#elif (LINUX || OSX || FREEBSD)
+#elif (LINUX || DARWIN || FREEBSD)
 	struct stat	statbuf;
 #endif
 
-#if (LINUX || IRIX || SOLARIS || AIX || OSX || FREEBSD)
+#if (LINUX || IRIX || SOLARIS || AIX || DARWIN || FREEBSD)
 		if ((qp->target_options & TO_READAFTERWRITE) && (qp->target_options & TO_RAW_READER)) { 
 // fprintf(stderr,"Reader: RAW check - dataready=%lld, trigger=%x\n",(long long)data_ready,p->rawp->raw_trigger);
 			/* Check to see if we can read more data - if not see where we are at */
 			if (qp->rawp->raw_trigger & PTDS_RAW_STAT) { /* This section will continually poll the file status waiting for the size to increase so that it can read more data */
 				while (qp->rawp->raw_data_ready < qp->iosize) {
 					/* Stat the file so see if there is data to read */
-#if (LINUX || OSX || FREEBSD)
+#if (LINUX || DARWIN || FREEBSD)
 					status = fstat(qp->fd,&statbuf);
 #else
 					status = fstat64(qp->fd,&statbuf);
@@ -277,11 +277,11 @@ xdd_throttle_before_io_op(ptds_t *qp) {
 					sleep_time_dw = sleep_time;
 #ifdef WIN32
 					Sleep(sleep_time_dw);
-#elif (LINUX || IRIX || AIX || OSX || FREEBSD) /* Change this line to use usleep */
+#elif (LINUX || IRIX || AIX || DARWIN || FREEBSD) /* Change this line to use usleep */
 					if ((sleep_time_dw*CLK_TCK) > 1000) /* only sleep if it will be 1 or more ticks */
 #if (IRIX )
 						sginap((sleep_time_dw*CLK_TCK)/1000);
-#elif (LINUX || AIX || OSX || FREEBSD) /* Change this line to use usleep */
+#elif (LINUX || AIX || DARWIN || FREEBSD) /* Change this line to use usleep */
 						usleep(sleep_time_dw*1000);
 #endif
 #endif

@@ -66,7 +66,7 @@ elif test "$PLATFORM" = "Linux"; then
 elif test "$PLATFORM" = "Darwin"; then
    ARFLAGS="-rcs"
    CPPFLAGS="-DDARWIN -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE"
-   CFLAGS=""
+   CFLAGS="-Werror"
 else
    AC_MSG_ERROR(Unsupported build platform: $PLATFORM)
 fi
@@ -91,6 +91,7 @@ elif test "$CC" = "bws_clang"; then
    CFLAGS="-g"
    LDFLAGS="-g"
 elif test "$CC" = "gcc"; then
+   AX_CFLAGS_GCC_OPTION([-std=c99])
    AX_CFLAGS_GCC_OPTION([-ggdb])
    AX_CFLAGS_GCC_OPTION([-fno-strict-aliasing])
    AX_CFLAGS_GCC_OPTION([-fPIC])

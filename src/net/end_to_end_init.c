@@ -434,7 +434,7 @@ xdd_e2e_err(ptds_t *qp, char const *whence, char const *fmt, ...) {
 		whence,
 		qp->my_target_number,
 		qp->my_qthread_number);
-	fprintf(xgp->errout, fmt);
+	fprintf(xgp->errout, "%s", fmt);
 	perror(" Reason");
 	return;
 } /* end of xdd_e2e_err() */

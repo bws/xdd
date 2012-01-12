@@ -132,10 +132,11 @@ struct ptds {
 	uint64_t			bytes_completed;					// The amount of data for all transfer requests that has been completed so far
 	uint64_t			bytes_remaining;					// Bytes remaining to be transferred 
 
-	// Target-specific semaphores and associated pointers
-	tot_t				*totp;								// Pointer to the target_offset_table for this target
-    //sem_t				any_qthread_available_sem;			// The xdd_get_any_available_qthread() routine waits on this for any QThread to become available
+    // Target-specific semaphores and associated pointers
+    tot_t				*totp;								// Pointer to the target_offset_table for this target
     pthread_cond_t any_qthread_available_condition;
+    pthread_mutex_t any_qthread_available_mutex;
+    int any_qthread_available;
 
 	// QThread-specific semaphores and associated pointers
 	pthread_mutex_t		qthread_target_sync_mutex;			// Used to serialize access to the QThread-Target Synchronization flags

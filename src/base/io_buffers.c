@@ -33,6 +33,10 @@
  * used by the QThreads.
  */
 #include "xdd.h"
+#ifdef DARWIN
+#include <sys/shm.h>
+#endif
+
 /*----------------------------------------------------------------------------*/
 /* xdd_init_io_buffers() - set up the I/O buffers
  * This routine will allocate the memory used as the I/O buffer for a target.
@@ -58,8 +62,8 @@ xdd_init_io_buffers(ptds_t *p) {
 	 * NOTE: This is not supported by all operating systems. 
 	 */
 	if (p->target_options & TO_SHARED_MEMORY) {
-#if (AIX || LINUX || SOLARIS || OSX || FREEBSD)
-		/* In AIX we need to get memory in a shared memory segment to avoid
+#if (AIX || LINUX || SOLARIS || DARWIN || FREEBSD)
+	    /* In AIX we need to get memory in a shared memory segment to avoid
 	     * the system continually trying to pin each page on every I/O operation */
 #if (AIX)
 		p->rwbuf_shmid = shmget(IPC_PRIVATE, p->e2e_iosize, IPC_CREAT | SHM_LGPAGE |SHM_PIN );
@@ -87,7 +91,7 @@ xdd_init_io_buffers(ptds_t *p) {
 		fprintf(xgp->errout,"%s: Shared Memory not supported on this OS - using valloc\n",
 			xgp->progname);
 		p->target_options &= ~TO_SHARED_MEMORY;
-#if (IRIX || SOLARIS || LINUX || AIX || OSX || FREEBSD)
+#if (IRIX || SOLARIS || LINUX || AIX || DARWIN || FREEBSD)
 		rwbuf = valloc(p->e2e_iosize);
 #else
 		rwbuf = malloc(p->e2e_iosize);
@@ -96,7 +100,7 @@ xdd_init_io_buffers(ptds_t *p) {
 	} else { /* Allocate memory the normal way */
 #if (AIX || LINUX)
 		posix_memalign((void **)&rwbuf, sysconf(_SC_PAGESIZE), p->e2e_iosize);
-#elif (IRIX || SOLARIS || LINUX || OSX || FREEBSD)
+#elif (IRIX || SOLARIS || LINUX || DARWIN || FREEBSD)
 		rwbuf = valloc(p->e2e_iosize);
 #else
 		rwbuf = malloc(p->e2e_iosize);

@@ -148,7 +148,6 @@ xdd_qthread_io(ptds_t *qp) {
  */
 int32_t
 xdd_qthread_wait_for_previous_io(ptds_t *qp) {
-	int32_t 	status;
 	ptds_t		*p;				// Pointer to the Target PTDS for this QThread
 	int32_t		tot_offset;		// Offset into the TOT
 	tot_entry_t	*tep;			// Pointer to the TOT entry to use

@@ -114,7 +114,7 @@ xdd_random_float(void) {
 #elif LINUX
 	rm = RAND_MAX;
 #else
-	rm = 2^31-1;
+	rm = (2^31)-1;
 #endif
 	recip = 1.0 / rm;
 	rval = random();

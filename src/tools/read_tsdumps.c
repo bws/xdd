@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
           sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
 		iotrace_data_dir, iotrace_data_dir, src->target_thread_id);
           system(kernfilename);
-		fprintf(stderr,"kernfilename %s tt_size %ld\n",kernfilename,src->tt_size);
+		fprintf(stderr,"kernfilename %s tt_size %lld\n",kernfilename,src->tt_size);
           sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
 		iotrace_data_dir, src->target_thread_id,getenv("PWD"));
           system(kernfilename);
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
           sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
 		iotrace_data_dir, iotrace_data_dir, dst->target_thread_id);
           system(kernfilename);
-		fprintf(stderr,"kernfilename %s tt_size %ld\n",kernfilename,dst->tt_size);
+		fprintf(stderr,"kernfilename %s tt_size %lld\n",kernfilename,dst->tt_size);
           sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
 		iotrace_data_dir, dst->target_thread_id,getenv("PWD"));
           system(kernfilename);
@@ -377,7 +377,7 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	/* file header */
 	fprintf(outfile,"#timestamp: %s",src->td);
 	fprintf(outfile,"#reqsize: %d\n",src->reqsize);
-	fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
+	fprintf(outfile,"#filesize: %lld\n",src->reqsize*src->tt_size);
         fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
         for (i = 0; i < total_threads_src; i++) { fprintf(outfile,"%d ",thread_id_src[i] );}
                                                   fprintf(outfile,"\n");
@@ -455,7 +455,7 @@ void write_outfile_k(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	/* file header */
         fprintf(outfile,"#timestamp: %s",src->td);
         fprintf(outfile,"#reqsize: %d\n",src->reqsize);
-        fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
+        fprintf(outfile,"#filesize: %lld\n",src->reqsize*src->tt_size);
         fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
         for (i = 0; i < total_threads_src; i++) { fprintf(outfile,"%d ",thread_id_src[i] );}
                                                   fprintf(outfile,"\n");
@@ -529,7 +529,7 @@ void write_outfile_d(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	/* file header */
         fprintf(outfile,"#timestamp: %s",src->td);
         fprintf(outfile,"#reqsize: %d\n",src->reqsize);
-        fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
+        fprintf(outfile,"#filesize: %lld\n",src->reqsize*src->tt_size);
         fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
         for (i = 0; i < total_threads_src; i++) { fprintf(outfile,"%d ",thread_id_src[i] );}
                                                   fprintf(outfile,"\n");

@@ -542,7 +542,7 @@ xdd_linux_cpu_count(void) {
 int32_t
 xdd_cpu_count(void) {
 	int32_t		cpus; // Number of CPUs found
-#if (OSX)
+#if (DARWIN)
 	cpus = 1;
 	fprintf(xgp->errout,"%s: WARNING: Multiple processors not supported in this release\n",xgp->progname);
 #elif (SOLARIS || AIX)

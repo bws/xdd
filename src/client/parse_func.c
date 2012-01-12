@@ -34,6 +34,7 @@
  */
 
 #include "xdd.h"
+#include <ctype.h>
 
 extern	xdd_func_t xdd_func[];
 

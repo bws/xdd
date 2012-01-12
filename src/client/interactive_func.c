@@ -208,11 +208,11 @@ xdd_interactive_show_ptds(int32_t tokens, char *cmdline, uint32_t flags) {
  */
 void
 xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags) {
-	int		target_number;
-	ptds_t	*p;
-	ptds_t	*qp;
-	int		sem_val;
-	int		status;
+    //int		target_number;
+    //ptds_t	*p;
+    //ptds_t	*qp;
+    //int		sem_val;
+    //int		status;
 
 /*
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {

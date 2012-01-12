@@ -32,6 +32,10 @@
  */
 #include "xdd.h"
 
+#ifdef DARWIN
+#include <libgen.h>
+#endif
+
 // Prototypes
 int xdd_restart_create_restart_file(restart_t *rp);
 int xdd_restart_write_restart_file(restart_t *rp);

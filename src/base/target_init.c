@@ -217,6 +217,8 @@ xdd_target_init_barriers(ptds_t *p) {
 	}
 
 	// Initialize the semaphores used to control QThread selection
+	p->any_qthread_available = 0;
+	status = pthread_mutex_init(&p->any_qthread_available_mutex, NULL);
 	status = pthread_cond_init(&p->any_qthread_available_condition, NULL);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot initialize any_qthread_available condvar.\n",
@@ -228,7 +230,7 @@ xdd_target_init_barriers(ptds_t *p) {
 
 	// Initialize the Target Offset Table and associated semaphores
 	tot_size =  sizeof(tot_t) + (TOT_MULTIPLIER * p->queue_depth * sizeof(tot_entry_t));
-#if (LINUX || SOLARIS || AIX || OSX)
+#if (LINUX || SOLARIS || AIX || DARWIN)
 	p->totp = (struct tot *)valloc(tot_size);
 #else
 	p->totp = (struct tot *)malloc(tot_size);

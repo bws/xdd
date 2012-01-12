@@ -29,6 +29,7 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 #include "xdd.h"
+#include <unistd.h>
 
 //******************************************************************************
 // Things the Target Thread needs to do after a single pass 
@@ -46,9 +47,13 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 
 
 	// Issue an fdatasync() to flush all the write buffers to disk for this file if the -syncwrite option was specified
-	if (p->target_options & TO_SYNCWRITE)
-		status = fdatasync(p->fd);
-
+	if (p->target_options & TO_SYNCWRITE) {
+#if (LINUX || AIX)
+            status = fdatasync(p->fd);
+#else
+            status = fsync(p->fd);
+#endif
+        }
 	/* Get the ending time stamp */
 	nclk_now(&p->my_pass_end_time);
 	p->my_elapsed_pass_time = p->my_pass_end_time - p->my_pass_start_time;

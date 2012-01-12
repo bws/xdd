@@ -130,8 +130,11 @@ xdd_qthread_init(ptds_t *qp) {
 	//}
 
 	// Indicate to the Target Thread that this QThread is available
+	fprintf(stderr, "Broadcasting qt avail\n");
+	pthread_mutex_lock(&p->any_qthread_available_mutex);
+	p->any_qthread_available++;
 	status = pthread_cond_broadcast(&p->any_qthread_available_condition);
-	//status = sem_post(&p->any_qthread_available_sem);
+	pthread_mutex_unlock(&p->any_qthread_available_mutex);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: WARNING: Bad status from sem_post on any_qthread_available semaphore: status=%d, errno=%d\n",
 			xgp->progname,

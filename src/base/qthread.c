@@ -161,9 +161,14 @@ xdd_qthread(void *pin) {
 
 		nclk_now(&checktime);
 		
-		// Release the QThread Locator which might be waiting for ANY avaiable QThread
-		//status = sem_post(&p->any_qthread_available_sem);
+		// Unlock the qthread-target synchronization mutex
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+
+		// Release the QThread Locator which might be waiting for ANY available QThread
+		pthread_mutex_lock(&p->any_qthread_available_mutex);
+		p->any_qthread_available++;
 		status = pthread_cond_broadcast(&p->any_qthread_available_condition);
+		pthread_mutex_unlock(&p->any_qthread_available_mutex);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_qthread: Target %d QThread %d: WARNING: Bad status from sem_post on sem_any_qthread_available semaphore: status=%d, errno=%d\n",
 				xgp->progname,
@@ -172,9 +177,6 @@ xdd_qthread(void *pin) {
 				status,
 				errno);
 		}
-
-		// Unlock the qthread-target synchronization mutex
-		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 
 	} // end of WHILE loop 
 

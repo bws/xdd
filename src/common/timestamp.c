@@ -103,7 +103,7 @@ xdd_ts_setup(ptds_t *p) {
 	}
 	/* calculate the total size in bytes of the time stamp table */
 	tt_bytes = (int)((sizeof(struct tthdr)) + (tt_entries * sizeof(struct tte)));
-#if (LINUX || SOLARIS || AIX || OSX)
+#if (LINUX || SOLARIS || AIX || DARWIN)
 	p->ttp = (struct tthdr *)valloc(tt_bytes);
 #else
 	p->ttp = (struct tthdr *)malloc(tt_bytes);
