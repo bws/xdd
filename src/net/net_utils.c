@@ -35,6 +35,7 @@
  * MAX_ADDR_CACHE_ENTRIES entries.
  */
 #include "xdd.h"
+#include "net_utils.h"
 
 #define MAX_ADDR_CACHE_ENTRIES (E2E_ADDRESS_TABLE_ENTRIES*16)  // The amount of space statically allocated in this process for the address cache
 
@@ -42,8 +43,8 @@
 static pthread_mutex_t addr_cache_mutex = PTHREAD_MUTEX_INITIALIZER;  // Mutex to protect access to addr_cache_entries and addr_cache_entry
 static int addr_cache_entries = 0;  // The number of entries present in the cache
 static struct {
-	char name[HOSTNAMELENGTH];  // Hostname
-	in_addr_t addr;  // IPv4 address
+    char name[HOSTNAMELENGTH];  // Hostname
+    in_addr_t addr;  // IPv4 address
 } addr_cache_entry[MAX_ADDR_CACHE_ENTRIES];  // The address cache implementation as an array of (name, address) pairs
 
 /*----------------------------------------------------------------------*/

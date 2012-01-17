@@ -183,10 +183,10 @@ $(LIB_DIR)/libxdd.so: $(LIB_DIR)/libxdd.so.$(VERSION)
 bin/xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-bin/xdd-tserver: $(COMMON_DIR)/nclk.o $(TS_EXE_OBJS) 
+bin/xdd-tserver: $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(TS_EXE_OBJS) 
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-bin/xdd-gettime: $(COMMON_DIR)/global_time.o  $(COMMON_DIR)/nclk.o $(GETTIME_EXE_OBJS) 
+bin/xdd-gettime: $(COMMON_DIR)/global_time.o $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(GETTIME_EXE_OBJS) 
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-read-tsdumps: $(READ_TSDUMPS_EXE_OBJS)
@@ -232,8 +232,6 @@ install_libs: install_pre
 
 fullinstall: install_pre
 	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd
-	$(INSTALL) -c -m 755 bin/xdd-tserver $(INSTALL_DIR)/bin/xdd-tserver
-	$(INSTALL) -c -m 755 bin/xdd-gettime $(INSTALL_DIR)/bin/xdd-gettime
 	$(INSTALL) -c -m 755 bin/xdd-read-tsdumps $(INSTALL_DIR)/bin/xdd-read-tsdumps
 	$(INSTALL) -c -m 755 bin/xdd-getfilesize $(INSTALL_DIR)/bin/xdd-getfilesize
 	$(INSTALL) -c -m 755 bin/xdd-gethostip $(INSTALL_DIR)/bin/xdd-gethostip

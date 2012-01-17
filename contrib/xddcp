@@ -26,16 +26,16 @@
 # Notes: XDDCP has been tested on AIX and Linux environments.  
 #
 # The following POSIX utilities are required to utilize XDDCP:
-#    /bin/basename
-#    /bin/cat
-#    /bin/cut
-#    /bin/date
-#    /bin/echo
-#    /bin/egrep
-#    /bin/grep
-#    /bin/hostname
-#    /bin/ps
-#    /bin/uname
+#    basename
+#    cat
+#    cut
+#    date
+#    echo
+#    egrep
+#    grep
+#    hostname
+#    ps
+#    uname
 #
 # The following utilities are provided by the XDD distribution
 #    xdd-getfilesize
@@ -61,7 +61,7 @@ XDDCP_DEFAULT_XFER_SIZE=33554432
 XDDCP_DEFAULT_QUEUE_DEPTH=8
 XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 XDDCP_DEFAULT_HEARTBEAT_SECS=4
-XDDCP_DEFAULT_TIMESTAMP="$(/bin/date -u +'%Y-%m-%d-%H%M%S')-GMT"
+XDDCP_DEFAULT_TIMESTAMP="$(\date -u +'%Y-%m-%d-%H%M%S')-GMT"
 XDDCP_DEFAULT_NETWORK_SLEEP_SECS=4
 XDDCP_DEFAULT_RETRY_SLEEP_SECS=4
 XDDCP_DEFAULT_NETWORK_CLEAR_SECS=2
@@ -311,24 +311,24 @@ function parse_endpoint_spec {
     eval "$remotePathRef=\"\""
     
     # Parse out remote host and file
-    local colon_count=`/bin/echo $spec | grep -c ":"`
+    local colon_count=$(\echo $spec | grep -c ":")
     if [ $colon_count -eq 1 ]; then
 
         # Set the remote flag
         eval "$remoteFlagRef=1"
 
         # Set the path
-        eval "$remotePathRef=$(/bin/echo $spec | awk -F: '{print $2}')"
+        eval "$remotePathRef=$(\echo $spec | awk -F: '{print $2}')"
 
         # Set the host
-        local _tmp=$(/bin/echo $spec | awk -F: '{print $1}')
-        eval "$remoteHostRef=$(/bin/echo $spec | awk -F: '{print $1}')"
+        local _tmp=$(\echo $spec | awk -F: '{print $1}')
+        eval "$remoteHostRef=$(\echo $spec | awk -F: '{print $1}')"
         
         # Set the username if it exists
-        local amp_count=$(/bin/echo $_tmp |grep -c "@")
+        local amp_count=$(\echo $_tmp |grep -c "@")
         if [ 1 -eq $amp_count ]; then
-            eval "$remoteUserRef=$(/bin/echo $_tmp |awk -F@ '{print $1}')"
-            eval "$remoteHostRef=$(/bin/echo $_tmp |awk -F@ '{print $2}')"
+            eval "$remoteUserRef=$(\echo $_tmp |awk -F@ '{print $1}')"
+            eval "$remoteHostRef=$(\echo $_tmp |awk -F@ '{print $2}')"
         fi
     else
         eval "$remotePathRef=$spec"
@@ -452,8 +452,8 @@ function check_transfer_preconditions {
     fi
 
     # Check if file is a character special device (like zero or null)
-    local sfType=$(stat -c %F ${sourceSideFilename} 2>/dev/null)
-    local dfType=$(stat -c %F ${destSidePathname} 2>/dev/null)
+    local sfType=$(\stat -c %F ${sourceSideFilename} 2>/dev/null)
+    local dfType=$(\stat -c %F ${destSidePathname} 2>/dev/null)
 
     # Ensure file is large enough
     local totalBytes="$transferSize"
@@ -512,7 +512,7 @@ function remote_exec {
     # Local decl must be on seperate line so $? is correct
     local destRC=""
     local remoteOutput=""
-    remoteOutput=$(ssh ${sshOpts} ${remoteHost} /bin/bash --login <<EOF
+    remoteOutput=$(\ssh ${sshOpts} ${remoteHost} /bin/bash --login <<EOF
 $cmds
 EOF
         )
@@ -545,7 +545,7 @@ function remote_exec_with_fifo {
 
     # If a fifo exists, remove it
     if [ -e "$fifoPath" ]; then
-	rm -f $fifoPath
+	\rm -f $fifoPath
 	rc=$?
 	if [ 0 -ne $rc ]; then
 	    echo "INFO: Unable to remove existing FIFO: $fifoPath"
@@ -554,7 +554,7 @@ function remote_exec_with_fifo {
     fi
 
     # Create a new fifo
-    mkfifo $fifoPath &>/dev/null
+    \mkfifo $fifoPath &>/dev/null
     rc=$?
     if [ 0 -ne $rc ]; then
 	echo "INFO: Unable to create FIFO: $fifoPath"
@@ -617,7 +617,7 @@ function get_destination_cmds {
     local binaryDumpFlag=${15}
 
     # Options that aren't yet settable
-    local srcHost=$(/bin/hostname)
+    local srcHost=$(\hostname)
     
     # Construct transfer settings
     declare -i xfer=${XDDCP_DEFAULT_XFER_SIZE}
@@ -626,7 +626,7 @@ function get_destination_cmds {
     declare -i reqsize=$((xfer/blocksize))
 
     # Other variables
-    local srcBase=$(/bin/basename $srcFile)
+    local srcBase=$(\basename $srcFile)
     local destQD="-queuedepth ${queueDepth}"
 
     # Construct the e2e destinations
@@ -634,11 +634,11 @@ function get_destination_cmds {
     declare idx=0
     for iface in $destIfaces; do
 	idx=$((idx+1))
-	tcount=$(/bin/echo $destIfaceThreads |cut -f $idx -d ' ')
+	tcount=$(\echo $destIfaceThreads |cut -f $idx -d ' ')
 	e2eDestinations="$e2eDestinations -e2e dest ${iface}:${e2ePort},${tcount}" 
     done
     if [ -z "$e2eDestinations" ]; then
-	/bin/echo "ERROR: No destination interfaces specified"
+	\echo "ERROR: No destination interfaces specified"
 	error_exit $XDDCP_ERR_CODE_NO_REMOTE
     fi
 
@@ -659,7 +659,7 @@ function get_destination_cmds {
     fi
 
     # If the supplied destination is a directory, append the source file name
-    local destination_base=$(/bin/basename $destPath)
+    local destination_base=$(\basename $destPath)
     if [ -d $destPath ]; then
           destination_base=$srcBase
     fi
@@ -685,24 +685,24 @@ if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
 fi
 
 # Path complement xdd so that iotracing can function
-xdd_exe_path=\$(type -P ${XDDCP_XDD_EXE})
+xdd_exe_path=\$(\\type -P ${XDDCP_XDD_EXE})
 
 # Check that ports are available for binding (Linux only)
 declare -i port_conflict=0
-if [ "$(/bin/uname)" = "Linux" ]; then
-    type $XDDCP_GETHOSTIP_EXE &>/dev/null
+if [ "\$(\\uname)" = "Linux" ]; then
+    \type $XDDCP_GETHOSTIP_EXE &>/dev/null
     hasIpTranslator=\$?
     if [ 1 -ne \$hasIpTranslator ]; then
         declare -i tcount_idx=0
         for iface in $destIfaces; do
             tcount_idx=\$((tcount+1))
-                tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+                tcount=\$(\\echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
             iface_ip=\$($XDDCP_GETHOSTIP_EXE -d \$iface)
             e2eLB=$e2ePort
             e2eUB=\$((e2eLB+tcount))
 #        echo "\$tcount_idx \$iface_ip \$e2eLB \$e2eUB" >>/tmp/bws
 #        echo "netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])" >>/tmp/bws
-            used_ports=\$(netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+            used_ports=\$(\\netstat -nlt |grep \$iface_ip |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
 #        echo "Used ports: \$used_ports" >>/tmp/bws
             for p in \$used_ports; do
                 if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
@@ -717,7 +717,7 @@ if [ "$(/bin/uname)" = "Linux" ]; then
     if [ 1 -eq \$port_conflict ]; then
         # Attempt to kill any running XDDs and re-check
         if [ 1 -eq $forceFlag ]; then
-            xddpid=\$(/bin/ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
+            xddpid=\$(\\ps -u \${USER} |grep xdd |grep -v grep |grep -v xddcp |cut -c-5)
             if [ ! -z "\$xddpid" ]; then
                 kill \$xddpid 2>/dev/null
                 sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
@@ -732,10 +732,10 @@ if [ "$(/bin/uname)" = "Linux" ]; then
         tcount_idx=0
         for iface in $destIfaces; do
             tcount_idx+=1
-            tcount=\$(/bin/echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
+            tcount=\$(\\echo $destIfaceThreads |cut -f \$tcount_idx -d ' ')
             e2eLB=$e2ePort
             e2eUB=\$((e2eLB+tcount))
-            used_ports=\$(netstat -nlt |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
+            used_ports=\$(\\netstat -nlt |grep $iface |cut -d : -f 2 |cut -d ' ' -f 1 |tr -d [:alpha:])
             for p in \$used_ports; do
                 if [ \$e2eLB -le \$p -a \$e2eUB -gt \$p ]; then
                     echo "Requested port \$p is in use" >/dev/stderr
@@ -748,8 +748,8 @@ fi
 
 # If the supplied destination is a directory, append the source file name
 destination_file=$destPath
-destination_base=\$(/bin/basename $destPath)
-destination_dir=\$(dirname $destPath)
+destination_base=\$(\\basename $destPath)
+destination_dir=\$(\\dirname $destPath)
 if [ -d $destPath ]; then
     destination_file=$destPath/$srcBase
     destination_base=$srcBase
@@ -757,9 +757,9 @@ if [ -d $destPath ]; then
 fi
 
 # If the filename uses a relative path, path complement it
-path_char=\$(dirname \$destination_file |cut -c 1)
+path_char=\$(\\dirname \$destination_file |cut -c 1)
 if [ "." = \$path_char ]; then
-    default_dir=\$(/bin/pwd)
+    default_dir=\$(\\pwd)
     destination_dir="\${default_dir}/\${destination_dir}"
     destination_file="\${default_dir}/\${destination_file}"
 fi
@@ -792,12 +792,12 @@ if [ 1 -eq $resumeFlag ]; then
     restart_logfile="\${destination_dir}/xdd-${srcHost}-${srcBase}-${destHost}-\${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}.rst"
 
     # Check for the existence a restart cookie
-    most_recent_restart_cookie=\$(/bin/ls \${destination_dir}/xdd-${srcHost}-${srcBase}-${destHost}-\${destination_base}-*.rst 2>/dev/null |tail -1)
+    most_recent_restart_cookie=\$(\\ls \${destination_dir}/xdd-${srcHost}-${srcBase}-${destHost}-\${destination_base}-*.rst 2>/dev/null |tail -1)
     echo "Using restart cookie: \$most_recent_restart_cookie"
     if [ -z "\$most_recent_restart_cookie" ]; then
        destination_restart="-restart file \${restart_logfile} -restart enable"
     else
-       destination_restart="-restart file \${restart_logfile} -restart enable \$(/bin/cat \$most_recent_restart_cookie)"
+       destination_restart="-restart file \${restart_logfile} -restart enable \$(\\cat \$most_recent_restart_cookie)"
     fi
 fi
 
@@ -820,10 +820,10 @@ fi
   if [ 1 -eq $verbosity ]; then
         verboseopt="-verbose"
 elif [ 2 -eq $verbosity ]; then
-        verboseopt="-verbose -ts detailed -ts output \$(dirname \${destination_log})/$binaryDumpPrefix"
+        verboseopt="-verbose -ts detailed -ts output \$(\\dirname \${destination_log})/$binaryDumpPrefix"
 fi
 if [ 1 -eq $binaryDumpFlag ]; then
-	binary_dump_opts="-ts dump \$(dirname \${destination_log})/$binaryDumpPrefix"
+	binary_dump_opts="-ts dump \$(\\dirname \${destination_log})/$binaryDumpPrefix"
 fi
 
 # Truncate the destination to the correct size if necessary
@@ -883,11 +883,11 @@ function get_source_cmds {
     declare idx=0
     for iface in $destIfaces; do
 	idx=$((idx+1))
-	tcount=$(/bin/echo $destIfaceThreads |cut -f $idx -d ' ')
+	tcount=$(\echo $destIfaceThreads |cut -f $idx -d ' ')
 	e2eDestinations="$e2eDestinations -e2e dest ${iface}:${e2ePort},${tcount}" 
     done
     if [ -z "$e2eDestinations" ]; then
-	/bin/echo "ERROR: No destination interfaces specified"
+	\echo "ERROR: No destination interfaces specified"
 	error_exit $XDDCP_ERR_CODE_NO_REMOTE
     fi
 
@@ -907,9 +907,9 @@ function get_source_cmds {
     fi
 
     # Construct source XDD settings
-    local srcBase=$(/bin/basename ${srcFile})
+    local srcBase=$(\basename ${srcFile})
     local srcQD="-queuedepth ${queueDepth}"
-    local srcLog="xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
+    local srcLog="xdd-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 
     # Direct I/O option
     if [ 1 -eq $srcDIOFlag ]; then
@@ -926,12 +926,12 @@ function get_source_cmds {
     if [ 1 -eq $verbosity ]; then
         local verboseOpt="-verbose"
     elif [ 2 -eq $verbosity ]; then
-        local verboseOpt="-verbose -ts detailed -ts output xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
+        local verboseOpt="-verbose -ts detailed -ts output xdd-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
     fi
 
     # binary timestamp dump option
     if [ 1 -eq $binaryDumpFlag ]; then
-        local binaryDumpOpt="-ts dump xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
+        local binaryDumpOpt="-ts dump xdd-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
     fi
     
     # Determine if output can be sent to log file
@@ -958,7 +958,7 @@ if [ "\$source_version" != "$g_xddcpXddVersion" ]; then
 fi
 
 # Path complement xdd so that iotracing can function
-xdd_exe_path=\$(type -P ${XDDCP_XDD_EXE})
+xdd_exe_path=\$(\type -P ${XDDCP_XDD_EXE})
 
 # Ensure source side file exists
 if [ ! -r "${srcFile}" ]; then
@@ -968,7 +968,7 @@ fi
 
 # Add the command to the log file
 if [ $verbosity -gt 0 ]; then
-    src_log="xdd-\$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
+    src_log="xdd-\$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 else
     src_log=/dev/null
 fi
@@ -1073,9 +1073,9 @@ function start_destination_xdd {
 		break;
 	    elif [ 1 -eq $resumeFlag ]; then
 	        # Search each line for the resume offset
-		restartLine=$(echo $line |grep "RESTART TOKENS")
+		restartLine=$(\echo $line |grep "RESTART TOKENS")
 		if [ ! -z "$restartLine" ]; then
-		    g_xddcpResumeOffset=$(/bin/echo $restartLine |rev |cut -d ' ' -f 1 |rev)
+		    g_xddcpResumeOffset=$(\echo $restartLine |rev |cut -d ' ' -f 1 |rev)
 
 		    # If the restart value is non-numeric, just set it to 0
 		    echo "$g_xddcpResumeOffset" |egrep "^[0-9]+$" &>/dev/null
@@ -1176,10 +1176,10 @@ function transfer_file_list {
     fi
 
     # Get all of the source specs and path complement
-    local srcFileSpecDir=$(dirname ${srcFileList})
+    local srcFileSpecDir=$(\dirname ${srcFileList})
     local fileNames=""
-    for name in $(/bin/cat ${srcFileList}); do
-	local pathChar=$(dirname $name |cut -c 1)
+    for name in $(\cat ${srcFileList}); do
+	local pathChar=$(\dirname $name |cut -c 1)
 	if [ "." = "$pathChar" ]; then
 	    fileNames="${srcFileSpecDir}/${name} $fileNames"
 	else
@@ -1194,7 +1194,7 @@ function transfer_file_list {
     for srcFileSpec in ${srcFileSpecList}; do
 
 	# Modify the destination path for file list transfers
-	local srcFileName=$(/bin/basename ${srcFileSpec})
+	local srcFileName=$(\basename ${srcFileSpec})
 	destFileSpec=${destPath}/${srcFileName}
 
         # Parse the source side spec
@@ -1262,7 +1262,7 @@ function transfer_recursive_path {
     if [ -d "$srcPath" ]; then
 	# Determine the corresponding destination name for the source name
 	# Modify the destination path for file list transfers
-	local srcName=$(/bin/basename $srcPath)
+	local srcName=$(\basename $srcPath)
 	local destFileSpec=${destPath}/${srcName}
 	create_destination_directory "${destFileSpec}" "${destRemoteFlag}" "${destIP}" "${destUser}"
 	rc=$?
@@ -1274,9 +1274,9 @@ function transfer_recursive_path {
 
     # Get names from source spec, if its a directory, transfer its contents recursively
     # Otherwise, just transfer the file and end
-    for entry in $(/bin/ls $srcPath); do
+    for entry in $(\ls $srcPath); do
 	local srcFileSpec=$srcPath/$entry
-	local destFileSpec=$destPath/$(basename $srcPath)
+	local destFileSpec=$destPath/$(\basename $srcPath)
 	if [ -d "$srcFileSpec" ]; then
 	    transfer_recursive_path "${srcFileSpec}" "${srcHost}" "${srcUser}" \
 		"${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
@@ -1291,7 +1291,7 @@ function transfer_recursive_path {
 		sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
 	    fi
 
-	    #local destFileSpec=$destPath/$(basename $entry)
+	    #local destFileSpec=$destPath/$(\basename $entry)
 	    transfer_file "${srcFileSpec}" "${srcHost}" "${srcUser}" \
 		"${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
 		"${destFileSpec}" "${destHost}" "${destIP}" "${destUser}" \
@@ -1406,7 +1406,7 @@ function transfer_file {
 #
 function post_transfer_analysis {
 	local srcPath=${1}
-	local srcHost=$(/bin/hostname -s)
+	local srcHost=$(\hostname -s)
 	local srcUser=${3}
 	local destPath=${4}
 	local destHost=${5}
@@ -1416,13 +1416,13 @@ function post_transfer_analysis {
 	local kernelTrace=${9}
 
 	# where the timestamp dumps should be right now
-	local srcBase=$(/bin/basename $srcPath)
-	local dstBase=$(/bin/basename $destPath)
+	local srcBase=$(\basename $srcPath)
+	local dstBase=$(\basename $destPath)
         # If the supplied destination is a directory, append the source file name
         if [ -d $destPath ]; then
           dstBase=$srcBase
         fi
-	local srcBinDump="xdd-$(/bin/hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+	local srcBinDump="xdd-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
 	local dstBinDump="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
 	local dstCsvFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.csv"
 	local dstLogFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
@@ -1464,15 +1464,15 @@ function post_transfer_analysis {
 	(ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
-destination_dir=\$(dirname ${destPath})
+destination_dir=\$(\\dirname ${destPath})
 if [ -d ${destPath} ]; then
 	destination_file=${destPath}/${srcBase}
 	destination_dir=${destPath}
 fi
 # If the filename uses a relative path, path complement it
-path_char=\$(dirname \$destination_file |cut -c 1)
+path_char=\$(\\dirname \$destination_file |cut -c 1)
 if [ "." = \$path_char ]; then
-	destination_dir="\$(/bin/pwd)/\${destination_dir}"
+	destination_dir="\$(\\pwd)/\${destination_dir}"
 fi
 # If insufficient permissions for the log exist, direct to HOME
 if [ ! -w \$destination_dir ]; then
@@ -1480,9 +1480,9 @@ if [ ! -w \$destination_dir ]; then
 fi
 # send the file back through cpio
 cd \${destination_dir}
-ls ${dstBinDump} | /bin/cpio -o 2>/dev/null
+ls ${dstBinDump} | \cpio -o 2>/dev/null
 EOF
-) | /bin/cpio -i >> ${myLogFile} 2>&1
+) | \cpio -i >> ${myLogFile} 2>&1
 	destRC=$?
 	cp ${dstBinDump} ${newDstBin} >> ${myLogFile} 2>&1
 	if [ 0 -ne $destRC ]; then
@@ -1495,15 +1495,15 @@ EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
-destination_dir=\$(dirname ${destPath})
+destination_dir=\$(\\dirname ${destPath})
 if [ -d ${destPath} ]; then
         destination_file=${destPath}/${srcBase}
         destination_dir=${destPath}
 fi
 # If the filename uses a relative path, path complement it
-path_char=\$(dirname \$destination_file |cut -c 1)
+path_char=\$(\\dirname \$destination_file |cut -c 1)
 if [ "." = \$path_char ]; then
-        destination_dir="\$(/bin/pwd)/\${destination_dir}"
+        destination_dir="\$(\\pwd)/\${destination_dir}"
 fi
 # If insufficient permissions for the log exist, direct to HOME
 if [ ! -w \$destination_dir ]; then
@@ -1511,24 +1511,24 @@ if [ ! -w \$destination_dir ]; then
 fi
 # send the file back through cpio
 cd \${destination_dir}
-ls ${dstLogFile} | /bin/cpio -o 2>/dev/null
+ls ${dstLogFile} | \cpio -o 2>/dev/null
 EOF
-) | /bin/cpio -i >> ${myLogFile} 2>&1
+) | \cpio -i >> ${myLogFile} 2>&1
 
         # get/copy destination timestamp csv file from destination to source host
         (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
-destination_dir=\$(dirname ${destPath})
+destination_dir=\$(\\dirname ${destPath})
 if [ -d ${destPath} ]; then
         destination_file=${destPath}/${srcBase}
         destination_dir=${destPath}
 fi
 # If the filename uses a relative path, path complement it
-path_char=\$(dirname \$destination_file |cut -c 1)
+path_char=\$(\\dirname \$destination_file |cut -c 1)
 if [ "." = \$path_char ]; then
-        destination_dir="\$(/bin/pwd)/\${destination_dir}"
+        destination_dir="\$(\\pwd)/\${destination_dir}"
 fi
 # If insufficient permissions for the log exist, direct to HOME
 if [ ! -w \$destination_dir ]; then
@@ -1536,9 +1536,9 @@ if [ ! -w \$destination_dir ]; then
 fi
 # send the file back through cpio
 cd \${destination_dir}
-ls ${dstCsvFile} | /bin/cpio -o 2>/dev/null
+ls ${dstCsvFile} | \cpio -o 2>/dev/null
 EOF
-) | /bin/cpio -i >> ${myLogFile} 2>&1
+) | \cpio -i >> ${myLogFile} 2>&1
 
 	# get/copy destination iotrace_data.out file from destination to source host
 	if [ 1 -eq $kernelTrace ]; then
@@ -1546,15 +1546,15 @@ EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
-destination_dir=\$(dirname ${destPath})
+destination_dir=\$(\\dirname ${destPath})
 if [ -d ${destPath} ]; then
         destination_file=${destPath}/${srcBase}
         destination_dir=${destPath}
 fi
 # If the filename uses a relative path, path complement it
-path_char=\$(dirname \$destination_file |cut -c 1)
+path_char=\$(\\dirname \$destination_file |cut -c 1)
 if [ "." = \$path_char ]; then
-        destination_dir="\$(/bin/pwd)/\${destination_dir}"
+        destination_dir="\$(\\pwd)/\${destination_dir}"
 fi
 # If insufficient permissions for the log exist, direct to HOME
 if [ ! -w \$destination_dir ]; then
@@ -1562,9 +1562,9 @@ if [ ! -w \$destination_dir ]; then
 fi
 # send the file back through cpio
 cd \${destination_dir}
-ls iotrace_data*out | /bin/cpio -o 2>/dev/null
+ls iotrace_data*out | \cpio -o 2>/dev/null
 EOF
-) | /bin/cpio -i >> ${myLogFile} 2>&1
+) | \cpio -i >> ${myLogFile} 2>&1
 fi
 	destRC=$?
 	if [ 0 -ne $destRC ]; then
@@ -1746,7 +1746,7 @@ function xddcp_main {
 			echo "INFO: Window size (-w arg) must be greater than zero." >/dev/stderr
 			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		fi
-                XDDCP_IOTRACE_EXE=$(type -P iotrace_init)
+                XDDCP_IOTRACE_EXE=$(\type -P iotrace_init)
                 if [ $? -ne 0 ]; then
                     echo "INFO: kernel trace mode requires the 'iotrace_init' command. Install or use -w option."
                     error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
@@ -1755,7 +1755,7 @@ function xddcp_main {
                     echo "INFO: kernel trace mode requires the '/dev/iotrace_data' device. Install or use -w option."
                     error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
                 fi
-                XDDCP_IOTRACE_DECODE=$(type -P decode)
+                XDDCP_IOTRACE_DECODE=$(\type -P decode)
                 if [ $? -ne 0 ]; then
                     echo "INFO: kernel trace mode requires the 'decode' command. Install or use -w option."
                     error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
@@ -1790,7 +1790,7 @@ function xddcp_main {
 	${recursiveFlag} ${resumeFlag} ${forceFlag}
 
     # The force flag only works on Linux, disable it everywhere else
-    if [ "Linux" != "$(/bin/uname)" ]; then
+    if [ "Linux" != "$(\uname)" ]; then
 	forceFlag=0
 	echo "Warning: File transfer forcing disabled for non-Linux platforms." >/dev/stderr
     fi
