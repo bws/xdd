@@ -36,6 +36,7 @@
  *    - memory usage
  *    - Environment
  */
+#include <inttypes.h>
 #include "xdd.h"
 
 /*----------------------------------------------------------------------------*/
@@ -336,7 +337,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
                    ( p->ts_options & TS_WRAP       )?"WRAP":"",
                    ( p->ts_options & TS_ONESHOT    )?"ONESHOT":"");
                 if ( p->ts_options & TS_TRIGTIME   ) fprintf(out,"TRIGTIME %llu",p->ts_trigtime);
-                if ( p->ts_options & TS_TRIGOP     ) fprintf(out,":TRIGOP %lld",p->ts_trigop);
+                if ( p->ts_options & TS_TRIGOP     ) fprintf(out,":TRIGOP %"PRId64,p->ts_trigop);
 		if ( p->ts_output_filename != NULL ) fprintf(out, "\t\tTimestamp ASCII output file name, %s\n",p->ts_output_filename);
 		if ( p->ts_options & TS_DUMP       ) fprintf(out, "\t\tTimestamp binary output file name, %s\n",p->ts_binary_filename);
 	} else                                       fprintf(out, "\t\tTimestamping, disabled\n");
