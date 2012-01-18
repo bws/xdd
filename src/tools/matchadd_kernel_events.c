@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -63,7 +64,7 @@ void parse_line (
       {
         if ( (keyword = strtok(NULL,seps)) == NULL ) return;
         secs = atoll(keyword);
-        if(DEBUG)fprintf(stderr,"secs= %lld ",secs);
+        if(DEBUG)fprintf(stderr,"secs= %"PRId64" ",secs);
       }
       if ( !strncmp(keyword,"nsecs" , 5 ) ) 
       {
@@ -76,7 +77,7 @@ void parse_line (
           sum_size_op = 0;
           size_enter = 0;
         }
-        if(DEBUG)fprintf(stderr," nsecs= %lld ",nsecs);
+        if(DEBUG)fprintf(stderr," nsecs= %"PRId64" ",nsecs);
       }
       if ( !strcmp(keyword,"size") || 
            !strcmp(keyword,"count")|| 
@@ -85,7 +86,7 @@ void parse_line (
         if ( (keyword = strtok(NULL,seps)) == NULL ) return;
         size_enter = atoi(keyword);
         if (*nops_op == 0 ) *size_op = size_enter;
-        if(DEBUG)fprintf(stderr," bytes= %lld ",size_enter);
+        if(DEBUG)fprintf(stderr," bytes= %"PRId64" ",size_enter);
       }
     }
     if (DEBUG) fprintf(stderr,"cr-n\n");
@@ -110,14 +111,14 @@ void parse_line (
       {
         if ( (keyword = strtok(NULL,seps)) == NULL ) return;
         secs = atoi(keyword);
-        if (DEBUG) fprintf(stderr,"secs= %lld ",secs);
+        if (DEBUG) fprintf(stderr,"secs= %"PRId64" ",secs);
       }
       if ( !strncmp(keyword,"nsecs" , 5 ) ) 
       {
         if ( (keyword = strtok(NULL,seps)) == NULL ) return;
         nsecs = atoi(keyword);
         ts_exit = secs * 1000000000LL + nsecs;
-       if(DEBUG) fprintf(stderr," nsecs= %lld ",nsecs);
+       if(DEBUG) fprintf(stderr," nsecs= %"PRId64" ",nsecs);
       }
       if ( !strncmp(keyword,"ret" , 3 ) ) 
       {
@@ -125,20 +126,20 @@ void parse_line (
         size_exit = atoi(keyword);
         sum_size_op += size_exit;
         (*nops_op)++;
-       if(DEBUG) fprintf(stderr," bytes= %lld sum %lld of %lld nops %lld",size_exit, sum_size_op, *size_op, *nops_op);
+       if(DEBUG) fprintf(stderr," bytes= %"PRId64" sum %"PRId64" of %"PRId64" nops %"PRId64,size_exit, sum_size_op, *size_op, *nops_op);
         /* check for end-of-op */
         if (size_exit == size_enter)
         {
           if ( sum_size_op != *size_op ) 
           {
-            fprintf(stderr,"sum=%lld, size=%lld DONT match reject\n",sum_size_op, *size_op);
+            fprintf(stderr,"sum=%"PRId64", size=%"PRId64" DONT match reject\n",sum_size_op, *size_op);
                 *ts_beg_op = *ts_end_op = *size_op = *nops_op = 0;
               return;
           }
          *ts_end_op = ts_exit;
          *found = 1;
           if (DEBUG)
-          fprintf(stderr,"kern %8s thread_pid %d size %8lld  start %lld end %lld, sum %lld, nops %lld\n",
+          fprintf(stderr,"kern %8s thread_pid %d size %8"PRId64"  start %"PRId64" end %"PRId64", sum %"PRId64", nops %"PRId64"\n",
              operation, thread_pid, *size_op, (*ts_beg_op),(*ts_end_op), sum_size_op, *nops_op);
         }
       }
@@ -222,7 +223,7 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
               {
               /* find next op. Deal with xdd eofi, i.e., don't look for trace events that did not happen */
                 if (DEBUG)
-                fprintf(stderr,"%2d xdd  pread64  thread_pid %d size %8d  start %lld end %lld opt %d\n",
+                fprintf(stderr,"%2d xdd  pread64  thread_pid %d size %8d  start %"PRId64" end %"PRId64" opt %d\n",
                    i,xdd_data->tte[i].thread_id, xdd_data->tte[i].disk_xfer_size, xdd_data->tte[i].disk_start, xdd_data->tte[i].disk_end,xdd_data->tte[i].op_type );
                 if (READ_OP(xdd_data->tte[i].op_type) && xdd_data->tte[i].disk_xfer_size)
                 {

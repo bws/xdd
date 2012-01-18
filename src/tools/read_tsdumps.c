@@ -1,4 +1,4 @@
-
+#include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <stddef.h>
@@ -444,7 +444,7 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	      fprintf(outfile," timestamp file: %s\n",srcfilename);
 	      fprintf(outfile,"#timestamp: %s",src->td);
 	      fprintf(outfile,"#reqsize: %d\n",src->reqsize);
-	      fprintf(outfile,"#filesize: %lld\n",src->reqsize*src->tt_size);
+	      fprintf(outfile,"#filesize: %"PRId64"\n",src->reqsize*src->tt_size);
               fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
           for (i = 0; i < total_threads_src; i++) { 
               fprintf(outfile,"%d ",thread_id_src[i] );
@@ -459,7 +459,7 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	      fprintf(outfile," timestamp file: %s\n",dstfilename);
 	      fprintf(outfile,"#timestamp: %s",dst->td);
 	      fprintf(outfile,"#reqsize: %d\n",dst->reqsize);
-	      fprintf(outfile,"#filesize: %lld\n",dst->reqsize*dst->tt_size);
+	      fprintf(outfile,"#filesize: %"PRId64"\n",dst->reqsize*dst->tt_size);
               fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
             for (i = 0; i < total_threads_dst; i++) { 
 	      fprintf(outfile,"%d ",thread_id_dst[i] );
