@@ -81,6 +81,7 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 
 	p->processor = -1;
 	p->start_delay = DEFAULT_START_DELAY;
+	p->random_initialized = 0;
 	/* Init the Trigger Structure members if there is a trigger struct */
 	if (p->trigp) {
 		p->trigp->start_trigger_time = 0; /* Time to trigger another target to start */

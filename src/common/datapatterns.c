@@ -52,10 +52,10 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 	dpp = p->dpp;
 	if (dpp->data_pattern_options & DP_RANDOM_PATTERN) { // A nice random pattern
 			lp = (uint32_t *)p->rwbuf;
-			xgp->random_initialized = 0;
+			p->random_initialized = 0;
             /* Set each four-byte field in the I/O buffer to a random integer */
 			for(i = 0; i < (int32_t)(p->iosize / sizeof(int32_t)); i++ ) {
-				*lp=xdd_random_int();
+				*lp=xdd_random_int(p);
 				lp++;
 			}
 	} else if ((dpp->data_pattern_options & DP_ASCII_PATTERN) ||
