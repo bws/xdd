@@ -223,7 +223,7 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
               {
               /* find next op. Deal with xdd eofi, i.e., don't look for trace events that did not happen */
                 if (DEBUG)
-                fprintf(stderr,"%2d xdd  pread64  thread_pid %d size %8d  start %"PRId64" end %"PRId64" opt %d\n",
+                fprintf(stderr,"%2d xdd  pread64  thread_pid %d size %8d  start %lld end %lld opt %d\n",
                    i,xdd_data->tte[i].thread_id, xdd_data->tte[i].disk_xfer_size, xdd_data->tte[i].disk_start, xdd_data->tte[i].disk_end,xdd_data->tte[i].op_type );
                 if (READ_OP(xdd_data->tte[i].op_type) && xdd_data->tte[i].disk_xfer_size)
                 {
@@ -232,7 +232,7 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                   xdd_data->tte[i].disk_start_k     = ts_beg_op;
                   xdd_data->tte[i].disk_end_k       = ts_end_op;
                   if ( xdd_data->tte[i].disk_xfer_size != size_op) 
-                    fprintf(stderr, "xddop# %d pid %d size %d != %lld\n",i,thread_id[k],xdd_data->tte[i].disk_xfer_size,size_op);
+                    fprintf(stderr, "xddop# %d pid %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].disk_xfer_size,size_op);
                 }
                 if ( xdd_data->tte[i].net_xfer_size > 0 )
                 {
@@ -244,9 +244,9 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                   xdd_data->tte[i].net_start_k      = ts_beg_op;
                   xdd_data->tte[i].net_end_k        = ts_end_op;
                   if ( xdd_data->tte[i].net_xfer_size != size_op && size_op > 0) 
-                    fprintf(stderr, "xddop# %d pid %d size %d != %lld\n",i,thread_id[k],xdd_data->tte[i].net_xfer_size,size_op);
+                    fprintf(stderr, "xddop# %d pid %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].net_xfer_size,size_op);
                   if ( xdd_data->tte[i].net_xfer_calls != nops_op && nops_op > 0) 
-                    fprintf(stderr, "xddop# %d pid %d nops %d != %lld\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
+                    fprintf(stderr, "xddop# %d pid %d nops %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
                 }
               }
               else /* is destination, parse for net op first (recvfrom) */
@@ -263,9 +263,9 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                   xdd_data->tte[i].net_end_k        = ts_end_op;
                   /* xdd eof stuff */
                   if ( xdd_data->tte[i].net_xfer_size != size_op && xdd_data->tte[i].net_xfer_size != sizeof(xdd_e2e_header_t)) 
-                    fprintf(stderr, "xddop# %d pid %d op %d size %d != %lld\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].net_xfer_size,size_op);
+                    fprintf(stderr, "xddop# %d pid %d op %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].net_xfer_size,size_op);
                   if ( xdd_data->tte[i].net_xfer_calls != nops_op && nops_op > 0) 
-                    fprintf(stderr, "xddop# %d pid %d nops %d != %lld\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
+                    fprintf(stderr, "xddop# %d pid %d nops %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
                 }
                 if (DEBUG)
                 fprintf(stderr,"%2d xdd  pwrite64 thread_pid %d size %8d  start %lld end %lld opt %d\n",
@@ -277,7 +277,7 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                   xdd_data->tte[i].disk_start_k     = ts_beg_op;
                   xdd_data->tte[i].disk_end_k       = ts_end_op;
                   if ( xdd_data->tte[i].disk_xfer_size != size_op && size_op > 0) 
-                  fprintf(stderr, "xddop# %d pid %d op %d size %d != %lld\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].disk_xfer_size,size_op);
+                  fprintf(stderr, "xddop# %d pid %d op %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].disk_xfer_size,size_op);
                 }
               }
             }
