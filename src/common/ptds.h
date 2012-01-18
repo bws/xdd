@@ -180,6 +180,8 @@ struct ptds {
 	int32_t				processor;  			// Processor/target assignments 
 	double				start_delay; 			// number of seconds to delay the start  of this operation 
 	nclk_t				start_delay_psec;		// number of nanoseconds to delay the start  of this operation 
+	char				random_init_state[256]; // Random number generator state initalizer array 
+	char				random_initialized;		// Random number generator has been initialized 
     // ------------------ Throttle stuff --------------------------------------------------
 	// The following "throttle_" members are for the -throttle option
 	double				throttle;  				// Target Throttle assignments 
