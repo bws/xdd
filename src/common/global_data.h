@@ -95,7 +95,6 @@ struct xdd_global_data {
 	nclk_t			run_start_time; 					/* The time that the targets will start their first pass - set after initialization */
 	nclk_t			estimated_end_time;     			/* The time at which this run (all passes) should end */
 	int32_t			number_of_processors;   			/* Number of processors */
-	char			random_init_state[256]; 			/* Random number generator state initalizer array */ 
 	int32_t			clock_tick;							/* Number of clock ticks per second */
 // Indicators that are used to control exit conditions and the like
 	char			id_firsttime;           			/* ID first time through flag */
@@ -104,7 +103,6 @@ struct xdd_global_data {
 	char			run_complete;   					/* Set to a 1 to indicate that all passes have completed */
 	char			abort;       						/* Abort the run due to some catastrophic failure */
 	char			canceled;       					/* Program canceled by user */
-	char			random_initialized;     			/* Random number generator has been initialized */
 	int 			e2e_TCP_Win;						/* TCP Window Size - used by e2e */
 	struct linger	e2e_SO_Linger;						/* Used by the SO_LINGER Socket Option - used by e2e */
 	struct sigaction sa;								/* Used by the signal handlers to determine what to do */

@@ -86,13 +86,13 @@ xdd_tokenize(char *cp) {
 /* xdd_random_int() - returns a random integer
  */
 int
-xdd_random_int(void) {
+xdd_random_int(ptds_t *p) {
 #ifdef  LINUX
 
 
-	if (xgp->random_initialized == 0) {
-		initstate(72058, xgp->random_init_state, 256);
-		xgp->random_initialized = 1;
+	if (p->random_initialized == 0) {
+		initstate(72058, p->random_init_state, 256);
+		p->random_initialized = 1;
 	}
 #endif
 #ifdef WIN32

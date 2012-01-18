@@ -26,8 +26,10 @@
 /* key offsets in tte_t for the sorting function */
 #define DISK_START  offsetof(tte_t, disk_start)
 #define DISK_END    offsetof(tte_t, disk_end)
+#define DISK_XFER   offsetof(tte_t, disk_xfer_size)
 #define NET_START   offsetof(tte_t, net_start)
 #define NET_END     offsetof(tte_t, net_end)
+#define NET_XFER    offsetof(tte_t, net_xfer_size)
 
 /* magic number to make sure we can read the file */
 #define BIN_MAGIC_NUMBER 0xDEADBEEF
@@ -35,36 +37,31 @@
 #define MAX_QTHREADS 1024
 int thread_id_src[MAX_QTHREADS];
 int thread_id_dst[MAX_QTHREADS];
-int total_threads_src;
-int total_threads_dst;
-        nclk_t src_start_norm,dst_start_norm;
+int total_threads_src = 0;
+int total_threads_dst = 0;
+double op_mix = 0.0;
+nclk_t src_start_norm,dst_start_norm;
 
 /* output file, if specified */
 #define OUTFILENAME_LEN 512
-char outfilename[OUTFILENAME_LEN];
+char outfilebase[OUTFILENAME_LEN];
 char kernfilename[OUTFILENAME_LEN];
+char *srcfilename, *dstfilename;
 
 int kernel_trace = 0;
 /* number of seconds in the sliding window */
 int window_size;
 
 /* normalize timestamps */
-void normalize_time(tthdr_t *src, tthdr_t *dst);
+void normalize_time(tthdr_t *src, nclk_t *start_norm);
 /* custom quick sort for the tte_t array */
 void tte_qsort(tte_t **list, size_t key_offset, int64_t left, int64_t right);
 /* sorts the timestamp entries by completion time */
-void sort_by_time(tthdr_t *src, tthdr_t *dst, tte_t ***read_op,
-		tte_t ***send_op, tte_t ***recv_op, tte_t ***write_op);
+void sort_by_time(tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted);
 /* write all the outfiles */
 void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
-		tte_t **send_op, tte_t **recv_op, tte_t **write_op);
-void write_outfile_k(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
-		tte_t **send_op, tte_t **recv_op, tte_t **write_op);
-void write_outfile_d(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
-                tte_t **send_op, tte_t **recv_op, tte_t **write_op);
+	tte_t **send_op, tte_t **recv_op, tte_t **write_op);
 /* read, check, and store the src and dst file data */
-int xdd_getdata(char *file1, char *file2, tthdr_t **src, tthdr_t **dst, size_t *tsdata_size);
-/* Read an XDD binary timestamp dump into a structure */
 int xdd_readfile(char *filename, tthdr_t **tsdata, size_t *tsdata_size);
 /* Write an XDD binary timestamp structure to file */
 int xdd_writefile(char *filename, tthdr_t *tsdata, size_t tsdata_size);
@@ -72,8 +69,8 @@ int xdd_writefile(char *filename, tthdr_t *tsdata, size_t tsdata_size);
 int getoptions(int argc, char **argv);
 /* print command line usage */
 void printusage(char *progname);
-/* get total threads, thread pids */
-void xdd_getthreads(tthdr_t *src, tthdr_t *dst);
+/* get total threads, thread pids, operation mix (%read,%write) */
+void xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix);
 
 int
 matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filespec, tthdr_t *xdd_data);
@@ -83,10 +80,11 @@ int main(int argc, char **argv) {
 
 	int fn,argnum,retval;
         size_t tsdata_size;
-        char *iotrace_data_dir;
+        char *iotrace_data_dir, *current_work_dir;
 	/* tsdumps for the source and destination sides */
 	tthdr_t *src = NULL;
 	tthdr_t *dst = NULL;
+	tthdr_t *tsdata = NULL;
 	/* timestamp entries sorted by ending time */
 	tte_t **read_op = NULL;
 	tte_t **send_op = NULL;
@@ -97,75 +95,165 @@ int main(int argc, char **argv) {
 	argnum = getoptions(argc, argv);
 	fn = MAX(argnum,1);
 
-	/* get the src and dst data structs */
-	retval = xdd_getdata(argv[fn],argv[fn+1],&src,&dst,&tsdata_size);
+	/* get the src or dst data structs */
+	retval = xdd_readfile(argv[fn],&tsdata,&tsdata_size);
 	if (retval == 0) {
-		fprintf(stderr,"xdd_getdata() failed... exiting.\n");
-		exit(1);
+  	  fprintf(stderr,"xdd_readfile() failed...reading 1st xdd timestamp file: %s ...exiting.\n",argv[fn]);
+	  exit(1);
 	}
+        /* determine whether this is the source or destination file */
+        /* if only 1 file given, then source==read, destination==write */
+        if (READ_OP(tsdata->tte[0].op_type)) { 
+           src = tsdata;
+           srcfilename = argv[fn];
+	}
+        else
+        if (WRITE_OP(tsdata->tte[0].op_type)){
+	  dst = tsdata;
+          dstfilename = argv[fn];
+	}
+        else {
+           fprintf(stderr,"Timestamp dump had invalid operation in tte[0]: %s\n",argv[fn]);
+           exit(1);
+        }
+        /* if 2nd file specified, this must be an e2e pair (src,dst) */
+        if ( argv[fn+1] != NULL ) {
+          /* get the src or dst data structs */
+          retval = xdd_readfile(argv[fn+1],&tsdata,&tsdata_size);
+	  if (retval == 0) {
+	    fprintf(stderr,"xdd_readfile() failed...reading 2nd xdd timestamp file: %s ...exiting.\n",argv[fn+1]);
+	    exit(1);
+	  }
+          /* determine whether this is the source or destination file */
+          if (READ_OP(tsdata->tte[0].op_type))  {
+            if (src != NULL) {
+              fprintf(stderr,"You passed 2 source dump files.\n");
+              fprintf(stderr,"Please pass matching source and destination dumps or a single dump .\n");
+              exit(1);
+            }
+            src = tsdata;
+            srcfilename = argv[fn+1];
+          }
+          else 
+          if (WRITE_OP(tsdata->tte[0].op_type)) {
+            if (dst != NULL) {
+              fprintf(stderr,"You passed 2 destination dump files.\n");
+              fprintf(stderr,"Please pass matching source and destination dumps or a single dump .\n");
+              exit(1);
+            }
+            dst = tsdata;
+            dstfilename = argv[fn+1];
+          } 
+          else {
+             fprintf(stderr,"Timestamp dump had invalid operation in tte[0]: %s\n",argv[fn+1]);
+             exit(1);
+          }
+          /* If these files are from the same transfer, they should be the same size. */
+          if (src->tt_bytes != dst->tt_bytes) {
+            fprintf(stderr,"Source and destination files are not the same size.\n");
+            fprintf(stderr,"Please pass matching source and destination dumps.\n");
+            exit(1);
+          }
+        }
+
         /* get total threads */
-        xdd_getthreads(src,dst);
+        if (src != NULL) xdd_getthreads(src,&total_threads_src, thread_id_src, &op_mix);
+        if (dst != NULL) xdd_getthreads(dst,&total_threads_dst, thread_id_dst, &op_mix);
+        /* If e2e, better have same number of threads. */
+        if (total_threads_src > 0 && total_threads_dst > 0 && total_threads_src != total_threads_dst) {
+          fprintf(stderr,"Warning: source (%d) and destination (%d) files don't have the same number of I/O threads.\n",
+                total_threads_src, total_threads_dst);
+        }
 
         /* match-add kernel events with xdd events if specfied */
         /* at this point, src & dst contain all xdd events     */
+        /* note that iotrace_data_dir is independent of $PWD   */
         if (kernel_trace)
         {
-          if ((iotrace_data_dir=getenv("TR_RUN_LOG")) == NULL)
+          if ((iotrace_data_dir=getenv("TRACE_LOG_LOC")) == NULL)
                iotrace_data_dir=getenv("HOME");
+               current_work_dir=getenv("PWD");
      
-          sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
-		iotrace_data_dir, iotrace_data_dir, src->target_thread_id);
-          system(kernfilename);
-		fprintf(stderr,"kernfilename %s tt_size %lld\n",kernfilename,src->tt_size);
-          sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
-		iotrace_data_dir, src->target_thread_id,getenv("PWD"));
-          system(kernfilename);
-		fprintf(stderr,"kernfilename %s\n",kernfilename);
-          sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
-                getenv("PWD"),src->target_thread_id);
-		fprintf(stderr,"kernfilename %s\n",kernfilename);
-          matchadd_kernel_events(1,total_threads_src,thread_id_src,kernfilename,src);
+          if (src != NULL) {
+            sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
+	       	iotrace_data_dir, iotrace_data_dir, src->target_thread_id);
+            if ( system(kernfilename) == -1 ) {
+               fprintf(stderr,"in main: shell command failed: %s\n",kernfilename);
+               exit(1);
+            }
+            if (strcmp(iotrace_data_dir,current_work_dir) != 0) {
+              sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
+	  	iotrace_data_dir, src->target_thread_id,getenv("PWD"));
+              if ( system(kernfilename) == -1 ) {
+                 fprintf(stderr,"in main: shell command failed: %s\n",kernfilename);
+                 exit(1);
+              }
+            }
+            sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
+                current_work_dir, src->target_thread_id);
+            matchadd_kernel_events(1,total_threads_src,thread_id_src,kernfilename,src);
+            if (op_mix > 0.0)
+            matchadd_kernel_events(0,total_threads_src,thread_id_src,kernfilename,src);
+            /* write out the src and dst data structs that now contain kernel data */
+            sprintf(kernfilename,"%s/%sk", current_work_dir, srcfilename);
+            retval = xdd_writefile(kernfilename,src,tsdata_size);
+            if (retval == 0) {
+		fprintf(stderr,"xdd_writefile() failed to write %s ...exiting.\n",kernfilename);
+		exit(1);
+	    }
+          }
 
-          sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
+          if (dst != NULL) {
+            sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
 		iotrace_data_dir, iotrace_data_dir, dst->target_thread_id);
-          system(kernfilename);
-		fprintf(stderr,"kernfilename %s tt_size %lld\n",kernfilename,dst->tt_size);
-          sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
+            if ( system(kernfilename) == -1 ) {
+               fprintf(stderr,"in main: shell command failed: %s\n",kernfilename);
+               exit(1);
+            }
+            if (strcmp(iotrace_data_dir,current_work_dir) != 0) {
+              sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
 		iotrace_data_dir, dst->target_thread_id,getenv("PWD"));
-          system(kernfilename);
-		fprintf(stderr,"kernfilename %s\n",kernfilename);
-          sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
-                getenv("PWD"),dst->target_thread_id);
-		fprintf(stderr,"kernfilename %s\n",kernfilename);
-          matchadd_kernel_events(0,total_threads_dst,thread_id_dst,kernfilename,dst);
-          /* write out the src and dst data structs that now contain kernel data */
-          sprintf(kernfilename,"%s/%sk", getenv("PWD"),argv[fn]);
-		fprintf(stderr,"kernfilename %s\n",kernfilename);
-          retval = xdd_writefile(kernfilename,src,tsdata_size);
-          if (retval == 0) {
-		fprintf(stderr,"xdd_writefile() failed... exiting.\n");
+              if ( system(kernfilename) == -1 ) {
+                 fprintf(stderr,"in main: shell command failed: %s\n",kernfilename);
+                 exit(1);
+              }
+            }
+            sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
+                current_work_dir, dst->target_thread_id);
+            matchadd_kernel_events(0,total_threads_dst,thread_id_dst,kernfilename,dst);
+            if (op_mix > 0.0)
+            matchadd_kernel_events(1,total_threads_dst,thread_id_dst,kernfilename,dst);
+            sprintf(kernfilename,"%s/%sk", current_work_dir, dstfilename);
+            retval = xdd_writefile(kernfilename,dst,tsdata_size);
+            if (retval == 0) {
+		fprintf(stderr,"xdd_writefile() failed to write %s ...exiting.\n",kernfilename);
 		exit(1);
-	  }
-          sprintf(kernfilename,"%s/%sk", getenv("PWD"),argv[fn+1]);
-		fprintf(stderr,"kernfilename %s\n",kernfilename);
-          retval = xdd_writefile(kernfilename,dst,tsdata_size);
-          if (retval == 0) {
-		fprintf(stderr,"xdd_writefile() failed... exiting.\n");
-		exit(1);
-	  }
+	    }
+          }
+
         }
 
-	/* get the MIN timestamp on each side and normalize the times */
-	normalize_time(src,dst);
+	/* get the MIN timestamp normalize the times */
+	if (src!=NULL) normalize_time(src,&src_start_norm);
+	if (dst!=NULL) normalize_time(dst,&dst_start_norm);
 
 	/* sort timestamp entries for each operation (read/send/recv/write) */
-        /* kernel events co-located with matching xdd op */
-	sort_by_time(src,dst,&read_op,&send_op,&recv_op,&write_op);
+        /* kernel events are co-located with matching xdd op */
+        if (src!=NULL) {
+          sort_by_time(src, DISK_END, &read_op);
+          if (dst!=NULL) {
+          sort_by_time(src, NET_END,  &send_op);
+          }
+        }
+        if (dst!=NULL) {
+          sort_by_time(dst, DISK_END, &write_op);
+          if (src!=NULL) {
+          sort_by_time(dst, NET_END,  &recv_op);
+          }
+        }
 
 	/* write the outfile(s) */
-                          write_outfile  (src,dst,read_op,send_op,recv_op,write_op);
-        if (kernel_trace) write_outfile_k(src,dst,read_op,send_op,recv_op,write_op);
-        if (kernel_trace) write_outfile_d(src,dst,read_op,send_op,recv_op,write_op);
+        write_outfile  (src,dst,read_op,send_op,recv_op,write_op);
 
 	/* free memory */
 	free(read_op);
@@ -177,86 +265,70 @@ int main(int argc, char **argv) {
 
 	return 0;
 }
-
+/* get total threads, thread ids, operation mix */
 void
-xdd_getthreads(tthdr_t *src, tthdr_t *dst)
+xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix)
 {       
-       int i,k;
+       int i, k = -1, tothreads = 0;
+       uint64_t read_ops = 0, write_ops = 0;
+       if (*op_mix > 0.0) {
+          fprintf(stderr,"xdd_getthreads: op_mix = %10.4f ..should be 0.0\n",*op_mix);
+          exit (-1);
+       }
         /* how many qthreads are there? */
-        total_threads_src = 0;
-        k = -1;
-        for (i = 0; i < src->tt_size; i++) {
-                total_threads_src = MAX(src->tte[i].qthread_number,total_threads_src);
-                if (k < total_threads_src && k < MAX_QTHREADS)
+        for (i = 0; i < tsdata->tt_size; i++) {
+                tothreads = MAX(tsdata->tte[i].qthread_number,tothreads);
+                if (k < tothreads && k < MAX_QTHREADS)
                 {
-                                k = total_threads_src;
-                  thread_id_src[k] = src->tte[i].thread_id;
+                            k = tothreads;
+                  thread_id[k] = tsdata->tte[i].thread_id;
                 }
+                read_ops  +=  READ_OP(tsdata->tte[i].op_type);
+                write_ops += WRITE_OP(tsdata->tte[i].op_type);
         }
-        total_threads_src += 1;
-        total_threads_dst = 0;
-        k = -1;
-        for (i = 0; i < dst->tt_size; i++) {
-                total_threads_dst = MAX(dst->tte[i].qthread_number,total_threads_dst);
-                if (k < total_threads_dst && k < MAX_QTHREADS)
-                {
-                                k = total_threads_dst;
-                  thread_id_dst[k] = dst->tte[i].thread_id;
-                }
-        }
-        total_threads_dst += 1;
+        *total_threads = tothreads + 1;
+        *op_mix        = (read_ops && write_ops) ? (double)read_ops/(double)write_ops : 0.0;
+       return;
 }
 
 /* subtract the timestamps by the minimum start times */
-void normalize_time(tthdr_t *src, tthdr_t *dst) {
+void normalize_time(tthdr_t *tsdata, nclk_t *start_norm) {
 	int64_t i;
-	nclk_t src_start,dst_start;
-	src_start = src->tte[0].disk_start;
-	dst_start = dst->tte[0].disk_start;
+	nclk_t start;
+	start = tsdata->tte[0].disk_start;
 
 	/* get minimum starting times */
-	for (i=0; i < src->tt_size; i++) {
-		if (!READ_OP(src->tte[i].op_type) && !WRITE_OP(src->tte[i].op_type))
+	for (i=0; i < tsdata->tt_size; i++) {
+		if (!READ_OP(tsdata->tte[i].op_type) && !WRITE_OP(tsdata->tte[i].op_type))
 			continue;
-		src_start = MIN(src_start, src->tte[i].disk_start);
-		src_start = MIN(src_start, src->tte[i].net_start);
-	}
-	for (i=0; i < dst->tt_size; i++) {
-		if (!READ_OP(dst->tte[i].op_type) && !WRITE_OP(dst->tte[i].op_type))
+		start = MIN(start, tsdata->tte[i].disk_start);
+		if ((tsdata->tte[i].net_start == 0))
 			continue;
-		dst_start = MIN(dst_start, dst->tte[i].disk_start);
-		dst_start = MIN(dst_start, dst->tte[i].net_start);
+		start = MIN(start, tsdata->tte[i].net_start);
 	}
 
-        src_start_norm = src_start;
-        dst_start_norm = dst_start;
+        *start_norm = start;
 
 	/* normalize timestamps */
-	for (i=0; i < src->tt_size; i++) {
-		src->tte[i].net_start    -= src_start;
-		src->tte[i].net_start_k  -= src_start;
-		src->tte[i].net_end      -= src_start;
-		src->tte[i].net_end_k    -= src_start;
+	for (i=0; i < tsdata->tt_size; i++) {
 		/* don't subtract from zero */
-		if (EOF_OP(src->tte[i].op_type) && (src->tte[i].disk_start == 0))
+		if (EOF_OP(tsdata->tte[i].op_type) && (tsdata->tte[i].disk_start == 0))
 			continue;
-		src->tte[i].disk_start   -= src_start;
-		src->tte[i].disk_start_k -= src_start;
-		src->tte[i].disk_end     -= src_start;
-		src->tte[i].disk_end_k   -= src_start;
+		tsdata->tte[i].disk_start   -= start;
+		tsdata->tte[i].disk_start_k -= start;
+		tsdata->tte[i].disk_end     -= start;
+		tsdata->tte[i].disk_end_k   -= start;
 	}
-	for (i=0; i < dst->tt_size; i++) {
-		dst->tte[i].net_start    -= dst_start;
-		dst->tte[i].net_start_k  -= dst_start;
-		dst->tte[i].net_end      -= dst_start;
-		dst->tte[i].net_end_k    -= dst_start;
+
+	/* normalize timestamps */
+	for (i=0; i < tsdata->tt_size; i++) {
 		/* don't subtract from zero */
-		if (EOF_OP(dst->tte[i].op_type) && (dst->tte[i].disk_start == 0))
+		if (EOF_OP(tsdata->tte[i].op_type) && (tsdata->tte[i].net_start == 0))
 			continue;
-		dst->tte[i].disk_start   -= dst_start;
-		dst->tte[i].disk_start_k -= dst_start;
-		dst->tte[i].disk_end     -= dst_start;
-		dst->tte[i].disk_end_k   -= dst_start;
+		tsdata->tte[i].net_start    -= start;
+		tsdata->tte[i].net_start_k  -= start;
+		tsdata->tte[i].net_end      -= start;
+		tsdata->tte[i].net_end_k    -= start;
 	}
 }
 
@@ -301,335 +373,351 @@ void tte_qsort(tte_t **list, size_t key_offset, int64_t low, int64_t high) {
 	}
 
 	/* recurse */
-	if (low < j)
-		tte_qsort(list, key_offset, low, j);
-	if (high > i)
-		tte_qsort(list, key_offset, i, high);
+	if (low  < j) tte_qsort(list, key_offset, low,    j);
+	if (high > i) tte_qsort(list, key_offset,   i, high);
 }
 
-
 /* sort timestamp entries by completion time */
-void sort_by_time(tthdr_t *src, tthdr_t *dst, tte_t ***read_op,
-		tte_t ***send_op, tte_t ***recv_op, tte_t ***write_op) {
-
+void sort_by_time(tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted )
+		                                                         {
 	/* allocate array of pointers to tte structs */
-	tte_t **reado = malloc(src->tt_size*sizeof(tte_t *));
-	tte_t **sendo = malloc(src->tt_size*sizeof(tte_t *));
-	tte_t **recvo = malloc(dst->tt_size*sizeof(tte_t *));
-	tte_t **writeo = malloc(dst->tt_size*sizeof(tte_t *));
-	if (reado == NULL || sendo == NULL || recvo == NULL || writeo == NULL) {
+	tte_t **op = malloc(tsdata->tt_size*sizeof(tte_t *));
+	if (op == NULL) {
 		fprintf(stderr,"Could not allocate enough memory for quick sort.\n");
 		exit(1);
 	}
 
 	/* initialize pointers */
 	int64_t i;
-	for (i = 0; i < src->tt_size; i++) {
-		reado[i] = &(src->tte[i]);
-		sendo[i] = &(src->tte[i]);
-		recvo[i] = &(dst->tte[i]);
-		writeo[i]= &(dst->tte[i]);
+	for (i = 0; i < tsdata->tt_size; i++) {
+		op[i] = &(tsdata->tte[i]);
 	}
 
 	/* sort pointers */
-	tte_qsort(reado, DISK_END,0, src->tt_size-1);
-	tte_qsort(sendo, NET_END, 0, src->tt_size-1);
-	tte_qsort(recvo, NET_END, 0, dst->tt_size-1);
-	tte_qsort(writeo,DISK_END,0, dst->tt_size-1);
+	tte_qsort(op, op_offset,0, tsdata->tt_size-1);
 
 	/* save pointers */
-	*read_op = reado;
-	*send_op = sendo;
-	*recv_op = recvo;
-	*write_op = writeo;
+	*op_sorted = op;
 }
-
 /* write the outfile */
 void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
-		tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
+	tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
 
-	int64_t i,k;
+	int64_t   i, k, numts_entries;
 	float cutoff;
 	/* variables for the file writing loop below */
 	FILE *outfile;
 	/* bandwidths for each window in time */
-	float read_mbs,send_mbs,recv_mbs,write_mbs;
+        double op_time[4], op_mbs[4];
+        nclk_t  op_dks[4], op_dke[4];
+        int32_t max_xfer;
+        char line[OUTFILENAME_LEN] = {" "};
+        char datfilename[OUTFILENAME_LEN] = {" "};
 
+        /* create analysis directory, unless it's cwd */
+        if (strcmp(outfilebase,".") != 0) {
+		sprintf(line,"mkdir -p %s",outfilebase);
+        	if ( system(line) == -1 ) {
+		  fprintf(stderr,"shell command failed: %s\n",line);
+		  exit(1);
+        	}
+        }
+        sprintf(datfilename,"%s/analysis.dat",outfilebase);
 	/* try to open file */
-	if (strlen(outfilename)==0) {
+	if (strlen(datfilename)==0) {
 		outfile = stdout;
 	} else {
-		outfile = fopen(outfilename, "w");
+		outfile = fopen(datfilename, "w");
 	}
 	/* do we have a file pointer? */
 	if (outfile == NULL) {
-		fprintf(stderr,"Can not open output file: %s\n",outfilename);
+		fprintf(stderr,"Can not open output file: %s\n",datfilename);
 		exit(1);
 	}
-
-	/* how many qthreads are there? */
-	int total_threads = 0;
-	for (i = 0; i < src->tt_size; i++) {
-		total_threads = MAX(src->tte[i].qthread_number,total_threads);
-	}
-	total_threads += 1;
 
 	/* file header */
-	fprintf(outfile,"#timestamp: %s",src->td);
-	fprintf(outfile,"#reqsize: %d\n",src->reqsize);
-	fprintf(outfile,"#filesize: %lld\n",src->reqsize*src->tt_size);
-        fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
-        for (i = 0; i < total_threads_src; i++) { fprintf(outfile,"%d ",thread_id_src[i] );}
-                                                  fprintf(outfile,"\n");
-        fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
-        for (i = 0; i < total_threads_dst; i++) { fprintf(outfile,"%d ",thread_id_dst[i] );}
-                                                  fprintf(outfile,"\n");
-        fprintf(outfile,"#src_start_norm, dst_start_norm %lld %lld\n",src_start_norm,dst_start_norm);
-	fprintf(outfile,"#read_time      read_bw  send_time      send_bw  recv_time      recv_bw  write_time     write_bw  time_unit  bw_unit\n");
-//        fprintf(outfile,"#opnum,    tid,      read_time, opnum,    tid,  #ops,   #bytes,      send_time, opnum,    tid,  #ops,   #bytes,      recv_time, opnum,    tid,     write_time\n");
-
-	/* loop through tte entries */
-	for (i = 0; i < src->tt_size; i++) {
-		/* make sure this is an op that matters */
-		read_mbs = send_mbs = recv_mbs = write_mbs = 0.0;
-
-		/* read disk */
-		cutoff = MAX( nclk2sec(read_op[i]->disk_end)-window_size, 0.0);
-		for (k = i; (k >= 0) && ( nclk2sec(read_op[k]->disk_end) > cutoff); k--)
-			read_mbs  += (float)read_op[k]->disk_xfer_size / BPU;
-		/* send net */
-		cutoff = MAX( nclk2sec(send_op[i]->net_end)-window_size ,0.0);
-		for (k = i; (k >= 0) && ( nclk2sec(send_op[k]->net_end) > cutoff); k--) 
-			send_mbs  += (float)send_op[k]->net_xfer_size / BPU;
-		/* recv net */
-		cutoff = MAX( nclk2sec(recv_op[i]->net_end)-window_size, 0.0);
-		for (k = i; (k >= 0) && ( nclk2sec(recv_op[k]->net_end) > cutoff); k--) 
-			recv_mbs  += (float)recv_op[k]->net_xfer_size / BPU;
-		/* write disk */
-		cutoff = MAX( nclk2sec(write_op[i]->disk_end)-window_size, 0.0);
-		for (k = i; (k >= 0) && (nclk2sec(write_op[k]->disk_end) > cutoff); k--) 
-			write_mbs += (float)write_op[k]->disk_xfer_size / BPU;
-
-		/* divide by the time in the sliding window */
-		read_mbs  /= (float)window_size;
-		send_mbs  /= (float)window_size;
-		recv_mbs  /= (float)window_size;
-		write_mbs /= (float)window_size;
-
-		/* write to file */
-                char line[256] = {" "};
-		sprintf(line,"%12.6f %10.4f %12.6f %10.4f %12.6f %10.4f  %12.6f %10.4f  %9s %8s\n",
-			nclk2sec(read_op[i]->disk_end), read_mbs,
-			nclk2sec(send_op[i]->net_end), send_mbs,
-			nclk2sec(recv_op[i]->net_end), recv_mbs,
-			nclk2sec(write_op[i]->disk_end), write_mbs,
-			"s", "MB/s");
-                if (read_op[i]->disk_end  == 0 ) strncpy(&line[3],"?",1); 
-                if (read_op[i]->disk_end  == 0 ) strncpy(&line[16],"?",1); 
-                if (write_op[i]->disk_end == 0 ) strncpy(&line[76],"?",1);
-                if (write_op[i]->disk_end == 0 ) strncpy(&line[89],"?",1);
-		fprintf(outfile,"%s",line);
-	}
-	fclose(outfile);
-}
-
-/* write the outfile kernel */
-void write_outfile_k(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
-		tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
-	int64_t i,k;
-	float cutoff;
-	/* variables for the file writing loop below */
-	FILE *outfile;
-	/* bandwidths for each window in time */
-	float read_mbs,send_mbs,recv_mbs,write_mbs;
-
-	/* try to open another file */
-                strcat(outfilename,".k");
-		outfile = fopen(outfilename, "w");
-	/* do we have a file pointer? */
-	if (outfile == NULL) {
-		fprintf(stderr,"Can not open output file: %s\n",outfilename);
-		exit(1);
+        if (src != NULL) {
+              numts_entries = src->tt_size;
+              if (src != NULL) fprintf(outfile,"#SOURCE");
+              else             fprintf(outfile,"#READ OP");
+	      fprintf(outfile," timestamp file: %s\n",srcfilename);
+	      fprintf(outfile,"#timestamp: %s",src->td);
+	      fprintf(outfile,"#reqsize: %d\n",src->reqsize);
+	      fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
+              fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
+          for (i = 0; i < total_threads_src; i++) { 
+              fprintf(outfile,"%d ",thread_id_src[i] );
+              }
+              fprintf(outfile,"\n");
+              fprintf(outfile,"#src_start_norm %lld\n",src_start_norm);
         }
-
-	/* file header */
-        fprintf(outfile,"#timestamp: %s",src->td);
-        fprintf(outfile,"#reqsize: %d\n",src->reqsize);
-        fprintf(outfile,"#filesize: %lld\n",src->reqsize*src->tt_size);
-        fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
-        for (i = 0; i < total_threads_src; i++) { fprintf(outfile,"%d ",thread_id_src[i] );}
-                                                  fprintf(outfile,"\n");
-        fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
-        for (i = 0; i < total_threads_dst; i++) { fprintf(outfile,"%d ",thread_id_dst[i] );}
-                                                  fprintf(outfile,"\n");
-        fprintf(outfile,"#src_start_norm, dst_start_norm %lld %lld\n",src_start_norm,dst_start_norm);
-	fprintf(outfile,"#read_time      read_bw  send_time      send_bw  recv_time      recv_bw  write_time     write_bw  time_unit  bw_unit\n");
-
-	/* loop through tte entries */
-	for (i = 0; i < src->tt_size; i++) {
-		/* make sure this is an op that matters */
-		read_mbs = send_mbs = recv_mbs = write_mbs = 0.0;
-
-		/* read disk */
-		cutoff = MAX( nclk2sec(read_op[i]->disk_end_k)-window_size, 0.0);
-		for (k = i; (k >= 0) && ( nclk2sec(read_op[k]->disk_end_k) > cutoff); k--)
-			read_mbs  += (float)read_op[k]->disk_xfer_size / BPU;
-		/* send net */
-		cutoff = MAX( nclk2sec(send_op[i]->net_end_k)-window_size ,0.0);
-		for (k = i; (k >= 0) && ( nclk2sec(send_op[k]->net_end_k) > cutoff); k--) 
-			send_mbs  += (float)send_op[k]->net_xfer_size / BPU;
-		/* recv net */
-		cutoff = MAX( nclk2sec(recv_op[i]->net_end_k)-window_size, 0.0);
-		for (k = i; (k >= 0) && ( nclk2sec(recv_op[k]->net_end_k) > cutoff); k--) 
-			recv_mbs  += (float)recv_op[k]->net_xfer_size / BPU;
-		/* write disk */
-		cutoff = MAX( nclk2sec(write_op[i]->disk_end_k)-window_size, 0.0);
-		for (k = i; (k >= 0) && (nclk2sec(write_op[k]->disk_end_k) > cutoff); k--) 
-			write_mbs += (float)write_op[k]->disk_xfer_size / BPU;
-
-		/* divide by the time in the sliding window */
-		read_mbs    /= (float)window_size;
-		send_mbs    /= (float)window_size;
-		recv_mbs    /= (float)window_size;
-		write_mbs   /= (float)window_size;
-
-		/* write to file. use same time scale as write_outfile for comparison */
-                char line[256] = {" "};
-		sprintf(line,"%12.6f %10.4f %12.6f %10.4f %12.6f %10.4f  %12.6f %10.4f  %9s %8s\n",
-			nclk2sec(read_op[i]->disk_end), read_mbs,
-			nclk2sec(send_op[i]->net_end), send_mbs,
-			nclk2sec(recv_op[i]->net_end), recv_mbs,
-			nclk2sec(write_op[i]->disk_end), write_mbs,
-			"s", "MB/s");
-                if (read_op[i]->disk_end  == 0 ) strncpy(&line[3],"?",1); 
-                if (read_op[i]->disk_end  == 0 ) strncpy(&line[16],"?",1); 
-                if (write_op[i]->disk_end == 0 ) strncpy(&line[76],"?",1);
-                if (write_op[i]->disk_end == 0 ) strncpy(&line[89],"?",1);
-		fprintf(outfile,"%s",line);
-	}
-	fclose(outfile);
-}
-
-/* write the outfile delta xdd-kernel */
-void write_outfile_d(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
-		tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
-	int64_t i;
-	/* variables for the file writing loop below */
-	FILE *outfile;
-
-	/* try to open another file */
-                strcat(outfilename,".d");
-		outfile = fopen(outfilename, "w");
-	/* do we have a file pointer? */
-	if (outfile == NULL) {
-		fprintf(stderr,"Can not open output file: %s\n",outfilename);
-		exit(1);
+        if (dst != NULL) {
+              numts_entries = dst->tt_size;
+              if (src != NULL) fprintf(outfile,"#DESTINATION ");
+              else             fprintf(outfile,"#WRITE OP ");
+	      fprintf(outfile," timestamp file: %s\n",dstfilename);
+	      fprintf(outfile,"#timestamp: %s",dst->td);
+	      fprintf(outfile,"#reqsize: %d\n",dst->reqsize);
+	      fprintf(outfile,"#filesize: %ld\n",dst->reqsize*dst->tt_size);
+              fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
+            for (i = 0; i < total_threads_dst; i++) { 
+	      fprintf(outfile,"%d ",thread_id_dst[i] );
+            }
+              fprintf(outfile,"\n");
+              fprintf(outfile,"#dst_start_norm %lld\n",dst_start_norm);
         }
-
-	/* file header */
-        fprintf(outfile,"#timestamp: %s",src->td);
-        fprintf(outfile,"#reqsize: %d\n",src->reqsize);
-        fprintf(outfile,"#filesize: %lld\n",src->reqsize*src->tt_size);
-        fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
-        for (i = 0; i < total_threads_src; i++) { fprintf(outfile,"%d ",thread_id_src[i] );}
-                                                  fprintf(outfile,"\n");
-        fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
-        for (i = 0; i < total_threads_dst; i++) { fprintf(outfile,"%d ",thread_id_dst[i] );}
-                                                  fprintf(outfile,"\n");
-        fprintf(outfile,"#src_start_norm, dst_start_norm %lld %lld\n",src_start_norm,dst_start_norm);
-	fprintf(outfile,"#   read_time read_start   read_end   send_time  send_start   send_end");
-	fprintf(outfile,"#   recv_time recv_start   recv_end   write_time write_start  write_end\n");
-	fprintf(outfile,"#             (kern-xdd)   (xdd-kern)            (kern-xdd)   (xdd-kern)");
-	fprintf(outfile,"#             (kern-xdd)   (xdd-kern)            (kern-xdd)   (xdd-kern)\n");
-
+        fprintf(outfile,"#   read_time     read_bw read_start   read_end   send_time      read_bw send_start   send_end");
+        fprintf(outfile,"#   recv_time     read_bw recv_start   recv_end  write_time     write_bw write_start  write_end\n");
+        fprintf(outfile,"#    (s)           (MB/s)    (ns)         (ns)      (s)          (MB/s)      (ns)        (ns) ");
+        fprintf(outfile,"#                            (ns)         (ns)                               (ns)        (ns)\n");
+                
 	/* loop through tte entries */
-	for (i = 0; i < src->tt_size; i++) {
-		/* write to file */
-                char line[256] = {" "};
-		sprintf(line,"%12.6f %10lld %10lld %12.6f %10lld %10lld %12.6f %10lld %10lld %12.6f %10lld %10lld\n",
-		 nclk2sec(read_op[i]->disk_end),  read_op[i]->disk_start_k  - read_op[i]->disk_start, 
-		                                  read_op[i]->disk_end      - read_op[i]->disk_end_k, 
-		 nclk2sec(send_op[i]->net_end),   send_op[i]->net_start_k   - send_op[i]->net_start,
-		                                  send_op[i]->net_end       - send_op[i]->net_end_k,
-		 nclk2sec(recv_op[i]->net_end),   recv_op[i]->net_start_k   - recv_op[i]->net_start, 
-		                                  recv_op[i]->net_end       - recv_op[i]->net_end_k, 
-		 nclk2sec(write_op[i]->disk_end), write_op[i]->disk_start_k - write_op[i]->disk_start,
-		                                  write_op[i]->disk_end     - write_op[i]->disk_end_k
-			);
-                if (read_op[i]->disk_end  == 0 ) strncpy(&line[3],"?",1); 
-                if (read_op[i]->disk_end  == 0 ) strncpy(&line[21],"?",1); 
-                if (read_op[i]->disk_end  == 0 ) strncpy(&line[32],"?",1); 
-                if (write_op[i]->disk_end == 0 ) strncpy(&line[108],"?",1);
-                if (write_op[i]->disk_end == 0 ) strncpy(&line[126],"?",1);
-                if (write_op[i]->disk_end == 0 ) strncpy(&line[137],"?",1);
-		fprintf(outfile,"%s",line);
+	for (i = 0; i < numts_entries; i++) {
+		/* make sure this is an op that matters */
+                max_xfer = 0;
+                for (k=0; k < 4; k++) {
+                  op_time[k] = 0.0;
+                  op_mbs [k] = 0.0;
+                  op_dks [k] = 0;
+                  op_dke [k] = 0;
+                }
+
+                if (read_op != NULL) {
+		  /* read disk */
+                 if (read_op[i]->disk_end > 0) {
+                  cutoff = MAX( nclk2sec(read_op[i]->disk_end)-window_size, 0.0);
+                  for (k = i; (k >= 0) && ( nclk2sec(read_op[k]->disk_end) > cutoff); k--)
+			op_mbs [0] += (double)read_op[k]->disk_xfer_size;
+			op_mbs [0]  = op_mbs[0] / MIN((double)window_size,(double)nclk2sec(read_op[i]->disk_end)) / BPU;
+			op_time[0]  = nclk2sec(read_op[i]->disk_end);
+			max_xfer = MAX(max_xfer,read_op[i]->disk_xfer_size);
+                  if (kernel_trace) {
+			op_dks [0]  = read_op[i]->disk_start_k  - read_op[i]->disk_start;
+			op_dke [0]  = read_op[i]->disk_end      - read_op[i]->disk_end_k;
+                  }
+                 }
+                }
+                if (send_op != NULL) {
+		/* send net */
+                 if (send_op[i]->net_end > 0) {
+                  cutoff = MAX( nclk2sec(send_op[i]->net_end)-window_size ,0.0);
+                  for (k = i; (k >= 0) && ( nclk2sec(send_op[k]->net_end) > cutoff); k--)
+			op_mbs [1] += (double)send_op[k]->net_xfer_size;
+			op_mbs [1]  = op_mbs[1] / MIN((double)window_size,(double)nclk2sec(send_op[i]->net_end)) / BPU;
+			op_time[1]  = nclk2sec(send_op[i]->net_end);
+			max_xfer = MAX(max_xfer,send_op[i]->net_xfer_size);
+                  if (kernel_trace) {
+			op_dks [1]  = send_op[i]->net_start_k   - send_op[i]->net_start;
+			op_dke [1]  = send_op[i]->net_end       - send_op[i]->net_end_k;
+                  }
+                 }
+                }
+                if (recv_op != NULL) {
+		/* recv net */
+                 if (recv_op[i]->net_end > 0) {
+                  cutoff = MAX( nclk2sec(recv_op[i]->net_end)-window_size, 0.0);
+                  for (k = i; (k >= 0) && ( nclk2sec(recv_op[k]->net_end) > cutoff); k--)
+			op_mbs [2] += (double)recv_op[k]->net_xfer_size;
+			op_mbs [2]  = op_mbs[2] / MIN((double)window_size,(double)nclk2sec(recv_op[i]->net_end)) / BPU;
+			op_time[2]  = nclk2sec(recv_op[i]->net_end);
+			max_xfer    = MAX(max_xfer,recv_op[i]->net_xfer_size);
+                  if (kernel_trace) {
+			op_dks [2]  = send_op[i]->net_start_k   - send_op[i]->net_start;
+			op_dke [2]  = send_op[i]->net_end       - send_op[i]->net_end_k;
+                  }
+                 }
+                }
+                if (write_op != NULL) {
+		/* write disk */
+                 if (write_op[i]->disk_end > 0) {
+                  cutoff = MAX( nclk2sec(write_op[i]->disk_end)-window_size, 0.0);
+                  for (k = i; (k >= 0) && (nclk2sec(write_op[k]->disk_end) > cutoff); k--)
+			op_mbs [3] += (double)write_op[k]->disk_xfer_size;
+			op_mbs [3]  = op_mbs[3] / MIN((double)window_size,(double)nclk2sec(write_op[i]->disk_end)) / BPU;
+			op_time[3]  = nclk2sec(write_op[i]->disk_end);
+			max_xfer    = MAX(max_xfer,write_op[i]->disk_xfer_size);
+                  if (kernel_trace) {
+			op_dks [3]  = write_op[i]->disk_start_k - write_op[i]->disk_start;
+			op_dke [3]  = write_op[i]->disk_end     - write_op[i]->disk_end_k;
+                  }
+                 }
+                }
+                if (max_xfer == 0)
+                   continue;
+                memset(line,0,strlen(line));
+		/* write to file. take care to leave no embedded '0'(nulls) between fields */
+		for (k = 0; k < 4; k++) { 
+                   sprintf(&line[k*45],"%12.6f %10.4f %10lld %10lld ",op_time[k],op_mbs[k],op_dks[k],op_dke[k]);
+                   if ( op_time[k] == 0.0 ) strncpy(&line[k*45+3],"?",1);
+                }
+                fprintf(outfile,"%s\n",line);
 	}
 	fclose(outfile);
-}
+  /* write the gnuplot file */
+        memset(line,0,strlen(line));
+        if (strcmp(outfilebase,".") != 0) sprintf(line,"gnuplot_%s",basename(outfilebase));
+	else				  sprintf(line,"gnuplot_");
+        outfile = fopen(line, "w");
+        /* do we have a file pointer? */
+        if (outfile == NULL) { 
+                fprintf(stderr,"Can not open gnuplot file for writing: %s\n",line);
+                exit(1);
+        }               
+        fprintf(outfile,"set term po eps color\n");
+        fprintf(outfile,"set pointsize 1\n");
+        fprintf(outfile,"set ylabel \"MB/s\"\n");
+        fprintf(outfile,"set xlabel \"Time in seconds\"\n");
+        fprintf(outfile,"set style data line\n");
 
-/*****************************************************
- * Reads file1 and file2, then returns the respective
- * source and destination structures.
- *****************************************************/
-int xdd_getdata(char *file1, char *file2, tthdr_t **src, tthdr_t **dst, size_t *tsdata_size) {
-
-	char *filename = NULL;
-	tthdr_t *tsdata = NULL;
-
-	/* read file1 and file2 */
-	char i;
-	for (i=0; i < 2; i++) {
-		if (i == 0)
-			filename = file1;
-		else if (i == 1)
-			filename = file2;
-
-		/* read xdd timestamp dump */
-		int retval = xdd_readfile(filename, &tsdata, tsdata_size);
-		if (retval == 0) {
-			fprintf(stderr,"Failed to read binary XDD timestamp dump: %s\n",filename);
-			return 0;
-		}
-
-		/* no empty sets */
-		if (tsdata->tt_size < 1) {
-			fprintf(stderr,"Timestamp dump was empty: %s\n",filename);
-			return 0;
-		}
-
-		/* determine whether this is the source or destination file */
-		if (READ_OP(tsdata->tte[0].op_type)) {
-			if (*src != NULL) {
-				fprintf(stderr,"You passed 2 source dump files.\n");
-				fprintf(stderr,"Please pass matching source and destination dumps.\n");
-				return 0;
-			}
-			*src = tsdata;
-		} else if (WRITE_OP(tsdata->tte[0].op_type)) {
-			if (*dst != NULL) {
-				fprintf(stderr,"You passed 2 destination dump files.\n");
-				fprintf(stderr,"Please pass matching source and destination dumps.\n");
-				return 0;
-			}
-			*dst = tsdata;
-		} else {
-			fprintf(stderr,"Timestamp dump had invalid operation in tte[0]: %s\n",filename);
-			return 0;
-		}
-
-		tsdata = NULL;
-		filename = NULL;
-	}
-
-	/* If these files are from the same transfer,
-	 * they should be the same size. */
-	if ((*src)->tt_bytes != (*dst)->tt_bytes) {
-		fprintf(stderr,"Source and destination files are not the same size.\n");
-		fprintf(stderr,"Please pass matching source and destination dumps.\n");
-		return 0;
-	}
-
-	return 1;
+  if (read_op!=NULL && send_op!=NULL && recv_op!=NULL && write_op!=NULL) {
+        fprintf(outfile,"set title \"XDDCP Transfer\"\n");
+        fprintf(outfile,"set output \"%s/all.eps\"\n",                       outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:2  title 'read_disk'  lw 2,\\\n",     datfilename);
+        fprintf(outfile,"'%s' using  5:6  title 'send_netw'  lw 2,\\\n",     datfilename);
+        fprintf(outfile,"'%s' using  9:10 title 'recv_netw'  lw 2,\\\n",     datfilename);
+        fprintf(outfile,"'%s' using 13:14 title 'write_disk' lw 2\n",        datfilename);
+        fprintf(outfile,"set output \"%s/netw.eps\"\n",                      outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  5:6  title 'send_netw'  lw 2,\\\n",     datfilename);
+        fprintf(outfile,"'%s' using  9:10 title 'recv_netw'  lw 2\n",        datfilename);
+        fprintf(outfile,"set output \"%s/disk.eps\"\n",                      outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:2  title 'read_disk'  lw 2,\\\n",     datfilename);
+        fprintf(outfile,"'%s' using 13:14 title 'write_disk' lw 2\n",        datfilename);
+        fprintf(outfile,"set output \"%s/srce.eps\"\n",                      outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:2  title 'read_disk'  lw 2,\\\n",     datfilename);
+        fprintf(outfile,"'%s' using  5:6  title 'send_netw'  lw 2\n",        datfilename);
+        fprintf(outfile,"set output \"%s/dest.eps\"\n",                      outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  9:10 title 'recv_netw'  lw 2,\\\n",     datfilename);
+        fprintf(outfile,"'%s' using 13:14 title 'write_disk' lw 2\n",        datfilename);
+        fprintf(outfile,"set output \"%s/read.eps\"\n",                      outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:2  title 'read_disk'  lw 2\n",        datfilename);
+        fprintf(outfile,"set output \"%s/send.eps\"\n",                      outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  5:6  title 'send_netw'  lw 2\n",        datfilename);
+        fprintf(outfile,"set output \"%s/recv.eps\"\n",                      outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  9:10 title 'recv_netw'  lw 2\n",        datfilename);
+        fprintf(outfile,"set output \"%s/write.eps\"\n",                     outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using 13:14 title 'write_disk' lw 2\n",        datfilename);
+     if (kernel_trace) {
+        fprintf(outfile,"set logscale y\n");
+        fprintf(outfile,"set ylabel \"Delta Time (ns) |xdd-kernel|\"\n");
+        fprintf(outfile,"set output \"%s/all_k.eps\"\n",                     outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:3  title 'read_disk_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  1:4  title 'read_disk_exit'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  5:7  title 'send_netw_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  5:8  title 'send_netw_exit'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  9:11 title 'recv_netw_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  9:12 title 'recv_netw_exit'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using 13:15 title 'write_disk_entr' lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using 13:16 title 'write_disk_exit' lw 2\n",   datfilename);
+        fprintf(outfile,"set output \"%s/netw_k.eps\"\n",                    outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  5:7  title 'send_netw_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  5:8  title 'send_netw_exit'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  9:10 title 'recv_netw_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  9:12 title 'recv_netw_exit'  lw 2\n",   datfilename);
+        fprintf(outfile,"set output \"%s/disk_k.eps\"\n",                    outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:3  title 'read_disk_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  1:4  title 'read_disk_exit'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using 13:15 title 'write_disk_entr' lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using 13:16 title 'write_disk_exit' lw 2\n",   datfilename);
+        fprintf(outfile,"set output \"%s/srce_k.eps\"\n",                    outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:3  title 'read_disk_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  1:4  title 'read_disk_exit'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  5:7  title 'send_netw_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  5:8  title 'send_netw_exit'  lw 2\n",   datfilename);
+        fprintf(outfile,"set output \"%s/dest_k.eps\"\n",                    outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  9:11 title 'recv_netw_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  9:12 title 'recv_netw_exit'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using 13:15 title 'write_disk_entr' lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using 13:16 title 'write_disk_exit' lw 2\n",   datfilename);
+        fprintf(outfile,"set output \"%s/read_k.eps\"\n",                    outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:3  title 'read_disk_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  1:4  title 'read_disk_exit'  lw 2\n",   datfilename);
+        fprintf(outfile,"set output \"%s/send_k.eps\"\n",                    outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  5:7  title 'send_netw_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  5:8  title 'send_netw_exit'  lw 2\n",   datfilename);
+        fprintf(outfile,"set output \"%s/recv_k.eps\"\n",                    outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  9:11 title 'recv_netw_entr'  lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using  9:12 title 'recv_netw_exit'  lw 2\n",   datfilename);
+        fprintf(outfile,"set output \"%s/write_k.eps\"\n",                   outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using 13:15 title 'write_disk_entr' lw 2,\\\n",datfilename);
+        fprintf(outfile,"'%s' using 13:16 title 'write_disk_exit' lw 2\n",   datfilename);
+     }
+  }
+  else
+  if (read_op!=NULL && op_mix == 0.0) {
+        fprintf(outfile,"set title \"XDD Read\"\n");
+        fprintf(outfile,"set output \"%s/read.eps\"\n",                       outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:2  title 'read_disk'  lw 2\n",         datfilename);
+     if (kernel_trace) {
+        fprintf(outfile,"set logscale y\n");
+        fprintf(outfile,"set ylabel \"Delta Time (ns) |xdd-kernel|\"\n");
+        fprintf(outfile,"set output \"%s/read_k.eps\"\n",                     outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:3  title 'read_disk_entr'  lw 2,\\\n", datfilename);
+        fprintf(outfile,"'%s' using  1:4  title 'read_disk_exit'  lw 2\n",    datfilename);
+     }
+  }
+  else
+  if (write_op!=NULL && op_mix == 0.0) {
+        fprintf(outfile,"set title \"XDD Write\"\n");
+        fprintf(outfile,"set output \"%s/write.eps\"\n",                      outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using 13:14 title 'write_disk' lw 2\n",         datfilename);
+     if (kernel_trace) {
+        fprintf(outfile,"set logscale y\n");
+        fprintf(outfile,"set ylabel \"Delta Time (ns) |xdd-kernel|\"\n");
+        fprintf(outfile,"set output \"%s/write_k.eps\"\n",                    outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using 13:15 title 'write_disk_entr' lw 2,\\\n", datfilename);
+        fprintf(outfile,"'%s' using 13:16 title 'write_disk_exit' lw 2\n",    datfilename);
+     }
+  }
+  else 
+  if (op_mix > 0.0) {
+        fprintf(outfile,"set title \"XDD Mixed Read/Write %-7.0f%%\"\n",op_mix*100.0);
+        fprintf(outfile,"set output \"%s/mixed.eps\"\n",                       outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:2  title 'mixed_disk'  lw 2\n",         datfilename);
+     if (kernel_trace) {
+        fprintf(outfile,"set logscale y\n");
+        fprintf(outfile,"set ylabel \"Delta Time (ns) |xdd-kernel|\"\n");
+        fprintf(outfile,"set output \"%s/mixed_k.eps\"\n",                     outfilebase);
+        fprintf(outfile,"plot\\\n");
+        fprintf(outfile,"'%s' using  1:3  title 'mixed_disk_entr'  lw 2,\\\n", datfilename);
+        fprintf(outfile,"'%s' using  1:4  title 'mixed_disk_exit'  lw 2\n",    datfilename);
+     }
+  }
+  else {
+        fprintf(stderr,"write_outfile: Case not recognized\n");
+        exit(1);
+  }
+	fclose(outfile);
+        memset(line,0,strlen(line));
+        if (strcmp(outfilebase,".") != 0)sprintf(line,"gnuplot gnuplot_%s",basename(outfilebase));
+        else				 sprintf(line,"gnuplot gnuplot_  ");
+        if ( system(line) == -1 ) { 
+              fprintf(stderr,"shell command failed: %s\n",line);
+              exit(1);
+        }
+        fprintf(stderr,"Check directory %s for analysis results\n",outfilebase);
 }
 
 
@@ -696,6 +784,12 @@ int xdd_readfile(char *filename, tthdr_t **tsdata, size_t *tsdata_size) {
 
 	if (result == 0) {
 		fprintf(stderr,"Error reading file: %s\n",filename);
+		return 0;
+	}
+
+	/* no empty sets */
+	if (tdata->tt_size < 1) {
+		fprintf(stderr,"Timestamp dump was empty: %s\n",filename);
 		return 0;
 	}
 
@@ -768,7 +862,7 @@ int getoptions(int argc, char **argv) {
 	argnum = 1; /* track number of args parsed */
 
 	/* set default options */
-	strcpy(outfilename,"");
+	strcpy(outfilebase,".");
 	window_size = 1;
 
 	/* loop through options */
@@ -787,10 +881,10 @@ int getoptions(int argc, char **argv) {
                                 argnum += 1;
                                 break;
 			case 'o': /* output file name */
-				strncpy(outfilename,optarg,OUTFILENAME_LEN);
-				outfilename[OUTFILENAME_LEN-1] = '\0';
+				strncpy(outfilebase,optarg,OUTFILENAME_LEN);
+				outfilebase[OUTFILENAME_LEN-1] = '\0';
 				argnum += 2;
-				if (strlen(outfilename) == 0)
+				if (strlen(outfilebase) == 0)
 					ierr++;
 				break;
 			case 'h': /* help */
@@ -801,7 +895,7 @@ int getoptions(int argc, char **argv) {
 	}
 
 	/* do we have two filenames and no parsing errors? */
-	if ( (argc-argnum != 2) || (ierr != 0) ) {
+	if ( (argc-argnum < 1) || (ierr != 0) ) {
 		printusage(argv[0]);
 	}
 
@@ -813,27 +907,52 @@ int getoptions(int argc, char **argv) {
 /* prints some help text and exits */
 void printusage(char *progname) {
 	fprintf(stderr, "\n");
-	fprintf(stderr, "USAGE: %s [OPTIONS] FILE FILE\n\n",progname);
+	fprintf(stderr, "USAGE: %s [OPTIONS] TimestampFile [TimestampFile]\n\n",progname);
 
-	fprintf(stderr, "This program takes 2 XDD timestamp dump files (source and dest)\n");
-	fprintf(stderr, "from a file transfer, and determines the approximate bandwidth at\n");
-	fprintf(stderr, "any given time by using a sliding window approach.\n\n");
+	fprintf(stderr, "This program takes 1 or 2 XDD timestamp dump files\n");
+	fprintf(stderr, "from single node I/O operations or 2 node file transfer,\n");
+        fprintf(stderr, "and determines the approximate bandwidth at\n");
+	fprintf(stderr, "any given time by using a sliding window approach.\n");
+	fprintf(stderr, "If 1 file  is  given, read, write, or mixed operations on 1 node are assumed\n");
+	fprintf(stderr, "If 2 files are given, an e2e file transfer between 2 nodes is assumed\n\n");
 
-	fprintf(stderr, "For instance, if you pass '-t 5' then it will set the window size\n");
-	fprintf(stderr, "to 5 seconds.  At each point in time during the transfer, it will\n");
-	fprintf(stderr, "calculate the amount of data committed during the past 5 seconds.\n");
+	fprintf(stderr, "For instance, using '-t 5' will set the window size to 5 seconds\n");
+	fprintf(stderr, "At each point in time during the transfer, it will calculate\n");
+	fprintf(stderr, "the amount of data committed during the past 5 seconds.\n");
+	fprintf(stderr, "The amount of data committed during the first 5 seconds is prorated.\n");
 	fprintf(stderr, "It outputs the bandwidth during that window, so you can plot the\n");
 	fprintf(stderr, "bandwidth as a function of running time for each operation.\n");
-	fprintf(stderr, "The operations consist of:\n");
+	fprintf(stderr, "In the case of e2e file transfers, operations consist of:\n");
 	fprintf(stderr, "   read (src) -> send (src) -> recv (dst) -> write (dst)\n\n");
 
-	fprintf(stderr, "To get an XDD timestamp dump, use the '-ts dump FILE' option of XDD.\n");
-	fprintf(stderr, "In XDDCP, you can just pass the -w flag.\n\n");
+	fprintf(stderr, "Analysis results are located in directory [directory]. \n");
+	fprintf(stderr, "Results are included in file 'analysis.dat' and plots in '*.eps' files\n");
+	fprintf(stderr, "Edit file 'gnuplot_[directory]' as desired and run 'gnuplot gnuplot_[directory]'\n");
+        fprintf(stderr, "to regenerate\n\n");
+
+	fprintf(stderr, "To generate and analyze a timestamp dump from XDD, use the following procedure:\n");
+	fprintf(stderr, "*Assumes iotrace kernel module installed and utilities 'iotrace_init' and 'decode' in $PATH*\n\n");
+	fprintf(stderr, "     1. specify iotrace log files location (default $HOME) with: \n\n");
+	fprintf(stderr, "           'export TRACE_LOG_LOC=$PWD' \n\n");
+	fprintf(stderr, "     2. run XDD using these examples as a guide:\n\n");
+	fprintf(stderr, "         '             ${full path}/xdd -op [read | write] -ts dump [filename] [other xdd options..]'\n");
+	fprintf(stderr, "        ( This generates XDD timestamp dump file: filename].bin\n\n");
+	fprintf(stderr, "         'iotrace_init ${full path}/xdd -op [read | write] -ts dump [filename] [other xdd options..]'\n");
+	fprintf(stderr, "        ( This generates both XDD and kernel timestamp dump files:\n\n");
+	fprintf(stderr, "         [filename].bin, iotrace_data.PID.out, dictionary.DATE )\n\n");
+	fprintf(stderr, "     3. execute %s using the following example as a guide:\n\n",progname);
+	fprintf(stderr, "           '%s -t [secs] -k -o [result_dir] [filename].bin'\n\n",progname);
+	fprintf(stderr, "        ( [secs] moving average, plot results in directory [results_dir]. \n\n");
+	fprintf(stderr, "          if '-k' specified, %s generates files:\n",progname);
+        fprintf(stderr, "             'iotrace_data.PID.out.ascii' ascii version of iotrace_data.PID.out\n\n");
+        fprintf(stderr, "              '[filename].bink' combined timestamp file with XDD+kernel data)\n\n");
+	fprintf(stderr, "In XDDCP, the -w or -W flag invokes this program and analysis automatically.\n\n");
 
 	fprintf(stderr, "OPTIONS:\n");
-	fprintf(stderr, "\t -h            \t print this usage text\n");
-	fprintf(stderr, "\t -o <filename> \t output filename (default: stdout)\n");
-	fprintf(stderr, "\t -t <seconds>  \t number of seconds in the sliding window (default: %d)\n", window_size);
+	fprintf(stderr, "\t -h             \t print this usage text\n");
+	fprintf(stderr, "\t -o [directory] \t analysis results directory w analysis.dat & *.eps files (default 'PWD') \n");
+	fprintf(stderr, "\t -t <seconds>   \t number of seconds in the sliding window (default: %d)\n", window_size);
+	fprintf(stderr, "\t -k             \t also analyze kernel trace data\n");
 
 	fprintf(stderr, "\n");
 	exit(1);

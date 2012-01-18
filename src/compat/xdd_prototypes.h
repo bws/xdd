@@ -374,7 +374,7 @@ void	xdd_ts_reports(ptds_t *p);
 // utils.c
 char 	*xdd_getnexttoken(char *tp);
 int 	xdd_tokenize(char *cp);
-int 	xdd_random_int(void);
+int 	xdd_random_int(ptds_t *p);
 double 	xdd_random_float(void);
 
 // verify.c
