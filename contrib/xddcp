@@ -563,7 +563,7 @@ function remote_exec_with_fifo {
     
     # Construct ssh options
     if [ ! -z "${remoteUser}" ]; then
-        sshOpts="-q -o ServerAliveInterval 30 -l $remoteUser"
+        sshOpts="-q -o ServerAliveInterval=30 -l $remoteUser"
     fi
 
     # Local decl must be on seperate line so $? is correct
