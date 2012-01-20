@@ -34,8 +34,6 @@ void usage(int exit_code)
 
 int main(int argc, char *argv[])
 {
-    int opt;
-    size_t tsize = 0;
     int i;
     int err = 0;
     

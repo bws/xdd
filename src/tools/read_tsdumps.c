@@ -303,7 +303,7 @@ void normalize_time(tthdr_t *tsdata, nclk_t *start_norm) {
 		if (!READ_OP(tsdata->tte[i].op_type) && !WRITE_OP(tsdata->tte[i].op_type))
 			continue;
 		start = MIN(start, tsdata->tte[i].disk_start);
-		if ((tsdata->tte[i].net_start == 0))
+		if (tsdata->tte[i].net_start == 0)
 			continue;
 		start = MIN(start, tsdata->tte[i].net_start);
 	}
