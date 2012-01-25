@@ -255,7 +255,7 @@ xdd_e2e_dest_init(ptds_t *qp) {
 #if (IRIX || WIN32 )
 	qp->e2e_nd = getdtablehi();
 #endif
-#if (LINUX || OSX)
+#if (LINUX || DARWIN)
 	qp->e2e_nd = getdtablesize();
 #endif
 #if (AIX)
