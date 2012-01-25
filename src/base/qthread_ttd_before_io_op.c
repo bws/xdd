@@ -90,93 +90,6 @@ xdd_dio_before_io_op(ptds_t *qp) {
 } // End of xdd_dio_before_io_op()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_raw_before_io_op(ptds_t *p) {
- *
- * Return Values: 0 is good
- *               -1 indicates an error occured
- */
-void
-xdd_raw_before_io_op(ptds_t *qp) {
-	int	status;
-
-#if (IRIX || SOLARIS || AIX )
-	struct stat64	statbuf;
-#elif (LINUX || DARWIN || FREEBSD)
-	struct stat	statbuf;
-#endif
-
-#if (LINUX || IRIX || SOLARIS || AIX || DARWIN || FREEBSD)
-		if ((qp->target_options & TO_READAFTERWRITE) && (qp->target_options & TO_RAW_READER)) { 
-// fprintf(stderr,"Reader: RAW check - dataready=%lld, trigger=%x\n",(long long)data_ready,p->rawp->raw_trigger);
-			/* Check to see if we can read more data - if not see where we are at */
-			if (qp->rawp->raw_trigger & PTDS_RAW_STAT) { /* This section will continually poll the file status waiting for the size to increase so that it can read more data */
-				while (qp->rawp->raw_data_ready < qp->iosize) {
-					/* Stat the file so see if there is data to read */
-#if (LINUX || DARWIN || FREEBSD)
-					status = fstat(qp->fd,&statbuf);
-#else
-					status = fstat64(qp->fd,&statbuf);
-#endif
-					if (status < 0) {
-						fprintf(xgp->errout,"%s: RAW: Error getting status on file\n", xgp->progname);
-						qp->rawp->raw_data_ready = qp->iosize;
-					} else { /* figure out how much more data we can read */
-						qp->rawp->raw_data_ready = statbuf.st_size - qp->my_current_byte_location;
-						if (qp->rawp->raw_data_ready < 0) {
-							/* The result of this should be positive, otherwise, the target file
-							* somehow got smaller and there is a problem. 
-							* So, fake it and let this loop exit 
-							*/
-							fprintf(xgp->errout,"%s: RAW: Something is terribly wrong with the size of the target file...\n",xgp->progname);
-							qp->rawp->raw_data_ready = qp->iosize;
-						}
-					}
-				}
-			} else { /* This section uses a socket connection to the Destination and waits for the Source to tell it to receive something from its socket */
-				while (qp->rawp->raw_data_ready < qp->iosize) {
-					/* xdd_raw_read_wait() will block until there is data to read */
-					status = xdd_raw_read_wait(qp);
-					if (qp->rawp->raw_msg.length != qp->iosize) 
-
-						fprintf(stderr,"error on msg recvd %d loc %lld, length %lld\n",
-							qp->rawp->raw_msg_recv-1, 
-							(long long)qp->rawp->raw_msg.location,  
-							(long long)qp->rawp->raw_msg.length);
-					if (qp->rawp->raw_msg.sequence != qp->rawp->raw_msg_last_sequence) {
-
-						fprintf(stderr,"sequence error on msg recvd %d loc %lld, length %lld seq num is %lld should be %lld\n",
-							qp->rawp->raw_msg_recv-1, 
-							(long long)qp->rawp->raw_msg.location,  
-							(long long)qp->rawp->raw_msg.length, 
-							(long long)qp->rawp->raw_msg.sequence, 
-							(long long)qp->rawp->raw_msg_last_sequence);
-					}
-					if (qp->rawp->raw_msg_last_sequence == 0) { /* this is the first message so prime the prev_loc and length with the current values */
-						qp->rawp->raw_prev_loc = qp->rawp->raw_msg.location;
-						qp->rawp->raw_prev_len = 0;
-					} else if (qp->rawp->raw_msg.location <= qp->rawp->raw_prev_loc) 
-						/* this message is old and can be discgarded */
-						continue;
-					qp->rawp->raw_msg_last_sequence++;
-					/* calculate the amount of data to be read between the end of the last location and the end of the current one */
-					qp->rawp->raw_data_length = ((qp->rawp->raw_msg.location + qp->rawp->raw_msg.length) - (qp->rawp->raw_prev_loc + qp->rawp->raw_prev_len));
-					qp->rawp->raw_data_ready += qp->rawp->raw_data_length;
-					if (qp->rawp->raw_data_length > qp->iosize) 
-						fprintf(stderr,"msgseq=%lld, loc=%lld, len=%lld, data_length is %lld, data_ready is now %lld, iosize=%d\n",
-							(long long)qp->rawp->raw_msg.sequence, 
-							(long long)qp->rawp->raw_msg.location, 
-							(long long)qp->rawp->raw_msg.length, 
-							(long long)qp->rawp->raw_data_length, 
-							(long long)qp->rawp->raw_data_ready, 
-							qp->iosize );
-					qp->rawp->raw_prev_loc = qp->rawp->raw_msg.location;
-					qp->rawp->raw_prev_len = qp->rawp->raw_data_length;
-				}
-			}
-		} /* End of dealing with a read-after-write */
-#endif
-} // xdd_raw_before_io_op()
-/*----------------------------------------------------------------------------*/
 /* xdd_e2e_before_io_op() - This subroutine only does something if this
  * is the Destination side of an End-to-End operation.
  * If this is the Destination side of an End-to-End operation then this 
@@ -309,9 +222,6 @@ xdd_qthread_ttd_before_io_op(ptds_t *qp) {
 
 	/* init the error number and break flag for good luck */
 	errno = 0;
-
-	// Read-After_Write Processing
-	xdd_raw_before_io_op(qp);
 
 	// End-to-End Processing
 	status = xdd_e2e_before_io_op(qp);

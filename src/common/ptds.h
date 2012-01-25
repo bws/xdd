@@ -37,7 +37,6 @@
 #include "access_pattern.h"
 #include "timestamp.h"
 #include "barrier.h"
-#include "read_after_write.h"
 #include "end_to_end.h"
 #include "parse.h"
 #include "target_offset_table.h"
@@ -48,9 +47,6 @@
 
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS
-#define TO_READAFTERWRITE              0x0000000000000001ULL  // Read-After-Write - the -raw option 
-#define TO_RAW_READER                  0x0000000000000002ULL  // Read-After-Write - reader 
-#define TO_RAW_WRITER                  0x0000000000000004ULL  // Read-After-Write - writer 
 #define TO_ENDTOEND                    0x0000000000000008ULL  // End to End - aka -e2e option 
 #define TO_E2E_SOURCE                  0x0000000000000010ULL  // End to End - Source side 
 #define TO_E2E_DESTINATION             0x0000000000000020ULL  // End to End - Destination side 
@@ -349,7 +345,6 @@ struct ptds {
 	struct xdd_triggers			*trigp;			// Triggers Structure Pointer
 	struct xdd_sgio				*sgiop;			// SGIO Structure Pointer
 	struct xdd_data_pattern		*dpp;			// Data Pattern Structure Pointer
-	struct xdd_raw				*rawp;			// RAW Data Structure Pointer
 	struct lockstep				*lockstepp;		// pointer to the lockstep structure used by the lockstep option
 	struct restart				*restartp;		// pointer to the restart structure used by the restart monitor
 	struct ptds					*pm1;			// ptds minus  1 - used for report print queueing - don't ask 

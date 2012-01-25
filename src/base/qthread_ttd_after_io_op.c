@@ -169,40 +169,6 @@ xdd_dio_after_io_op(ptds_t *qp) {
 } // End of xdd_dio_after_io_op()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_raw_after_io_op() - This subroutine will do 
- * all the processing necessary for a read-after-write operation.
- * This subroutine is called by the xdd_qthread_ttd_after_io_op() for every I/O.
- * 
- * This subroutine is called within the context of a QThread.
- *
- */
-void
-xdd_raw_after_io_op(ptds_t *qp) {
-
-
-	if ((qp->target_options & TO_READAFTERWRITE) && 
-	    (qp->target_options & TO_RAW_WRITER)) {
-		/* Since I am the writer in a read-after-write operation, and if 
-		 * we are using a socket connection to the reader for write-completion 
-		 * messages then I need to send the reader a message of what I just 
-		 * wrote - starting location and length of write.
-		 */
-	}
-	if ( (qp->my_current_io_status > 0) && (qp->target_options & TO_READAFTERWRITE) ) {
-		if (qp->target_options & TO_RAW_READER) { 
-			qp->rawp->raw_data_ready -= qp->my_current_io_status;
-		} else { /* I must be the writer, send a message to the reader if requested */
-			if (qp->rawp->raw_trigger & PTDS_RAW_MP) {
-				qp->rawp->raw_msg.magic = PTDS_RAW_MAGIC;
-				qp->rawp->raw_msg.length = qp->my_current_io_status;
-				qp->rawp->raw_msg.location = qp->my_current_byte_location;
-				xdd_raw_writer_send_msg(qp);
-			}
-		}
-	}
-} // End of xdd_raw_after_io_op(qp) 
-
-/*----------------------------------------------------------------------------*/
 /* xdd_e2e_after_io_op() - This subroutine will do 
  * all the processing necessary for an end-to-end operation.
  * This subroutine is called by the xdd_qthread_ttd_after_io_op() for every I/O.
@@ -340,9 +306,6 @@ xdd_qthread_ttd_after_io_op(ptds_t *qp) {
 
 	// DirectIO Handling
 	xdd_dio_after_io_op(qp);
-
-	// Read-After_Write Processing
-	xdd_raw_after_io_op(qp);
 
 	// End-to-End Processing
 	xdd_e2e_after_io_op(qp);
