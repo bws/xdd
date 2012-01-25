@@ -150,11 +150,11 @@ gts_init_global_clock(void) {
 		}
 #ifdef WIN32
 		Sleep(sleep_time_dw);
-#elif (LINUX || IRIX || AIX || OSX) /* Add OS Support to this line for usleep() */
+#elif (LINUX || IRIX || AIX || DARWIN) /* Add OS Support to this line for usleep() */
 		if ((sleep_time_dw*CLK_TCK) > 1000) /* only sleep if it will be 1 or more ticks */
 #if (IRIX )
 			sginap((sleep_time_dw*CLK_TCK)/1000);
-#elif (LINUX || AIX || OSX) /* Add OS Support to this line for usleep() as well*/
+#elif (LINUX || AIX || DARWIN) /* Add OS Support to this line for usleep() as well*/
 			usleep(sleep_time_dw*1000);
 #endif
 #endif

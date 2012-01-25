@@ -419,7 +419,7 @@ xdd_target_open_for_os(ptds_t *p) {
 			return(-1);
 		}
 	} /* end of IF stmnt that opens with DIO */
-	// Generic 64-bit UNIX open stuff - for Solaris, AIX, FREEBSD, and MacOSX
+	// Generic 64-bit UNIX open stuff - for Solaris, AIX, FREEBSD, and Darwin
 	if (p->rwratio == 0.0) {
 		fd = open64(target_full_pathname,flags|O_WRONLY, 0666); /* write only */
 	} else if (p->rwratio == 1.0) { /* read only */

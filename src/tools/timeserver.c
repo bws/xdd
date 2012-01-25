@@ -239,7 +239,7 @@ main(int argc, char **argv) {
 #if (IRIX || WIN32)
     nd = getdtablehi();
 #endif
-#if (LINUX || OSX)
+#if (LINUX || DARWIN)
     nd = getdtablesize();
 #endif
 #if (AIX)
