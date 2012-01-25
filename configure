@@ -680,7 +680,6 @@ CONFIG_CFLAGS
 CONFIG_CPPFLAGS
 CONFIG_LDFLAGS
 CONFIG_LIBS
-CONFIG_SOFLAGS
 LIBOBJS
 LTLIBOBJS'
 ac_subst_files=''
@@ -3304,14 +3303,6 @@ if test "x$enable_static" = "xyes"; then
    elif test "$CC" = "xlc_r"; then
       LDFLAGS="-bstatic"
    fi
-fi
-
-if test "$CC" = "xlc_r"; then
-   SOFLAGS="-G -q64 -qmkshrobj"
-elif test "$CC" = "gcc" -a "$PLATFORM" = "Linux"; then
-   SOFLAGS="-shared -Wl,-soname,\$@"
-elif test "$CC" = "gcc" -a "$PLATFORM" = "Darwin"; then
-   SOFLAGS="-undefined dynamic_lookup -dynamiclib"
 fi
 
 
@@ -7072,8 +7063,6 @@ CONFIG_LDFLAGS="$LDFLAGS"
 
 CONFIG_LIBS="$LIBS"
 
-CONFIG_SOFLAGS="$SOFLAGS"
-
 
 ac_config_files="$ac_config_files Makefile"
 
@@ -7772,12 +7761,11 @@ CONFIG_CFLAGS!$CONFIG_CFLAGS$ac_delim
 CONFIG_CPPFLAGS!$CONFIG_CPPFLAGS$ac_delim
 CONFIG_LDFLAGS!$CONFIG_LDFLAGS$ac_delim
 CONFIG_LIBS!$CONFIG_LIBS$ac_delim
-CONFIG_SOFLAGS!$CONFIG_SOFLAGS$ac_delim
 LIBOBJS!$LIBOBJS$ac_delim
 LTLIBOBJS!$LTLIBOBJS$ac_delim
 _ACEOF
 
-  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 70; then
+  if test `sed -n "s/.*$ac_delim\$/X/p" conf$$subs.sed | grep -c X` = 69; then
     break
   elif $ac_last_try; then
     { { echo "$as_me:$LINENO: error: could not make $CONFIG_STATUS" >&5

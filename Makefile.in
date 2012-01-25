@@ -138,8 +138,6 @@ LDFLAGS = @CONFIG_LDFLAGS@
 
 LIBS = @CONFIG_LIBS@
 
-SOFLAGS = @CONFIG_SOFLAGS@
-
 #
 # Build rules
 #
@@ -166,16 +164,10 @@ xdd-truncate: bin/xdd-truncate
 #
 # Build rules for libraries
 #
-libs: $(LIB_DIR)/libxdd.a $(LIB_DIR)/libxdd.so
+libs: $(LIB_DIR)/libxdd.a
 
 $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
 	$(AR) $(ARFLAGS) $@ $^
-
-$(LIB_DIR)/libxdd.so.$(VERSION): $(XDD_OBJS)
-	$(CC) $(SOFLAGS) -o $@ $^
-
-$(LIB_DIR)/libxdd.so: $(LIB_DIR)/libxdd.so.$(VERSION)
-	$(CP) $^ $@
 
 #
 # Build rules for executable targets
@@ -227,8 +219,6 @@ fastinstall: all
 
 install_libs: install_pre
 	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
-	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.so.$(VERSION) $(INSTALL_DIR)/lib/libxdd.so.$(VERSION)
-	$(LN) $(INSTALL_DIR)/lib/libxdd.so.$(VERSION) $(INSTALL_DIR)/lib/libxdd.so
 
 fullinstall: install_pre
 	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd

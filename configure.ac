@@ -117,17 +117,6 @@ if test "x$enable_static" = "xyes"; then
    fi		
 fi
 
-dnl
-dnl Determine flags to create shared objects
-dnl
-if test "$CC" = "xlc_r"; then
-   SOFLAGS="-G -q64 -qmkshrobj"
-elif test "$CC" = "gcc" -a "$PLATFORM" = "Linux"; then
-   SOFLAGS="-shared -Wl,-soname,\$@"
-elif test "$CC" = "gcc" -a "$PLATFORM" = "Darwin"; then
-   SOFLAGS="-undefined dynamic_lookup -dynamiclib"
-fi
-
 
 dnl
 dnl Check for C dependency generator
@@ -343,7 +332,6 @@ AC_SUBST(CONFIG_CFLAGS, "$CFLAGS")
 AC_SUBST(CONFIG_CPPFLAGS, "$CPPFLAGS")
 AC_SUBST(CONFIG_LDFLAGS, "$LDFLAGS")
 AC_SUBST(CONFIG_LIBS, "$LIBS")
-AC_SUBST(CONFIG_SOFLAGS, "$SOFLAGS")
 
 dnl
 dnl Generate output
