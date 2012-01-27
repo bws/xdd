@@ -391,9 +391,9 @@ function check_host_preconditions {
 function check_file_list_preconditions {
 
     # Arguments
-    local sourceSideFilename=$1
-    local fileSizeFlag=$3
-    local resumeFlag=$4
+    local sourceSideFilename=${1}
+    local fileSizeFlag=${2}
+    local resumeFlag=${3}
 
     # Ensure source side file list filename exists and is readable
     if [ 1 -eq $fileListFlag -a ! -r "${sourceSideFilename}" ]; then
@@ -408,9 +408,9 @@ function check_file_list_preconditions {
 function check_recursive_preconditions {
 
     # Arguments
-    local sourceSidePath=$1
-    local fileSizeFlag=$3
-    local resumeFlag=$4
+    local sourceSidePath=${1}
+    local fileSizeFlag=${2}
+    local resumeFlag=${3}
 
     # If source side name is a file, ensure its readable
     # if it is a directory, is readable and searchable
@@ -431,14 +431,14 @@ function check_recursive_preconditions {
 function check_transfer_preconditions {
 
     # Arguments
-    local sourceSideFilename=$1
-    local destSidePathname=$2
-    local srcRemoteFlag=$3
-    local destRemoteFlag=$4
-    local srcDIOFlag=$5
-    local destDIOFlag=$6
-    local fileSizeFlag=$7
-    local transferSize=$8
+    local sourceSideFilename=${1}
+    local destSidePathname=${2}
+    local srcRemoteFlag=${3}
+    local destRemoteFlag=${4}
+    local srcDIOFlag=${5}
+    local destDIOFlag=${6}
+    local fileSizeFlag=${7}
+    local transferSize=${8}
 
     # Ensure at least one of the sides is remote
     if [ 0 -eq ${destRemoteFlag} -a 0 -eq ${srcRemoteFlag} ]; then
@@ -1168,7 +1168,7 @@ function transfer_file_list {
     local binaryDumpFlag=${21}
 
     # Perform precondition checks for file list transfers
-    check_file_list_preconditions "${srcFileList}" "1" "${fileSizeFlag}" \
+    check_file_list_preconditions "${srcFileList}" "${fileSizeFlag}" \
 	"${resumeFlag}"
     rc=$?
     if [ 0 -ne $rc ]; then
@@ -1251,7 +1251,7 @@ function transfer_recursive_path {
     local binaryDumpFlag=${21}
 
     # Perform precondition checks for file list transfers
-    check_file_list_preconditions "${srcFileList}" "1" "${fileSizeFlag}" \
+    check_file_list_preconditions "${srcFileList}" "${fileSizeFlag}" \
 	"${resumeFlag}"
     rc=$?
     if [ 0 -ne $rc ]; then
@@ -1756,7 +1756,7 @@ function xddcp_main {
 
     # Ensure local option preconditions are met
     check_host_preconditions ${srcPath} ${fileListFlag} ${fileSizeFlag} \
-	${recursiveFlag} ${resumeFlag} ${forceFlag}
+	${resumeFlag} ${recursiveFlag} ${forceFlag}
 
     # The force flag only works on Linux, disable it everywhere else
     if [ "Linux" != "$(\uname)" ]; then
