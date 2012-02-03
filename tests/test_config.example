@@ -28,3 +28,8 @@ XDDTEST_OUTPUT_DIR=./output
 #
 XDDTEST_E2E_SOURCE=localhost
 XDDTEST_E2E_DEST=localhost
+
+#
+# Username running the tests
+#
+XDDTEST_USERNAME=nobody

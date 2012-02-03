@@ -33,14 +33,14 @@ function handle_exit
     pkill -KILL -P $g_parentPID >/dev/null 2>&1
 
     # Kill any XDD processes that have been orphaned (transfer destinations)
-    pkill -u nightly -P 1 -x xdd >/dev/null 2>&1
+    pkill -u ${XDDTEST_USERNAME} -P 1 -x xdd >/dev/null 2>&1
     sleep 1
-    pkill -KILL -u nightly -P 1 -x xdd >/dev/null 2>&1
+    pkill -KILL -u ${XDDTEST_USERNAME}  -P 1 -x xdd >/dev/null 2>&1
 
     # Kill any outbound SSH processes that have been left open
-    pkill -u nightly -x ssh >/dev/null 2>&1
+    pkill -u ${XDDTEST_USERNAME} -x ssh >/dev/null 2>&1
     sleep 1
-    pkill -KILL -u nightly -x ssh >/dev/null 2>&1
+    pkill -KILL -u ${XDDTEST_USERNAME} -x ssh >/dev/null 2>&1
 
     # Kill any remaning members of process group (e.g. the timeout signaller)
     #kill -$$ >/dev/null 2>&1
@@ -51,7 +51,7 @@ function handle_exit
 #
 function test_timeout_handler
 {
-    ps -aef |grep nightly > before_timeout_killer
+    ps -aef |grep ${XDDTEST_USERNAME} > before_timeout_killer
     g_testTimedOut=0
     if [ 0 -ne $g_testPID ]; then
         echo "Test timeout triggered for process: $g_testPID"
@@ -62,9 +62,9 @@ function test_timeout_handler
         pkill -KILL -P $g_testPID >/dev/null 2>&1
 
         # Kill any XDD processes that are orphaned (destinations on transfers)
-        pkill -u nightly -P 1 xdd >/dev/null 2>&1
+        pkill -u ${XDDTEST_USERNAME} -P 1 xdd >/dev/null 2>&1
         sleep 1
-        pkill -KILL -u nightly -P 1 xdd >/dev/null 2>&1
+        pkill -KILL -u ${XDDTEST_USERNAME} -P 1 xdd >/dev/null 2>&1
 
         # Finally, kill the test script that has timed out
         rc=1
@@ -90,7 +90,7 @@ function test_timeout_handler
     else
 	echo "ERROR:  Alarm signalled for invalid test pid: $g_testPID" >>/dev/stderr
     fi
-    ps -aef |grep nightly > after_timeout_killer
+    ps -aef |grep ${XDDTEST_USERNAME} > after_timeout_killer
 
     # Sleep to let the system state quiesce
     sleep 2
@@ -203,7 +203,7 @@ for test in $all_tests; do
 
     # Log the system state before each test
     echo "Process Table before Test $test_base ------------" >> $test_log
-    ps -aef |grep nightly >> $test_log
+    ps -aef |grep ${XDDTEST_USERNAME} >> $test_log
     echo "Process Table before Test $test_base -------------" >> $test_log
 
     # Allow the test to run until timeout, then kill it automatically
@@ -235,7 +235,7 @@ for test in $all_tests; do
 
     # Log the system state before each test
     echo "Process Table after Test -----------------------" >> $test_log
-    ps -aef |grep nightly >> $test_log
+    ps -aef |grep ${XDDTEST_USERNAME} >> $test_log
     echo "Process Table after Test -----------------------" >> $test_log
 
     # Sync the fs and sleep to quiesce the system between tests
