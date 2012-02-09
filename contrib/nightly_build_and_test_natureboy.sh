@@ -94,6 +94,7 @@ XDDTEST_DEST_MOUNT=$test_dest_dir
 XDDTEST_OUTPUT_DIR=$output_dir
 XDDTEST_E2E_SOURCE=localhost
 XDDTEST_E2E_DEST=natureboy
+XDDTEST_USER=${USER}
 EOF
 
 #
