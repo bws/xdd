@@ -1,0 +1,49 @@
+NOTE: buildbot 0.8.5 will not work with git 1.7.7+.  New version of buildbot should fix this problem.
+
+=Pre-reqs=
+- gits
+- python-setuptools
+
+=Install Master=
+
+1) Download buildbot source from http://trac.buildbot.net/
+
+2) untar that file and cd into the resulting directory
+
+3) mkdir -p /ccs/home/jlothian/sw/rhel6-x86_64/lib/python2.6/site-packages/
+
+4) export PYTHONPATH=/ccs/home/jlothian/sw/rhel6-x86_64/lib/python2.6/site-packages/
+4a) export PATH=${PATH}:${HOME}/sw/rhel6-x86_64/bin
+
+5) python setup.py install  --prefix ${HOME}/sw/rhel6-x86_64/
+
+6) cd /somepath
+
+7) buildbot create-master
+
+=Install Slave=
+
+This assume you are in the same shell as before, with PYTHONPATH, etc. set correctly
+
+0) python setup.py clean
+
+1) python setup.py install  --prefix ${HOME}/sw/rhel6-x86_64/
+
+If installing on a new os/arch combination, repeat steps (3-5) with
+appropriate values set.  Make sure you've got the python version correct
+in PYTHONPATH.  Note that SLES uses lib64 and not lib
+
+2) cd /somepath
+
+3) buildbot-slave create-slave $(hostname -s) mastername $(hostname -s) passwd
+
+
+=Configure buildbot=
+
+1) edit /master/master.cfg and add all the known slaves, e.g.:
+c['slaves'] = [BuildSlave("pod9", "pass")]
+c['slaves'].append(BuildSlave("pod7", "pass"))
+
+2) cd /somepath ; buildbot checkconfig master ; buildbot reconfig master
+
+3) foreach slave: buildbot restart slavename
