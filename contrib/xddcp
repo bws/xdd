@@ -114,6 +114,7 @@ g_xddcpDestSSHPid="-1"
 g_xddcpSrcXddPid="-1"
 g_xddcpResumeOffset="0"
 g_transferCount="0"
+g_xddRemotePathAppend=""
 
 #
 # Reset global variables before retry
@@ -136,12 +137,14 @@ function print_usage {
     echo "size              - number of bytes to transfer [Default: size of source file]"
     echo ""
     echo "OPTIONS: "
-    echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
+    echo " -a           - Resume transfer if it was only partially completed and the -a flag was specified"
+    echo " -b           - path containing remote XDD binaries"
     echo " -c           - If ports are unavailable on destination, indicate error rather than trying to force transfer"
     echo " -d s|d|b	- Use direct I/O the end specified (s for source, d for dest, b for both)"
     #echo " -f           - If ports are unavailable on destination, attempt to kill running XDD and retry"
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
+    echo " -l           - local path containing remote XDD binaries"
     echo " -n		- If operation fails for any reason, retry up to n times"
     echo " -p portnum   - First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo " -o s|d|b     - Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
@@ -153,6 +156,7 @@ function print_usage {
     echo " -W sec       - Add post-analysis: -w option with kernel tracing. (sec >= 1)"
     #echo "-Y           - Force SSH to create psueo-terminal tty"
     echo "NOTE: 'xdd' must be in your PATH env on both source and destination hosts!!!"
+    echo "       otherwise you must specifiy the '-b' and/or the '-l' options"
 }
 
 #
@@ -671,6 +675,9 @@ function get_destination_cmds {
     
     cat <<EOF
 # Ensure xdd is in the remote path
+if [ "x${g_xddRemotePathAppend}" != "x" ] ; then
+  export PATH=\${PATH}:${g_xddRemotePathAppend}
+fi
 type ${XDDCP_XDD_EXE} &>/dev/null
 if [ 0 -ne \$? ]; then
     echo "xdd binary is not in destination host PATH" >/dev/stderr
@@ -944,6 +951,9 @@ function get_source_cmds {
     # Build the command string
     cat <<EOF
 # Ensure xdd is in the path
+if [ "x${g_xddRemotePathAppend}" != "x" ] ; then
+  export PATH=\${PATH}:${g_xddRemotePathAppend}
+fi
 type ${XDDCP_XDD_EXE} &>/dev/null
 if [ 0 -ne \$? ]; then
     echo "xdd binary is not in the source host PATH"
@@ -1619,7 +1629,7 @@ function xddcp_main {
     kernelTraceFlag=0
     windowSize=0
 
-    while getopts ":FYacd:hn:o:p:rst:vVw:W:" option; do
+    while getopts ":FYab:cd:hl:n:o:p:rst:vVw:W:" option; do
         case $option in
             F) 
                 fileListFlag=1
@@ -1631,11 +1641,14 @@ function xddcp_main {
             a) 
                 resumeFlag=1
                 ;;
+            b)
+                g_xddRemotePathAppend=${OPTARG}
+                ;;
             c)
                 forceFlag=0
                 ;;
-	    d) 
-		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then
+            d) 
+ 		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then
                     destDIOFlag=1
 		elif [ "$OPTARG" = "source" -o "$OPTARG" = "s" ]; then
 		    srcDIOFlag=1
@@ -1647,12 +1660,15 @@ function xddcp_main {
                     error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		fi
                 ;;
-	    f) 
+            f) 
                 forceFlag=1
                 ;;
-	    h) 
+            h) 
                 print_usage 
                 return 0
+                ;;
+            l)
+                export PATH=${OPTARG}:${PATH}
                 ;;
 	    n)
 		retryCount=$OPTARG
