@@ -42,7 +42,7 @@ $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4000 -qd 4
 # Start a long copy
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-scp $XDDTEST_XDD_EXE $XDDTEST_E2E_DEST:~/bin/xdd &>/dev/null
+#scp $XDDTEST_XDD_EXE $XDDTEST_E2E_DEST:~/bin/xdd &>/dev/null
 $XDDTEST_XDDCP_EXE $xddcp_opts -t 1 -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
