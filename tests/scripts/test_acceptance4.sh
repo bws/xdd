@@ -9,11 +9,21 @@
 #
 source ./test_config
 
+exit_success(){
+  echo "Acceptance Test 4 - -runtime termintated XDD: PASSED."
+  exit 0
+}
+exit_error(){
+  echo "Acceptance Test 4 - -runtime failed to terminate XDD: FAILED."
+  exit 1
+}
+
+
 # Perform pre-test 
 echo "Beginning Acceptance Test 4 . . ."
 test_dir=$XDDTEST_LOCAL_MOUNT/acceptance4
 rm -rf $test_dir
-mkdir -p $test_dir
+mkdir -p $test_dir || exit_error
 
 # ReqSize 4096, Bytes 1GB, Targets 1, QueueDepth 4, Passes 1
 data_file=$test_dir/test
@@ -40,9 +50,7 @@ rm -rf $test_dir
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance Test 4 - -runtime termintated XDD: PASSED."
-  exit 0
+  exit_success
 else
-  echo "Acceptance Test 4 - -runtime failed to terminate XDD: FAILED."
-  exit 1
+  exit_error
 fi
