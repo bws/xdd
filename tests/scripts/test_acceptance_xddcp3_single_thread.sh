@@ -10,6 +10,17 @@
 #
 source ./test_config
 
+exit_success(){
+  echo "Acceptance 5: Recursive Test - Check: PASSED."
+  exit 0
+}
+
+exit_error(){
+  echo "Acceptance 5: Recursive Test - Check: FAILED."
+  exit 1
+}
+
+
 if [ -n $XDDTEST_XDD_REMOTE_PATH ] ; then
   xddcp_opts="-b $XDDTEST_XDD_REMOTE_PATH"
 else
@@ -25,15 +36,15 @@ fi
 echo "Beginning Recursive Test 1 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/recursive1
 rm -rf $test_dir
-mkdir -p $test_dir
+mkdir -p $test_dir || exit_error
 rm -rf $XDDTEST_DEST_MOUNT/recursive1
 
 #
 # Create the source directory
 #
-mkdir -p $test_dir/foo1/foo2/foo3
-mkdir -p $test_dir/bar1/bar2/bar3
-mkdir -p $test_dir/baz1
+mkdir -p $test_dir/foo1/foo2/foo3 || exit_error
+mkdir -p $test_dir/bar1/bar2/bar3 || exit_error
+mkdir -p $test_dir/baz1 || exit_error
 
 #
 # Create the files
@@ -77,9 +88,7 @@ fi
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance 5: Recursive Test - Check: PASSED."
-  exit 0
+  exit_success
 else
-  echo "Acceptance 5: Recursive Test - Check: FAILED."
-  exit 1
+  exit_error
 fi
