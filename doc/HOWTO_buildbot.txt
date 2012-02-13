@@ -35,7 +35,7 @@ in PYTHONPATH.  Note that SLES uses lib64 and not lib
 
 2) cd /somepath
 
-3) buildbot-slave create-slave $(hostname -s) mastername $(hostname -s) passwd
+3) buildslave create-slave $(hostname -s) mastername $(hostname -s) passwd
 
 
 =Configure buildbot=
