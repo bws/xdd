@@ -87,7 +87,7 @@ XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
 # XDD module build targets
 #
 XDD_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(XDD_SRC)))
-TOOLS_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOLS_SRC)))
+TOOL_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOL_SRC)))
 
 #
 # Project executable objects
@@ -293,7 +293,12 @@ oclean:
 	$(info Cleaning the $(OS) OBJECT files )
 	@$(RM) $(ALL_OBJS) 
 
-clean: depclean libclean oclean 
+tclean:
+	$(info Cleaning the $(OS) TOOLS OBJECT files )
+	@$(RM) src/tools/*.o
+
+
+clean: depclean libclean oclean tclean
 	$(info Cleaning the $(OS) executable files )
 	$(RM) 	bin/xdd \
 		bin/xdd-tserver\
