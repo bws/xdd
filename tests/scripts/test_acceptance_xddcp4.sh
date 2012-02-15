@@ -78,6 +78,11 @@ else
     fi
 fi
 
+#perform post-test cleanup
+rm -rf $test_dir
+rm -rf $XDDTEST_DEST_MOUNT/verbose1
+#rm -rf xdd*-source*-*log e2e.target.0000.csv
+
 # Output test result
 if [ "1" == "$test_passes" ]; then
   echo "Acceptance XDDCP4: Verbosity Test - Check: PASSED."
