@@ -10,6 +10,18 @@
 #
 source ./test_config
 
+if [ -n $XDDTEST_XDD_REMOTE_PATH ] ; then
+  xddcp_opts="-b $XDDTEST_XDD_REMOTE_PATH"
+else
+  xddcp_opts=""
+fi
+
+if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then
+    xddcp_opts="${xddcp_opts} -l $XDDTEST_XDD_LOCAL_PATH"
+fi 
+
+
+
 #
 # Create a source file
 #
@@ -29,10 +41,10 @@ test_passes=1
 #
 # Perform a non-verbose transfer
 #
-$XDDTEST_XDDCP_EXE $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-1
+$XDDTEST_XDDCP_EXE $xddcp_opts $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-1
 rc=$?
 if [ 0 -ne $rc ]; then
-    echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-1"
+    echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $xddcp_opts  $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-1"
     test_passes=0
 else
     ls xdd*-source1-*.log &>/dev/null
@@ -47,10 +59,10 @@ fi
 #
 ln -s $test_dir/source1 $test_dir/source2
 test_file=$test_dir/source2
-$XDDTEST_XDDCP_EXE -v $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-2
+$XDDTEST_XDDCP_EXE $xddcp_opts -v $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-2
 rc=$?
 if [ 0 -ne $rc ]; then
-    echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE -v $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-2"
+    echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $xddcp_opts -v $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-2"
     test_passes=0
 else
     ls xdd*-source2-*.log &>/dev/null
@@ -65,10 +77,10 @@ fi
 #
 ln -s $test_dir/source2 $test_dir/source3
 test_file=$test_dir/source3
-$XDDTEST_XDDCP_EXE -V $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-3
+$XDDTEST_XDDCP_EXE $xddcp_opts -V $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-3
 rc=$?
 if [ 0 -ne $rc ]; then
-    echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE -V $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-3"
+    echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $xddcp_opts -V $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-3"
     test_passes=0
 else
     ls xdd-*-source3-*.log &>/dev/null
@@ -78,10 +90,11 @@ else
     fi
 fi
 
-#perform post-test cleanup
+#
+# Perform post-transfer cleanup
+#
 rm -rf $test_dir
 rm -rf $XDDTEST_DEST_MOUNT/verbose1
-#rm -rf xdd*-source*-*log e2e.target.0000.csv
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

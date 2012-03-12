@@ -10,6 +10,18 @@
 #
 source ./test_config
 
+if [ -n $XDDTEST_XDD_REMOTE_PATH ] ; then
+  xddcp_opts="-b $XDDTEST_XDD_REMOTE_PATH"
+else
+  xddcp_opts=""
+fi
+
+if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then
+    xddcp_opts="${xddcp_opts} -l $XDDTEST_XDD_LOCAL_PATH"
+fi 
+
+
+
 # Perform pre-test 
 echo "Beginning XDDCP Retry Test 2 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/retry2
@@ -30,8 +42,8 @@ $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4000 -qd 4
 # Start a long copy
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-scp $XDDTEST_XDD_EXE $XDDTEST_E2E_DEST:~/bin/xdd &>/dev/null
-$XDDTEST_XDDCP_EXE -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
+#scp $XDDTEST_XDD_EXE $XDDTEST_E2E_DEST:~/bin/xdd &>/dev/null
+$XDDTEST_XDDCP_EXE $xddcp_opts -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
 #

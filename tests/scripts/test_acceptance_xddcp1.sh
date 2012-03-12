@@ -10,6 +10,16 @@
 #
 source ./test_config
 
+if [ -n $XDDTEST_XDD_REMOTE_PATH ] ; then 
+    xddcp_opts="-b $XDDTEST_XDD_REMOTE_PATH"
+else
+    xddcp_opts=""
+fi
+
+if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then 
+    xddcp_opts="${xddcp_opts} -l $XDDTEST_XDD_LOCAL_PATH"
+fi
+
 # Perform pre-test 
 echo "Beginning XDDCP Retry Test 1 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/retry1
@@ -30,7 +40,7 @@ $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4096 -qd 4
 # Start a long copy
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-bash -x $XDDTEST_XDDCP_EXE -a -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
+bash $XDDTEST_XDDCP_EXE $xddcp_opts -a -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
 #
@@ -55,10 +65,10 @@ if [ 0 -eq $rc ]; then
     srcHash=$(md5sum $source_file |cut -d ' ' -f 1)
     destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $dest_file |cut -d ' ' -f 1")
     if [ "$srcHash" != "$destHash" ]; then
-	test_passes=0
-	echo "ERROR: Failure in retry1"
-	echo "\tSource hash for $i: $srcHash"
-	echo "\tDestination hash for $d: $destHash"
+        test_passes=0
+        echo "ERROR: Failure in retry1"
+        echo "\tSource hash for $i: $srcHash"
+        echo "\tDestination hash for $d: $destHash"
     fi
 else
     echo "ERROR: XDDCP exited with: $rc"
@@ -70,9 +80,9 @@ ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry1"
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance XDDCP1: Retry Test - Check: PASSED."
-  exit 0
+    echo "Acceptance XDDCP1: Retry Test - Check: PASSED."
+    exit 0
 else
-  echo "Acceptance XDDCP1: Retry Test - Check: FAILED."
-  exit 1
+    echo "Acceptance XDDCP1: Retry Test - Check: FAILED."
+    exit 1
 fi
