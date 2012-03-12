@@ -130,7 +130,6 @@ xdd_qthread_init(ptds_t *qp) {
 	//}
 
 	// Indicate to the Target Thread that this QThread is available
-	fprintf(stderr, "Broadcasting qt avail\n");
 	pthread_mutex_lock(&p->any_qthread_available_mutex);
 	p->any_qthread_available++;
 	status = pthread_cond_broadcast(&p->any_qthread_available_condition);
