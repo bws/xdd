@@ -248,6 +248,7 @@ xdd_target_init_barriers(ptds_t *p) {
 		//status = sem_init(&p->totp->tot_entry[i].tot_sem, 0, 0);
 		// The "tot_mutex" is used by the QThreads when updating information in the TOT Entry
 		status += pthread_mutex_init(&p->totp->tot_entry[i].tot_mutex, 0);
+		p->totp->tot_entry[i].is_released = 0;
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot initialize semaphore/mutex %d in Target Offset Table.\n",
 				xgp->progname, 
