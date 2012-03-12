@@ -1,0 +1,14 @@
+*Assuming you want to test on a pod or a like machine*
+
+From your base xdd source directory:
+  - configure and build xdd
+  - run: contrib/nightly_build_and_test_pods.sh
+    - ignore errors about mkdir
+
+  - edit test_config and change XDDTEST_LOCAL_MOUNT, XDDTEST_SOURCE_MOUNT,
+    and XDDTEST_DEST_MOUNT to appropriate directories writable by you
+
+  - run tests/scripts/<scriptname>
+
+Of course, the scripts can be run from any working directory, but there is an
+assumption that your current working directory contains the test_config file.
