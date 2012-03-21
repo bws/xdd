@@ -117,7 +117,8 @@ xdd_targetpass_e2e_loop_dst(ptds_t *p) {
 	
 	} // End of WHILE loop
 	//////////////////////////// END OF I/O LOOP FOR ENTIRE PASS ///////////////////////////////////////////
-
+        fprintf(stderr, "BWS: Finishing qthread work\n");
+        
 	// Check to see if we've been canceled - if so, we need to leave 
 	if (xgp->canceled) {
 		fprintf(xgp->errout,"\n%s: xdd_targetpass_e2e_loop_src: Target %d: ERROR: Canceled!\n",
@@ -366,3 +367,12 @@ xdd_targetpass_e2e_monitor(ptds_t *p) {
 	}
 } // End of xdd_targetpass_e2e_monitor();
 
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

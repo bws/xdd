@@ -96,54 +96,58 @@ xdd_get_specific_qthread(ptds_t *p, int32_t q) {
 ptds_t *
 xdd_get_any_available_qthread(ptds_t *p) {
     ptds_t		*qp; // Pointer to a QThread PTDS
-    int			eof;	// Number of QThreads that have reached End-of-File on the destination side of an E2E operation        
+    int eof;	// Number of QThreads that have reached End-of-File on the destination side of an E2E operation        
 
     // Use a polling strategy to find available qthreads -- this might be a good
-    // candidate for asynchronous messages in the future
-    pthread_mutex_lock(&p->any_qthread_available_mutex);
-    while (p->any_qthread_available <= 0) {
-        p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-        pthread_cond_wait(&p->any_qthread_available_condition, &p->any_qthread_available_mutex);
-        p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-    }
-    p->any_qthread_available--;
+    // candidate for asynchronous messages in the future    
+    qp = 0;
+    eof = 0;
+    while (0 == qp && eof != p->queue_depth) {
+	
+	pthread_mutex_lock(&p->any_qthread_available_mutex);
+	while (p->any_qthread_available <= 0) {
+	    p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+	    pthread_cond_wait(&p->any_qthread_available_condition, &p->any_qthread_available_mutex);
+	    p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+	}
+	p->any_qthread_available--;
         
-    // Locate an idle qthread
-    qp = p->next_qp;
-    while (qp) {
-        pthread_mutex_lock(&qp->qthread_target_sync_mutex);
-        // Ignore busy qthreads
-        if (qp->qthread_target_sync & QTSYNC_BUSY) {
-            pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-            qp = qp->next_qp;
-            continue;
-        }
+	// Locate an idle qthread
+	qp = p->next_qp;
+	while (qp) {
+	    pthread_mutex_lock(&qp->qthread_target_sync_mutex);
+	    // Ignore busy qthreads
+	    if (qp->qthread_target_sync & QTSYNC_BUSY) {
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+		qp = qp->next_qp;
+		continue;
+	    }
 
-        // Ignore e2e threads that have received their eof
-        if ((qp->target_options & TO_E2E_DESTINATION) && 
-            (qp->qthread_target_sync & QTSYNC_EOF_RECEIVED)) {
-            eof++;
-            pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-            qp = qp->next_qp;
-            
-            // Multi-level short circuit hack for when all threads
-            // have recieved an EOF
-            if (eof == p->queue_depth) {
-                qp = 0;
-                goto unlock_and_return;
-            }
-        }
-        else {
-            // Got a QThread - mark it BUSY
-            // Indicate that this QThread is now busy
-            qp->qthread_target_sync |= QTSYNC_BUSY; 
-            pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-            break;
-        }
+	    // Ignore e2e threads that have received their eof
+	    if ((qp->target_options & TO_E2E_DESTINATION) && 
+		(qp->qthread_target_sync & QTSYNC_EOF_RECEIVED)) {
+		eof++;
+		// Multi-level short circuit hack for when all threads
+		// have recieved an EOF
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+		if (eof == p->queue_depth) {
+		    qp = 0;
+		    break;
+		}
+		qp = qp->next_qp;            
+	    }
+	    else {
+		// Got a QThread - mark it BUSY
+		// Indicate that this QThread is now busy
+		qp->qthread_target_sync |= QTSYNC_BUSY; 
+		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+		break;
+	    }
+	}
+	//unlock_and_return:	    
+	pthread_mutex_unlock(&p->any_qthread_available_mutex);
     }
 
-  unlock_and_return:
-    pthread_mutex_unlock(&p->any_qthread_available_mutex);
     return qp;        
 } // End of xdd_get_any_available_qthread()
 
