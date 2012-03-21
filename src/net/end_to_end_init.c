@@ -359,21 +359,21 @@ xdd_e2e_set_socket_opts(ptds_t *qp, char *sktname, int skt) {
 	}
 	status = setsockopt(skt,level,SO_SNDBUF,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_SNDBUF: status %d: %s\n", 
+		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: WARNING: on setsockopt SO_SNDBUF: status %d: %s\n", 
 			xgp->progname, 
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
 	}
 	status = setsockopt(skt,level,SO_RCVBUF,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_RCVBUF: status %d: %s\n", 
+		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: WARNING: on setsockopt SO_RCVBUF: status %d: %s\n", 
 			xgp->progname, 
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
 	}
 	status = setsockopt(skt,level,SO_REUSEADDR,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: ERROR: on setsockopt SO_REUSEPORT: status %d: %s\n", 
+		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: WARNING: on setsockopt SO_REUSEPORT: status %d: %s\n", 
 			xgp->progname, 
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
