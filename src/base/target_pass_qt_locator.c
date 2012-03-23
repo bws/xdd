@@ -114,6 +114,7 @@ xdd_get_any_available_qthread(ptds_t *p) {
         
 	// Locate an idle qthread
 	qp = p->next_qp;
+    eof = 0;
 	while (qp) {
 	    pthread_mutex_lock(&qp->qthread_target_sync_mutex);
 	    // Ignore busy qthreads
