@@ -32,6 +32,12 @@ config_log=$output_dir/nightly-config.log
 install_log=$output_dir/nightly-install.log
 test_log=$output_dir/nightly-test.log
 
+if [ -z ${XDDTEST_TIMEOUT} ] ; then
+  test_timeout=600
+else
+  test_timeout=${XDDTEST_TIMEOUT}
+fi
+
 srchost=$(hostname -s)
 dsthost=$(hostname -s)
 
@@ -71,4 +77,5 @@ XDDTEST_E2E_DEST=${dsthost}
 XDDTEST_USER=${USER}
 XDDTEST_XDD_REMOTE_PATH=${install_dir}/bin
 XDDTEST_XDD_LOCAL_PATH=${install_dir}/bin
+XDDTEST_TIMEOUT=${test_timeout}
 EOF
