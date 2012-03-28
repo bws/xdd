@@ -69,7 +69,7 @@ targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_
 # Start the killer process
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-if [0]; then
+
         # start background kills proc w delay
         # quites after n passes or testime exceeded
         (ssh ${XDDTEST_E2E_SOURCE} /bin/bash --login <<EOF 
@@ -107,7 +107,6 @@ if [0]; then
         done
 EOF
 ) &
-fi
 
 #
 # Perform a recursive copy
