@@ -35,6 +35,15 @@
  */
 void
 xdd_qthread_cleanup(ptds_t *qp) {
-
-	return;
+    return;
 } // End of xdd_qthread_cleanup()
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

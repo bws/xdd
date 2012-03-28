@@ -386,3 +386,13 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 
 	return(0);
 } /* end of xdd_e2e_eof_source_side() */
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

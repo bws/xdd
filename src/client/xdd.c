@@ -281,3 +281,13 @@ xdd_start_interactive() {
 	}
 
 } // End of xdd_start_interactive()
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

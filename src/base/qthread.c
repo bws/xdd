@@ -75,7 +75,7 @@ xdd_qthread(void *pin) {
 	// The subroutine that is called for any particular task will set the "xgp->canceled" flag to
 	// indicate that there was a condition that warrants canceling the entire run
 	while (1) {
-		// Enter the QThread_TargetPass_Wait barrier until we are assigned something to do byte targetpass()
+		// Enter the QThread_TargetPass_Wait barrier until we are assigned something to do by targetpass()
 		nclk_now(&checktime);
 		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&qp->occupant,1);
 
