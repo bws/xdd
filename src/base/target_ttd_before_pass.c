@@ -143,6 +143,35 @@ xdd_start_delay_before_pass(ptds_t *p) {
 #endif
 } // End of xdd_start_delay_before_pass()
 
+
+/*----------------------------------------------------------------------------*/
+/* xdd_raw_before_pass() - This subroutine initializes the variables that
+ * are used by the read_after_write option
+ * 
+ * This subroutine is called within the context of a Target Thread.
+ *
+ */
+void
+xdd_raw_before_pass(ptds_t *p) {
+	xdd_raw_t		*rawp;
+
+	if ((p->target_options & TO_READAFTERWRITE) == 0)
+		return;
+
+	rawp = p->rawp;
+
+	// Initialize the read-after-write variables
+	rawp->raw_msg_sent = 0;
+	rawp->raw_msg_recv = 0;
+	rawp->raw_msg_last_sequence = 0;
+	rawp->raw_msg.sequence = 0;
+	rawp->raw_prev_loc = 0;
+	rawp->raw_prev_len = 0;
+	rawp->raw_data_ready = 0;
+	rawp->raw_data_length = 0;
+
+} // End of xdd_raw_before_pass()
+
 /*----------------------------------------------------------------------------*/
 /* xdd_e2e_before_pass() - This subroutine initializes the variables that
  * are used by the end-to-end option
@@ -238,6 +267,9 @@ xdd_target_ttd_before_pass(ptds_t *p) {
 
 	// Lock Step Processing
 	xdd_lockstep_before_pass(p);
+
+	// Read-After_Write setup
+	xdd_raw_before_pass(p);
 
 	// End-to-End setup
 	xdd_e2e_before_pass(p);

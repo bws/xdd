@@ -13,7 +13,7 @@
 /*
  * truncate.c
  *
- * Small program to print file sizes.
+ * Small program to print file sizes and last modification times.
  */
 #include <errno.h>
 #include <stdio.h>
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
             break;
         }
         else {
-            printf("%llu\n", (long long unsigned)buffer.st_size);
+            printf("%llu %llu\n", (long long unsigned)buffer.st_size, (long long unsigned)buffer.st_mtime);
         }
     }
     

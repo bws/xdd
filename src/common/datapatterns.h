@@ -43,6 +43,7 @@
 #define DP_PATTERN_PREFIX              0x0000000000001000ULL  // Indicates that there is a data pattern prefix 
 #define DP_INVERSE_PATTERN             0x0000000000002000ULL  // Apply a 1's compliment to the data pattern 
 #define DP_NAME_PATTERN                0x0000000000004000ULL  // Use the specified name at the beginning of the data pattern
+#define DP_RANDOM_BY_TARGET_PATTERN    0x0000000000008000ULL  // Use random data pattern for write operations, seed by target number
 
 struct xdd_data_pattern {
 	unsigned long long	data_pattern_options; 		// Type of data pattern options to use

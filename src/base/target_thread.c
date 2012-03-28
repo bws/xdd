@@ -49,7 +49,9 @@ void *
 xdd_target_thread(void *pin) {
 	int32_t  	status;		// Status of various function calls
 	ptds_t		*p;			// Pointer to this Target's PTDS
-
+    FILE        *fpc;       // restart completion file pointer
+    char        *restart_filepath; // restart file path pointer
+//    char        *ctmp;
 
 	p = (ptds_t *)pin; 
 
@@ -105,24 +107,34 @@ xdd_target_thread(void *pin) {
 			if( p->restartp) {
 				pthread_mutex_lock(&p->restartp->restart_lock);
 				p->restartp->flags |= RESTART_FLAG_SUCCESSFUL_COMPLETION;
-				if (p->restartp->fp) {
-					// Display an appropriate Successful Completion in the restart file and close it
-					// Seek to the beginning of the file 
-					status = fseek(p->restartp->fp, 0L, SEEK_SET);
-					if (status < 0) {
-						fprintf(xgp->errout,"%s: Target %d: WARNING: Seek to beginning of restart file %s failed\n",
-							xgp->progname,
-							p->my_target_number,
-							p->restartp->restart_filename);
-						perror("Reason");
-					}
-					
-					// Put the Normal Completion information into the restart file
-					fprintf(p->restartp->fp,"File Copy Operation completed successfully.\n");
-					fprintf(p->restartp->fp,"%lld bytes written to file %s\n",(long long int)p->my_current_bytes_xfered,p->target_full_pathname);
-					fflush(p->restartp->fp);
-					fclose(p->restartp->fp);
-				}
+				if ((restart_filepath=malloc(PATH_MAX)) == NULL) {
+                    fprintf(xgp->errout,"%s: ALERT: Cannot allocate %d bytes for restart_filepath name!\n",
+                        xgp->progname, PATH_MAX);
+                    perror("Reason");
+                    return(0);
+                }
+                //ctmp = strdup(p->restartp->restart_filename);
+			    if (p->restartp->restart_filename == NULL) sprintf(restart_filepath,".xdd_transfer_complete");
+				if (p->restartp->restart_filename != NULL) sprintf(restart_filepath,"%s_complete", p->restartp->restart_filename);
+                fpc = fopen(restart_filepath,"a");
+                if (fpc == NULL) {
+                    fprintf(xgp->errout,"%s: ALERT: Cannot create/open restart completion file: %s\n",
+                        xgp->progname,restart_filepath);
+                    perror("Reason");
+                    free(restart_filepath);
+                    return(0);
+                }
+                //free(ctmp);
+                fprintf(fpc,"%s %lld %lld %s\n",p->e2e_src_file_path, (long long int)p->e2e_src_file_mtime, 
+					(long long int)(p->bytes_completed+p->e2e_total_bytes_written), p->target_full_pathname);
+				fflush(fpc);
+				fclose(fpc);
+				// Don't need transfer in progress restart file anymore;
+				// this is now recorded in transfers completed
+			    if (p->restartp->restart_filename == NULL) sprintf(restart_filepath,".xdd_transfer_partial");
+				if (p->restartp->restart_filename != NULL) sprintf(restart_filepath,"%s_partial", p->restartp->restart_filename);
+                if (p->restartp->fp) unlink(restart_filepath);
+                free(restart_filepath);
 				pthread_mutex_unlock(&p->restartp->restart_lock);
 			} 
 		} // End of IF clause that deals with a restart file if there is one

@@ -286,6 +286,20 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 				}
 			}
 		}
+    } else if (strcmp(pattern_type, "randbytarget") == 0) {  /* make it random data seeded by target number  */
+		if (p)  /* set option for the specific target */
+            p->dpp->data_pattern_options |= DP_RANDOM_BY_TARGET_PATTERN;
+		else { // Put this option into all PTDSs 
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				while (p) { 
+					p->dpp->data_pattern_options |= DP_RANDOM_BY_TARGET_PATTERN;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+		}
 	} else if (strcmp(pattern_type, "ascii") == 0) {
 		retval++;
 		if (argc <= args+2) {
@@ -714,6 +728,8 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 	ptds_t 	*p;
 	char	*hostname, *base_port, *port_count;
 	char	*cp, *sp;
+    char    *source_path;
+    time_t   source_mtime;
 	int		base_port_number;
 	int		number_of_ports;
 	int 	len;
@@ -1005,6 +1021,33 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		}
 		xgp->global_options |= GO_ENDTOEND;
 		return(args_index);
+	} else if ((strcmp(argv[args_index], "sourcepath") == 0) ||  /* complete source file path for restart option */
+		(strcmp(argv[args_index], "srcpath") == 0)) { 
+		if (target_number >= 0) {
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			p->target_options |= TO_ENDTOEND;
+			source_path  = argv[args_index+1];
+			source_mtime = atoll(argv[args_index+2]);
+			p->e2e_src_file_path  = source_path;
+			p->e2e_src_file_mtime = source_mtime;
+		} else {  /* set option for all targets */
+			if (flags & XDD_PARSE_PHASE2) {
+				p = xgp->ptdsp[0];
+				i = 0;
+				source_path  = argv[args_index+1];
+			    source_mtime = atoll(argv[args_index+2]);
+				while (p) {
+					p->target_options |= TO_ENDTOEND;
+					p->e2e_src_file_path  = source_path;
+					p->e2e_src_file_mtime = source_mtime;
+					i++;
+					p = xgp->ptdsp[i];
+				}
+			}
+		}
+		xgp->global_options |= GO_ENDTOEND;
+		return(args_index+3);
 	} else {
 		fprintf(stderr,"%s: Invalid End-to-End option %s\n",xgp->progname, argv[args_index]);
 		return(0);
@@ -1180,7 +1223,7 @@ xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags)
 			hb.hb_options |= HB_GBYTES;
 			return_value = 2;
 	} else if ((strcmp(sp, "percent") == 0) || (strcmp(sp, "pct") == 0)) { // Report Percent complete
-			hb.hb_options |= HB_PERCENT;
+			hb.hb_options |= HB_PERCENT; 
 			return_value = 2;
 	} else if ((strcmp(sp, "bandwidth") == 0) || (strcmp(sp, "bw") == 0)) { // Report Aggregate Bandwidth
 			hb.hb_options |= HB_BANDWIDTH;
@@ -2513,6 +2556,94 @@ xddfunc_randomize(int32_t argc, char *argv[], uint32_t flags)
     }
 }
 /*----------------------------------------------------------------------------*/
+// Specify the read-after-write options for either the reader or the writer
+// Arguments: -readafterwrite [target #] option_name value
+// Valid options are trigger [stat | mp]
+//                   lag <#>
+//                   reader <hostname>
+//                   port <#>
+// 
+int
+xddfunc_readafterwrite(int32_t argc, char *argv[], uint32_t flags)
+{
+    int			 i;
+    int			args; 
+    int			target_number;
+	xdd_raw_t	*rawp;
+    ptds_t		*p;
+
+	i = 1;
+    args = xdd_parse_target_number(argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+	if (target_number >= 0) { /* Set this option value for a specific target */
+		p = xdd_get_ptdsp(target_number, argv[0]);
+		if (p == NULL) return(-1);
+
+		if (target_number >= MAX_TARGETS) { /* Make sure the target number is somewhat valid */
+			fprintf(stderr,"%s: Invalid Target Number %d specified for read-after-write option %s\n",
+					xgp->progname, target_number, argv[i+2]);
+			return(0);
+		}
+		i += args;  /* skip past the "target <taget number>" */
+	}
+	/* At this point "i" points to the raw "option" argument */
+	if (strcmp(argv[i], "trigger") == 0) { /* set the the trigger type */
+		if (target_number >= 0) {
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rawp = xdd_get_rawp(p);
+			if (rawp == NULL) return(-1);
+			p->target_options |= TO_READAFTERWRITE;
+			if (strcmp(argv[i+1], "stat") == 0)
+					rawp->raw_trigger |= PTDS_RAW_STAT;
+				else if (strcmp(argv[i+1], "mp") == 0)
+					rawp->raw_trigger |= PTDS_RAW_MP;
+				else {
+					fprintf(stderr,"%s: Invalid trigger type specified for read-after-write option: %s\n",
+						xgp->progname, argv[i+1]);
+					return(0);
+				}
+		}
+        return(i+2);
+	} else if (strcmp(argv[i], "lag") == 0) { /* set the lag block count */
+		if (target_number >= 0) {
+			/* set option for specific target */
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rawp = xdd_get_rawp(p);
+			if (rawp == NULL) return(-1);
+			p->target_options |= TO_READAFTERWRITE;
+			rawp->raw_lag = atoi(argv[i+1]);
+		}
+        return(i+2);
+	} else if (strcmp(argv[i], "reader") == 0) { /* hostname of the reader for this read-after-write */
+		/* This assumes that these targets are all writers and need to know who the reader is */
+		if (target_number >= 0) {
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rawp = xdd_get_rawp(p);
+			if (rawp == NULL) return(-1);
+			p->target_options |= TO_READAFTERWRITE;
+			rawp->raw_hostname = argv[i+1];
+		}
+        return(i+2);
+	} else if (strcmp(argv[i], "port") == 0) { /* set the port number for the socket used by the writer */
+		if (target_number >= 0) {
+			p = xdd_get_ptdsp(target_number, argv[0]);
+			if (p == NULL) return(-1);
+			rawp = xdd_get_rawp(p);
+			if (rawp == NULL) return(-1);
+			p->target_options |= TO_READAFTERWRITE;
+			rawp->raw_port = atoi(argv[i+1]);
+		}
+        return(i+2);
+	} else {
+			fprintf(stderr,"%s: Invalid Read-after-write option %s\n",xgp->progname, argv[i+1]);
+            return(0);
+	}/* End of the -readafterwrite (raw) sub options */
+}
+/*----------------------------------------------------------------------------*/
 int
 xddfunc_reallyverbose(int32_t argc, char *argv[], uint32_t flags)
 {
@@ -2773,6 +2904,7 @@ xddfunc_restart(int32_t argc, char *argv[], uint32_t flags)
 			if (rp == NULL) return(-1);
 			rp->byte_offset = atoll(argv[args_index+1]);
 			rp->flags |= RESTART_FLAG_RESUME_COPY;
+			p->e2e_total_bytes_written=rp->byte_offset;
 
 			/* Set the last committed location to avoid restart output of
 			   0 if the target does not complete any I/O during first interval 
@@ -2789,6 +2921,7 @@ xddfunc_restart(int32_t argc, char *argv[], uint32_t flags)
 					if (rp == NULL) return(-1);
 					rp->byte_offset = atoll(argv[args_index+1]);
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
+					p->e2e_total_bytes_written=rp->byte_offset;
 
 					/* Set the last committed location to avoid restart output 
 					   of 0 if the target does not complete any I/O during 

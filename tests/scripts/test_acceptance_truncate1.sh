@@ -21,13 +21,13 @@ touch $tfile
 #
 test_passes=0
 $XDDTEST_XDD_PATH/xdd-truncate -s 64 $tfile
-fsize1=$($XDDTEST_XDD_PATH/xdd-getfilesize $tfile)
+fsize1=$($XDDTEST_XDD_PATH/xdd-getfilesize $tfile  | cut -f 1 -d " ")
 if [ 64 -eq "$fsize1" ]; then
     test_passes=1
 fi
 
 $XDDTEST_XDD_PATH/xdd-truncate -s 4 $tfile
-fsize2=$($XDDTEST_XDD_PATH/xdd-getfilesize $tfile)
+fsize2=$($XDDTEST_XDD_PATH/xdd-getfilesize $tfile  | cut -f 1 -d " ")
 if [ 4 -eq "$fsize2" ]; then
     test_passes=1
 else

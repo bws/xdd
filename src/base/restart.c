@@ -38,7 +38,7 @@
 
 // Prototypes
 int xdd_restart_create_restart_file(restart_t *rp);
-int xdd_restart_write_restart_file(restart_t *rp);
+int xdd_restart_write_restart_file(ptds_t *current_ptds);
 
 /*----------------------------------------------------------------------------*/
 // This routine is called to create a new restart file when a new copy 
@@ -61,55 +61,35 @@ int xdd_restart_write_restart_file(restart_t *rp);
 int 
 xdd_restart_create_restart_file(restart_t *rp) {
 
-	time_t	t;				// Time structure
-	struct 	tm	*tm;		// Pointer to the broken-down time struct that lives in the restart struct
+	char   *restart_filepath;   // Pointer to current restart file path
 	
- 
-	// Check to see if the file name was provided or not. If not, the create a file name.
-	if (rp->restart_filename == NULL) { // Need to create the file name here
-		rp->restart_filename = malloc(MAX_TARGET_NAME_LENGTH);
-		if (rp->restart_filename == NULL) {
-			fprintf(xgp->errout,"%s: RESTART_MONITOR: ALERT: Cannot allocate %d bytes of memory for the restart file name\n",
-				xgp->progname,
-				MAX_TARGET_NAME_LENGTH);
-			perror("Reason");
-			rp->fp = xgp->errout;
-			return(0);
-		}
-		// Get the current time in a appropriate format for a file name
-		time(&t);
-		tm = gmtime_r(&t, &rp->tm);
-		sprintf(rp->restart_filename,"xdd.%s.%s.%s.%s.%4d-%02d-%02d-%02d%02d-GMT.rst",
-			(rp->source_host==NULL)?"NA":rp->source_host,
-			(rp->source_filename==NULL)?"NA":basename(rp->source_filename),
-			(rp->destination_host==NULL)?"NA":rp->destination_host,
-			(rp->destination_filename==NULL)?"NA":basename(rp->destination_filename),
-			tm->tm_year+1900, // number of years since 1900
-			tm->tm_mon+1,  // month since January - range 0 to 11 
-			tm->tm_mday,   // day of the month range 1 to 31
-			tm->tm_hour,
-			tm->tm_min);
-	}
+    if ((restart_filepath=malloc(PATH_MAX)) == NULL) {
+        fprintf(xgp->errout,"%s: ALERT: Cannot allocate %d bytes for restart_filepath name!\n",
+             xgp->progname, PATH_MAX);
+             perror("Reason");
+             return(0);
+    }
+
+    if (rp->restart_filename == NULL) sprintf(restart_filepath,".xdd_transfer_partial");
+    if (rp->restart_filename != NULL) sprintf(restart_filepath,"%s_partial", rp->restart_filename);
 
 	// Now that we have a file name lets try to open it in purely write mode.
-	rp->fp = fopen(rp->restart_filename,"w");
+	rp->fp = fopen(restart_filepath,"w");
 	if (rp->fp == NULL) {
 		fprintf(xgp->errout,"%s: RESTART_MONITOR: ALERT: Cannot create restart file %s!\n",
-			xgp->progname,
-			rp->restart_filename);
+			xgp->progname, restart_filepath);
 		perror("Reason");
 		fprintf(xgp->errout,"%s: RESTART_MONITOR: ALERT: Defaulting to error out for restart file\n",
 			xgp->progname);
 		rp->fp = xgp->errout;
-		rp->restart_filename = NULL;
-		free(rp->restart_filename);
+		free(restart_filepath);
 		return(-1);
 	}
 	
 	// Success - everything must have worked and we have a restart file
 	fprintf(xgp->output,"%s: RESTART_MONITOR: INFO: Successfully created restart file %s\n",
-		xgp->progname,
-		rp->restart_filename);
+		xgp->progname, restart_filepath);
+		free(restart_filepath);
 	return(0);
 } // End of xdd_restart_create_restart_file()
 
@@ -123,24 +103,31 @@ xdd_restart_create_restart_file(restart_t *rp) {
 // 
 // 
 int
-xdd_restart_write_restart_file(restart_t *rp) {
+xdd_restart_write_restart_file(ptds_t *current_ptds) {
 	int		status;
+    int64_t byte_offset;
 
 	// Seek to the beginning of the file 
-	status = fseek(rp->fp, 0L, SEEK_SET);
+	status = fseek(current_ptds->restartp->fp, 0L, SEEK_SET);
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: RESTART_MONITOR: WARNING: Seek to beginning of restart file %s failed\n",
 			xgp->progname,
-			rp->restart_filename);
+			current_ptds->restartp->restart_filename);
 		perror("Reason");
 	}
 	
+    // this "fixes" a thread update problem. Prevents dumping early bogus offsets to restart file
+        byte_offset = current_ptds->restartp->byte_offset;
+    if (byte_offset < current_ptds->e2e_total_bytes_written ) 
+	    byte_offset = current_ptds->e2e_total_bytes_written;
 	// Put the ASCII text offset information into the restart file
-	fprintf(rp->fp,"-restart offset %lld\n", 
-		(long long int)rp->byte_offset);
+	fprintf(current_ptds->restartp->fp,"%s %lld %lld %s %llu\n", 
+		current_ptds->e2e_src_file_path, (long long int)current_ptds->e2e_src_file_mtime, 
+		(long long int)byte_offset, current_ptds->target_basename,
+		(long long unsigned)current_ptds->my_pid);
 
 	// Flush the file for safe keeping
-	fflush(rp->fp);
+	fflush(current_ptds->restartp->fp);
 
 	return(0);
 } // End of xdd_restart_write_restart_file()
@@ -290,7 +277,7 @@ xdd_restart_monitor(void *junk) {
 	
 				// ...and write it to the restart file and sync sync sync
 				if (current_ptds->target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
-					xdd_restart_write_restart_file(rp);
+					xdd_restart_write_restart_file(current_ptds);
 
 			}
 			// UNLOCK the restart struct

@@ -193,6 +193,7 @@ xdd_show_global_data(void) {
 	fprintf(xgp->output,"run_start_time            %lld - The time that the targets start their first pass - set after initialization \n",(long long int)xgp->run_start_time);
 	fprintf(xgp->output,"estimated_time            %lld - The time at which this run (all passes) should end \n",(long long int)xgp->estimated_end_time);
 	fprintf(xgp->output,"number_of_processors      %d - Number of processors \n",xgp->number_of_processors);
+//	fprintf(xgp->output,"random_init_state         %s\n",xgp->char			random_init_state[256]; 			/* Random number generator state initalizer array */ 
 	fprintf(xgp->output,"clock_tick                %d - Number of clock ticks per second \n",xgp->clock_tick);
 // Indicators that are used to control exit conditions and the like
 	fprintf(xgp->output,"id_firsttime              %d - ID first time through flag \n",xgp->id_firsttime);
@@ -200,6 +201,7 @@ xdd_show_global_data(void) {
 	fprintf(xgp->output,"run_time_expired          %d - The alarm that goes off when the total run time has been exceeded \n",xgp->run_time_expired);
 	fprintf(xgp->output,"run_complete              %d - Set to a 1 to indicate that all passes have completed \n",xgp->run_complete);
 	fprintf(xgp->output,"abort                     %d - abort the run due to some catastrophic failure \n",xgp->abort);
+	fprintf(xgp->output,"random_initialized        %d - Random number generator has been initialized \n",xgp->random_initialized);
 /* information needed to access the Global Time Server */
 //	in_addr_t		gts_addr;               			/* Clock Server IP address */
 //	in_port_t		gts_port;               			/* Clock Server Port number */

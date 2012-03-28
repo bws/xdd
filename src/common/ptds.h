@@ -37,6 +37,7 @@
 #include "access_pattern.h"
 #include "timestamp.h"
 #include "barrier.h"
+#include "read_after_write.h"
 #include "end_to_end.h"
 #include "parse.h"
 #include "target_offset_table.h"
@@ -47,6 +48,9 @@
 
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS
+#define TO_READAFTERWRITE              0x0000000000000001ULL  // Read-After-Write - the -raw option 
+#define TO_RAW_READER                  0x0000000000000002ULL  // Read-After-Write - reader 
+#define TO_RAW_WRITER                  0x0000000000000004ULL  // Read-After-Write - writer 
 #define TO_ENDTOEND                    0x0000000000000008ULL  // End to End - aka -e2e option 
 #define TO_E2E_SOURCE                  0x0000000000000010ULL  // End to End - Source side 
 #define TO_E2E_DESTINATION             0x0000000000000020ULL  // End to End - Destination side 
@@ -180,7 +184,6 @@ struct ptds {
 	double				start_delay; 			// number of seconds to delay the start  of this operation 
 	nclk_t				start_delay_psec;		// number of nanoseconds to delay the start  of this operation 
 	char				random_init_state[256]; // Random number generator state initalizer array 
-	char				random_initialized;		// Random number generator has been initialized 
     // ------------------ Throttle stuff --------------------------------------------------
 	// The following "throttle_" members are for the -throttle option
 	double				throttle;  				// Target Throttle assignments 
@@ -303,6 +306,8 @@ struct ptds {
 	//
 	char				*e2e_dest_hostname; 	// Name of the Destination machine 
 	char				*e2e_src_hostname; 		// Name of the Source machine 
+	char				*e2e_src_file_path;     // Full path of source file for destination restart file 
+	time_t				e2e_src_file_mtime;     // stat -c %Y *e2e_src_file_path, i.e., last modification time
 	in_addr_t			e2e_dest_addr;  		// Destination Address number of the E2E socket 
 	in_port_t			e2e_dest_port;  		// Port number to use for the E2E socket 
 	int32_t				e2e_sd;   				// Socket descriptor for the E2E message port 
@@ -329,6 +334,7 @@ struct ptds {
 	int64_t				e2e_prev_len; 			// The previous length from a e2e message from the source 
 	int64_t				e2e_data_recvd; 		// The amount of data that is received each time we call xdd_e2e_dest_recv()
 	int64_t				e2e_data_length; 		// The amount of data that is ready to be read for this operation 
+	int64_t				e2e_total_bytes_written; // The total amount of data written across all restarts for this file
 	nclk_t				e2e_wait_1st_msg;		// Time in nanosecs destination waited for 1st source data to arrive 
 	nclk_t				e2e_first_packet_received_this_pass;// Time that the first packet was received by the destination from the source
 	nclk_t				e2e_last_packet_received_this_pass;// Time that the last packet was received by the destination from the source
@@ -345,6 +351,7 @@ struct ptds {
 	struct xdd_triggers			*trigp;			// Triggers Structure Pointer
 	struct xdd_sgio				*sgiop;			// SGIO Structure Pointer
 	struct xdd_data_pattern		*dpp;			// Data Pattern Structure Pointer
+	struct xdd_raw				*rawp;          // RAW Data Structure Pointer
 	struct lockstep				*lockstepp;		// pointer to the lockstep structure used by the lockstep option
 	struct restart				*restartp;		// pointer to the restart structure used by the restart monitor
 	struct ptds					*pm1;			// ptds minus  1 - used for report print queueing - don't ask 

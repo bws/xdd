@@ -37,6 +37,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <libgen.h>
 #include <unistd.h> 
 #include <ctype.h>
 #include <sys/time.h>

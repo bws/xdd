@@ -153,6 +153,7 @@ int32_t		xdd_process_paramfile(char *fnp);
 int 		xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_number);
 ptds_t 		*xdd_get_ptdsp(int32_t target_number, char *op);
 restart_t 	*xdd_get_restartp(ptds_t *p);
+xdd_raw_t	*xdd_get_rawp(ptds_t *p);
 xdd_sgio_t 	*xdd_get_sgiop(ptds_t *p);
 xdd_triggers_t 	*xdd_get_trigp(ptds_t *p);
 xdd_extended_stats_t 	*xdd_get_esp(ptds_t *p);
@@ -211,19 +212,31 @@ void	xdd_io_for_os(ptds_t *p);
 void	xdd_threshold_after_io_op(ptds_t *qp);
 void	xdd_status_after_io_op(ptds_t *qp);
 void	xdd_dio_after_io_op(ptds_t *qp);
+void	xdd_raw_after_io_op(ptds_t *qp);
 void	xdd_e2e_after_io_op(ptds_t *qp);
 void	xdd_extended_stats(ptds_t *qp);
 void	xdd_qthread_ttd_after_io_op(ptds_t *qp);
 
 // qthread_ttd_before_io_op.c
 void	xdd_dio_before_io_op(ptds_t *qp);
+void	xdd_raw_before_io_op(ptds_t *qp);
 int32_t	xdd_e2e_before_io_op(ptds_t *qp);
 void	xdd_throttle_before_io_op(ptds_t *qp);
 int32_t	xdd_qthread_ttd_before_io_op(ptds_t *qp);
 
+// read_after_write.c
+void	xdd_raw_err(char const *fmt, ...);
+int32_t	xdd_raw_setup_reader_socket(ptds_t *p);
+int32_t	xdd_raw_sockets_init(ptds_t *p);
+int32_t	xdd_raw_reader_init(ptds_t *p);
+int32_t	xdd_raw_read_wait(ptds_t *p);
+int32_t	xdd_raw_setup_writer_socket(ptds_t *p);
+int32_t	xdd_raw_writer_init(ptds_t *p);
+int32_t	xdd_raw_writer_send_msg(ptds_t *p);
+
 // restart.c
 int		xdd_restart_create_restart_file(restart_t *rp);
-int 	xdd_restart_write_restart_file(restart_t *rp);
+int	xdd_restart_write_restart_file(ptds_t *current_ptds);
 void 	*xdd_restart_monitor(void *junk);
 
 // results_display.c
@@ -346,6 +359,7 @@ int32_t	xdd_target_ttd_before_io_op(ptds_t *p);
 // target_ttd_before_pass.c
 void	xdd_timer_calibration_before_pass(void);
 void	xdd_start_delay_before_pass(ptds_t *p);
+void	xdd_raw_before_pass(ptds_t *p);
 void	xdd_e2e_before_pass(ptds_t *p);
 void	xdd_init_ptds_before_pass(ptds_t *p);
 int32_t	xdd_target_ttd_before_pass(ptds_t *p);
@@ -360,7 +374,7 @@ void	xdd_ts_reports(ptds_t *p);
 // utils.c
 char 	*xdd_getnexttoken(char *tp);
 int 	xdd_tokenize(char *cp);
-int 	xdd_random_int(ptds_t *p);
+int	xdd_random_int(void);
 double 	xdd_random_float(void);
 
 // verify.c
