@@ -24,10 +24,10 @@ XDDTEST_E2E_CONTROL=$XDDTEST_E2E_SOURCE
 REQSIZE=4096
 MBYTES=4096
 QUEUE_DEPTH=8
-DEST_DATA_NETWORK_1=natureboy-ib0
-DEST_DATA_NETWORK_2=natureboy-ib1
-DEST_DATA_NETWORK_3=natureboy
-DEST_DATA_NETWORK_4=localhost
+DEST_DATA_NETWORK_1=${XDDTEST_E2E_DEST}-10g
+DEST_DATA_NETWORK_2=${XDDTEST_E2E_DEST}
+DEST_DATA_NETWORK_3=localhost
+#DEST_DATA_NETWORK_4=XDDTEST_E2E_DEST-ib0
 
 # Perform pre-test 
 echo "Beginning XDD Multi NIC Test 1 on CONTROL machine $XDDTEST_E2E_CONTROL - DATESTAMP $DATESTAMP "
@@ -80,8 +80,8 @@ ssh $XDDTEST_E2E_DEST \
 		-qd $QUEUE_DEPTH \
 		-e2e destination $DEST_DATA_NETWORK_1 \
 		-e2e destination $DEST_DATA_NETWORK_2 \
-		-e2e destination $DEST_DATA_NETWORK_3 \
-		-e2e destination $DEST_DATA_NETWORK_4  > $destination_log 2>&1 &
+		-e2e destination $DEST_DATA_NETWORK_3  > $destination_log 2>&1 &
+	#	-e2e destination $DEST_DATA_NETWORK_4  > $destination_log 2>&1 &
 sleep 5
 echo "Multi NIC Test 1 - ...Now the source side... $XDDTEST_E2E_SOURCE"
 ssh $XDDTEST_E2E_SOURCE \
@@ -94,8 +94,8 @@ ssh $XDDTEST_E2E_SOURCE \
 		-e2e issource \
 		-e2e destination $DEST_DATA_NETWORK_1 \
 		-e2e destination $DEST_DATA_NETWORK_2 \
-		-e2e destination $DEST_DATA_NETWORK_3 \
-		-e2e destination $DEST_DATA_NETWORK_4  &
+		-e2e destination $DEST_DATA_NETWORK_3 &
+	#	-e2e destination $DEST_DATA_NETWORK_4  &
 
 pid=$!
 wait $pid
