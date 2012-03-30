@@ -34,6 +34,8 @@ elif [ $memory_per_node -gt $real_mem_total ]; then
     exit 2
 fi
 
+startime=$(date +%s)
+
 # Perform pre-test 
 echo "Beginning Acceptance Test HPCScenario #14 . . ."
 test_dir=$XDDTEST_LOCAL_MOUNT/acceptance_s14
@@ -156,8 +158,7 @@ let  "bytes_per_node       = $bytes_total / $nodes_total"
 let  "min_kbytes_per_req   =  4"
 let  "max_kbytes_per_req   = 64"
 let  "max_kbytes_read      = $bytes_total / 1024"
-timelimit_secs="-timelimit  1800"  #use time limit or bytes_per_node read
-timelimit_secs="-timelimit    30"  #use time limit or bytes_per_node read
+timelimit_secs="-timelimit  300"  #use time limit or bytes_per_node read
 DIO="0"                      # Not 0 for sector aligned test
 CREATE_FILES="1"
 REMOVE_FILES="1"
@@ -182,7 +183,6 @@ echo "### bytes_total          = $bytes_total"
 echo "### min_kbytes_per_req   = $min_kbytes_per_req"
 echo "### max_kbytes_per_req   = $max_kbytes_per_req"
 echo "### max_kbytes_read      = $max_kbytes_read"
-echo "### timelimit_secs       = $timelimit_secs"
 echo "### MAX_OSTs             = $MAX_OSTs"
 echo "### OST_STRIPE_FILE      = $OST_STRIPE_FILE"
 echo "### OST_STRIPE_SIZE      = $OST_STRIPE_SIZE"
@@ -274,7 +274,13 @@ fi
 ######################################################
 #### done making files
 ######################################################
-
+# get time left to run 2 read tests, reduced by 60s buffer
+elapsedtime="$(\echo "$(\date +%s) - $startime" | \bc)"
+let "testime = $XDDTEST_TIMEOUT - $elapsedtime"
+let "testime = $testime - 60"
+let "testime = $testime / 2"
+timelimit_secs="-timelimit  $testime"
+echo "### timelimit_secs       = $timelimit_secs"
 ######################################################
 #### build xdd setup files for each xdd instance
 #### for both random and reverse "random" read tests
