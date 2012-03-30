@@ -123,7 +123,8 @@ echo "source      md5sum = $srcHash"
 echo "destination md5sum = $destHash"
 
 # Perform post-test cleanup
-#rm -rf $test_dir
+#rm -f $source_file
+#ssh $XDDTEST_E2E_DEST "rm -f $dest_file"
 echo "Multi NIC Test 1 - Collecting output files from the test..."
 scp $XDDTEST_E2E_DEST:${destination_log} $test_source
 

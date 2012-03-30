@@ -81,8 +81,8 @@ export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
 done
 
 # Perform post-test cleanup
-rm -rf $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/robust1"
+#rm -rf $test_dir
+#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/robust1"
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

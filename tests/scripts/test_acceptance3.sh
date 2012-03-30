@@ -46,7 +46,7 @@ if [ $? -eq 0 ]; then
 fi
 
 # Perform post-test cleanup
-rm -rf $test_dir
+#rm -rf $test_dir
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

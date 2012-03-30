@@ -84,8 +84,8 @@ if [ 0 -eq $rc ]; then
 fi
 
 # Perform post-test cleanup
-rm -rf $test_dir
-rm -rf $XDDTEST_DEST_MOUNT/recursive1
+#rm -rf $test_dir
+#rm -rf $XDDTEST_DEST_MOUNT/recursive1
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

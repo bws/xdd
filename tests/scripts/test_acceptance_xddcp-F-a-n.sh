@@ -26,7 +26,7 @@ fi
 
 startime=$(date +%s)
 # 180s is estimate for md5sum after tests...adjust accordingly
-let "testime = $XDDTEST_TIMEOUT - 180"
+let "testime = $XDDTEST_TIMEOUT - 300"
 
 rm -f $XDDTEST_TESTS_DIR/.*
 
@@ -50,6 +50,7 @@ mkdir -p $test_dir/baz1/baz2/baz3/baz4
 #
 targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_dir/foo1/foo2/t5 $test_dir/foo1/foo2/t6 $test_dir/foo1/foo2/foo3/t7 $test_dir/bar1/bar2/bar3/t8 )
     $XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
+\date
 # Make them different/wierd sizes
 # Build file list
      file_list="${PWD}/.filelist"
@@ -64,6 +65,7 @@ targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_
      echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
      echo "$i" >> $file_list
     done
+\date
      
 #
 # Start the killer process
@@ -152,8 +154,8 @@ done
     \date
 
 # Perform post-test cleanup
-rm -rf $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/filelist"
+#rm -rf $test_dir
+#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/filelist"
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

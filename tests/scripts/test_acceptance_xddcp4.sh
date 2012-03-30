@@ -93,8 +93,8 @@ fi
 #
 # Perform post-transfer cleanup
 #
-rm -rf $test_dir
-rm -rf $XDDTEST_DEST_MOUNT/verbose1
+#rm -rf $test_dir
+#rm -rf $XDDTEST_DEST_MOUNT/verbose1
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

@@ -134,7 +134,7 @@ XDD=$XDDTEST_XDD_EXE
 data_dir=$TESTDIR/testfiles
 if [ ! -d \$data_dir ]; then
     echo "Creating directory: \$data_dir"
-    mkdir $data_dir
+    mkdir -p $data_dir
 fi
 
 data_file=Scenario_14_file
@@ -235,7 +235,7 @@ date
 xdd_setup_dir=$TESTDIR/S
 if [ ! -d \$xdd_setup_dir ]; then
     echo "Creating directory: \$xdd_setup_dir"
-    mkdir $xdd_setup_dir
+    mkdir -p $xdd_setup_dir
 fi 
 cd $xdd_setup_dir
 rm -f s*
@@ -288,7 +288,7 @@ echo "### timelimit_secs       = $timelimit_secs"
 xdd_setup_dir=$TESTDIR/s
 if [ ! -d \$xdd_setup_dir ]; then
     echo "Creating directory: \$xdd_setup_dir"
-    mkdir $xdd_setup_dir
+    mkdir -p $xdd_setup_dir
 fi
 cd $xdd_setup_dir
 #rm -f launch.opts
@@ -408,7 +408,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Perform post-test cleanup
-rm -rf $test_dir
+#rm -rf $test_dir
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

@@ -78,8 +78,8 @@ else
 fi
 
 # Perform post-test cleanup
-rm -rf $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry2"
+#rm -rf $test_dir
+#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry2"
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
