@@ -10,6 +10,23 @@
 #
 source ./test_config
 
+# check for existence of iotrace_init, decode
+
+\which iotrace_init
+if [ 0 -ne $? ]; then
+  echo "Acceptance XDD-ANALYSIS1: XDD Post Analysis w Kernel Tracing - iotrace_init missing...SKIP test: PASSED."
+  exit 1
+fi
+\which decode
+if [ 0 -ne $? ]; then
+  echo "Acceptance XDD-ANALYSIS1: XDD Post Analysis w Kernel Tracing - decode missing...SKIP test: PASSED."
+  exit 1
+fi
+if [ ! -e /dev/iotrace_data ]; then
+  echo "Acceptance XDD-ANALYSIS1: XDD Post Analysis w Kernel Tracing - /dev/iotrace_data missing...SKIP test: PASSED."
+  exit 1
+fi
+
 # Perform pre-test 
 echo "Beginning XDD Post Analysis w Kernel Tracing Test 1 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/postanalysis-xdd
