@@ -10,8 +10,7 @@
 #
 source ./test_config
 
-# check for existence of iotrace_init, decode
-
+# check for existence of iotrace_init, decode, kernel module
 \which iotrace_init
 if [ 0 -ne $? ]; then
   echo "Acceptance XDD-ANALYSIS1: XDD Post Analysis w Kernel Tracing - iotrace_init missing...SKIP test: PASSED."

@@ -10,6 +10,22 @@
 #
 source ./test_config
 
+# check for existence of iotrace_init, decode, kernel module
+\which iotrace_init
+if [ 0 -ne $? ]; then
+  echo "Acceptance XDDCP-W: XDDCP Post Analysis w Kernel Tracing - iotrace_init missing...SKIP test: PASSED."
+  exit 1
+fi
+\which decode
+if [ 0 -ne $? ]; then
+  echo "Acceptance XDDCP-W: XDDCP Post Analysis w Kernel Tracing - decode missing...SKIP test: PASSED."
+  exit 1
+fi
+if [ ! -e /dev/iotrace_data ]; then
+  echo "Acceptance XDDCP-W: XDDCP Post Analysis w Kernel Tracing - /dev/iotrace_data missing...SKIP test: PASSED."
+  exit 1
+fi
+
 # Perform pre-test 
 echo "Beginning XDDCP Post Analysis w Kernel Tracing Test 1 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/postanalysis-W
@@ -30,7 +46,7 @@ $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4096 -qd 4
 # Start a long copy
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-bash -x $XDDTEST_XDDCP_EXE -W 5 $source_file $XDDTEST_E2E_DEST:$dest_file &
+bash $XDDTEST_XDDCP_EXE -W 5 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
 wait $pid
