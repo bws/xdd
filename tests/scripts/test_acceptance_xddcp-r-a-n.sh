@@ -25,8 +25,9 @@ if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then
 fi
 
 startime=$(date +%s)
-# 180s is estimate for md5sum after tests...adjust accordingly
-let "testime = $XDDTEST_TIMEOUT - 300"
+# 360 is estimate for md5sum before/after tests, plus  finishing up transfers
+# after killer process exits ...adjust accordingly
+let "testime = $XDDTEST_TIMEOUT - 360"
 
 rm -f $XDDTEST_TESTS_DIR/.*
 
@@ -67,7 +68,7 @@ targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_
 \date
      
 #
-# Perform a recursive copy
+# Start killer process. Runs until timeout
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
         # start background kills proc w delay
@@ -108,15 +109,17 @@ export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
 EOF
 ) &
 
-# let " LIMIT = ${#targets[@]}"
+#
+# Perform a recursive copy
+#
                 rc=1
  while [ 0 -ne $rc ]
  do
-        elapsedtime="$(\echo "$(\date +%s) - $startime" | \bc)"
-        if [ $testime -lt $elapsedtime ]; then
-          echo "OUT OF TIME...EXIT"
-          break
-        fi
+#        elapsedtime="$(\echo "$(\date +%s) - $startime" | \bc)"
+#        if [ $testime -lt $elapsedtime ]; then
+#          echo "OUT OF TIME...EXIT"
+#          break
+#        fi
 	# Perform a recursive copy. If not first pass, restarting
 	$XDDTEST_XDDCP_EXE -r -a -n 99 $test_dir $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/dest-r 
         rc=$?
