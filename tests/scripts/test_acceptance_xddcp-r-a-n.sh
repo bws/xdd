@@ -121,7 +121,7 @@ EOF
 #          break
 #        fi
 	# Perform a recursive copy. If not first pass, restarting
-	$XDDTEST_XDDCP_EXE -r -a -n 99 $test_dir $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/dest-r 
+	$XDDTEST_XDDCP_EXE $xddcp_opts -r -a -n 99 $test_dir $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/dest-r 
         rc=$?
 done
     # signal killer proc to exit
