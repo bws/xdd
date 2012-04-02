@@ -180,11 +180,13 @@ function print_usage {
     echo ""
     echo "OPTIONS: "
     echo " -a		- Resume transfer if it was only partially completed and the -a flag was specified"
+    echo " -b           - path containing remote XDD binaries"
     echo " -c		- If ports are unavailable on destination, indicate error rather than trying to force transfer"
     echo " -d s|d|b	- Use direct I/O the end specified (s for source, d for dest, b for both)"
     echo " -f		- Attempt to kill any running XDD process at destination before spawning XDD for this transfer"
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
+    echo " -l           - local path containing remote XDD binaries"
     echo " -n		- If operation fails for any reason, retry up to n times"
     echo " -p portnum	- First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo " -o s|d|b	- Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
@@ -196,6 +198,8 @@ function print_usage {
     echo " -W sec	- Add post-analysis: -w option with kernel tracing. (sec >= 1)"
     #echo "-Y           - Force SSH to create psueo-terminal tty"
     echo "NOTE: 'xdd' must be in your PATH env on both source and destination hosts!!!"
+    echo "       otherwise you must specifiy the '-b' and/or the '-l' options"
+
 }
 
 #
