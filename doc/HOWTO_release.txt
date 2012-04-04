@@ -34,12 +34,14 @@ continue cutting the release.
 5.  Ensure the ChangeLog is up to date
 	> vi ChangeLog
 
-6.  Tag the code.
+6.  Resolve all conflicts with main repository
 	> git commit -a	
-	> git tag -a xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE]
-
-7.  Push everything back up to the durmstrang repository:
 	> git push
+
+
+7.  Tag the code push the tag to the Durmstrang repository..
+	> TAG_NAME=xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE]
+	> git tag -a xdd-${TAG_NAME}
 	> git push --tags
 
 8.  At this point, the release is ready.  It can be retrieved by anyone with 
