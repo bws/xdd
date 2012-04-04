@@ -1,6 +1,19 @@
 -----------------------
 XDD Release ChangeLog
 -----------------------
+XDD-7.0.0 RC22
+==============
+* XDD: Add MacOSX/Darwin support
+* XDD: Change nightly tests to use buildbot
+* XDD: Remove use of System V semaphores
+* XDD: Add nightly tests for multi-nic, and new features
+* XDD: Port XDD to Linux used on PERCS machines
+* XDD: Alter build system so that shared libraries are no longer generated
+* XDDCP: Add MacOSX/Darwin support
+* XDDCP: Change nightly tests to use buildbot
+* XDDCP: Add restart and retry functionality for recursive transfers
+* MacOSX and AIX are not nightly testing platforms
+
 xdd-7.0.0 RC21-1
 ==============
 * Fix build system regression that prevented pre-allocation

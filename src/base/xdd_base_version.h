@@ -1,1 +1,1 @@
-#define XDD_BASE_VERSION 7.0.0.rc21-1
+#define XDD_BASE_VERSION 7.0.0.rc22
