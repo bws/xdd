@@ -1874,7 +1874,7 @@ function xddcp_main {
     forceFlag=1
     queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
     recursiveFlag=0
-    retryCount=0
+    retryCount=1
     resumeFlag=0
     srcDIOFlag=0
     srcOrderedFlag=0
