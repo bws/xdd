@@ -134,6 +134,8 @@ g_devOut=""
 g_xddcpRecursiveTransferError="0"
 g_filebaseRecusiveList=".xdd_recursive_file_list"
 g_fileRecursiveList=""
+g_totalNICs="1"
+g_destIfaces=""
 
 function debugPrint {
     local msg=${1}
@@ -171,10 +173,10 @@ function reset_global_data {
 # Print out the usage information
 #
 function print_usage {
-    echo "xddcp [OPTIONS] source_file destination_host:destination_file [size]"
+    echo "xddcp [OPTIONS] source_file destination_host[:destination_host]:destination_file [size]"
     echo ""
     echo "source_file       - complete /filepath/name for source file on source host"
-    echo "destination_host  - destination host IP or Name over which data is transferred"
+    echo "destination_host  - 1 or more destination host IP(s) or Name(s) over which data is transferred"
     echo "destination_file  - complete /filepath/name for destination file on destination host"
     echo "size              - number of bytes to transfer [Default: size of source file]"
     echo ""
@@ -345,44 +347,67 @@ function handle_signal_common {
 # srcUser=""
 # srcHost=""
 # srcPath=""
-# parse_endpoint_spec $spec srcRemoteFlag srcUser srcHost srcPath
+# parse_endpoint_spec $spec srcRemoteFlag srcUser srcHost srcIP srcPath
 #
 function parse_endpoint_spec {
     local spec=$1
     local remoteFlagRef="$2"
     local remoteUserRef="$3"
     local remoteHostRef="$4"
-    local remotePathRef="$5"
+    local remoteIPadRef="$5"
+    local remotePathRef="$6"
     
     # Set the outbound defaults
     eval "$remoteFlagRef=0"
     eval "$remoteUserRef=\"\""
     eval "$remoteHostRef=\"\""
+    eval "$remoteIPadRef=\"\""
     eval "$remotePathRef=\"\""
     
     # Parse out remote host and file
-    local colon_count=$(\echo $spec | grep -c ":")
-    if [ $colon_count -eq 1 ]; then
-
-        # Set the remote flag
-        eval "$remoteFlagRef=1"
-
-        # Set the path
-        eval "$remotePathRef=$(\echo $spec | awk -F: '{print $2}')"
-
-        # Set the host
-        local _tmp=$(\echo $spec | awk -F: '{print $1}')
-        eval "$remoteHostRef=$(\echo $spec | awk -F: '{print $1}')"
-        
-        # Set the username if it exists
-        local amp_count=$(\echo $_tmp |grep -c "@")
-        if [ 1 -eq $amp_count ]; then
-            eval "$remoteUserRef=$(\echo $_tmp |awk -F@ '{print $1}')"
-            eval "$remoteHostRef=$(\echo $_tmp |awk -F@ '{print $2}')"
-        fi
+    local colon_count=$((`echo $spec|sed 's/[^:]//g'|wc -m`-1))
+    if [ $colon_count -eq 0 ]; then
+       eval "$remotePathRef=$spec"
     else
-        eval "$remotePathRef=$spec"
+    # Set the remote flag
+    eval "$remoteFlagRef=1"
+    local totalNICs="1"
+    local destHost=""
+    local _tmp=$(\echo $spec | awk -F: '{print $1}')
+    # Set the username if it exists
+    local amp_count=$(\echo $_tmp |grep -c "@")
+    if [ 1 -eq $amp_count ]; then
+        eval "$remoteUserRef=$(\echo $_tmp |awk -F@ '{print $1}')"
+        destHost[$totalNICs]=$(\echo $_tmp | \cut -f 2 -d "@")
+    else
+        destHost[$totalNICs]=$(\echo $spec | \cut -f 1 -d ":")
     fi
+
+    while [ $totalNICs -lt $colon_count ]
+    do
+       # Set the path
+        let        "totalNICs += 1"
+        destHost[$totalNICs]=$(\echo $spec | \cut -f ${totalNICs} -d ":")
+     done
+     # Set the path
+     let "ipath = $totalNICs + 1"
+     eval "$remotePathRef=$(\echo $spec | cut -f $ipath -d ":")"
+    fi
+    g_destIfaces=""
+    local    iNIC="1"
+    while [ $iNIC -le $totalNICs ]
+    do
+      # Convert the destination host to its IP to avoid DNS round-robin issues
+      $XDDCP_GETHOSTIP_EXE -d ${destHost[$iNIC]} &> /dev/null
+      if [ 0 -ne $? ]; then
+          error_exit $XDD_ERR_CODE_DEST_IP
+      fi
+      g_destIfaces="$g_destIfaces $($XDDCP_GETHOSTIP_EXE -d ${destHost[$iNIC]})"
+      debugPrint "$iNIC : $g_destIfaces"
+      let "iNIC += 1"
+    done
+    eval "$remoteHostRef=${destHost[1]}"
+    eval "$remoteIPadRef=$($XDDCP_GETHOSTIP_EXE -d ${destHost[1]})"
 }
 
 #
@@ -1145,14 +1170,14 @@ function start_source_xdd {
     local resumeFlag=${7}
     local verbosity=${8}
     local binaryDumpFlag=${9}
-    local destHost=${10}
+    local destIfaces=${10}
     local remoteFlag=${11}
     local srcHost=${12}
     local srcUser=${13}
 
     # Get source commands
     local execRC=1
-    srcCmds=$(get_source_cmds "${destHost}" "${path}" "${totalBytes}" \
+    srcCmds=$(get_source_cmds "${destIfaces}" "${path}" "${totalBytes}" \
 	"${queueDepth}" "${e2ePort}" "${dioFlag}" "${orderedFlag}" \
 	"${resumeFlag}" "${verbosity}" "${binaryDumpFlag}" )
     execRC=$?
@@ -1619,7 +1644,7 @@ function transfer_file {
         "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
         "${destOrderedFlag}" "${RFlag}" "${resumeFlag}" \
 	"${verbosity}" "${binaryDumpFlag}" \
-	"${destRemoteFlag}" "${destHost}" "${destIP}" "${destUser}" "${destIP}"
+	"${destRemoteFlag}" "${destHost}" "${destIP}" "${destUser}" "${g_destIfaces}"
     destRC=$?
     debugPrint "transfer_file: after call to start_destination xdd"
 
@@ -1634,7 +1659,7 @@ function transfer_file {
 	start_source_xdd "${srcFileSpec}" "${totalBytes}" \
             "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
             "${srcOrderedFlag}" "${resumeFlag}" \
-	    "${verbosity}" "${binaryDumpFlag}" "${destHost}" \
+	    "${verbosity}" "${binaryDumpFlag}" "${g_destIfaces}" \
             "${srcRemoteFlag}" "${srcHost}" "${srcUser}"
 	srcRC=$?
 
@@ -2026,8 +2051,8 @@ function xddcp_main {
 
     # Parse the destination endpoint spec
     destRemoteFlag=0
-    parse_endpoint_spec "${2}" destRemoteFlag destUser destHost destPath
-    debugPrint "after parse_endpoint_spec: destPath=$destPath destRemoteFlag=$destRemoteFlag destIP=$destIP destHost=$destHost destUser=$destUser"
+    parse_endpoint_spec "${2}" destRemoteFlag destUser destHost destIP destPath
+    debugPrint "after parse_endpoint_spec: destPath=$destPath destRemoteFlag=$destRemoteFlag destHost=$destHost destIP=$destIP destUser=$destUser"
 
     # Create destination directory for file list transfer for resumeFlag
     if [ 1 -eq $fileListFlag ]; then
@@ -2097,11 +2122,11 @@ function xddcp_main {
     fi
 
     # Convert the destination host to its IP to avoid DNS round-robin issues
-    $XDDCP_GETHOSTIP_EXE -d $destHost &> /dev/null
-    if [ 0 -ne $? ]; then
-        error_exit $XDD_ERR_CODE_DEST_IP
-    fi
-    destIP=$($XDDCP_GETHOSTIP_EXE -d $destHost)
+   # $XDDCP_GETHOSTIP_EXE -d $destHost &> /dev/null
+   # if [ 0 -ne $? ]; then
+   #     error_exit $XDD_ERR_CODE_DEST_IP
+   # fi
+   # destIP=$($XDDCP_GETHOSTIP_EXE -d $destHost)
     
     # Retry on failed transfer
     retries=0
