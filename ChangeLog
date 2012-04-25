@@ -1,6 +1,10 @@
 -----------------------
 XDD Release ChangeLog
 -----------------------
+XDD-7.0.0 RC23
+==============
+* XDDCP: Add multinic support
+
 XDD-7.0.0 RC22
 ==============
 * XDD: Add MacOSX/Darwin support
