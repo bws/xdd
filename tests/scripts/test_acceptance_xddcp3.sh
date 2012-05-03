@@ -11,12 +11,12 @@
 source ./test_config
 
 exit_success(){
-  echo "Acceptance 5: Recursive Test - Check: PASSED."
+  echo "Acceptance: Recursive Test xddcp3 - Check: PASSED."
   exit 0
 }
 
 exit_error(){
-  echo "Acceptance 5: Recursive Test - Check: FAILED."
+  echo "Acceptance: Recursive Test xddcp3 - Check: FAILED."
   exit 1
 }
 
@@ -34,10 +34,10 @@ fi
 
 # Perform pre-test 
 echo "Beginning Recursive Test 1 . . ."
-test_dir=$XDDTEST_SOURCE_MOUNT/recursive1
+test_dir=$XDDTEST_SOURCE_MOUNT/xddcp3
 rm -rf $test_dir
 mkdir -p $test_dir || exit_error
-rm -rf $XDDTEST_DEST_MOUNT/recursive1
+rm -rf $XDDTEST_DEST_MOUNT/xddcp3
 
 #
 # Create the source directory
@@ -76,7 +76,7 @@ if [ 0 -eq $rc ]; then
 	destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $d |cut -d ' ' -f 1")
 	if [ "$srcHash" != "$destHash" ]; then
 	    test_passes=0
-	    echo "ERROR: Failure in recursive1"
+	    echo "ERROR: Failure in xddcp3"
 	    echo "\tSource hash for $i: $srcHash"
 	    echo "\tDestination hash for $d: $destHash"
 	fi
@@ -85,7 +85,7 @@ fi
 
 # Perform post-test cleanup
 #rm -rf $test_dir
-#rm -rf $XDDTEST_DEST_MOUNT/recursive1
+#rm -rf $XDDTEST_DEST_MOUNT/xddcp3
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

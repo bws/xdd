@@ -34,10 +34,10 @@ rm -f $XDDTEST_TESTS_DIR/.*
 
 # Perform pre-test 
 echo "Beginning File List with Restart Test 1 . . ."
-test_dir=$XDDTEST_SOURCE_MOUNT/filelist
+test_dir=$XDDTEST_SOURCE_MOUNT/xddcp-F-a-n
 rm -rf $test_dir
 mkdir -p $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/filelist"
+ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp-F-a-n"
 rm .xdd*
 
 #
@@ -55,7 +55,7 @@ targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_
 \date
 # Make them different/wierd sizes
 # Build file list
-     file_list="${PWD}/.filelist"
+     file_list="${PWD}/.xddcp-F-a-n"
      rm -f $file_list
      pattern=""
      let "k = 0"
@@ -124,7 +124,7 @@ EOF
 #          break
 #        fi
 	# Perform a recursive copy. If not first pass, restarting
-	$XDDTEST_XDDCP_EXE $xddcp_opts -a -n 99 -F $file_list $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/filelist
+	$XDDTEST_XDDCP_EXE $xddcp_opts -a -n 99 -F $file_list $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/xddcp-F-a-n
         rc=$?
 done
     # signal killer proc to exit
@@ -140,14 +140,14 @@ done
     let "k = 0"
     test_passes=1
     for i in ${targets[@]}; do
-	d=$XDDTEST_DEST_MOUNT/filelist/$(\basename ${i})
+	d=$XDDTEST_DEST_MOUNT/xddcp-F-a-n/$(\basename ${i})
 	destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $d |cut -d ' ' -f 1")
         let "k += 1"
         echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
         echo "dstHash=$destHash: ${XDDTEST_E2E_DEST}: ${d}"
 	if [ "${srcHash[$k]}" != "$destHash" ]; then
 	    test_passes=0
-	    echo "ERROR: Failure in recursive1"
+	    echo "ERROR: Failure in xddcp-F-a-n"
 	    echo "\tSource hash for $i: ${srcHash[$k]}"
 	    echo "\tDestination hash for $d: $destHash"
 	fi
@@ -156,7 +156,7 @@ done
 
 # Perform post-test cleanup
 #rm -rf $test_dir
-#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/filelist"
+#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp-F-a-n"
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

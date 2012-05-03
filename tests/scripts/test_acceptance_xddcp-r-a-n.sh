@@ -33,10 +33,10 @@ rm -f $XDDTEST_TESTS_DIR/.*
 
 # Perform pre-test 
 echo "Beginning Recursive Restart Test 1 . . ."
-test_dir=$XDDTEST_SOURCE_MOUNT/recursive1
+test_dir=$XDDTEST_SOURCE_MOUNT/xddcp-r-a-n
 rm -rf $test_dir
 mkdir -p $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/dest-r/recursive1"
+ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/dest-r/xddcp-r-a-n"
 rm .xdd*
 
 #
@@ -144,7 +144,7 @@ done
         echo "dstHash=$destHash: ${XDDTEST_E2E_DEST}: ${d}"
 	if [ "${srcHash[$k]}" != "$destHash" ]; then
 	    test_passes=0
-	    echo "ERROR: Failure in recursive1"
+	    echo "ERROR: Failure in xddcp-r-a-n"
 	    echo "\tSource hash for $i: ${srcHash[$k]}"
 	    echo "\tDestination hash for $d: $destHash"
 	fi
@@ -153,13 +153,13 @@ done
 
 # Perform post-test cleanup
 #rm -rf $test_dir
-#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/dest-r/recursive1"
+#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/dest-r/xddcp-r-a-n"
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance XDDCP: Recursive Restart Test - Check: PASSED."
+  echo "Acceptance XDDCP: Recursive Restart Test xddcp-r-a-n - Check: PASSED."
   exit 0
 else
-  echo "Acceptance XDDCP: Recursive Restart Test - Check: FAILED."
+  echo "Acceptance XDDCP: Recursive Restart Test xddcp-r-a-n - Check: FAILED."
   exit 1
 fi

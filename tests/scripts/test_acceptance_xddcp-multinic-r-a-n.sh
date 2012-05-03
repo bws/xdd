@@ -37,7 +37,7 @@ let "testime = $XDDTEST_TIMEOUT - 360"
 rm -f $XDDTEST_TESTS_DIR/.*
 
 # Perform pre-test 
-echo "Beginning Recursive Restart Test 1 . . ."
+echo "Beginning Recursive Restart Test xddcp-multinic-r-a-n . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/xddcp-multinic-r-a-n
 rm -rf $test_dir
 mkdir -p $test_dir
