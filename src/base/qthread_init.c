@@ -45,11 +45,6 @@ xdd_qthread_init(ptds_t *qp) {
     // Get the target Thread PTDS address as well
     p = qp->target_ptds;
 
-    // Before touching any memory, pin this thread to a NUMA node if one is specified
-#if (HAVE_PTHREAD_SETAFFINITY_NP && HAVE_CPU_SET_T)
-    pthread_setaffinity_np(pthread_self(), sizeof(cpu_set), cpu_set);
-#endif
-	
 #if (AIX)
 	qp->my_thread_id = thread_self();
 #elif (LINUX)
