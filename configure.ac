@@ -199,6 +199,15 @@ AC_TRY_COMPILE([#include <pthread.h>],
             [pthread_barrier_t pb;],
             CPPFLAGS="$CPPFLAGS -DHAVE_PTHREAD_BARRIER_T",
             [])
+
+dnl
+dnl Check for pthread's pthread_attr_setaffinity_np
+dnl 
+AC_TRY_COMPILE([#include <pthread.h>],
+            [pthread_attr_setaffinity_np(0,0,0);],
+            CPPFLAGS="$CPPFLAGS -DHAVE_PTHREAD_ATTR_SETAFFINITY_NP",
+            [])
+
 dnl
 dnl Checks for typedefs, structures, and compiler characteristics.
 dnl
@@ -218,6 +227,15 @@ AC_SEARCH_LIBS([clock_gettime], [rt],
 
 AC_CHECK_FUNCS([sched_getcpu])
 AC_CHECK_FUNCS([sched_setscheduler])
+
+dnl
+dnl Check for Linux CPU_SET(3)
+dnl
+AC_TRY_COMPILE([#include <sched.h>],
+            [cpu_set_t pb;],
+            CPPFLAGS="$CPPFLAGS -DHAVE_CPU_SET_T",
+            [])
+
 
 dnl
 dnl Check for MPI compiler
