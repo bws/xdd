@@ -28,6 +28,12 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+
+#if (LINUX)
+#define _GNU_SOURCE
+#include <sched.c>
+#endif
+
 #define	E2E_ADDRESS_TABLE_ENTRIES 16
 struct xdd_e2e_header {
 	uint32_t 	magic;  			/**< Magic number */
@@ -41,10 +47,13 @@ struct xdd_e2e_header {
 typedef struct xdd_e2e_header xdd_e2e_header_t;
 
 struct xdd_e2e_address_table_entry {
-	char 	*address;					// Pointer to the ASCII string of the address 
-	char 	hostname[HOSTNAMELENGTH];	// the ASCII string of the hostname associated with address 
-	int	 	base_port;					// The Base Port number associated with this address entry
-	int	 	port_count;					// Number of ports from "port" to "port+nports-1"
+    char 	*address;					// Pointer to the ASCII string of the address 
+    char 	hostname[HOSTNAMELENGTH];	// the ASCII string of the hostname associated with address 
+    int	 	base_port;					// The Base Port number associated with this address entry
+    int	 	port_count;					// Number of ports from "port" to "port+nports-1"
+#if (HAVE_CPU_SET_T)
+    cpu_set_t cpu_set;
+#endif
 };
 typedef struct xdd_e2e_address_table_entry xdd_e2e_ate_t;
 struct xdd_e2e_address_table {
