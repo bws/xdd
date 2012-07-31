@@ -306,7 +306,7 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 #if (HAVE_CPU_SET_T && HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
 		pthread_attr_setaffinity_np(&qthread_attr,
 					    sizeof(p->e2e_address_table[e2e_addr_index].cpu_set),
-					    p->e2e_address_table[e2e_addr_index].cpu_set);
+					    &p->e2e_address_table[e2e_addr_index].cpu_set);
 #endif
 		
 		if (xgp->global_options & GO_REALLYVERBOSE)

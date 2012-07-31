@@ -36,6 +36,14 @@
 #include "xdd.h"
 #include <ctype.h>
 
+#ifdef HAVE_NUMA_H
+#include <numa.h>
+#endif
+
+#ifdef HAVE_SCHED_H
+#include <sched.h>
+#endif
+
 extern	xdd_func_t xdd_func[];
 
 /*-----------------------------------------------------All the function sub routines ---------------------------------------------*/
@@ -900,13 +908,26 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		else {
 		    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
 		}
+#if (HAVE_CPU_SET_T && HAVE_NUMA_NODE_TO_CPUS)
 		if (numa_node) {
+		    int numa_node_no = atoi(numa_node);
+		    numa_node_to_cpus(numa_node_no,
+				      (struct bitmask*)&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
 		}
 		else {
+		    sched_getaffinity(getpid(),
+				      sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
+				      &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
 		}
+#endif
 	    } else {  // Set a default Port number, count, and numa 
 		p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
 		p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+#if (HAVE_CPU_SET_T)
+		    sched_getaffinity(getpid(),
+				      sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
+				      &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+#endif
 	    } 
 	    p->e2e_address_table_port_count += p->e2e_address_table[p->e2e_address_table_next_entry].port_count;
 	    p->e2e_address_table_next_entry++;

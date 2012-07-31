@@ -169,6 +169,7 @@ dnl Check for optional POSIX headers
 dnl
 AC_CHECK_HEADERS([sched.h], [], []) 
 AC_CHECK_HEADERS([utmpx.h], [], [])
+AC_CHECK_HEADERS([numa.h], [], [])
 
 dnl
 dnl Check for C library function
@@ -227,6 +228,13 @@ AC_SEARCH_LIBS([clock_gettime], [rt],
 
 AC_CHECK_FUNCS([sched_getcpu])
 AC_CHECK_FUNCS([sched_setscheduler])
+
+dnl
+dnl Search for the NUMA function numa_node_to_cpus
+dnl
+AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
+               [CPPFLAGS="$CPPFLAGS -DHAVE_NUMA_NODE_TO_CPUS"],
+               AC_MSG_WARN(LibNUMA not found, thread binding disabled.))
 
 dnl
 dnl Check for Linux CPU_SET(3)

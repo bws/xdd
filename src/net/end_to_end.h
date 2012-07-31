@@ -29,9 +29,8 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
-#if (LINUX)
-#define _GNU_SOURCE
-#include <sched.c>
+#ifdef HAVE_SCHED_H
+#include <sched.h>
 #endif
 
 #define	E2E_ADDRESS_TABLE_ENTRIES 16
