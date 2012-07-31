@@ -117,7 +117,6 @@ xdd_targetpass_e2e_loop_dst(ptds_t *p) {
 	
 	} // End of WHILE loop
 	//////////////////////////// END OF I/O LOOP FOR ENTIRE PASS ///////////////////////////////////////////
-        fprintf(stderr, "BWS: Finishing qthread work\n");
         
 	// Check to see if we've been canceled - if so, we need to leave 
 	if (xgp->canceled) {
