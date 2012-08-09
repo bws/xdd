@@ -234,7 +234,11 @@ dnl Search for the NUMA function numa_node_to_cpus
 dnl
 AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
                [CPPFLAGS="$CPPFLAGS -DHAVE_NUMA_NODE_TO_CPUS"],
-               AC_MSG_WARN(LibNUMA not found, thread binding disabled.))
+               AC_MSG_WARN([LibNUMA support for numa_node_to_cpus not found thread binding disabled.]))
+
+AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
+               [CPPFLAGS="$CPPFLAGS -DHAVE_NUMA_ALLOCATE_CPUMASK"],
+               AC_MSG_WARN([LibNUMA support for numa_allocate_cpumask not found thread binding disabled.]))
 
 dnl
 dnl Check for Linux CPU_SET(3)
@@ -287,9 +291,9 @@ dnl
 dnl Check for Linux Magic numbers
 dnl
 AC_CHECK_HEADERS([linux/magic.h],
-		 [AC_CHECK_DECLS(XFS_SUPER_MAGIC,
+		 AC_CHECK_DECLS(XFS_SUPER_MAGIC,
                                  [], [], [],
-                                 [[#include <linux/magic.h>]])],
+                                 [[#include <linux/magic.h>]]),
                  [])
 
 

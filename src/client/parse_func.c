@@ -879,7 +879,6 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 	sp = cp;
 	numa_node = sp;
 	len=0;
-    printf("Flag is %s \n", sp);
 	while (*cp) {
 	    if (isspace(*cp)) {
 		    numa_node = sp;
@@ -890,7 +889,6 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 	    cp++;
 	    len++;
 	}
-printf("NUma Node: %s\n", numa_node);
 	if ('\0' == *numa_node)
 	    numa_node = 0;
 	
@@ -900,11 +898,10 @@ printf("NUma Node: %s\n", numa_node);
 	if (target_number >= 0) {
 	    p = xdd_get_ptdsp(target_number, argv[0]);
 	    if (p == NULL) 
-            return(-1);
+		return(-1);
 	    p->target_options |= TO_ENDTOEND;
 	    strcpy(p->e2e_address_table[p->e2e_address_table_next_entry].hostname, hostname); 
 	    
-printf("In here 0\n");
 	    if (base_port) { // Set the requested Port Number and possible Port Count
 		p->e2e_address_table[p->e2e_address_table_next_entry].base_port = atoi(base_port); 
 		if (port_count) 
@@ -912,40 +909,46 @@ printf("In here 0\n");
 		else {
 		    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
 		}
-#if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS)
+#if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS) && defined(HAVE_NUMA_ALLOCATE_CPUMASK) 
 		if (numa_node && -1 != numa_available()) {
-            int i;
-            struct bitmask* numa_mask = numa_allocate_cpumask();
-            int numa_node_no = atoi(numa_node);
-            CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-            numa_node_to_cpus(numa_node_no, numa_mask);
-            for (i = 0; i <= CPU_SETSIZE; i++) {
-                if (numa_bitmask_isbitset(numa_mask, i))
-                    CPU_SET(i, &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-            }
-            numa_free_cpumask(numa_mask);
+		    int i;
+		    struct bitmask* numa_mask = numa_allocate_cpumask();
+		    int numa_node_no = atoi(numa_node);
+		    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		    numa_node_to_cpus(numa_node_no, numa_mask);
+		    for (i = 0; i <= CPU_SETSIZE; i++) {
+			if (numa_bitmask_isbitset(numa_mask, i))
+			    CPU_SET(i, &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		    }
+		    numa_free_cpumask(numa_mask);
 		}
 		else {
-            CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
 		    sched_getaffinity(getpid(),
 				      sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
 				      &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
 		}
+#else
+		if (numa_node) {
+		    fprintf(stderr,"%s: NUMA node end-to-end option ignored: %s\n",xgp->progname, numa_node);
+		}
 #endif
-	    } else {  // Set a default Port number, count, and numa 
-		    p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
-		    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+	    } 
+	    else {  // Set a default Port number, count, and numa 
+		p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+		p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
 #if defined(HAVE_CPU_SET_T)
-            CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-		    sched_getaffinity(getpid(),
-				      sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
-				      &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		sched_getaffinity(getpid(),
+				  sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
+				  &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
 #endif
 	    } 
 	    p->e2e_address_table_port_count += p->e2e_address_table[p->e2e_address_table_next_entry].port_count;
 	    p->e2e_address_table_next_entry++;
 	    p->e2e_address_table_host_count++;
-	} else {  /* set option for all targets */
+	} 
+	else {  /* set option for all targets */
 	    if (flags & XDD_PARSE_PHASE2) {
 		p = xgp->ptdsp[0];
 		i = 0;
@@ -956,39 +959,43 @@ printf("In here 0\n");
 			p->e2e_address_table[p->e2e_address_table_next_entry].base_port = atoi(base_port); 
 			if (port_count) 
 			    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = atoi(port_count); 
-			else p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
-#if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS)
-            if (numa_node && -1 != numa_available()) {
-                int i;
-                struct bitmask* numa_mask = numa_allocate_cpumask();
-                int numa_node_no = atoi(numa_node);
-                CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-                numa_node_to_cpus(numa_node_no, numa_mask);
-                for (i = 0; i <= CPU_SETSIZE; i++) {
-                    if (numa_bitmask_isbitset(numa_mask, i))
-                        CPU_SET(i, &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-                }
-                numa_free_cpumask(numa_mask);
-            }
-            else {
-                CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-                sched_getaffinity(getpid(),
-                      sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
-                      &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-            }
-#endif
-
-
-		    } else {  // Set a default Port number and count 
-			    p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+			else 
 			    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
-#if defined(HAVE_CPU_SET_T)
-                CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-                sched_getaffinity(getpid(),
-                      sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
-                      &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+#if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS) && defined(HAVE_NUMA_ALLOCATE_CPUMASK)
+			if (numa_node && -1 != numa_available()) {
+			    int i;
+			    struct bitmask* numa_mask = numa_allocate_cpumask();
+			    int numa_node_no = atoi(numa_node);
+			    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+			    numa_node_to_cpus(numa_node_no, numa_mask);
+			    for (i = 0; i <= CPU_SETSIZE; i++) {
+				if (numa_bitmask_isbitset(numa_mask, i))
+				    CPU_SET(i, &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+			    }
+			    numa_free_cpumask(numa_mask);
+			}
+			else {
+			    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+			    sched_getaffinity(getpid(),
+					      sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
+					      &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+			}
+#else
+			if (numa_node) {
+			    fprintf(stderr,"%s: NUMA node end-to-end option ignored: %s\n",xgp->progname, numa_node);
+			}
 #endif
-
+		    } 
+		    else {  // Set a default Port number and count 
+			p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+			p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+#if defined(HAVE_CPU_SET_T)
+			CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+			sched_getaffinity(getpid(),
+					  sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
+					  &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+#endif
+			
 		    } // End of IF stmnt that sets the Port/NPorts
 		    p->e2e_address_table_port_count += p->e2e_address_table[p->e2e_address_table_next_entry].port_count;
 		    p->e2e_address_table_host_count++;

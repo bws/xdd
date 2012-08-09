@@ -29,7 +29,11 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 #include "xdd.h"
+
+#ifdef HAVE_SCHED_H
 #include <sched.h>
+#endif
+
 /*----------------------------------------------------------------------------*/
 /* xdd_qthread_init() - Initialization routine for a QThread
  * This routine is passed a pointer to the PTDS for this QThread.
@@ -41,7 +45,7 @@ xdd_qthread_init(ptds_t *qp) {
     ptds_t		*p;			// Pointer to this qthread's target PTDS
     char		tmpname[XDD_BARRIER_NAME_LENGTH];	// Used to create unique names for the barriers
 
-// Print the cpuset
+// BWS Print the cpuset
 int i;
 cpu_set_t cpuset;
 CPU_ZERO(&cpuset);
