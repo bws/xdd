@@ -285,7 +285,6 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 	e2e_addr_index = 0;
 	e2e_addr_port = 0;
 	for (q = 0; q < p->queue_depth; q++ ) {
-printf("Create looping %d\n", q);
 	    pthread_attr_t qthread_attr;
 
 	    // Initialize the attributes

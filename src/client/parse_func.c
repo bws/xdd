@@ -901,7 +901,16 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		return(-1);
 	    p->target_options |= TO_ENDTOEND;
 	    strcpy(p->e2e_address_table[p->e2e_address_table_next_entry].hostname, hostname); 
-	    
+	    p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+            p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+            // Set a default NUMA node value if possible
+#if defined(HAVE_CPU_SET_T)
+		CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		sched_getaffinity(getpid(),
+				  sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
+				  &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+#endif
+
 	    if (base_port) { // Set the requested Port Number and possible Port Count
 		p->e2e_address_table[p->e2e_address_table_next_entry].base_port = atoi(base_port); 
 		if (port_count) 
@@ -934,16 +943,6 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		}
 #endif
 	    } 
-	    else {  // Set a default Port number, count, and numa 
-		p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
-		p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
-#if defined(HAVE_CPU_SET_T)
-		CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-		sched_getaffinity(getpid(),
-				  sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
-				  &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-#endif
-	    } 
 	    p->e2e_address_table_port_count += p->e2e_address_table[p->e2e_address_table_next_entry].port_count;
 	    p->e2e_address_table_next_entry++;
 	    p->e2e_address_table_host_count++;
@@ -955,6 +954,16 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 		while (p) {
 		    p->target_options |= TO_ENDTOEND;
 		    strcpy(p->e2e_address_table[p->e2e_address_table_next_entry].hostname, hostname); 
+	            p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+                    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+                    // Set a default NUMA node value if possible
+#if defined(HAVE_CPU_SET_T)
+		    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		    sched_getaffinity(getpid(),
+		        		  sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
+		        		  &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+#endif
+
 		    if (base_port) { // Set the requested Port Number and possible Port Count
 			p->e2e_address_table[p->e2e_address_table_next_entry].base_port = atoi(base_port); 
 			if (port_count) 
@@ -985,17 +994,6 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 			    fprintf(stderr,"%s: NUMA node end-to-end option ignored: %s\n",xgp->progname, numa_node);
 			}
 #endif
-		    } 
-		    else {  // Set a default Port number and count 
-			p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
-			p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
-#if defined(HAVE_CPU_SET_T)
-			CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-			sched_getaffinity(getpid(),
-					  sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
-					  &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
-#endif
-			
 		    } // End of IF stmnt that sets the Port/NPorts
 		    p->e2e_address_table_port_count += p->e2e_address_table[p->e2e_address_table_next_entry].port_count;
 		    p->e2e_address_table_host_count++;

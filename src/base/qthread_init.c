@@ -45,17 +45,17 @@ xdd_qthread_init(ptds_t *qp) {
     ptds_t		*p;			// Pointer to this qthread's target PTDS
     char		tmpname[XDD_BARRIER_NAME_LENGTH];	// Used to create unique names for the barriers
 
-#if defined(HAVE_CPUSET_T)
-// BWS Print the cpuset
-int i;
-cpu_set_t cpuset;
-CPU_ZERO(&cpuset);
-pthread_getaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
-printf("Thread %d running on", pthread_self());
-for (i = 0; i< 48; i++)
-  if (CPU_ISSET(i, &cpuset))
-    printf(" %d", i);
-printf("\n");
+#if defined(HAVE_CPUSET_T) && defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
+    // BWS Print the cpuset
+    int i;
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    pthread_getaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+    printf("Thread %d bound to NUMA node", pthread_self());
+    for (i = 0; i< 48; i++)
+        if (CPU_ISSET(i, &cpuset))
+            printf(" %d", i);
+    printf("\n");
 #endif
 
     // Get the target Thread PTDS address as well
