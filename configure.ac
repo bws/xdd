@@ -300,7 +300,7 @@ AC_CHECK_HEADERS([linux/magic.h],
 dnl
 dnl Check whether to enable assertions
 dnl
-AC_HEADER_ASSERT
+dnl AC_HEADER_ASSERT
 
 dnl
 dnl Ensure that XDDCP required utilities are present
