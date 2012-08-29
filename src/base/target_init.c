@@ -294,63 +294,70 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 	    qp->my_target_number = p->my_target_number;
 	    qp->my_qthread_number = q;
 	    if (p->target_options & TO_ENDTOEND) {
-		    qp->e2e_dest_hostname = p->e2e_address_table[e2e_addr_index].hostname;
-		    qp->e2e_dest_port = p->e2e_address_table[e2e_addr_index].base_port + e2e_addr_port;
+
+		// Find an e2e entry that has a valid port count
+		while (0 == p->e2e_address_table[e2e_addr_index].port_count) {
+		    e2e_addr_index++;
+		}
+		//assert(e2e_addr_index < p->e2e_address_table->number_of_entries);
 		
-		    // Set the QThread Numa node if possible
+		qp->e2e_dest_hostname = p->e2e_address_table[e2e_addr_index].hostname;
+		qp->e2e_dest_port = p->e2e_address_table[e2e_addr_index].base_port + e2e_addr_port;
+		
+		// Set the QThread Numa node if possible
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
-		        status = pthread_attr_setaffinity_np(&qthread_attr,
-					    sizeof(p->e2e_address_table[e2e_addr_index].cpu_set),
-					    &p->e2e_address_table[e2e_addr_index].cpu_set);
+		status = pthread_attr_setaffinity_np(&qthread_attr,
+						     sizeof(p->e2e_address_table[e2e_addr_index].cpu_set),
+						     &p->e2e_address_table[e2e_addr_index].cpu_set);
 #endif
-            // Roll over to the begining of the list if that is required
-		    e2e_addr_port++;
-		    if (e2e_addr_port == p->e2e_address_table[e2e_addr_index].port_count) {
-		        e2e_addr_index++;
-		        e2e_addr_port = 0;
-            }
-		    if (xgp->global_options & GO_REALLYVERBOSE)
-		        fprintf(stderr,"Target Init: Target %d: assigning hostname %s port %d to qthread %d\n",
-			        p->my_target_number, qp->e2e_dest_hostname,
-			        qp->e2e_dest_port, qp->my_qthread_number);
+		// Roll over to the begining of the list if that is required
+		e2e_addr_port++;
+		if (e2e_addr_port == p->e2e_address_table[e2e_addr_index].port_count) {
+		    e2e_addr_index++;
+		    e2e_addr_port = 0;
+		}
+		if (xgp->global_options & GO_REALLYVERBOSE)
+		    fprintf(stderr,"Target Init: Target %d: assigning hostname %s port %d to qthread %d\n",
+			    p->my_target_number, qp->e2e_dest_hostname,
+			    qp->e2e_dest_port, qp->my_qthread_number);
 	    }
 
 	    
 	    status = pthread_create(&qp->qthread, &qthread_attr, xdd_qthread, qp);
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_target_init_start_qthreads: ERROR: Cannot create qthread %d for target number %d name '%s' - Error number %d\n",
-				xgp->progname, 
-				q,
-				p->my_target_number,
-				p->target_full_pathname,
-				status);
-			fflush(xgp->errout);
-			// Set errno to the correct error number so that perror() can display the error message
-			errno = status;
-			perror("Reason");
-			return(-1);
-		}
-		/* Wait for the previous thread to initialize before creating the next one */
-		xdd_barrier(&p->target_qthread_init_barrier,&p->occupant,1);
-		if (xgp->global_options & GO_REALLYVERBOSE) {
-			fprintf(xgp->errout,"\r%s: xdd_target_init_start_qthreads: Target %d QThread %d of %d started\n",
-				xgp->progname,
-				p->my_target_number,
-				q,
-				p->queue_depth);
-		}
+	    if (status) {
+		fprintf(xgp->errout,"%s: xdd_target_init_start_qthreads: ERROR: Cannot create qthread %d for target number %d name '%s' - Error number %d\n",
+			xgp->progname, 
+			q,
+			p->my_target_number,
+			p->target_full_pathname,
+			status);
+		fflush(xgp->errout);
+		// Set errno to the correct error number so that perror() can display the error message
+		errno = status;
+		perror("Reason");
+		return(-1);
+	    }
+	    /* Wait for the previous thread to initialize before creating the next one */
+	    xdd_barrier(&p->target_qthread_init_barrier,&p->occupant,1);
+	    if (xgp->global_options & GO_REALLYVERBOSE) {
+		fprintf(xgp->errout,"\r%s: xdd_target_init_start_qthreads: Target %d QThread %d of %d started\n",
+			xgp->progname,
+			p->my_target_number,
+			q,
+			p->queue_depth);
+	    }
 
-		// If the QThread initialization fails, then everything needs to stop right now.
-		if (xgp->abort == 1) { 
-			fprintf(xgp->errout,"%s: xdd_target_init_start_qthreads: ERROR: Target thread aborting due to previous initialization failure for target number %d name '%s'\n",
-				xgp->progname,
-				p->my_target_number,
-				p->target_full_pathname);
-			fflush(xgp->errout);
-			return(-1);
-		}
-		// Get next QThread pointer
-		qp = qp->next_qp;
+	    // If the QThread initialization fails, then everything needs to stop right now.
+	    if (xgp->abort == 1) { 
+		fprintf(xgp->errout,"%s: xdd_target_init_start_qthreads: ERROR: Target thread aborting due to previous initialization failure for target number %d name '%s'\n",
+			xgp->progname,
+			p->my_target_number,
+			p->target_full_pathname);
+		fflush(xgp->errout);
+		return(-1);
+	    }
+	    // Get next QThread pointer
+	    qp = qp->next_qp;
 	} // End of FOR loop that starts all qthreads for this target
 
 	if (xgp->global_options & GO_REALLYVERBOSE) {
