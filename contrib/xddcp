@@ -977,8 +977,8 @@ function get_source_cmds {
     local i=0
     for (( i = 0; i < $destCount; i++ )); do
         local ip=${destIPArray[$i]}
-        local port=$e2ePort
         local tcount=$destThreadCount
+        local port=$((e2ePort + i * tcount))
         local node=${srcNodeArray[$i]}
         if [ "$XDDCP_NUMA_NODE_WILDCARD" != "$node" ]; then
 	    e2eDestinations="$e2eDestinations -e2e dest ${ip}:${port},${tcount},${node}" 
