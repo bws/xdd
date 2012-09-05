@@ -106,6 +106,27 @@ assert_equals "4" "${#hostArray[@]}"
 assert_equals "4" "${#addrArray[@]}"
 assert_equals "4" "${#nodeArray[@]}"
 
+#
+# Test the real 40G refspec
+#
+spec6="bws@10.100.7.6%6,10.100.6.6%4,10.100.2.6%3,10.100.1.6%2:test1"
+parse_endpoint_spec "${spec6}" path rFlag user hostArray addrArray nodeArray
+assert_equals "test1" "$path"
+assert_equals "1" "$rFlag"
+assert_equals "bws" "$user"
+assert_equals "10.100.7.6 10.100.6.6 10.100.2.6 10.100.1.6" "${hostArray[*]}"
+assert_equals "10.100.7.6 10.100.6.6 10.100.2.6 10.100.1.6" "${addrArray[*]}"
+assert_equals "6" "${nodeArray[0]}"
+assert_equals "4" "${nodeArray[1]}"
+assert_equals "3" "${nodeArray[2]}"
+assert_equals "2" "${nodeArray[3]}"
+assert_equals "4" "${#hostArray[@]}"
+assert_equals "4" "${#addrArray[@]}"
+assert_equals "4" "${#nodeArray[@]}"
+
+#
+# Report test results
+#
 if [ 0 -eq $rc ]; then
     echo "SUCCESS - all tests passed."
 else

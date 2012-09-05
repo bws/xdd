@@ -124,13 +124,13 @@ g_xddcpSrcXddPid="-1"
 g_transferCount="0"
 g_debugFlag="0"
 g_debugOut=""
+g_xddRemotePathAppend=""
 
 #
 # Global variables that need to be analyzed for proper usage
 #
 readonly g_filebaseTransferRst=".xdd_transfer"
 readonly g_filebaseRecusiveList=".xdd_recursive_file_list"
-g_xddRemotePathAppend=""
 g_srcFilePath=""
 g_srcFileMtime="0"
 g_srcFileOffset="0"
@@ -410,7 +410,7 @@ function parse_endpoint_spec {
 
         # Get the hosts and nodes
         local numHosts=$((`echo $modSpec|sed 's/[^,]//g'|wc -m`))
-        for (( i=0; i < numHosts; i++ )); do 
+        for (( i=0; i < $numHosts; i++ )); do 
 
             # Select the comma delimited element
             local hostSpec=$(echo $modSpec |awk -F, "{print \$$((i+1))}")
@@ -502,7 +502,6 @@ function check_file_list_preconditions {
 # Check preconditions for the transfer
 #
 function check_transfer_preconditions {
-
     # Arguments
     local sourceSideFilename=$1
     local destSidePathname=$2
@@ -685,10 +684,10 @@ function get_file_size {
 # Return the destination side program
 #
 function get_destination_cmds {
-    echo "get_destination_cmds Args: $@" >/dev/stderr
+    #echo "get_destination_cmds Args: $@" >/dev/stderr
     local destHostArray=(${1})
     local destIPArray=(${2})
-    local destNodes=(${3})
+    local destNodeArray=(${3})
     local destThreads=${4}
     local srcFile=${5}
     local destPath=${6}
@@ -719,17 +718,16 @@ function get_destination_cmds {
     local destCount=${#destHostArray[@]}
     local i=0
     for ((i = 0; i < destCount; i++)); do
-        local ip=${ipArray[$i]}
-        local port=${e2ePort}
+        local ip=${destIPArray[$i]}
         local tcount=${destThreads}
-        local node=${nodeArray[$i]}
-        if [ "$XDDCP_NUMA_NODE_WILDCARD" != "$node" ]; then
-	    e2eDestinations="$e2eDestinations -e2e dest ${ip}:${port},${tcount},${node}" 
-        else
+        local port=$((e2ePort + i * tcount))
+        local node=${destNodeArray[$i]}
+        if [ -z "$node" -o "$XDDCP_NUMA_NODE_WILDCARD" = "$node" ]; then
 	    e2eDestinations="$e2eDestinations -e2e dest ${ip}:${port},${tcount}" 
+        else
+	    e2eDestinations="$e2eDestinations -e2e dest ${ip}:${port},${tcount},${node}" 
         fi
-    done
-    
+    done    
     if [ -z "$e2eDestinations" ]; then
 	\echo "ERROR: No destination interfaces specified"
 	error_exit $XDDCP_ERR_CODE_NO_REMOTE
@@ -935,8 +933,8 @@ if [ -e \$destination_file ]; then
 fi
 
 # XDD Command
-#xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} \${verboseopt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror -output \${destination_log} -errout \${destination_log}"
-xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} \${verboseopt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror > \${destination_log}"
+#xdd_cmd="\${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} \${verboseopt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror -output \${destination_log} -errout \${destination_log}"
+xdd_cmd="\${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} \${verboseopt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror > \${destination_log}"
 
 # Log XDD Command
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
@@ -956,16 +954,16 @@ EOF
 function get_source_cmds {
     #echo "get_source_cmds Args: $@" >/dev/stderr
     local destIPArray=(${1})
-    local srcNodeArray=(${1})
-    local srcFile=${2}
-    local totalBytes=${3}
-    local destThreadCount=${4}
-    local e2ePort=${5}
-    local srcDIOFlag=${6}
-    local serialOrderedFlag=${7}
-    local resumeFlag=${8}
-    local verbosity=${9}
-    local binaryDumpFlag=${10}
+    local srcNodeArray=(${2})
+    local srcFile=${3}
+    local totalBytes=${4}
+    local destThreadCount=${5}
+    local e2ePort=${6}
+    local srcDIOFlag=${7}
+    local serialOrderedFlag=${8}
+    local resumeFlag=${9}
+    local verbosity=${10}
+    local binaryDumpFlag=${11}
 
     # Construct XDD transfer settings
     xfer=${XDDCP_DEFAULT_XFER_SIZE}
@@ -1062,7 +1060,7 @@ else
     src_log=/dev/null
 fi
 
-xdd_cmd="${XDDCP_IOTRACE_EXE} \${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${g_srcRestartOpt} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
+xdd_cmd="\${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${g_srcRestartOpt} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
 
 # Set iotrace log files location
 export TRACE_LOG_LOC=\${PWD}
@@ -1156,7 +1154,7 @@ function start_destination_xdd {
 
     # Execute destination side commands
     if [ 1 -eq ${remoteFlag} ]; then
-        remote_exec "${destCmds}" "${destIP}" "${destUser}" "1"
+        remote_exec "${destCmds}" "${destIPArray[0]}" "${destUser}" "1"
         execRC=$?
     else
 	error_exit $XDDCP_ERR_CODE_NO_REMOTE
@@ -2096,7 +2094,7 @@ function xddcp_main {
 	    transfer_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
 		"${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
-                "${destUser}" "${destRemoteFlag}" "${destDIOFlag}" \
+                "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" "${destDIOFlag}" \
                 "${destOrderedFlag}" "${totalBytes}" "${queueDepth}" \
                 "${e2ePort}" "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
 		"${verbosity}" "${binaryDumpFlag}"
@@ -2104,7 +2102,8 @@ function xddcp_main {
 	elif [ 1 -eq $recursiveFlag ]; then
 	    transfer_recursive_file_list "${g_fileRecursiveList}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" "${destUser}" \
+		"${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
+                "${destNodeArray[*]}" "${destUser}" \
 		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
 		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
@@ -2113,10 +2112,10 @@ function xddcp_main {
 	else
 	    transfer_file "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" "${destUser}" \
-		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
-		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
-		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+		"${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
+                "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" "${destDIOFlag}" \
+                "${destOrderedFlag}" "${totalBytes}" "${queueDepth}" \
+                "${e2ePort}" "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
 		"${verbosity}" "${binaryDumpFlag}"
 	    rc=$?
 	fi
