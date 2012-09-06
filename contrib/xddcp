@@ -869,7 +869,7 @@ if [ "." = \$path_char ]; then
 fi
 
 # Create the log file name
-destination_log_base="xdd-${destHost}-\${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}.log"
+destination_log_base="xdd-${destHostArray[0]}-\${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 destination_log="\${destination_dir}/\${destination_log_base}"
 
 # Ensure destination is writable
