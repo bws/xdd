@@ -53,18 +53,19 @@ mkdir -p $test_dir/box1/box2/box3/box4/box5/box6/box7/box8/box9
 # Create the files
 #
 targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_dir/foo1/foo2/t5 $test_dir/foo1/foo2/t6 $test_dir/foo1/foo2/foo3/t7 $test_dir/bar1/bar2/bar3/t8 )
-    $XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
+$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
 \date
+
 # Make them different/wierd sizes
-     pattern=""
-     let "k = 0"
-    for i in ${targets[@]}; do
-     let "k += 1"
-     pattern="${pattern}$k"
-     echo "$pattern" >> $i
-     srcHash[$k]="$(md5sum $i |cut -d ' ' -f 1)"
-     echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
-    done
+pattern=""
+let "k = 0"
+for i in ${targets[@]}; do
+    let "k += 1"
+    pattern="${pattern}$k"
+    echo "$pattern" >> $i
+    srcHash[$k]="$(md5sum $i |cut -d ' ' -f 1)"
+    echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
+done
 \date
      
 #
@@ -73,7 +74,7 @@ targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
         # start background kills proc w delay
         # quites after n passes or testime exceeded
-        (ssh ${XDDTEST_E2E_SOURCE} /bin/bash --login <<EOF 
+(ssh ${XDDTEST_E2E_SOURCE} /bin/bash --login <<EOF 
         (( n = 30 ))
         while (( n > 0 ))
         do
@@ -112,44 +113,45 @@ EOF
 #
 # Perform a recursive copy
 #
-                rc=1
- while [ 0 -ne $rc ]
- do
+rc=1
+while [ 0 -ne $rc ]
+do
 #        elapsedtime="$(\echo "$(\date +%s) - $startime" | \bc)"
 #        if [ $testime -lt $elapsedtime ]; then
 #          echo "OUT OF TIME...EXIT"
 #          break
 #        fi
 	# Perform a recursive copy. If not first pass, restarting
-	$XDDTEST_XDDCP_EXE $xddcp_opts -r -a -n 99 $test_dir $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/dest-r 
-        rc=$?
+    $XDDTEST_XDDCP_EXE $xddcp_opts -r -a -n 99 $test_dir $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/dest-r 
+    rc=$?
 done
-    # signal killer proc to exit
-    touch .killer_exit
-    # wait for killer proc to finish
-    wait
-    # remove signal file
-    rm .killer_exit
-    #
-    # Perform MD5sum checks
-    #
-    \date
-    let "k = 0"
-    test_passes=1
-    for i in ${targets[@]}; do
-	d=$XDDTEST_DEST_MOUNT/dest-r${i##$XDDTEST_SOURCE_MOUNT}
-	destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $d |cut -d ' ' -f 1")
-        let "k += 1"
-        echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
-        echo "dstHash=$destHash: ${XDDTEST_E2E_DEST}: ${d}"
-	if [ "${srcHash[$k]}" != "$destHash" ]; then
-	    test_passes=0
-	    echo "ERROR: Failure in xddcp-r-a-n"
-	    echo "\tSource hash for $i: ${srcHash[$k]}"
-	    echo "\tDestination hash for $d: $destHash"
-	fi
-    done
-    \date
+
+# signal killer proc to exit
+touch .killer_exit
+# wait for killer proc to finish
+wait
+# remove signal file
+rm .killer_exit
+#
+# Perform MD5sum checks
+#
+\date
+let "k = 0"
+test_passes=1
+for i in ${targets[@]}; do
+    d=$XDDTEST_DEST_MOUNT/dest-r${i##$XDDTEST_SOURCE_MOUNT}
+    destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $d |cut -d ' ' -f 1")
+    let "k += 1"
+    echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
+    echo "dstHash=$destHash: ${XDDTEST_E2E_DEST}: ${d}"
+    if [ "${srcHash[$k]}" != "$destHash" ]; then
+	test_passes=0
+	echo "ERROR: Failure in xddcp-r-a-n"
+	echo "\tSource hash for $i: ${srcHash[$k]}"
+	echo "\tDestination hash for $d: $destHash"
+    fi
+done
+\date
 
 # Perform post-test cleanup
 #rm -rf $test_dir

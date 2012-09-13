@@ -50,38 +50,39 @@ srcHash=$(md5sum $source_file |cut -d ' ' -f 1)
 # Loop 100 times or until it hangs. If it hangs, the uber test script will kill it
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
- rc=0
- test_passes=1
- loopcount=1
- while [ $loopcount -lt 100 ]
- do
+rc=0
+test_passes=1
+loopcount=1
+while [ $loopcount -lt 100 ]
+do
 
-  elapsedtime="$(\echo "$(date +%s) - $startime" | bc)"
-  echo "starting transfer # $loopcount elapsed time=${elapsedtime} timelimit=$testime"
-  if [ $testime -lt $elapsedtime ]; then
-    echo "OUT OF TIME...EXIT"
-    break
-  fi
-  #force each transfer by removing restart cookies and also destination file at destination
-  ssh $XDDTEST_E2E_DEST "rm -f $XDDTEST_DEST_MOUNT/xddcp-multinic-a/.xdd* $XDDTEST_DEST_MOUNT/xddcp-multinic-a/* "
-  bash $XDDTEST_XDDCP_EXE $xddcp_opts -a $source_file $DEST_DATA_NETWORK_1:$DEST_DATA_NETWORK_2:$DEST_DATA_NETWORK_3:$dest_file
-  rc=$?
-  if [ 0 -ne $rc ]; then
-    echo "ERROR: XDDCP exited with: $rc"
-    test_passes=0
-    break
-  fi
-  #check destination file after each transfer
-  destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $dest_file |cut -d ' ' -f 1")
-  if [ "$srcHash" != "$destHash" ]; then
-    echo "ERROR: Failure in xddcp-multinic-a"
-    echo "\tSource hash for $i: $srcHash"
-    echo "\tDestination hash for $d: $destHash"
-    test_passes=0
-    break
-  fi
+    elapsedtime="$(\echo "$(date +%s) - $startime" | bc)"
+    echo "starting transfer # $loopcount elapsed time=${elapsedtime} timelimit=$testime"
+    if [ $testime -lt $elapsedtime ]; then
+        echo "OUT OF TIME...EXIT"
+        break
+    fi
 
-  let "loopcount += 1"
+    #force each transfer by removing restart cookies and also destination file at destination
+    ssh $XDDTEST_E2E_DEST "rm -f $XDDTEST_DEST_MOUNT/xddcp-multinic-a/.xdd* $XDDTEST_DEST_MOUNT/xddcp-multinic-a/* "
+    bash $XDDTEST_XDDCP_EXE $xddcp_opts -a $source_file $DEST_DATA_NETWORK_1,$DEST_DATA_NETWORK_2,$DEST_DATA_NETWORK_3:$dest_file
+    rc=$?
+    if [ 0 -ne $rc ]; then
+        echo "ERROR: XDDCP exited with: $rc"
+        test_passes=0
+        break
+    fi
+    #check destination file after each transfer
+    destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $dest_file |cut -d ' ' -f 1")
+    if [ "$srcHash" != "$destHash" ]; then
+        echo "ERROR: Failure in xddcp-multinic-a"
+        echo "\tSource hash for $i: $srcHash"
+        echo "\tDestination hash for $d: $destHash"
+        test_passes=0
+        break
+    fi
+
+    let "loopcount += 1"
 done
 
 # Perform post-test cleanup
