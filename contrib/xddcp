@@ -231,7 +231,7 @@ function error_exit {
 
     error_print $errorCode
 
-    echo "Call stack: $FUNCNAME"
+#    echo "Call stack: $FUNCNAME"
     for ((i=0; i < ${#FUNCNAME[*]}; i=$i+1)); do
 	echo "INFO: Call Stack ${FUNCNAME[$i]}"
     done
@@ -503,14 +503,14 @@ function check_file_list_preconditions {
 #
 function check_transfer_preconditions {
     # Arguments
-    local sourceSideFilename=$1
-    local destSidePathname=$2
-    local srcRemoteFlag=$3
-    local destRemoteFlag=$4
-    local srcDIOFlag=$5
-    local destDIOFlag=$6
-    local fileSizeFlag=$7
-    local transferSize=$8
+    local sourceSideFilename=${1}
+    local destSidePathname=${2}
+    local srcRemoteFlag=${3}
+    local destRemoteFlag=${4}
+    local srcDIOFlag=${5}
+    local destDIOFlag=${6}
+    local fileSizeFlag=${7}
+    local transferSize=${8}
 
     # Ensure at least one of the sides is remote
     if [ 0 -eq ${destRemoteFlag} -a 0 -eq ${srcRemoteFlag} ]; then
@@ -545,9 +545,9 @@ function check_transfer_preconditions {
     fi
 
     # Ensure devices and Direct I/O are not combined
-    if [ "$sfType" = "character special file" -a 0 -ne $srcDIOFlag ]; then
+    if [ "$sfType" = "character special file" -a 0 -ne "${srcDIOFlag}" ]; then
         error_exit $XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO
-    elif [ "$dfType" = "character special file" -a 0 -ne $destDIOFlag ]; then
+    elif [ "$dfType" = "character special file" -a 0 -ne "${destDIOFlag}" ]; then
         error_exit $XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO
     fi
     return 0
@@ -1417,6 +1417,7 @@ function transfer_file_list {
 # fully qualified paths of source/destination files
 #
 function transfer_recursive_file_list {
+    #echo "transfer_recursive_file_list args: $@ >/dev/stderr
     local srcFileList=${1}
     local srcHost=${2}
     local srcUser=${3}
@@ -1455,12 +1456,12 @@ function transfer_recursive_file_list {
     while read line
     do
         let "FileIndex += 1"
-        srcFileSpec=$(echo "$line" | cut -f 1 -d " ")
-        destFileSpec=$(echo "$line" | cut -f 2 -d " ")
+        srcFileName=$(echo "$line" | cut -f 1 -d " ")
+        destFileName=$(echo "$line" | cut -f 2 -d " ")
         # Transfer the file
-        transfer_file "${srcFileSpec}" "${srcHost}" "${srcUser}" \ 
-	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \ 
-	    "${destFileSpec}" "${destHostArray[*]}" "${destIPArray[*]}" \  
+        transfer_file "${srcFileName}" "${srcHost}" "${srcUser}" \
+	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+	    "${destFileName}" "${destHostArray[*]}" "${destIPArray[*]}" \
             "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" \
             "${destDIOFlag}" "${destOrderedFlag}" \
 	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
@@ -1468,7 +1469,7 @@ function transfer_recursive_file_list {
 	    "${verbosity}" "${binaryDumpFlag}"
 	rc=$?
 	if [ 0 -ne $rc ]; then
-	    echo "INFO: Failure while transferring ${srcFileSpec} to ${destFileSpec}"
+	    echo "INFO: Failure while transferring ${srcFileName} to ${destFileName}"
             return $rc
 	fi
     done < ${srcFileList}
@@ -1523,7 +1524,7 @@ function transfer_recursive_path_setup {
 # Perform transfer for a single file
 #
 function transfer_file {
-    echo "transfer_file Args: $@" >/dev/stderr
+    #echo "transfer_file Args: $@" >/dev/stderr
     local srcFileSpec=${1}
     local srcHost=${2}
     local srcUser=${3}
@@ -2044,97 +2045,87 @@ function xddcp_main {
     fi
 
     # Ensure local option preconditions are met
-    check_host_preconditions ${srcPath} ${fileListFlag} ${fileSizeFlag} \
-	${recursiveFlag} ${resumeFlag} ${forceFlag}
+    check_host_preconditions "${srcPath}" "${fileListFlag}" "${fileSizeFlag}" \
+	"${recursiveFlag}" "${resumeFlag}" "${forceFlag}"
 
-    # Create destination directory for file list transfer for resumeFlag
-    if [ 1 -eq $fileListFlag ]; then
-        create_destination_directory "${destPath}" "${destRemoteFlag}" \
-            "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}"
-	rc=$?
-	if [ 0 -ne $rc ]; then
-	    echo "INFO: Failure while creating destination directory ${destPath}"
-	    error_exit $rc
-	fi
-    fi
+    ####################################################################################################
+    #
+    # Option Parsing Completed
+    #
+    ####################################################################################################
 
-    # Perform special processing for recursive transfers:
-    #  Construct a filename for the list of files to recursive transfer
-    #  Remove any file with that name (UNSAFE)
-    #  Store the name in a global variable to to pass as argument to transfer
-    if [ 1 -eq $recursiveFlag ]; then
-        g_fileRecursiveList="${PWD}/${g_filebaseRecusiveList}.$(\basename ${srcPath})"
-        rm -f $g_fileRecursiveList
-        timerbeg "4"
-        transfer_recursive_path_setup "${srcPath}" "${destPath}" \
-            "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}" \
-            "${destRemoteFlag}"
-        rc=$?
-	if [ 0 -ne $rc ]; then
-	    echo "INFO: Failure while creating .xdd_recursive_transfer_list "
-	    error_exit $rc
-	fi
-        timerend "4" "transfer_recursive_path_setup"
-    fi
-
-    # Get transfer history from destination if it exists
-    if [ 1 -eq $resumeFlag ]; then
-	g_currentTransferRst="${g_filebaseTransferRst}_partial"
-	g_completeTransfersRst="${g_filebaseTransferRst}_complete"
-        get_file_transfer_history "${srcPath}" "${destPath}" "${destHostArray[0]}" \
-            "${destIPArray[0]}" "${destUser}"
-    fi
-
-    # Retry on failed transfer
+    #
+    # Begin a transfer try
+    #
+    transferRC=1
     retries=0
-    while [ $retries -le $retryCount ]; do
-        # Transfer according to source input type
-	rc=0
-	if [ 1 -eq $fileListFlag ]; then
-	    transfer_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
-	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
-                "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" "${destDIOFlag}" \
-                "${destOrderedFlag}" "${totalBytes}" "${queueDepth}" \
-                "${e2ePort}" "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-		"${verbosity}" "${binaryDumpFlag}"
-	    rc=$?
-	elif [ 1 -eq $recursiveFlag ]; then
+    while [ 0 -ne "${transferRC}" -a "${retries}" -le "${retryCount}" ]; do
+
+        # Get transfer history from destination if it exists
+        if [ 1 -eq $resumeFlag ]; then
+	    g_currentTransferRst="${g_filebaseTransferRst}_partial"
+	    g_completeTransfersRst="${g_filebaseTransferRst}_complete"
+            get_file_transfer_history "${srcPath}" "${destPath}" "${destHostArray[0]}" \
+                "${destIPArray[0]}" "${destUser}"
+        fi
+
+        # Transfer file(s)
+        if [ 1 -eq "${recursiveFlag}" ]; then
+            # Perform special processing for recursive transfers:
+            #  Construct a filename for the list of files to recursive transfer
+            #  Remove any file with that name (UNSAFE)
+            #  Store the name in a global variable to to pass as argument to transfer
+            g_fileRecursiveList="${PWD}/${g_filebaseRecusiveList}.$(\basename ${srcPath})"
+            rm -f $g_fileRecursiveList
+            timerbeg "4"
+            transfer_recursive_path_setup "${srcPath}" "${destPath}" \
+                "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}" \
+                "${destRemoteFlag}"
+            rc=$?
+	    if [ 0 -ne $rc ]; then
+	        echo "INFO: Failure while creating .xdd_recursive_transfer_list "
+	        error_exit $rc
+	    fi
+            timerend "4" "transfer_recursive_path_setup"
 	    transfer_recursive_file_list "${g_fileRecursiveList}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
+	        "${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
                 "${destNodeArray[*]}" "${destUser}" \
-		"${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+	        "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
 		"${totalBytes}" "${queueDepth}" "${e2ePort}" \
-		"${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-		"${verbosity}" "${binaryDumpFlag}"
+	        "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+	        "${verbosity}" "${binaryDumpFlag}"
+            transferRC=$?
+        elif [ 1 -eq "${fileListFlag}" ]; then
+            # Create destination directory for file list transfer for resumeFlag
+            create_destination_directory "${destPath}" "${destRemoteFlag}" \
+                "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}"
 	    rc=$?
-	else
-	    transfer_file "${srcPath}" "${srcHost}" "${srcUser}"\
+	    if [ 0 -ne $rc ]; then
+	        echo "INFO: Failure while creating destination directory ${destPath}"
+	        error_exit $rc
+	    fi
+	    transfer_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-		"${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
+	        "${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
                 "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" "${destDIOFlag}" \
                 "${destOrderedFlag}" "${totalBytes}" "${queueDepth}" \
                 "${e2ePort}" "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-		"${verbosity}" "${binaryDumpFlag}"
-	    rc=$?
-	fi
+	        "${verbosity}" "${binaryDumpFlag}"
+            transferRC=$?
+        else
+	    transfer_file "${srcPath}" "${srcHost}" "${srcUser}"\
+	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+	        "${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
+                "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" "${destDIOFlag}" \
+                "${destOrderedFlag}" "${totalBytes}" "${queueDepth}" \
+                "${e2ePort}" "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
+	        "${verbosity}" "${binaryDumpFlag}"
+	    transferRC=$?
+        fi
 
-	# Perform post transfer analysis
-	if [ 1 -eq ${binaryDumpFlag} -a 0 -eq $rc ]; then
-	    post_transfer_analysis "${srcPath}" "${srcHost}" "${srcUser}" \
-		"${destPath}" "${destHostArray[0]}" "${destIPArray[0]}" \
-                "${destUser}" "${windowSize}" "${kernelTraceFlag}"
-	fi
-
-	# On successful transfer complete without any more retries
-	if [ 0 -eq $rc ]; then
-	    echo ""
-	    echo "Transfer complete.  Verify results with md5sum."
-            #All files transfered ok, remove source side list
-            rm -f $g_fileRecursiveList
-	    break
-	elif [ $retries -lt $retryCount ]; then
+        # Reset global state so that the next try can continue
+        if [ 0 -ne "${transferRC}" ]; then
 	    # Print a retry message
             retries=$((retries+1))
 	    echo "Transfer failed.  Retry attempt: $retries"
@@ -2144,23 +2135,28 @@ function xddcp_main {
             # BUG:  Fix use of pkill since it kills anything named XDD, not
             # just the spawned process, and the user did not request
             # this specific behavior
-            local cmd="pkill -9 -u ${USER} -U ${USER} -x xdd"
-            remote_exec "${cmd}" "${destHost}" "${destUser}" "0"
-            local_exec  "${cmd}"
-            # Get(refresh) transfer history from destination if it exists
-            if [ 1 -eq $resumeFlag ]; then
-        	g_currentTransferRst="${g_filebaseTransferRst}_partial"
-        	g_completeTransfersRst="${g_filebaseTransferRst}_complete"
-                get_file_transfer_history "${srcPath}" "${destPath}" "${destHostArray[0]}" "${destIPArray[0]}"\
-				 "${destUser}"
-            fi
-	else
-	    echo "Transfer failed.  Error code: $rc  Retries: $retries of $retryCount"
-	    break
-	fi
+            #local cmd="pkill -9 -u ${USER} -U ${USER} -x xdd"
+            #remote_exec "${cmd}" "${destHost}" "${destUser}" "0"
+            #local_exec  "${cmd}"
+        fi
     done
-    
-    return $rc
+
+    # Perform post transfer analysis
+    if [ 1 -eq ${binaryDumpFlag} -a 0 -eq $rc ]; then
+        post_transfer_analysis "${srcPath}" "${srcHost}" "${srcUser}" \
+	    "${destPath}" "${destHostArray[0]}" "${destIPArray[0]}" \
+            "${destUser}" "${windowSize}" "${kernelTraceFlag}"
+    fi
+
+    if [ 0 -eq "${transferRC}" ]; then
+	echo ""
+	echo "Transfer complete.  Verify results with md5sum."
+            #All files transfered ok, remove source side list
+        rm -f $g_fileRecursiveList	
+    else
+	echo "Transfer failed.  Error code: ${transferRC}  Retries: $retries of $retryCount"
+    fi
+    return "${transferRC}"
 }
 
 #
