@@ -140,8 +140,6 @@ g_currentTransferRst=""
 g_completeTransfersRst=""
 g_srcRestartOpt=""
 g_dstRestartOpt=""
-g_START="-1"
-g_timerFlag="0"
 g_xddcpRecursiveTransferError="0"
 g_fileRecursiveList=""
 
@@ -181,46 +179,12 @@ function print_usage {
 }
 
 #
-# Reset global variables before retry
+# Reset global state before retry
 #
 function reset_global_data {
     g_xddcpDestSSHPid="-1"
     g_xddcpSrcXddPid="-1"
     g_xddcpRecursiveTransferError="0"
-}
-
-#
-# Print out a debug mesage if the debug flag is set
-#
-function debug_print {
-    local msg=${1}
-    if [ 0 -ne ${g_debugFlag} ]; then
-      echo "${msg}"
-    fi
-}
-
-#
-# Start a global timer
-#
-function timerbeg {
-  if [ 0 -ne ${g_timerFlag} ]; then
-    local i=${1}
-    g_START[$i]=$(date +%s.%N)
-  fi
-}
-
-# 
-# Stop a global timer
-#
-function timerend {
-  if [ 0 -ne ${g_timerFlag} ]; then
-    local i=${1}
-    local location="${2}"
-
-    local END="$(date +%s.%N)"
-    local DIFF="$(echo "$END - ${g_START[$i]}" | bc)"
-    echo "${DIFF}s #$i: ${location}" > ${g_devOut}
-  fi
 }
 
 #
@@ -232,9 +196,9 @@ function error_exit {
     error_print $errorCode
 
 #    echo "Call stack: $FUNCNAME"
-    for ((i=0; i < ${#FUNCNAME[*]}; i=$i+1)); do
-	echo "INFO: Call Stack ${FUNCNAME[$i]}"
-    done
+#    for ((i=0; i < ${#FUNCNAME[*]}; i=$i+1)); do
+#	echo "INFO: Call Stack ${FUNCNAME[$i]}"
+#    done
 
     # Exit the program with the error code
     exit $errorCode
@@ -510,7 +474,6 @@ function check_transfer_preconditions {
     local srcDIOFlag=${5}
     local destDIOFlag=${6}
     local fileSizeFlag=${7}
-    local transferSize=${8}
 
     # Ensure at least one of the sides is remote
     if [ 0 -eq ${destRemoteFlag} -a 0 -eq ${srcRemoteFlag} ]; then
@@ -528,19 +491,14 @@ function check_transfer_preconditions {
     local dfType=$(stat -c %F ${destSidePathname} 2>/dev/null)
 
     # Ensure file is large enough
-    local totalBytes="$transferSize"
     if [ "$sfType" != "character special file" ]; then
         local trueSize="$($XDDCP_GETFILESIZE_EXE $sourceSideFilename | cut -f 1 -d " ")"
         if [ $XDDCP_DEFAULT_XFER_SIZE -gt $trueSize ]; then
             error_exit $XDDCP_ERR_CODE_SMALL_FILE
-        elif [ 1 -eq $fileSizeFlag -a $transferSize -gt $trueSize ]; then
-            error_exit $XDDCP_ERR_CODE_XFER_SIZE
         fi
     elif [ "$sfType" = "character special file" ]; then
 	if [ 0 -eq "$fileSizeFlag" ]; then
 	    error_exit $XDDCP_ERR_CODE_SRC_DEV_FILE_SIZE
-	elif [ $XDDCP_DEFAULT_XFER_SIZE -gt "$transferSize" ]; then
-            error_exit $XDDCP_ERR_CODE_XFER_SIZE
 	fi
     fi
 
@@ -1299,28 +1257,26 @@ function get_file_transfer_history {
     return 0
 } 
 
+# Locate input file in g_srcFilePath list, check mod time and return index
+# return index. If new file, add it to list and transfer
+# prev assumes ordered list or tree traversal, speeds up find
 function check_if_file_transferred_previously {
-    #Locate input file in g_srcFilePath list, check mod time and return index
-    #return index. If new file, add it to list and transfer
-    # prev assumes ordered list or tree traversal, speeds up find
     local path=${1} 
     local found
     local n
-
+    
     let "found = -1"
     for (( n=0; n <= g_currentFileIndex; n++ ))
     do 
-        if [ "$path" != "${g_srcFilePath[$n]}" ]; 
-        then
+        if [ "$path" != "${g_srcFilePath[$n]}" ]; then
             continue
         fi
         let "found = $n"
         break
     done
-   # If new file, add to end of list and increment grand total
-   # If new file transfer aborts, this becomes the new restart file
-    if [ 0 -gt "$found" ]
-    then
+    # If new file, add to end of list and increment grand total
+    # If new file transfer aborts, this becomes the new restart file
+    if [ 0 -gt "$found" ]; then
         let "g_currentFileIndex += 1"
         g_srcFilePath[$g_currentFileIndex]=$path
         local cutline=$(stat -c "%Y %s" $path 2>/dev/null)
@@ -1384,8 +1340,6 @@ function transfer_file_list {
 
     # Process all source file specs
     for srcFileSpec in ${srcFileSpecList}; do
-
-	timerbeg "5"
 	# Modify the destination path for file list transfers
 	local srcFileName=$(\basename ${srcFileSpec})
 	destFileSpec=${destPath}/${srcFileName}
@@ -1407,7 +1361,6 @@ function transfer_file_list {
 	    echo "INFO: Failure while transferring ${srcFileSpec} to ${destFileSpec}"
             return $rc
 	fi
-        timerend "5" "total time to transfer file ${srcFileSpec}"
     done
     return 0
 }
@@ -1551,29 +1504,16 @@ function transfer_file {
     # Check the transfer preconditions
     check_transfer_preconditions "${srcFileSpec}" "${destFileSpec}" \
 	"${srcRemoteFlag}" "${destRemoteFlag}" "${srcDIOFlag}" \
-	"${destDIOFlag}" "${fileSizeFlag}" "${totalBytes}"
-
-    timerbeg "1"
-
-    timerbeg "3"
-    check_if_file_transferred_previously "${srcFileSpec}"
-    local fileIndex=$?
-    timerend "3" "check_if_file_transferred_previously"
-
-    timerbeg "2"
-    # Determine the source file size, modification time
-    if [ 0 -eq $fileSizeFlag -o 1 -eq $resumeFlag ]; then
-        local cutline="$(get_file_size ${srcFileSpec} \
-            ${srcRemoteFlag} ${srcHost} ${srcUser})"
-        totalBytes=$(\echo "$cutline" | cut -f 1 -d " ")
-        local lastMtime=$(\echo "$cutline" | cut -f 2 -d " ")
-    fi
+	"${destDIOFlag}" "${fileSizeFlag}"
 
     # Check here to see if restart requested; coordinated function
     g_srcRestartOpt=""
     g_dstRestartOpt=""
     if [ 1 -eq $resumeFlag ]; then
-      # Check to see if restart really needed
+        # Check to see if restart really needed
+        check_if_file_transferred_previously "${srcFileSpec}"
+        local fileIndex=$?
+
         if [ ${g_srcFileOffset[$fileIndex]} -eq $totalBytes -a \
             ${g_srcFileMtime[$fileIndex]} -eq $lastMtime ]; then
             echo "File: ${g_srcFilePath[$fileIndex]} already transferred"  >/dev/stderr
@@ -1581,13 +1521,11 @@ function transfer_file {
 	    rc=0
             # Increment the number of transfers
 	    g_transferCount=$((g_transferCount+1))
-	    timerend "1" "check if restart needed for ${g_srcFilePath[$fileIndex]}"
             return
         else
-            # TO_DO: If source file messed with since start of previous transfer, start over
+            # TODO: If source file messed with since start of previous transfer, start over
             # For now, print an informative message...
-            if [ ${g_srcFileMtime[$fileIndex]} -ne $lastMtime -a \
-                0 -ne ${g_srcFileMtime[$fileIndex]} ]; then
+            if [ ${g_srcFileMtime[$fileIndex]} -ne $lastMtime -a 0 -ne ${g_srcFileMtime[$fileIndex]} ]; then
                 #    g_srcFileOffset[$fileIndex]="0"
                 #    g_srcFileMtime[$fileIndex]="$lastMtime"
                 echo "Source file: ${g_srcFilePath[$fileIndex]} modified since previous transfer, skip " >/dev/stderr
@@ -1595,22 +1533,18 @@ function transfer_file {
 	        rc=0
                 # Increment the number of transfers
 	        g_transferCount=$((g_transferCount+1))
-	        timerend "1" "check if restart needed for ${g_srcFilePath[$fileIndex]}"
                 return
             fi
             # Got here because restart really needed, from scratch or partial
             g_srcFileMtime[$fileIndex]="$lastMtime"
             g_srcRestartOpt="-restart enable -restart offset ${g_srcFileOffset[$fileIndex]}"
-            g_dstRestartOpt="-restart enable -restart offset ${g_srcFileOffset[$fileIndex]} -e2e srcpath ${g_srcFilePath[$fileIndex]} ${g_srcFileMtime[$fileIndex]} "
+            g_dstRestartOpt="${g_srcRestartOpt} -e2e srcpath ${g_srcFilePath[$fileInde${g_srcFileMtime[$fileIndex]}"
         fi
     fi
     
-    timerend "2" "Hi there"
     # If we are performing multiple transfers, need to wait for the destination side to hang up
     if [ 0 -ne $g_transferCount ]; then
-        timerbeg "7"
         sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
-        timerend "7" "waiting for destination to hang up from previous transfer"
     fi
 
     # Hard code the recursive flag
@@ -1627,9 +1561,7 @@ function transfer_file {
     # Continue if the destination started correctly
     if [ 0 -eq $destRC ]; then
         # Wait to ensure the destination side has setup network and accepting
-        timerbeg "6"
         sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
-        timerend "6"
 
         # Start source-side XDD
 	start_source_xdd "${srcFileSpec}" "${totalBytes}" \
@@ -1884,9 +1816,6 @@ function xddcp_main {
     binaryDumpFlag=0
     kernelTraceFlag=0
     windowSize=0
-    g_timerFlag=0
-    g_debugFlag=0
-    g_devOut="/dev/null"
 
     while getopts ":FYab:cDd:fhl:n:o:p:rsTt:vVw:W:" option; do
         case $option in
@@ -1905,10 +1834,6 @@ function xddcp_main {
                 ;;
             c)
                 forceFlag=0
-                ;;
-            D)
-                g_debugFlag=1
-                g_devOut="/dev/stderr"
                 ;;
 	    d) 
 		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then
@@ -1954,10 +1879,6 @@ function xddcp_main {
                 ;;
 	    r) 
                 recursiveFlag=1
-                ;;
-	    T) 
-                g_timerFlag=1
-                g_devOut="/dev/stderr"
                 ;;
 	    t) 
                 queueDepth=$OPTARG
@@ -2077,7 +1998,6 @@ function xddcp_main {
             #  Store the name in a global variable to to pass as argument to transfer
             g_fileRecursiveList="${PWD}/${g_filebaseRecusiveList}.$(\basename ${srcPath})"
             rm -f $g_fileRecursiveList
-            timerbeg "4"
             transfer_recursive_path_setup "${srcPath}" "${destPath}" \
                 "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}" \
                 "${destRemoteFlag}"
@@ -2086,7 +2006,6 @@ function xddcp_main {
 	        echo "INFO: Failure while creating .xdd_recursive_transfer_list "
 	        error_exit $rc
 	    fi
-            timerend "4" "transfer_recursive_path_setup"
 	    transfer_recursive_file_list "${g_fileRecursiveList}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
 	        "${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \

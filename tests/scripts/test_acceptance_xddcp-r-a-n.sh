@@ -53,7 +53,8 @@ mkdir -p $test_dir/box1/box2/box3/box4/box5/box6/box7/box8/box9
 # Create the files
 #
 targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_dir/foo1/foo2/t5 $test_dir/foo1/foo2/t6 $test_dir/foo1/foo2/foo3/t7 $test_dir/bar1/bar2/bar3/t8 )
-$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
+#$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -bytes 400000000 -qd 4 -datapattern randbytarget 
+$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -bytes 400000000 -qd 4 
 \date
 
 # Make them different/wierd sizes

@@ -26,7 +26,7 @@ correct_size=1073741824
 
 data_files="$data_file.00000001 $data_file.00000002 $data_file.00000003 $data_file.00000004"
 for f in $data_files; do 
-  file_size=`stat -c %s $f`
+  file_size=$(XDDTEST_XDD_PATH/xdd-getfilesize $f)
   if [ "$correct_size" != "$file_size" ]; then
     test_passes=0
     echo "Incorrect file size for $f.  Size is $file_size but should be $correct_size."
