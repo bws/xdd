@@ -224,7 +224,7 @@ xdd_raw_reader_init(ptds_t *p) {
 #if (IRIX || WIN32 )
     rawp->raw_nd = getdtablehi();
 #endif
-#if (LINUX || OSX)
+#if (LINUX || DARWIN)
     rawp->raw_nd = getdtablesize();
 #endif
 #if (AIX)
