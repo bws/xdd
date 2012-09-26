@@ -125,6 +125,19 @@ assert_equals "4" "${#addrArray[@]}"
 assert_equals "4" "${#nodeArray[@]}"
 
 #
+# A popular testing spec
+#
+spec7="bws@localhost:t2"
+parse_endpoint_spec "${spec7}" path rFlag user hostArray addrArray nodeArray
+assert_equals "t2" "$path"
+assert_equals "1" "$rFlag"
+assert_equals "bws" "$user"
+assert_equals "localhost" "${hostArray[*]}"
+assert_equals "127.0.0.1" "${addrArray[*]}"
+assert_equals "1" "${#hostArray[@]}"
+assert_equals "1" "${#addrArray[@]}"
+assert_equals "1" "${#nodeArray[@]}"
+#
 # Report test results
 #
 if [ 0 -eq $rc ]; then

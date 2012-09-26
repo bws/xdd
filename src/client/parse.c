@@ -74,15 +74,11 @@ xdd_parse_args(int32_t argc, char *argv[], uint32_t flags) {
     arg_count=argc-1;
     argi = 1; // argv[0] is the program name so we start at argv[1]
     while (arg_count) { // Ok, here we go - through all the argurments in the command line...
-        while (*(argv[argi]) != '-') { // command line options must be proceeded with a "-" or they are ignored
+        while (argi < argc && *(argv[argi]) != '-') { // command line options must be proceeded with a "-" or they are ignored
                 argi++;
-                if (argi >= argc) {
-                    fprintf(stderr,"xdd_parse_args: ignoring extraneous command line argument %d '%s'\n", argi, argv[argi]?argv[argi]:"NULL");
-                    arg_count = 0;
-                    break;
-                }
         } 
-        if (arg_count == 0) break; // Somehow we got to the end of the command line and did not find any valid options
+        if (argi >= argc || arg_count == 0)
+	    break; // Somehow we got to the end of the command line and did not find any valid options
         
 		// At this point argv[], uint32_t flags must be pointing to a reasonably legit option so
 		// set up to scan the xddfunc table for this option
