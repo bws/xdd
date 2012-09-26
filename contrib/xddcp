@@ -1506,10 +1506,6 @@ function start_destination_xdd {
 	error_exit $XDDCP_ERR_CODE_NO_REMOTE
     fi
 
-    # Wait to ensure the destination side has setup network and accepting
-    sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
-    sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
-
     # The destination side pauses while blocking on FIFO IO,
     # read the IO to allow progress
     if [ 0 -eq $execRC ]; then
@@ -1532,6 +1528,9 @@ function start_destination_xdd {
             fi
         done < ${g_xddcpFifoPath}
     fi
+
+    # Wait to ensure the destination side has setup network and accepting
+    sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
 
     return $execRC
 }
@@ -2089,7 +2088,6 @@ function xddcp_main {
     destRemoteFlag=0
     parse_endpoint_spec "${2}" destPath destRemoteFlag destUser destHostArray \
         destIPArray destNodeArray
-    echo "destUser is $destUser"
 
     # Get the specified size if it is defined
     fileSizeFlag=0
@@ -2116,13 +2114,12 @@ function xddcp_main {
     retries=0
     while [ 0 -ne "${transferRC}" -a "${retries}" -le "${retryCount}" ]; do
 
-        # Get transfer history from destination if it exists
-        #if [ 1 -eq $resumeFlag ]; then
-	#    g_currentTransferRst="${g_filebaseTransferRst}_partial"
-	#    g_completeTransfersRst="${g_filebaseTransferRst}_complete"
-        #    get_file_transfer_history "${srcPath}" "${destPath}" "${destHostArray[0]}" \
-        #        "${destIPArray[0]}" "${destUser}"
-        #fi
+        # Do things unique to retries
+        if [ 0 -ne $retries ]; then
+	    echo "Transfer failed.  Preparing to retry, attempt: $retries"
+	    sleep $XDDCP_DEFAULT_RETRY_SLEEP_SECS
+	    reset_global_data
+        fi
 
         # Transfer file(s)
         if [ 1 -eq "${recursiveFlag}" ]; then
@@ -2154,22 +2151,7 @@ function xddcp_main {
 	        "${verbosity}" "${binaryDumpFlag}"
 	    transferRC=$?
         fi
-
-        # Reset global state so that the next try can continue
-        if [ 0 -ne "${transferRC}" ]; then
-	    # Print a retry message
-	    echo "Transfer failed.  Retry attempts: $retries"
-            retries=$((retries+1))
-	    sleep $XDDCP_DEFAULT_RETRY_SLEEP_SECS
-	    reset_global_data
-            # Clean up xdd procs at source, destination
-            # BUG:  Fix use of pkill since it kills anything named XDD, not
-            # just the spawned process, and the user did not request
-            # this specific behavior
-            #local cmd="pkill -9 -u ${USER} -U ${USER} -x xdd"
-            #remote_exec "${cmd}" "${destHost}" "${destUser}" "0"
-            #local_exec  "${cmd}"
-        fi
+        retries=$((retries+1))
     done
 
     # Perform post transfer analysis
@@ -2179,13 +2161,14 @@ function xddcp_main {
             "${destUser}" "${windowSize}" "${kernelTraceFlag}"
     fi
 
+    # Print out final status message
     if [ 0 -eq "${transferRC}" ]; then
 	echo ""
 	echo "Transfer complete.  Verify results with md5sum."
             #All files transfered ok, remove source side list
         rm -f $g_fileRecursiveList	
     else
-	echo "Transfer failed.  Error code: ${transferRC}  Retries: $retries of $retryCount"
+	echo "Transfer failed.  Error code: ${transferRC}  Retries: $((retries-1)) of $retryCount"
     fi
     return "${transferRC}"
 }
