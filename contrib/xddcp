@@ -1064,9 +1064,7 @@ if [ 1 -eq $resumeFlag ]; then
 
     # Add restart filename (cookie) to restart command
     restart_logfile="\${destination_dir}/.\${destination_base}.xrt"
-    destination_restart="-restart file \${restart_logfile} ${g_dstRestartOpt}"
-
-
+    destination_restart="-restart enable -restart offset ${g_xddcpResumeOffset} -restart file \${restart_logfile}"
 fi
 
 # If insufficient permissions for the log exist, direct to HOME
@@ -1103,7 +1101,6 @@ if [ -e \$destination_file ]; then
 fi
 
 # XDD Command
-#xdd_cmd="\${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} \${verboseopt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror -output \${destination_log} -errout \${destination_log}"
 xdd_cmd="\${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} \${verboseopt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror > \${destination_log}"
 
 # Log XDD Command
@@ -1113,8 +1110,8 @@ echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
 export TRACE_LOG_LOC=\${destination_dir}
 
 # Write out the restart offset
-restart_offset="\$(cat \${destination_log})"
-echo "$XDDCP_RESTART_DELIM \${restart_offset}"
+restart_file_contents="\$(cat \${restart_logfile})"
+echo "$XDDCP_RESTART_DELIM \${restart_file_contents}"
 
 # Invoke XDD
 \${xdd_cmd} >> \${destination_log} 2>&1 &
@@ -1233,7 +1230,7 @@ else
     src_log=/dev/null
 fi
 
-xdd_cmd="\${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} ${g_srcRestartOpt} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
+xdd_cmd="\${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} -restart enable -restart offset ${g_xddcpResumeOffset} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
 
 # Set iotrace log files location
 export TRACE_LOG_LOC=\${PWD}
@@ -1508,18 +1505,18 @@ function start_destination_xdd {
 
     # The destination side pauses while blocking on FIFO IO,
     # read the IO to allow progress
+    local resumeOffset=0
     if [ 0 -eq $execRC ]; then
         while read line; do
             # Parse out the resume offset if needed
             if [ 1 -eq $resumeFlag ]; then
                 restartLine=$(\echo $line |grep $XDDCP_RESTART_DELIM)
                 if [ ! -z "$restartLine" ]; then
-                    g_xddcpResumeOffset=$(/bin/echo $restartLine |rev |cut -d ' ' -f 1 |rev)
-
+                    resumeOffset=$(/bin/echo $restartLine |cut -d ' ' -f 3 |rev) &> $XDDCP_DEV_NULL
 	            # If the restart value is non-numeric, just set it to 0
-		    echo "$g_xddcpResumeOffset" |egrep "^[0-9]+$" &>/dev/null
+		    echo "$resumeOffset" |egrep "^[0-9]+$" &>/dev/null
 		    if [ 0 -ne $? ]; then
-		        g_xddcpResumeOffset=0
+		        resumeOffset=0
 		    fi
                     break
                 fi
@@ -1528,6 +1525,7 @@ function start_destination_xdd {
             fi
         done < ${g_xddcpFifoPath}
     fi
+    g_xddcpResumeOffset=${resumeOffset}
 
     # Wait to ensure the destination side has setup network and accepting
     sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
