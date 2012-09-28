@@ -235,8 +235,8 @@ int32_t	xdd_raw_writer_init(ptds_t *p);
 int32_t	xdd_raw_writer_send_msg(ptds_t *p);
 
 // restart.c
-int		xdd_restart_create_restart_file(restart_t *rp);
-int	xdd_restart_write_restart_file(ptds_t *current_ptds);
+int	xdd_restart_create_restart_file(restart_t *rp);
+int	xdd_restart_write_restart_file(restart_t *rp);
 void 	*xdd_restart_monitor(void *junk);
 
 // results_display.c
