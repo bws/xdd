@@ -119,17 +119,19 @@ readonly XDDCP_RESTART_DELIM="XDD_RESTART: "
 
 # XDDCP file name bases to use for temporary files
 readonly XDDCP_RECURSIVE_LIST_FILE_NAME=".xdd_file_list-$$.xdl"
-readonly XDDCP_LIST_PROGRESS_FILE_NAME=".xdd_progress.xdp"
 
-# Output device used to stream informational messages 
-readonly XDDCP_DEV_NULL=/dev/stderr
-#readonly XDDCP_DEV_NULL=/dev/null
+# Output device used to stream informational messages
+#readonly XDDCP_DEV_NULL=/dev/stderr
+readonly XDDCP_DEV_NULL=/dev/null
 
 #
 # Global variables
 #
 # The version string emitted by the source-side XDD
 g_xddcpXddVersion="-1"
+
+# Path to add to execute remote XDD executables
+g_xddcpRemotePathAppend=""
 
 # The path to use for the XDD FIFO (deprecated)
 g_xddcpFifoPath=""
@@ -140,37 +142,17 @@ g_xddcpDestSSHPid="-1"
 # The process ID of the source-side XDD invocation
 g_xddcpSrcXddPid="-1"
 
-# The filename used to store the offset of any pending transfers
-g_xddcpPartialFileName=""
-
 # The filename used to store the files completed during a multi-file transfer
 g_xddcpProgressFileName=""
+
+# The filename used to store the filenames for a recursive file transfer
+g_xddcpRecursiveListFileName=""
 
 # The current resume offset
 g_xddcpResumeOffset="0"
 
-# The number of completed transfers
-g_xddcpTransferCount="0"
-
-# Path to add to execute remote XDD
-g_xddcpRemotePathAppend=""
-
-#
-# Global variables that need to be analyzed for proper usage
-#
-readonly g_filebaseTransferRst=".xdd_transfer"
-readonly g_filebaseRecusiveList=".xdd_recursive_file_list"
-g_srcFilePath=""
-g_srcFileMtime="0"
-g_srcFileOffset="0"
-g_currentFileIndex="0"
-g_RestartFileDir=""
-g_currentTransferRst=""
-g_completeTransfersRst=""
-g_srcRestartOpt=""
-g_dstRestartOpt=""
-g_xddcpRecursiveTransferError="0"
-g_fileRecursiveList=""
+# Variable describing whether the destination directory exists or not
+g_xddcpDestDirExists="1"
 
 #
 # Print out the usage information
@@ -348,6 +330,11 @@ function handle_signal_common {
     # Remove the FIFO if it still exists
     if [ -e "$g_xddcpFifoPath" ]; then
 	rm -f $g_xddcpFifoPath &>$XDDCP_DEV_NULL
+    fi
+
+    # Remove the recursive file list if it exists
+    if [ -e "$g_xddcpRecursiveListFileName" ]; then
+        rm -f $g_xddcpRecursiveListFileName &>$XDDCP_DEV_NULL
     fi
 
     echo "INFO:  Transfer cancelled by user." >/dev/stderr
@@ -936,8 +923,8 @@ function get_destination_cmds {
     
     cat <<EOF
 # Ensure xdd is in the remote path
-if [ "x${g_xddRemotePathAppend}" != "x" ] ; then
-  export PATH=\${PATH}:${g_xddRemotePathAppend}
+if [ "x${g_xddcpRemotePathAppend}" != "x" ] ; then
+  export PATH=\${PATH}:${g_xddcpRemotePathAppend}
 fi
 \type ${XDDCP_XDD_EXE} &>/dev/null
 if [ 0 -ne \$? ]; then
@@ -1198,8 +1185,8 @@ function get_source_cmds {
     # Build the command string
     cat <<EOF
 # Ensure xdd is in the path
-if [ "x${g_xddRemotePathAppend}" != "x" ] ; then
-  export PATH=\${PATH}:${g_xddRemotePathAppend}
+if [ "x${g_xddcpRemotePathAppend}" != "x" ] ; then
+  export PATH=\${PATH}:${g_xddcpRemotePathAppend}
 fi
 \type ${XDDCP_XDD_EXE} &>/dev/null
 if [ 0 -ne \$? ]; then
@@ -1247,209 +1234,45 @@ EOF
 }
 
 #
-# Retrieve restart file from destination directory
+# Create the directories on the destination side, provided the
+# destination path exists.
+# Returns 0 on success and non-zero on failure
+# 
 #
-function get_destination_restart_files {
-    local srcPath=${1}
+function create_destination_directories {
+    local srcFileList=${1}
     local destPath=${2}
-    local destHost=${3}
-    local destIP=${4}
-    local destUser=${5}
+    local remoteFlag=${3}
+    local destHost=${4}
+    local destIP=${5}
+    local destUser=${6}
 
-    local dataDir=$PWD
-    # check dataDir for writability
-    if [ ! -d ${dataDir} ] || [ ! -w ${dataDir} ]; then
-	echo "INFO: Can not write to ${dataDir}. Skipping get_destination_restart_files." >/dev/stderr
-	return 1
-    fi
-    local host=""
-    if [ ! -z "${destIP}" ]; then
-	host="${destIP}"
-    elif [ ! -z "${destHost}" ]; then
-	host="${destHost}"
-    else
-        echo "scripting error in get_destination_restart_files, fix it!" >/dev/stderr
-    fi
-    # Save top level destination directory for restart cookie files
-    local dstpath="$destPath"
-    local dfType=$(ssh $host \stat -c %F ${destPath} 2>/dev/null)
-    if [ "$dfType" = "" -o "$dfType" = "regular file" -o "$dfType" = "regular empty file" ]; then
-        dstpath=$(\dirname ${destPath})
-    fi
-    if [ -d "${srcPath}" ]; then
-        srcbase=$(\basename ${srcPath})
-        g_RestartFileDir="${dstpath}/${srcbase}"
-    elif [ -f "${srcPath}" ]; then
-        g_RestartFileDir="${dstpath}"
-    else
-        echo "INFO: Cannot determine g_RestartFileDir. Skipping get_destination_restart_files." >/dev/stderr
-        return 1
-    fi
+    # Extract the directories for the source files
+    local srcDirs="$(cat ${srcFileList}|awk '{sub(/\/[^\/]*$/,"")}1'|sort -u)"
 
-    # get/copy destination restart file(s) from destination to source host
-    (scp ${USER}@${host}:${g_RestartFileDir}/${g_filebaseTransferRst}\* ${PWD}) > /dev/null 2>&1
-}
-
-# If restart, get file transfer history from destination if it exists.
-function get_file_transfer_history {
-    local srcPath=${1}
-    local destPath=${2}
-    local destHost=${3}
-    local destIP=${4}
-    local destUser=${5}
-
-    # If restart, read in table(s) of transfer completed and/or in progress
-    let "g_currentFileIndex = -1"
-    get_destination_restart_files "${srcPath}" "${destPath}" "${destHost}" "${destIP}" "${destUser}"
-    local srcRestartFile="${PWD}/$g_completeTransfersRst"
-    if [ -e "$srcRestartFile" -a -s "$srcRestartFile" ]; then
-        if [ -s "$srcRestartFile" ]; then
-            while read line
-            do
-                let "g_currentFileIndex += 1"
-                g_srcFilePath[$g_currentFileIndex]=$(echo "$line" | cut -f 1 -d " ")
-                g_srcFileMtime[$g_currentFileIndex]=$(echo "$line" | cut -f 2 -d " ")
-                g_srcFileOffset[$g_currentFileIndex]=$(echo "$line" | cut -f 3 -d " ")
-            done < ${srcRestartFile}
-        #mv ${srcRestartFile} "${srcRestartFile}.${retries}"
-            rm -f  ${srcRestartFile}
+    # Convert the source directories into a set of destination dirs,
+    local destDirs=""
+    for d in $srcDirs; do
+        local pathChar=$(echo $d |cut -c 1)
+        if [ "/" = "$pathChar" ]; then
+            destDirs="${d} ${destDirs}"
+        else
+            destDirs="${destPath}/${d} ${destDirs}"
         fi
-    fi
-
-    # stick it at the end; restart because offset < file size
-    # this is trapped accordingly in transfer_file
-    local srcRestartFile="${PWD}/$g_currentTransferRst"
-    if [ -e "$srcRestartFile" ]; then
-        if [ -s "$srcRestartFile" ]; then
-            let "g_currentFileIndex += 1"
-            g_srcFilePath[$g_currentFileIndex]=$(\cat $srcRestartFile | cut -f 1 -d " ")
-            g_srcFileMtime[$g_currentFileIndex]=$(\cat $srcRestartFile | cut -f 2 -d " ")
-            g_srcFileOffset[$g_currentFileIndex]=$(\cat $srcRestartFile | cut -f 3 -d " ")
-            
-            # More surgical than the forceFlag option, which does not always seem to work
-            # If dstKillpid no longer exist, no harm done.
-            local dstKillpid=$(\cat $srcRestartFile | cut -f 5 -d " ")
-            local cmd="\kill -9 ${dstKillpid}"
-            remote_exec "${cmd}" "${destHost}" "${destUser}" "0"
-        fi
-          #mv ${srcRestartFile} "${srcRestartFile}.${retries}"
-        rm -f  ${srcRestartFile}
-    fi
-    # Remove source side restart files. Always get fresh copies from destination.
-    # Source will start with $g_currentFileIndex if not complete, or next file if complete
-    # Completion with a file is needed if g_srcFileOffset < filesize. Determined in transfer_file
-
-    return 0
-} 
-
-# Locate input file in g_srcFilePath list, check mod time and return index
-# return index. If new file, add it to list and transfer
-# prev assumes ordered list or tree traversal, speeds up find
-function check_if_file_transferred_previously {
-    local path=${1} 
-    local found
-    local n
-    
-    let "found = -1"
-    for (( n=0; n <= g_currentFileIndex; n++ ))
-    do 
-        if [ "$path" != "${g_srcFilePath[$n]}" ]; then
-            continue
-        fi
-        let "found = $n"
-        break
     done
-    # If new file, add to end of list and increment grand total
-    # If new file transfer aborts, this becomes the new restart file
-    if [ 0 -gt "$found" ]; then
-        let "g_currentFileIndex += 1"
-        g_srcFilePath[$g_currentFileIndex]=$path
-        local cutline=$(stat -c "%Y %s" $path 2>/dev/null)
-        #g_srcFileMtime[$g_currentFileIndex]=$(echo "$cutline" | cut -f 1 -d " ")
-        g_srcFileMtime[$g_currentFileIndex]="0"
-        g_srcFileOffset[$g_currentFileIndex]="0"
-        let "found = $g_currentFileIndex"
-    fi
-    return "$found"
-}
 
-#
-# Read the restart file from the destination into a global assoc. array
-#
-function read_file_resume_data {
-    local srcPath=${1}
-    local destPath=${2}
-    local destHost=${3}
-    local destUser=${4}
+    # Build a command string to create the directories on the destination side
+    local destCreateCmds="mkdir -p ${destDirs}"
 
-    # Retrieve the file resume data
-    if [ ! -z ${destUser} ]; then
-        spec="${destUser}@${destHost}"
-    else
-        spec="$destHost"
-    fi
-
-    # If srcPath is a 
-    restartFileDir=$(\dirname ${destPath})/$(\basename $srcPath)
-    echo "(scp ${spec}:${restartFileDir}/${g_filebaseTransferRst}\* ${PWD})"
-    (scp ${spec}:${restartFileDir}/${g_filebaseTransferRst}\* ${PWD}) > /dev/null 2>&1
-}
-
-#
-# Set the two global variables that control the restart/resume offsets
-#
-function set_resume_options {
-    local srcPath=${1}
-    local destPath=${2}
-    local destHost=${3}
-    local destUser=${4}
-    
-    # Make sure the resume data is current
-    #if [ 0 -eq ${#g_fileResumeDataArray} ]; then
-    #    read_file_resume_data "${srcPath}" "${destPath}" "${destHost}" \
-    #        "${destUser}"
-    #fi
-
-    # Set the options based on the restart data
-    #restartData=$(\grep "$srcPath" "${g_filebaseTransferRst}*")
-    #if [ ! -z "$restartData" ]; then
-    #    local offset=$(echo ${restartData} |cut -f 2 -d ' ')
-    #    local mtime=$(echo ${restartData} |cut -f 1 -d ' ')
-    #    g_srcRestartOpt="-restart enable -restart offset ${offset}"
-    #    g_destRestartOpt="${g_srcRestartOpt} -e2e srcpath ${srcPath} ${mtime}"
-    #fi
-}
-
-#
-# Create a directory on the destination side
-#
-function create_destination_directory {
-    local destPath=${1}
-    local remoteFlag=${2}
-    local destHost=${3}
-    local destIP=${4}
-    local destUser=${5}
-
-    # Create destination commands
-    local destCmds="mkdir -v -p $destPath"
 
     # Execute destination side directory creation
     local destResult=""
     local execRC=1
     if [ 1 -eq ${remoteFlag} ]; then
-        # resolve remote host name/ip
-        local host=""
-        if [ ! -z "${destIP}" ]; then
-                host="${destIP}"
-        elif [ ! -z "${destHost}" ]; then
-                host="${destHost}"
-        else
-          echo "scripting error in create_destination_directory, fix it!" >/dev/stderr
-        fi
-        destResult=$(remote_exec "${destCmds}" "${host}" "${destUser}" "1")
+        destResult=$(remote_exec "${destCreateCmds}" "${destIP}" "${destUser}" "1")
         execRC=$?
     else
-        destResult=$(local_exec "${destCmds}")
+        destResult=$(local_exec "${destCreateCmds}")
         execRC=$?
     fi
 
@@ -1610,58 +1433,79 @@ function transfer_file_list {
     fi
 
     # Create destination directory for file list transfer for resumeFlag
-    create_destination_directory "${destPath}" "${destRemoteFlag}" \
-        "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}"
+    create_destination_directories "${srcFileList}" "${destPath}" \
+        "${destRemoteFlag}" "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}"
     rc=$?
     if [ 0 -ne $rc ]; then
 	echo "INFO: Failure while creating destination directory ${destPath}"
 	error_exit $rc
     fi
 
-    # Get all of the source specs and path complement
-    local srcFileSpecDir=$(\dirname ${srcFileList})
-    local fileNames=""
-    for name in $(\cat ${srcFileList}); do
-	local pathChar=$(\dirname $name |cut -c 1)
-	if [ "." = "$pathChar" ]; then
-	    fileNames="$fileNames ${srcFileSpecDir}/${name}"
-	else
-	    fileNames="$fileNames $name"
-	fi
-    done
+    # If this file list is part of a restart, get the existing progress
+    local progressFilePath=""
+    if [ 1 -eq $resumeFlag ]; then
+        local progressFileDir="$(\dirname $srcFileList)"
+        local progressFileNameBase="$(\basename $srcFileList)"
+        progressFilePath=${progressFileDir}/.${progressFileNameBase}.xpg
+    fi
 
-    # Set the path modified file names as the source specs
-    srcFileSpecList="$fileNames"
+    # Process each of the files in the list
+    local transferCount=0
+    while read srcFilePath; do
+        # Construct the destination filename
+        local destFilePath=""
+        local srcFilename=$(\basename ${srcFilePath})
+        local srcFileDir=$(\dirname ${srcFilePath})
+	local pathChar=$(\echo $srcFileDir |cut -c 1)
+        if [ '/' = "$pathChar" ]; then
+            destFilePath="${srcFilePath}"
+        else
+            destFilePath="${destPath}/${srcFilePath}"
+        fi
 
-    # Process all source file specs
-    local iters=0
-    for srcFileSpec in ${srcFileSpecList}; do
-	# Modify the destination path for file list transfers
-	local srcFileName=$(\basename ${srcFileSpec})
-	destFileSpec=${destPath}/${srcFileName}
+        # Check and see if this transfer has been done in a previous transfer
+        if [ 1 -eq "${resumeFlag}" ]; then
+
+            # Determine if the transfer previously occurred
+            completed=$(grep -c "$srcFilePath to $destFilePath" ${progressFilePath})
+            if [ 0 -ne $completed ]; then
+                # Skip this transfer
+                continue
+            fi
+        fi
 
         # Wait a few moments so that remote ports are free
-        if [ 0 -ne $iters ]; then
+        if [ 0 -ne $transferCount ]; then
             sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
-            iters=1
         fi
+
 	#Transfer the file
         srcRemoteFlag=0
-	transfer_file "${srcFileSpec}" "${srcHost}" "${srcUser}" \
+	transfer_file "${srcFilePath}" "${srcHost}" "${srcUser}" \
 	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-	    "${destFileSpec}" "${destHostArray[*]}" "${destIPArray[*]}" \
+	    "${destFilePath}" "${destHostArray[*]}" "${destIPArray[*]}" \
             "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" \
             "${destDIOFlag}" "${destOrderedFlag}" "${totalBytes}" \
             "${queueDepth}" "${e2ePort}" "${fileSizeFlag}" "${forceFlag}" \
             "${resumeFlag}" "${verbosity}" "${binaryDumpFlag}"
 	    
 	rc=$?
-	if [ 0 -ne $rc ]; then
-	    echo "INFO: Failure while transferring ${srcFileSpec} to ${destFileSpec}"
+        if [ 0 -eq $rc ]; then
+            # Add the file to the list of completed files
+            echo "$srcFilePath to $destFilePath" >> ${progressFilePath}
+	else
+	    echo "INFO: Failure while transferring ${srcFilename} to ${destFilename}"
             return $rc
 	fi
-    done
-    return 0
+        transferCount=$((transferCount + 1))
+    done < ${srcFileList}
+
+    # Cleanup the progress file
+    if [ 0 -gt ${transferCount} -a 0 -eq $rc ]; then
+        rm -f ${progressFilePath} &> $XDDCP_DEV_NULL
+    fi
+
+    return $rc
 }
 
 #
@@ -1669,7 +1513,7 @@ function transfer_file_list {
 # fully qualified paths of source/destination files
 #
 function transfer_recursive_file_list {
-    #echo "transfer_recursive_file_list args: $@ >/dev/stderr
+    echo "transfer_recursive_file_list args: $@" >/dev/stderr
     local srcDir=${1}
     local srcHost=${2}
     local srcUser=${3}
@@ -1693,15 +1537,24 @@ function transfer_recursive_file_list {
     local binaryDumpFlag=${21}
 
     # Check recursive transfer preconditions
+    local fileList="${PWD}/${XDDCP_RECURSIVE_LIST_FILE_NAME}"
+    if [ -x "${fileList}" ]; then
+        echo "Cannot create file list, it already exists: $fileList"
+        error_exit TODO
+    elif [ -w "${fileList}" ]; then
+        echo "Cannot create file list: $fileList"
+        error_exit TODO
+    fi
 
     # Create a file list in the working directory
-    local fileList="${PWD}/${XDDCP_RECURSIVE_LIST_FILE_NAME}"
+    g_xddcpRecursiveListFileName="${fileList}"
+    find "${srcDir}" -type f > ${g_xddcpRecursiveListFileName}
 
     # Create the remote directories
 
     # Use the regular file list transfer mechanism
-    transfer_file_list "${fileList}" "${srcHost}" "${srcUser}" \
-        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
+    transfer_file_list "${g_xddcpRecursiveListFileName}" "${srcHost}" \
+        "${srcUser}" "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
         "${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
         "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" \
         "${destDIOFlag}" "${destOrderedFlag}" "${queueDepth}" \
@@ -1710,103 +1563,10 @@ function transfer_recursive_file_list {
     local rc=$?
 
     # Clean up the file list
-    \rm -f $fileList
+    \rm -f "${g_xddcpRecursiveListFileName}" &> ${XDDCP_DEV_NULL}
 
     # Return the transfer code
     return $rc
-
-    # Perform precondition checks for file list transfers
-    check_file_list_preconditions "${srcFileList}" "1" "${fileSizeFlag}" \
-	"${resumeFlag}"
-    rc=$?
-    if [ 0 -ne $rc ]; then
-	error_exit $rc
-    fi
-
-            # Perform special processing for recursive transfers:
-            #  Construct a filename for the list of files to recursive transfer
-            #  Remove any file with that name (UNSAFE)
-            #  Store the name in a global variable to to pass as argument to transfer
-            g_fileRecursiveList="${PWD}/${g_filebaseRecusiveList}.$(\basename ${srcPath})"
-            rm -f $g_fileRecursiveList
-            transfer_recursive_path_setup "${srcPath}" "${destPath}" \
-                "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}" \
-                "${destRemoteFlag}"
-            rc=$?
-	    if [ 0 -ne $rc ]; then
-	        echo "INFO: Failure while creating .xdd_recursive_transfer_list "
-	        error_exit $rc
-	    fi
-
-    # Parse the source side spec
-    srcRemoteFlag=0
-
-    let "FileIndex = -1"
-    while read line
-    do
-        let "FileIndex += 1"
-        srcFileName=$(echo "$line" | cut -f 1 -d " ")
-        destFileName=$(echo "$line" | cut -f 2 -d " ")
-        # Transfer the file
-        transfer_file "${srcFileName}" "${srcHost}" "${srcUser}" \
-	    "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-	    "${destFileName}" "${destHostArray[*]}" "${destIPArray[*]}" \
-            "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" \
-            "${destDIOFlag}" "${destOrderedFlag}" \
-	    "${totalBytes}" "${queueDepth}" "${e2ePort}" \
-	    "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-	    "${verbosity}" "${binaryDumpFlag}"
-	rc=$?
-	if [ 0 -ne $rc ]; then
-	    echo "INFO: Failure while transferring ${srcFileName} to ${destFileName}"
-            return $rc
-	fi
-    done < ${srcFileList}
-
-    return 0
-}
-
-#
-# Make file list from a recursive path for recursive transfer
-# Create destination directories too
-# Do it once. Otherwise restarts could get very expensive
-#
-function transfer_recursive_path_setup {
-    local srcPath=${1}
-    local destPath=${2}
-    local destHost=${3}
-    local destIP=${4}
-    local destUser=${5}
-    local destRemoteFlag=${6}
-
-    # If the source is a directory, create it on the destination
-    if [ -d "$srcPath" ]; then
-	# Determine the corresponding destination name for the source name
-	# Modify the destination path for file list transfers
-	local srcName=$(\basename $srcPath)
-	local destFileSpec=${destPath}/${srcName}
-	create_destination_directory "${destFileSpec}" "${destRemoteFlag}" \
-                                  "${destHost}" "${destIP}" "${destUser}"
-	rc=$?
-	if [ 0 -ne $rc ]; then
-	    echo "INFO: Failure while creating directory ${destFileSpec}"
-	    error_exit $rc
-	fi
-    fi
-
-    # Get names from source spec, if its a directory, transfer its contents recursively
-    # Otherwise, just transfer the file and end
-    for entry in $(/bin/ls $srcPath); do
-	local srcFileSpec=$srcPath/$entry
-	local destFileSpec=$destPath/$(\basename $srcPath)
-	if [ -d "$srcFileSpec" ]; then
-	    transfer_recursive_path_setup "${srcFileSpec}" "${destFileSpec}" \
-                "${destHost}" "${destIP}" "${destUser}" "${destRemoteFlag}" 
-	else
-	    echo "${srcFileSpec} ${destFileSpec}" >> "${g_fileRecursiveList}"
-	fi
-    done
-    return  0
 }
 
 #
@@ -1814,13 +1574,13 @@ function transfer_recursive_path_setup {
 #
 function transfer_file {
     #echo "transfer_file Args: $@" >/dev/stderr
-    local srcFileSpec=${1}
+    local srcPath=${1}
     local srcHost=${2}
     local srcUser=${3}
     local srcRemoteFlag=${4}
     local srcDIOFlag=${5}
     local srcOrderedFlag=${6}
-    local destFileSpec=${7}
+    local destPath=${7}
     local destHostArray=(${8})
     local destIPArray=(${9})
     local destNodeArray=(${10})
@@ -1838,23 +1598,17 @@ function transfer_file {
     local binaryDumpFlag=${22}
 
     # Check the transfer preconditions
-    check_transfer_preconditions "${srcFileSpec}" "${destFileSpec}" \
+    check_transfer_preconditions "${srcPath}" "${destPath}" \
 	"${srcRemoteFlag}" "${destRemoteFlag}" "${srcDIOFlag}" \
 	"${destDIOFlag}" "${fileSizeFlag}"
 
     # Determine the source side file size if none specified
     if [ 0 -eq $fileSizeFlag ]; then
-        totalBytes="$($XDDCP_GETFILESIZE_EXE $srcFileSpec | cut -f 1 -d ' ')"
+        totalBytes="$($XDDCP_GETFILESIZE_EXE $srcPath | cut -f 1 -d ' ')"
     fi
 
-    # Set the file resume options if needed
-    if [ 1 -eq $resumeFlag ]; then
-        set_resume_options "${srcFileSpec}" "${destFileSpec}" \
-            "${destIPArray[0]}" "${destUser}"
-    fi
-    
     # Start destination-side XDD (also sets resume offset if needed)
-    start_destination_xdd "${srcFileSpec}" "${destFileSpec}" "${totalBytes}" \
+    start_destination_xdd "${srcPath}" "${destPath}" "${totalBytes}" \
         "${queueDepth}" "${e2ePort}" "${destDIOFlag}" "${forceFlag}" \
         "${destOrderedFlag}" "${resumeFlag}" \
 	"${verbosity}" "${binaryDumpFlag}" \
@@ -1865,7 +1619,7 @@ function transfer_file {
     # Continue if the destination started correctly
     if [ 0 -eq $destRC ]; then
         # Start source-side XDD
-	start_source_xdd "${srcFileSpec}" "${totalBytes}" \
+	start_source_xdd "${srcPath}" "${totalBytes}" \
             "${queueDepth}" "${e2ePort}" "${srcDIOFlag}" \
             "${srcOrderedFlag}" "${resumeFlag}" \
 	    "${verbosity}" "${binaryDumpFlag}" "${destIPArray[*]}" \
@@ -1881,7 +1635,6 @@ function transfer_file {
 	    wait
 	    destRC=$?
 
-	    # Increment the transfer count if the source completed successfully
 	    if [ 0 -ne $destRC ]; then
 	        rc=$destRC
 	        echo "INFO: Destination-side XDD exited with an error: $destRC" >/dev/stderr
@@ -1889,9 +1642,6 @@ function transfer_file {
 	    else
 	        # Signal success
 	        rc=0
-                echo "INFO: #$g_transferCount: $srcFileSpec transfer completed" >/dev/stderr
-                # Increment the number of transfers
-	        g_transferCount=$((g_transferCount+1))
 	    fi
         fi
     else
@@ -1951,7 +1701,7 @@ function xddcp_main {
         case $option in
             F) 
                 fileListFlag=1
-		fileListFile=$OPTARG
+		fileListFile="${OPTARG}"
                 ;;
             Y) 
                 sshOption="-tt"
@@ -1960,7 +1710,7 @@ function xddcp_main {
                 resumeFlag=1
                 ;;
             b)
-                g_xddRemotePathAppend=${OPTARG}
+                g_xddcpRemotePathAppend="${OPTARG}"
                 ;;
             c)
                 forceFlag=0
@@ -1986,7 +1736,7 @@ function xddcp_main {
                 return 0
                 ;;
             l)  
-                export PATH=${OPTARG}:${PATH}
+                export PATH="${OPTARG}:${PATH}"
                 ;;
 	    n)
 		retryCount=$OPTARG
@@ -2011,7 +1761,7 @@ function xddcp_main {
                 recursiveFlag=1
                 ;;
 	    t) 
-                queueDepth=$OPTARG
+                queueDepth="${OPTARG}"
                 ;;
 	    v) 
 		if [ $verbosity -lt 1 ]; then
@@ -2121,7 +1871,7 @@ function xddcp_main {
 
         # Transfer file(s)
         if [ 1 -eq "${recursiveFlag}" ]; then
-	    transfer_recursive_file_list "${g_fileRecursiveList}" "${srcHost}" "${srcUser}"\
+	    transfer_recursive_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
 	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
 	        "${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
                 "${destNodeArray[*]}" "${destUser}" \
@@ -2163,8 +1913,6 @@ function xddcp_main {
     if [ 0 -eq "${transferRC}" ]; then
 	echo ""
 	echo "Transfer complete.  Verify results with md5sum."
-            #All files transfered ok, remove source side list
-        rm -f $g_fileRecursiveList	
     else
 	echo "Transfer failed.  Error code: ${transferRC}  Retries: $((retries-1)) of $retryCount"
     fi
