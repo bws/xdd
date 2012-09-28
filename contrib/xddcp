@@ -117,9 +117,6 @@ readonly XDDCP_ERR_CODE_INV_RESTART=127
 # XDDCP Restart Token String
 readonly XDDCP_RESTART_DELIM="XDD_RESTART: "
 
-# XDDCP file name bases to use for temporary files
-readonly XDDCP_RECURSIVE_LIST_FILE_NAME=".xdd_file_list-$$.xdl"
-
 # Output device used to stream informational messages
 #readonly XDDCP_DEV_NULL=/dev/stderr
 readonly XDDCP_DEV_NULL=/dev/null
@@ -1097,7 +1094,11 @@ echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
 export TRACE_LOG_LOC=\${destination_dir}
 
 # Write out the restart offset
-restart_file_contents="\$(cat \${restart_logfile})"
+if [ -x "\${restart_logfile}" ]; then
+    restart_file_contents="\$(cat \${restart_logfile})"
+else
+    restart_file_contents="-restart offset 0"
+fi
 echo "$XDDCP_RESTART_DELIM \${restart_file_contents}"
 
 # Invoke XDD
@@ -1335,9 +1336,9 @@ function start_destination_xdd {
             if [ 1 -eq $resumeFlag ]; then
                 restartLine=$(\echo $line |grep $XDDCP_RESTART_DELIM)
                 if [ ! -z "$restartLine" ]; then
-                    resumeOffset=$(/bin/echo $restartLine |cut -d ' ' -f 3 |rev) &> $XDDCP_DEV_NULL
+                    resumeOffset=$(/bin/echo $restartLine |cut -d ' ' -f 3 |rev) &> ${XDDCP_DEV_NULL}
 	            # If the restart value is non-numeric, just set it to 0
-		    echo "$resumeOffset" |egrep "^[0-9]+$" &>/dev/null
+		    echo "$resumeOffset" |egrep "^[0-9]+$" &> ${XDDCP_DEV_NULL}
 		    if [ 0 -ne $? ]; then
 		        resumeOffset=0
 		    fi
@@ -1349,6 +1350,9 @@ function start_destination_xdd {
         done < ${g_xddcpFifoPath}
     fi
     g_xddcpResumeOffset=${resumeOffset}
+
+    # Remove the fifo
+    \rm -f ${g_xddcpFifoPath}
 
     # Wait to ensure the destination side has setup network and accepting
     sleep $XDDCP_DEFAULT_NETWORK_SLEEP_SECS
@@ -1402,6 +1406,7 @@ function start_source_xdd {
 # Perform transfer when the source spec is a file containing a list of files
 #
 function transfer_file_list {
+    # echo "transfer_file_list args: $@" >/dev/stderr
     local srcFileList=${1}
     local srcHost=${2}
     local srcUser=${3}
@@ -1432,7 +1437,7 @@ function transfer_file_list {
 	error_exit $rc
     fi
 
-    # Create destination directory for file list transfer for resumeFlag
+    # Create destination directories for file list transfer
     create_destination_directories "${srcFileList}" "${destPath}" \
         "${destRemoteFlag}" "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}"
     rc=$?
@@ -1464,12 +1469,12 @@ function transfer_file_list {
         fi
 
         # Check and see if this transfer has been done in a previous transfer
-        if [ 1 -eq "${resumeFlag}" ]; then
+        if [ 1 -eq "${resumeFlag}" -a -e "${progressFilePath}" ]; then
 
             # Determine if the transfer previously occurred
             completed=$(grep -c "$srcFilePath to $destFilePath" ${progressFilePath})
             if [ 0 -ne $completed ]; then
-                # Skip this transfer
+                # Skip this transfer, as its marked as already complete
                 continue
             fi
         fi
@@ -1477,6 +1482,14 @@ function transfer_file_list {
         # Wait a few moments so that remote ports are free
         if [ 0 -ne $transferCount ]; then
             sleep $XDDCP_DEFAULT_NETWORK_CLEAR_SECS
+        fi
+
+        # Print an informational message
+        if [ 0 -lt $verbosity ]; then
+            if [ 0 -ne $transferCount ]; then
+                echo ""
+            fi
+            echo "Transferring $srcFilePath to $destFilePath"
         fi
 
 	#Transfer the file
@@ -1501,8 +1514,8 @@ function transfer_file_list {
     done < ${srcFileList}
 
     # Cleanup the progress file
-    if [ 0 -gt ${transferCount} -a 0 -eq $rc ]; then
-        rm -f ${progressFilePath} &> $XDDCP_DEV_NULL
+    if [ 0 -lt ${transferCount} -a 0 -eq $rc ]; then
+        rm -f ${progressFilePath} &> ${XDDCP_DEV_NULL}
     fi
 
     return $rc
@@ -1513,7 +1526,7 @@ function transfer_file_list {
 # fully qualified paths of source/destination files
 #
 function transfer_recursive_file_list {
-    echo "transfer_recursive_file_list args: $@" >/dev/stderr
+    #echo "transfer_recursive_file_list args: $@" >/dev/stderr
     local srcDir=${1}
     local srcHost=${2}
     local srcUser=${3}
@@ -1536,8 +1549,16 @@ function transfer_recursive_file_list {
     local verbosity=${20}
     local binaryDumpFlag=${21}
 
+    # Convert the source dir into a fully qualified path
+    #local pathChar="$(\echo $srcDir |\cut -c 1)"
+    #if [ "/" != "$pathChar" ]; then
+    #    srcDir="${PWD}/$srcDir"
+    #fi
+    local srcDirParent="$(\dirname $srcDir)"
+    local srcDirName="$(\basename $srcDir)"
+
     # Check recursive transfer preconditions
-    local fileList="${PWD}/${XDDCP_RECURSIVE_LIST_FILE_NAME}"
+    local fileList="${srcDirParent}/.${srcDirName}-$$.xrf"
     if [ -x "${fileList}" ]; then
         echo "Cannot create file list, it already exists: $fileList"
         error_exit TODO
@@ -1546,14 +1567,23 @@ function transfer_recursive_file_list {
         error_exit TODO
     fi
 
-    # Create a file list in the working directory
-    g_xddcpRecursiveListFileName="${fileList}"
-    find "${srcDir}" -type f > ${g_xddcpRecursiveListFileName}
+    # Populate the file list
+    \find "${srcDir}" -type f > ${fileList}
 
-    # Create the remote directories
+    # If this is a restart, try to find an existing restart cookie and name it 
+    # to match the new file list
+    if [ 1 -eq $resumeFlag ]; then
+        (mostRecentRestart="$(\ls -t ${srcDirParent}/..${srcDirName}-*.xrf.xpg |head -1)") &> ${XDDCP_DEV_NULL}
+        if [ ! -z "${mostRecentRestart}" ]; then
+            \cp "${mostRecentRestart}" "${srcDirParent}/..${srcDirName}-$$.xrf.xpg" 
+        fi
+    fi
+
+    # Store the file list in a global so that it can be deleted on cancel
+    g_xddcpRecursiveListFileName="${fileList}"
 
     # Use the regular file list transfer mechanism
-    transfer_file_list "${g_xddcpRecursiveListFileName}" "${srcHost}" \
+    transfer_file_list "${fileList}" "${srcHost}" \
         "${srcUser}" "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
         "${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
         "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" \
@@ -1563,7 +1593,8 @@ function transfer_recursive_file_list {
     local rc=$?
 
     # Clean up the file list
-    \rm -f "${g_xddcpRecursiveListFileName}" &> ${XDDCP_DEV_NULL}
+    \rm -f "${fileList}" &> ${XDDCP_DEV_NULL}
+    g_xddcpRecursiveListFileName=""
 
     # Return the transfer code
     return $rc
