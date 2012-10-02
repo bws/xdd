@@ -24,24 +24,15 @@ if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then
     xddcp_opts="${xddcp_opts} -l $XDDTEST_XDD_LOCAL_PATH"
 fi
 
-startime=$(date +%s)
-
-# 360 is estimate for md5sum before/after tests, plus  finishing up transfers
-# after killer process exits ...adjust accordingly
-let "testime = $XDDTEST_TIMEOUT - 360"
-
-rm -f $XDDTEST_TESTS_DIR/.*
-
 # Perform pre-test 
 echo "Beginning File List with Restart Test 1 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/xddcp-F-a-n
 rm -rf $test_dir
+ssh -q $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp-F-a-n"
 mkdir -p $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp-F-a-n"
-rm .xdd*
 
 #
-# Create the source directory
+# Create the source directories
 #
 mkdir -p $test_dir/foo1/foo2/foo3
 mkdir -p $test_dir/bar1/bar2/bar3
@@ -55,34 +46,37 @@ targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_
 \date
 # Make them different/wierd sizes
 # Build file list
-     file_list="${PWD}/.xddcp-F-a-n"
-     rm -f $file_list
+     file_list="${test_dir}/xddcp-F-a-n-file-list"
      pattern=""
      let "k = 0"
-    for i in ${targets[@]}; do
-     let "k += 1"
-     pattern="${pattern}$k"
-     echo "$pattern" >> $i
-     srcHash[$k]="$(md5sum $i |cut -d ' ' -f 1)"
-     echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
-     echo "$i" >> $file_list
+     for i in ${targets[@]}; do
+         let "k += 1"
+         pattern="${pattern}$k"
+         echo "$pattern" >> $i
+         srcHash[$k]="$(md5sum $i |cut -d ' ' -f 1)"
+         echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
+         echo "$i" >> $file_list
     done
-\date
      
 #
 # Start the killer process. Runs until timeout
 #
+
+# Construct a NFS based file path to signal Hodson's killer
+signal_file_path=${HOME}/xddcp-testing-kill-signal-file
+startime=$(date +%s)
+let "testime = $XDDTEST_TIMEOUT - 360"
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
 
         # start background kills proc w delay
         # quites after n passes or testime exceeded
-        (ssh ${XDDTEST_E2E_SOURCE} /bin/bash --login <<EOF 
+        (ssh -q ${XDDTEST_E2E_SOURCE} /bin/bash --login <<EOF 
         (( n = 30 ))
         while (( n > 0 ))
         do
           sleep 20
           elapsedtime="\$(\echo "\$(\date +%s) - $startime" | \bc)"
-          if [ $testime -lt \$elapsedtime -o -f ${PWD}/.killer_exit ]; then
+          if [ $testime -lt \$elapsedtime -o -f "$signal_file_path" ]; then
             echo "killer process...EXITing"
             break
           fi
@@ -115,48 +109,39 @@ EOF
 #
 # Perform a file list copy
 #
-                rc=1
- while [ 0 -ne $rc ]
- do
-#        elapsedtime="$(\echo "$(\date +%s) - $startime" | \bc)"
-#        if [ $testime -lt $elapsedtime ]; then
-#          echo "OUT OF TIME...EXIT"
-#          break
-#        fi
+rc=1
+while [ 0 -ne $rc ]; do
 	# Perform a recursive copy. If not first pass, restarting
 	$XDDTEST_XDDCP_EXE $xddcp_opts -a -n 99 -F $file_list $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/xddcp-F-a-n
         rc=$?
 done
-    # signal killer proc to exit
-    touch .killer_exit
-    # wait for killer proc to finish
-    wait
-    # remove signal file
-    rm .killer_exit
-    #
-    # Perform MD5sum checks
-    #
-    \date
-    let "k = 0"
-    test_passes=1
-    for i in ${targets[@]}; do
-	d=$XDDTEST_DEST_MOUNT/xddcp-F-a-n/$(\basename ${i})
-	destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $d |cut -d ' ' -f 1")
-        let "k += 1"
-        echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
-        echo "dstHash=$destHash: ${XDDTEST_E2E_DEST}: ${d}"
-	if [ "${srcHash[$k]}" != "$destHash" ]; then
-	    test_passes=0
-	    echo "ERROR: Failure in xddcp-F-a-n"
-	    echo "\tSource hash for $i: ${srcHash[$k]}"
-	    echo "\tDestination hash for $d: $destHash"
-	fi
-    done
-    \date
 
-# Perform post-test cleanup
-#rm -rf $test_dir
-#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp-F-a-n"
+# signal killer proc to exit
+touch ${signal_file_path}
+# wait for killer proc to finish
+wait
+# remove signal file
+rm ${signal_file_path}
+
+#
+# Perform MD5sum checks
+#
+let "k = 0"
+test_passes=1
+for i in ${targets[@]}; do
+    trimmedSrcFile=${i#${PWD}}
+    d=$XDDTEST_DEST_MOUNT/xddcp-F-a-n/${trimmedSrcFile}
+    destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $d |cut -d ' ' -f 1")
+    let "k += 1"
+    echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
+    echo "dstHash=$destHash: ${XDDTEST_E2E_DEST}: ${d}"
+    if [ "${srcHash[$k]}" != "$destHash" ]; then
+        test_passes=0
+        echo "ERROR: Failure in xddcp-F-a-n"
+        echo "\tSource hash for $i: ${srcHash[$k]}"
+        echo "\tDestination hash for $d: $destHash"
+    fi
+done
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
