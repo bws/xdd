@@ -1255,14 +1255,13 @@ function create_destination_directories {
     # Extract the directories for the source files
     local srcDirs="$(cat ${srcFileList}|awk '{sub(/\/[^\/]*$/,"")}1'|sort -u)"
 
-    # If srcPath contains a trailing slash, remove it
-    
-    
     # Convert the source directories into a set of destination dirs,
     local destDirs=""
     for d in $srcDirs; do
-        local relativeDir="${d#$srcPath}"
-        destDirs="${destPath}/${relativeDir} ${destDirs}"
+        # Trim the last segment off of the srcPath
+        local trimmedSrcPath="$(\dirname $srcPath)"
+        local trimmedRelativeDir="${d#$trimmedSrcPath}"
+        destDirs="${destPath}/${trimmedRelativeDir} ${destDirs}"
     done
 
     # Build a command string to create the directories on the destination side
@@ -1462,8 +1461,9 @@ function transfer_file_list {
     local transferCount=0
     while read srcFilePath; do
         # Construct the destination filename
-        local relativeSrcPath="${srcFilePath#$srcPath}"
-        local destFilePath="${destPath}/${relativeSrcPath}"
+        local trimmedSrcPath="$(\dirname $srcPath)"
+        local trimmedRelativePath="${srcFilePath#$trimmedSrcPath}"
+        local destFilePath="${destPath}/${trimmedRelativePath}"
 
         # Check and see if this transfer has been done in a previous transfer
         if [ 1 -eq "${resumeFlag}" -a -e "${progressFilePath}" ]; then
@@ -1501,8 +1501,10 @@ function transfer_file_list {
 	    
 	rc=$?
         if [ 0 -eq $rc ]; then
-            # Add the file to the list of completed files
-            echo "$srcFilePath to $destFilePath" >> ${progressFilePath}
+            if [ 0 -ne $resumeFlag ]; then
+                # Add the file to the list of completed files
+                echo "$srcFilePath to $destFilePath" >> ${progressFilePath}
+            fi
 	else
 	    echo "INFO: Failure while transferring ${srcFilename} to ${destFilename}"
             return $rc

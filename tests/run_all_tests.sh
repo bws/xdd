@@ -164,25 +164,28 @@ fi
 #
 # Ensure the mount points exist
 #
+mkdir -p $XDDTEST_LOCAL_MOUNT
 if [ ! -w "$XDDTEST_LOCAL_MOUNT" -o ! -r "$XDDTEST_LOCAL_MOUNT" ]; then
-    echo "Cannot read and write loc: $XDDTEST_LOCAL_MOUNT" >>$all_test_log 2>&1
+    echo "Cannot read and write local mount: $XDDTEST_LOCAL_MOUNT" >>$all_test_log 2>&1
     tail -1 $all_test_log >/dev/stderr
     exit 3
 fi
 
+mkdir -p $XDDTEST_SOURCE_MOUNT
 if [ ! -w "$XDDTEST_SOURCE_MOUNT" -o ! -r "$XDDTEST_SOURCE_MOUNT" ]; then
-    echo "Cannot read and write loc: $XDDTEST_SOURCE_MOUNT" >>$all_test_log 2>&1
+    echo "Cannot read and write source mount: $XDDTEST_SOURCE_MOUNT" >>$all_test_log 2>&1
     tail -1 $all_test_log >/dev/stderr
     exit 3
 fi
 
 ssh $XDDTEST_E2E_DEST bash <<EOF
+    mkdir -p $XDDTEST_DEST_MOUNT
     if [ ! -w "$XDDTEST_DEST_MOUNT" -o ! -r "$XDDTEST_DEST_MOUNT" ]; then
         exit 1
     fi
 EOF
 if [ $? != 0 ]; then
-    echo "Cannot read and write loc: $XDDTEST_DEST_MOUNT" >>$all_test_log 2>&1
+    echo "Cannot read and write destination mount: $XDDTEST_DEST_MOUNT" >>$all_test_log 2>&1
     tail -1 $all_test_log >/dev/stderr
     exit 4
 fi
