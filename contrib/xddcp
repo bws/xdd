@@ -1236,30 +1236,33 @@ EOF
 
 #
 # Create the directories on the destination side, provided the
-# destination path exists.
+# destination path exists.  
+#   Note this is a weird semantic:  Paths that are rooted by srcPath are 
+#   created as relative to the dest, otherwise the paths are absolute.  This
+#   could be powerful for mimicing a system file tree, or stupid.
 # Returns 0 on success and non-zero on failure
 # 
 #
 function create_destination_directories {
     local srcFileList=${1}
-    local destPath=${2}
-    local remoteFlag=${3}
-    local destHost=${4}
-    local destIP=${5}
-    local destUser=${6}
+    local srcPath=${2}
+    local destPath=${3}
+    local remoteFlag=${4}
+    local destHost=${5}
+    local destIP=${6}
+    local destUser=${7}
 
     # Extract the directories for the source files
     local srcDirs="$(cat ${srcFileList}|awk '{sub(/\/[^\/]*$/,"")}1'|sort -u)"
 
+    # If srcPath contains a trailing slash, remove it
+    
+    
     # Convert the source directories into a set of destination dirs,
     local destDirs=""
     for d in $srcDirs; do
-        local pathChar=$(echo $d |cut -c 1)
-        if [ "/" = "$pathChar" ]; then
-            destDirs="${d} ${destDirs}"
-        else
-            destDirs="${destPath}/${d} ${destDirs}"
-        fi
+        local relativeDir="${d#$srcPath}"
+        destDirs="${destPath}/${relativeDir} ${destDirs}"
     done
 
     # Build a command string to create the directories on the destination side
@@ -1408,26 +1411,27 @@ function start_source_xdd {
 function transfer_file_list {
     # echo "transfer_file_list args: $@" >/dev/stderr
     local srcFileList=${1}
-    local srcHost=${2}
-    local srcUser=${3}
-    local srcRemoteFlag=${4}
-    local srcDIOFlag=${5}
-    local srcOrderedFlag=${6}
-    local destPath=${7}
-    local destHostArray=(${8})
-    local destIPArray=(${9})
-    local destNodeArray=(${10})
-    local destUser=${11}
-    local destRemoteFlag=${12}
-    local destDIOFlag=${13}
-    local destOrderedFlag=${14}
-    local queueDepth=${15}
-    local e2ePort=${16}
-    local fileSizeFlag=${17}
-    local forceFlag=${18}
-    local resumeFlag=${19}
-    local verbosity=${20}
-    local binaryDumpFlag=${21}
+    local srcPath=${2}
+    local srcHost=${3}
+    local srcUser=${4}
+    local srcRemoteFlag=${5}
+    local srcDIOFlag=${6}
+    local srcOrderedFlag=${7}
+    local destPath=${8}
+    local destHostArray=(${9})
+    local destIPArray=(${10})
+    local destNodeArray=(${11})
+    local destUser=${12}
+    local destRemoteFlag=${13}
+    local destDIOFlag=${14}
+    local destOrderedFlag=${15}
+    local queueDepth=${16}
+    local e2ePort=${17}
+    local fileSizeFlag=${18}
+    local forceFlag=${19}
+    local resumeFlag=${20}
+    local verbosity=${21}
+    local binaryDumpFlag=${22}
 
     # Perform precondition checks for file list transfers
     check_file_list_preconditions "${srcFileList}" "1" "${fileSizeFlag}" \
@@ -1438,7 +1442,7 @@ function transfer_file_list {
     fi
 
     # Create destination directories for file list transfer
-    create_destination_directories "${srcFileList}" "${destPath}" \
+    create_destination_directories "${srcFileList}" "${srcPath}" "${destPath}" \
         "${destRemoteFlag}" "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}"
     rc=$?
     if [ 0 -ne $rc ]; then
@@ -1458,15 +1462,8 @@ function transfer_file_list {
     local transferCount=0
     while read srcFilePath; do
         # Construct the destination filename
-        local destFilePath=""
-        local srcFilename=$(\basename ${srcFilePath})
-        local srcFileDir=$(\dirname ${srcFilePath})
-	local pathChar=$(\echo $srcFileDir |cut -c 1)
-        if [ '/' = "$pathChar" ]; then
-            destFilePath="${srcFilePath}"
-        else
-            destFilePath="${destPath}/${srcFilePath}"
-        fi
+        local relativeSrcPath="${srcFilePath#$srcPath}"
+        local destFilePath="${destPath}/${relativeSrcPath}"
 
         # Check and see if this transfer has been done in a previous transfer
         if [ 1 -eq "${resumeFlag}" -a -e "${progressFilePath}" ]; then
@@ -1583,7 +1580,7 @@ function transfer_recursive_file_list {
     g_xddcpRecursiveListFileName="${fileList}"
 
     # Use the regular file list transfer mechanism
-    transfer_file_list "${fileList}" "${srcHost}" \
+    transfer_file_list "${fileList}" "${srcDir}" "${srcHost}" \
         "${srcUser}" "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
         "${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
         "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" \
@@ -1912,13 +1909,15 @@ function xddcp_main {
 	        "${verbosity}" "${binaryDumpFlag}"
             transferRC=$?
         elif [ 1 -eq "${fileListFlag}" ]; then
-	    transfer_file_list "${srcPath}" "${srcHost}" "${srcUser}"\
-	        "${srcRemoteFlag}" "${srcDIOFlag}" "${srcOrderedFlag}" \
-	        "${destPath}" "${destHostArray[*]}" "${destIPArray[*]}" \
-                "${destNodeArray[*]}" "${destUser}" "${destRemoteFlag}" "${destDIOFlag}" \
-                "${destOrderedFlag}" "${queueDepth}" \
-                "${e2ePort}" "${fileSizeFlag}" "${forceFlag}" "${resumeFlag}" \
-	        "${verbosity}" "${binaryDumpFlag}"
+            srcFileList="${srcPath}"
+            srcPath="$PWD"
+	    transfer_file_list "${srcFileList}" "${srcPath}" "${srcHost}" \
+                "${srcUser}" "${srcRemoteFlag}" "${srcDIOFlag}" \
+                "${srcOrderedFlag}" "${destPath}" "${destHostArray[*]}" \
+                "${destIPArray[*]}" "${destNodeArray[*]}" "${destUser}" \
+                "${destRemoteFlag}" "${destDIOFlag}" "${destOrderedFlag}" \
+                "${queueDepth}" "${e2ePort}" "${fileSizeFlag}" "${forceFlag}" \
+                "${resumeFlag}" "${verbosity}" "${binaryDumpFlag}"
             transferRC=$?
         else
 	    transfer_file "${srcPath}" "${srcHost}" "${srcUser}"\
