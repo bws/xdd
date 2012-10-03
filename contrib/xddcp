@@ -44,7 +44,7 @@
 #    xdd-truncate
 #    xdd
 #
-# These utilities are provided by the Linux tracong package
+# These utilities are provided by the Durmstrang Linux Kernel tracing package
 #    iotrace_init
 #    decode
 #
@@ -150,6 +150,9 @@ g_xddcpResumeOffset="0"
 
 # Variable describing whether the destination directory exists or not
 g_xddcpDestDirExists="1"
+
+# Variable describing whether the kernel tracing hack is enabled
+g_xddcpKernelTraceFlag="0"
 
 #
 # Print out the usage information
@@ -1090,8 +1093,11 @@ xdd_cmd="\${xdd_exe_path} -target \${destination_file} -op write -minall ${order
 # Log XDD Command
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
 
-# Set iotrace log files location
-export TRACE_LOG_LOC=\${destination_dir}
+# Set iotrace settings log files location
+if [ 1 -eq $g_xddcpKernelTraceFlag ]; then
+    export TRACE_LOG_LOC=\${destination_dir}
+    xdd_cmd="$XDDCP_IOTRACE_EXE $xdd_cmd"
+fi
 
 # Write out the restart offset
 if [ -x "\${restart_logfile}" ]; then
@@ -1220,8 +1226,11 @@ fi
 
 xdd_cmd="\${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} -restart enable -restart offset ${g_xddcpResumeOffset} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
 
-# Set iotrace log files location
-export TRACE_LOG_LOC=\${PWD}
+# Set iotrace settings log files location
+if [ 1 -eq $g_xddcpKernelTraceFlag ]; then
+    export TRACE_LOG_LOC=\${PWD}
+    xdd_cmd="$XDDCP_IOTRACE_EXE $xdd_cmd"
+fi
 
 # Construct local transport endpoint
 echo "Source-side invocation: \${xdd_cmd}" > \${src_log}
@@ -1820,6 +1829,7 @@ function xddcp_main {
                 verbosity=2
 		binaryDumpFlag=1
 		kernelTraceFlag=1
+                g_xddcpKernelTraceFlag=1
 		windowSize=$OPTARG
 		expr $windowSize + 1 >$XDDCP_DEV_NULL 2>&1
 		if [ $? -ne 0 ]; then
@@ -1938,7 +1948,7 @@ function xddcp_main {
     if [ 1 -eq ${binaryDumpFlag} -a 0 -eq $rc ]; then
         post_transfer_analysis "${srcPath}" "${srcHost}" "${srcUser}" \
 	    "${destPath}" "${destHostArray[0]}" "${destIPArray[0]}" \
-            "${destUser}" "${windowSize}" "${kernelTraceFlag}"
+            "${destUser}" "${windowSize}" "${g_xddcpKernelTraceFlag}"
     fi
 
     # Print out final status message
