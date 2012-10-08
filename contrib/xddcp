@@ -72,6 +72,7 @@ readonly XDDCP_DEFAULT_NETWORK_SLEEP_SECS=4
 readonly XDDCP_DEFAULT_RETRY_SLEEP_SECS=4
 readonly XDDCP_DEFAULT_NETWORK_CLEAR_SECS=2
 readonly XDDCP_DEFAULT_FIFO_PATH="/tmp/xddcp-$USER.$$"
+readonly XDDCP_DEFAULT_RETRY_COUNT=0
 readonly XDDCP_NUMA_NODE_WILDCARD="all"
 
 # XDD package executables
@@ -536,7 +537,7 @@ function check_transfer_preconditions {
 #
 function post_transfer_analysis {
 	local srcPath=${1}
-	local srcHost=$(\hostname -s)
+	local srcHost=${2}
 	local srcUser=${3}
 	local destPath=${4}
 	local destHost=${5}
@@ -550,9 +551,9 @@ function post_transfer_analysis {
 	local dstBase=$(\basename $destPath)
         # If the supplied destination is a directory, append the source file name
         if [ -d $destPath ]; then
-          dstBase=$srcBase
+            dstBase=$srcBase
         fi
-	local srcBinDump="xdd-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+	local srcBinDump="xdd-${srcHost}-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
 	local dstBinDump="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
 	local dstCsvFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.csv"
 	local dstLogFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
@@ -567,8 +568,8 @@ function post_transfer_analysis {
 
 	# check dataDir for writability
 	if [ ! -d ${dataDir} ] || [ ! -w ${dataDir} ]; then
-		echo "INFO: Can not write to ${dataDir}.  Skipping analysis." >/dev/stderr
-		return 1
+	    echo "INFO: Can not write to ${dataDir}.  Skipping analysis." >/dev/stderr
+	    return 1
 	fi
 
 	# print a helpful tidbit to the logfile
@@ -579,8 +580,9 @@ function post_transfer_analysis {
 
 	# get/copy destination bin file from destination to source host
 	local destRC=""
+	local sshOpts="-q"
 	if [ ! -z "${destUser}" ]; then
-		sshOpts="-q -l $remoteUser"
+	    sshOpts="$sshOpts -l $destUser"
 	fi
 	(ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
 # If the supplied destination is a directory, append the source file name
@@ -603,7 +605,7 @@ fi
 cd \${destination_dir}
 ls ${dstBinDump} | /bin/cpio -o 2>/dev/null
 EOF
-) | /bin/cpio -i >> ${myLogFile} 2>&1
+        ) | /bin/cpio -i >> ${myLogFile} 2>&1
 	destRC=$?
 
 	# get/copy destination log file from destination to source host
@@ -629,7 +631,7 @@ fi
 cd \${destination_dir}
 ls ${dstLogFile} | /bin/cpio -o 2>/dev/null
 EOF
-) | /bin/cpio -i >> ${myLogFile} 2>&1
+        ) | /bin/cpio -i >> ${myLogFile} 2>&1
 
         # get/copy destination timestamp csv file from destination to source host
         (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
@@ -654,11 +656,11 @@ fi
 cd \${destination_dir}
 ls ${dstCsvFile} | /bin/cpio -o 2>/dev/null
 EOF
-) | /bin/cpio -i >> ${myLogFile} 2>&1
+        ) | /bin/cpio -i >> ${myLogFile} 2>&1
 
 	# get/copy destination iotrace_data.out file from destination to source host
 	if [ 1 -eq $kernelTrace ]; then
-        (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
+            (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
@@ -680,27 +682,26 @@ fi
 cd \${destination_dir}
 ls iotrace_data*out | /bin/cpio -o 2>/dev/null
 EOF
-) | /bin/cpio -i >> ${myLogFile} 2>&1
-fi
+            ) | /bin/cpio -i >> ${myLogFile} 2>&1
+        fi
 	destRC=$?
 	if [ 0 -ne $destRC ]; then
-		echo "INFO: Failed to copy iotrace_data.pid.out over ssh.  Skipping analysis" >/dev/stderr
-		return 1
+	    echo "INFO: Failed to copy iotrace_data.pid.out over ssh.  Skipping analysis" >/dev/stderr
+	    return 1
 	fi
 
 	# read the tsdumps and plot output
 	if [ 1 -eq $kernelTrace ]; then
-        # Set iotrace log files location
-          export TRACE_LOG_LOC=\${PWD}
-	  $XDDCP_READTSDUMPS_EXE -t ${windowSize} -k -o ${tsPlotPrefix} ${srcBinDump} ${dstBinDump} >> ${myLogFile} 2>&1
+            # Set iotrace log files location
+            export TRACE_LOG_LOC=${PWD}
+	    $XDDCP_READTSDUMPS_EXE -t ${windowSize} -k -o ${tsPlotPrefix} ${srcBinDump} ${dstBinDump} >> ${myLogFile} 2>&1
 	else
-	  $XDDCP_READTSDUMPS_EXE -t ${windowSize}    -o ${tsPlotPrefix} ${srcBinDump} ${dstBinDump} >> ${myLogFile} 2>&1
+	    $XDDCP_READTSDUMPS_EXE -t ${windowSize}    -o ${tsPlotPrefix} ${srcBinDump} ${dstBinDump} >> ${myLogFile} 2>&1
 	fi
 	if [ 0 -ne $? ]; then
-		echo "INFO: Failed to read timestamp dumps with prefix ${dataPrefix} in ${dataDir}.  Skipping analysis" >/dev/stderr
-		return 1
+	    echo "INFO: Failed to read timestamp dumps with prefix ${dataPrefix} in ${dataDir}.  Skipping analysis" >/dev/stderr
+	    return 1
 	fi
-
 	echo "done"
 }
 
@@ -939,12 +940,19 @@ if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
-# Path complement xdd so that iotracing can function
-xdd_exe_path=\$(\\type -P ${XDDCP_XDD_EXE})
+# Ensure valid flag combinations
+platform=\$(\uname)
+if [ "Linux" != "\$platform" -a 0 -ne $forceFlag ]; then
+    echo "INFO: Force flag only supported on Linux platform: platform:
+    exit ${XDDCP_INVALID_FLAGS}
+elif [ "Linux" != "\$platform" -a 0 -ne $g_xddcpKernelTraceFlag ]; then
+    echo "INFO: Force flag only supported on Linux platform: platform:
+    exit ${XDDCP_INVALID_FLAGS}
+fi
 
-# Check that ports are available for binding (Linux only)
-declare -i port_conflict=0
-if [ "$(\uname)" = "Linux" ]; then
+if [ "$(\uname)" != "Linux" ]; then
+    # Check that ports are available for binding (Linux only)
+    declare -i port_conflict=0
     \type $XDDCP_GETHOSTIP_EXE &>/dev/null
     hasIpTranslator=\$?
     if [ 1 -ne \$hasIpTranslator ]; then
@@ -1087,17 +1095,19 @@ if [ -e \$destination_file ]; then
     fi
 fi
 
+# Set iotrace settings
+xdd_exe_path=\$(\\type -P ${XDDCP_XDD_EXE})
+if [ 1 -eq $g_xddcpKernelTraceFlag ]; then
+    # Path complement xdd so that iotracing can function
+    xdd_exe_path="$XDDCP_IOTRACE_EXE \$xdd_exe_path"
+    export TRACE_LOG_LOC=\${destination_dir}
+fi
+
 # XDD Command
 xdd_cmd="\${xdd_exe_path} -target \${destination_file} -op write -minall ${orderedOpt} \${verboseopt} \${binary_dump_opts} -bytes ${totalBytes} -reqsize $reqsize -e2e isdestination ${e2eDestinations} ${destDIO} \${destination_restart} -preallocate ${totalBytes} -stoponerror > \${destination_log}"
 
 # Log XDD Command
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
-
-# Set iotrace settings log files location
-if [ 1 -eq $g_xddcpKernelTraceFlag ]; then
-    export TRACE_LOG_LOC=\${destination_dir}
-    xdd_cmd="$XDDCP_IOTRACE_EXE $xdd_cmd"
-fi
 
 # Write out the restart offset
 if [ -x "\${restart_logfile}" ]; then
@@ -1105,7 +1115,9 @@ if [ -x "\${restart_logfile}" ]; then
 else
     restart_file_contents="-restart offset 0"
 fi
-echo "$XDDCP_RESTART_DELIM \${restart_file_contents}"
+if [ 0 -ne $resumeFlag ]; then
+    echo "$XDDCP_RESTART_DELIM \${restart_file_contents}"
+fi
 
 # Invoke XDD
 \${xdd_cmd} >> \${destination_log} 2>&1 &
@@ -1353,10 +1365,11 @@ function start_destination_xdd {
 		    if [ 0 -ne $? ]; then
 		        resumeOffset=0
 		    fi
-                    break
+                else
+                    echo "Remote Output: $line"
                 fi
             else
-                break
+                echo "Remote Output: $line"
             fi
         done < ${g_xddcpFifoPath}
     fi
@@ -1726,7 +1739,7 @@ function xddcp_main {
     forceFlag=1
     queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
     recursiveFlag=0
-    retryCount=3
+    retryCount=$XDDCP_DEFAULT_RETRY_COUNT
     resumeFlag=0
     srcDIOFlag=0
     srcOrderedFlag=0
@@ -1900,6 +1913,7 @@ function xddcp_main {
     #
     transferRC=1
     retries=0
+    srcHost=$(\hostname -s)
     while [ 0 -ne "${transferRC}" -a "${retries}" -le "${retryCount}" ]; do
 
         # Do things unique to retries
