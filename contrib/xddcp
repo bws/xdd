@@ -1109,15 +1109,13 @@ xdd_cmd="\${xdd_exe_path} -target \${destination_file} -op write -minall ${order
 # Log XDD Command
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
 
-# Write out the restart offset
+# Write out the restart offset - this has to be the final output
 if [ -x "\${restart_logfile}" ]; then
     restart_file_contents="\$(cat \${restart_logfile})"
 else
     restart_file_contents="-restart offset 0"
 fi
-if [ 0 -ne $resumeFlag ]; then
-    echo "$XDDCP_RESTART_DELIM \${restart_file_contents}"
-fi
+echo "$XDDCP_RESTART_DELIM \${restart_file_contents}"
 
 # Invoke XDD
 \${xdd_cmd} >> \${destination_log} 2>&1 &
@@ -1356,18 +1354,19 @@ function start_destination_xdd {
     if [ 0 -eq $execRC ]; then
         while read line; do
             # Parse out the resume offset if needed
-            if [ 1 -eq $resumeFlag ]; then
-                restartLine=$(\echo $line |grep $XDDCP_RESTART_DELIM)
-                if [ ! -z "$restartLine" ]; then
-                    resumeOffset=$(/bin/echo $restartLine |cut -d ' ' -f 3 |rev) &> ${XDDCP_DEV_NULL}
-	            # If the restart value is non-numeric, just set it to 0
-		    echo "$resumeOffset" |egrep "^[0-9]+$" &> ${XDDCP_DEV_NULL}
-		    if [ 0 -ne $? ]; then
-		        resumeOffset=0
-		    fi
-                else
-                    echo "Remote Output: $line"
-                fi
+            restartLine=$(\echo $line |grep $XDDCP_RESTART_DELIM)
+            if [ ! -z "$restartLine" ]; then
+                resumeOffset=$(/bin/echo $restartLine |cut -d ' ' -f 3 |rev) &> ${XDDCP_DEV_NULL}
+	        # If the restart value is non-numeric, just set it to 0
+		echo "$resumeOffset" |egrep "^[0-9]+$" &> ${XDDCP_DEV_NULL}
+		if [ 0 -ne $? ]; then
+		    resumeOffset=0
+		fi
+
+                # Have to break the loop here, because the fifo will
+                # not close until the XDD process is completed, which
+                # requires the source side to go next
+                break
             else
                 echo "Remote Output: $line"
             fi
