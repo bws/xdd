@@ -29,21 +29,19 @@ echo "Beginning File List with Restart Test 1 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/xddcp-F-a-n
 rm -rf $test_dir
 ssh -q $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp-F-a-n"
-mkdir -p $test_dir
 
 #
 # Create the source directories
 #
-mkdir -p $test_dir/foo1/foo2/foo3
-mkdir -p $test_dir/bar1/bar2/bar3
-mkdir -p $test_dir/baz1/baz2/baz3/baz4
+mkdir -p $test_dir/data/foo1/foo2/foo3
+mkdir -p $test_dir/data/bar1/bar2/bar3
+mkdir -p $test_dir/data/baz1/baz2/baz3/baz4
 
 #
 # Create the files
 #
-targets=( $test_dir/t1 $test_dir/t2  $test_dir/foo1/t3  $test_dir/foo1/t4 $test_dir/foo1/foo2/t5 $test_dir/foo1/foo2/t6 $test_dir/foo1/foo2/foo3/t7 $test_dir/bar1/bar2/bar3/t8 )
+targets=( $test_dir/data/t1 $test_dir/data/t2  $test_dir/data/foo1/t3  $test_dir/data/foo1/t4 $test_dir/data/foo1/foo2/t5 $test_dir/data/foo1/foo2/t6 $test_dir/data/foo1/foo2/foo3/t7 $test_dir/data/bar1/bar2/bar3/t8 )
     $XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
-\date
 # Make them different/wierd sizes
 # Build file list
      file_list="${test_dir}/xddcp-F-a-n-file-list"
@@ -110,6 +108,7 @@ EOF
 # Perform a file list copy
 #
 rc=1
+cd $test_dir
 while [ 0 -ne $rc ]; do
 	# Perform a recursive copy. If not first pass, restarting
 	$XDDTEST_XDDCP_EXE $xddcp_opts -a -n 99 -F $file_list $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/xddcp-F-a-n

@@ -5,11 +5,11 @@
 #
 # Executables to use
 #
-XDDTEST_XDD_PATH=../bin
-XDDTEST_XDD_EXE=../bin/xdd
-XDDTEST_XDDCP_EXE=../contrib/xddcp
-XDDTEST_XDDFT_EXE=../contrib/xddft
-XDDTEST_TESTS_DIR=.
+XDDTEST_XDD_PATH=$HOME/workspace/xdd/bin
+XDDTEST_XDD_EXE=$HOME/workspace/xdd/bin/xdd
+XDDTEST_XDDCP_EXE=$HOME/workspace/xdd/contrib/xddcp
+XDDTEST_XDDFT_EXE=$HOME/workspace/xdd/contrib/xddft
+XDDTEST_TESTS_DIR=$HOME/workspace/xdd/tests
 
 #
 # Mounts to use for testing
@@ -27,5 +27,5 @@ XDDTEST_OUTPUT_DIR=./output
 # Hosts to use for E2E transfers
 #
 XDDTEST_USER=`whoami`
-XDDTEST_E2E_SOURCE=pod7
-XDDTEST_E2E_DEST=pod7
+XDDTEST_E2E_SOURCE=`hostname -s`
+XDDTEST_E2E_DEST=`hostname -s`
