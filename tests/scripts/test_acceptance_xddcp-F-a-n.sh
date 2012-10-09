@@ -27,20 +27,21 @@ fi
 # Perform pre-test 
 echo "Beginning File List with Restart Test 1 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/xddcp-F-a-n
+data_dir=$test_dir/data
 rm -rf $test_dir
 ssh -q $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp-F-a-n"
 
 #
 # Create the source directories
 #
-mkdir -p $test_dir/data/foo1/foo2/foo3
-mkdir -p $test_dir/data/bar1/bar2/bar3
-mkdir -p $test_dir/data/baz1/baz2/baz3/baz4
+mkdir -p $data_dir/foo1/foo2/foo3
+mkdir -p $data_dir/bar1/bar2/bar3
+mkdir -p $data_dir/baz1/baz2/baz3/baz4
 
 #
 # Create the files
 #
-targets=( $test_dir/data/t1 $test_dir/data/t2  $test_dir/data/foo1/t3  $test_dir/data/foo1/t4 $test_dir/data/foo1/foo2/t5 $test_dir/data/foo1/foo2/t6 $test_dir/data/foo1/foo2/foo3/t7 $test_dir/data/bar1/bar2/bar3/t8 )
+targets=( $data_dir/t1 $data_dir/t2  $data_dir/foo1/t3  $data_dir/foo1/t4 $data_dir/foo1/foo2/t5 $data_dir/foo1/foo2/t6 $data_dir/foo1/foo2/foo3/t7 $data_dir/bar1/bar2/bar3/t8 )
     $XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
 # Make them different/wierd sizes
 # Build file list
