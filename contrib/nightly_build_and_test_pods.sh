@@ -18,8 +18,8 @@ CRAY_RC=1
 #
 nightly_base_path=$(pwd)/build_tests
 xdd_repo_path=/ccs/proj/csc040/var/git/xdd.git
-source_mnt=/data/xfs/source
-dest_mnt=/data/xfs/dest
+source_mnt=/data/xfs/$USER/source
+dest_mnt=/data/xfs/$USER/dest
 
 build_dir=$nightly_base_path/build
 install_dir=$(pwd)
