@@ -1,6 +1,15 @@
 -----------------------
 XDD Release ChangeLog
 -----------------------
+XDD-7.0.0 RC23
+==============
+* XDD: Add NUMA node binding
+* XDD: Remove some out of range memory reads
+* XDD: Fix a bunch of nightly tests
+* XDDCP: Change multi-node spec format
+* XDDCP: Add numa-node selection to spec format
+* XDDCP: Add unit tests
+
 XDD-7.0.0 RC22-1
 ==============
 * XDDCP: Add multinic support
