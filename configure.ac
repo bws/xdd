@@ -22,7 +22,9 @@ dnl
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
-AC_INIT(XDD,7.0.0.rc23)
+AC_INIT(XDD, 7.0.0.rc24, bug@xdd.org)
+AC_CONFIG_HEADER([src/compat/config.h])
+
 
 dnl
 dnl Include useful macros
@@ -228,6 +230,11 @@ AC_SEARCH_LIBS([clock_gettime], [rt],
 
 AC_CHECK_FUNCS([sched_getcpu])
 AC_CHECK_FUNCS([sched_setscheduler])
+AC_CHECK_FUNCS([posix_memalign])
+
+dnl
+dnl Check for useful non-standard stuff
+AC_CHECK_FUNCS([valloc])
 
 dnl
 dnl Search for the NUMA function numa_node_to_cpus

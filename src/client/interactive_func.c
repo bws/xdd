@@ -462,11 +462,10 @@ xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
 
 	tep = &p->totp->tot_entry[0];
 
-	fprintf(fp,"Target %d has %d TOT Entries, queue depth of %d and a TOT Multiplier of %d\n",
+	fprintf(fp,"Target %d has %d TOT Entries, queue depth of %d\n",
 		p->my_target_number, 
 		p->totp->tot_entries, 
-		p->queue_depth, 
-		TOT_MULTIPLIER);
+		p->queue_depth);
 	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitQT,PostQT,UpdateQT,SemVal,Mutex State\n");
 	for (tot_offset = 0; tot_offset < p->totp->tot_entries; tot_offset++) {
 		tep = &p->totp->tot_entry[tot_offset];

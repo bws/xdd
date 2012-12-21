@@ -29,6 +29,8 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
+#include "config.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>

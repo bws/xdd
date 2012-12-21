@@ -32,6 +32,9 @@
 #define GLOBAL_DATA_H
 
 #include <sys/utsname.h>
+#include <sys/socket.h>
+#include <pthread.h>
+#include "barrier.h"
 
 // Bit field definitions for the xdd_global_options - The "GO_XXXX" definitions are specifically for the Global Options 
 

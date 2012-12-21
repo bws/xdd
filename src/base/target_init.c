@@ -133,7 +133,14 @@ xdd_target_init(ptds_t *p) {
 	// Initialize the barriers and mutex
 	status = xdd_target_init_barriers(p);
 	if (status) 
-		return(-1);
+	    return(-1);
+	
+	// Initialize the Target Offset Table
+	status = tot_init(&(p->totp), p->queue_depth, p->numreqs);
+	if (status) {
+	    return(-1);
+	}
+	
 
 	// Special setup for an End-to-End operation
 	if (p->target_options & TO_ENDTOEND) {
@@ -172,10 +179,8 @@ xdd_target_init(ptds_t *p) {
  */
 int32_t
 xdd_target_init_barriers(ptds_t *p) {
-	int32_t		status;								// Status of subroutine calls
-	char		tmpname[XDD_BARRIER_NAME_LENGTH];	// Used to create unique names for the barriers
-	int			tot_size;							// Size in bytes of the Target Offset Table
-	int			i;
+    int32_t		status;								// Status of subroutine calls
+    char		tmpname[XDD_BARRIER_NAME_LENGTH];	// Used to create unique names for the barriers
 
 
 	// The following initialization calls are all done with accumulated status for ease of coding.
@@ -227,39 +232,6 @@ xdd_target_init_barriers(ptds_t *p) {
 		fflush(xgp->errout);
 		return(-1);
 	}
-
-	// Initialize the Target Offset Table and associated semaphores
-	tot_size =  sizeof(tot_t) + (TOT_MULTIPLIER * p->queue_depth * sizeof(tot_entry_t));
-#if (LINUX || SOLARIS || AIX || DARWIN)
-	p->totp = (struct tot *)valloc(tot_size);
-#else
-	p->totp = (struct tot *)malloc(tot_size);
-#endif  
-	if (p->totp == 0) {
-		fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot allocate %d bytes of memory for the Target Offset Table\n",
-			xgp->progname,p->my_target_number, tot_size);
-		perror("Reason");
-		return(-1);
-	}
-	p->totp->tot_entries = TOT_MULTIPLIER * p->queue_depth;
-	// Initialize all the semaphores in the ToT
-	for (i = 0; i < p->totp->tot_entries; i++) {
-	    status = pthread_cond_init(&p->totp->tot_entry[i].tot_condition, 0);
-		//status = sem_init(&p->totp->tot_entry[i].tot_sem, 0, 0);
-		// The "tot_mutex" is used by the QThreads when updating information in the TOT Entry
-		status += pthread_mutex_init(&p->totp->tot_entry[i].tot_mutex, 0);
-		p->totp->tot_entry[i].is_released = 0;
-		if (status) {
-			fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot initialize semaphore/mutex %d in Target Offset Table.\n",
-				xgp->progname, 
-				p->my_target_number,i);
-			fflush(xgp->errout);
-			return(-1);
-		}
-		p->totp->tot_entry[i].tot_op_number = -1;
-		p->totp->tot_entry[i].tot_byte_location = -1;
-		p->totp->tot_entry[i].tot_io_size = 0;
-	} // End of FOR loop that inits the semaphores in the ToT
 
 	return(0);
 } // End of xdd_target_init_barriers()

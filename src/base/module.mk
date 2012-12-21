@@ -19,6 +19,7 @@ BASE_SRC := $(DIR)/heartbeat.c \
 	$(DIR)/schedule.c \
 	$(DIR)/target_cleanup.c \
 	$(DIR)/target_init.c \
+	$(DIR)/target_offset_table.c \
 	$(DIR)/target_open.c \
 	$(DIR)/target_pass.c \
 	$(DIR)/target_pass_e2e_specific.c \

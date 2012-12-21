@@ -31,6 +31,7 @@
 /*
  * This file contains the subroutines that support the Target threads.
  */
+#include <inttypes.h>
 #include "xdd.h"
 
 
@@ -326,9 +327,6 @@ xdd_qthread_update_local_counters(ptds_t *qp) {
 void
 xdd_qthread_update_target_counters(ptds_t *qp) {
 	ptds_t	*p;			// Pointer to the Tartget's PTDS
-	int32_t		tot_offset;		// Offset into the TOT
-	tot_entry_t	*tep;			// Pointer to the TOT entry to use
-
 
 	// Get the pointer to the Target's PTDS
 	p = qp->target_ptds;
@@ -389,42 +387,15 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	// Update the TOT entry for this last I/O
 	// Since the TOT is a resource owned by the Target Thread and shared by the QThreads
 	// it will be updated here.
-	// Calculate the TOT Offset
-	tot_offset = (qp->target_op_number % p->totp->tot_entries);
-	// Get a pointer to the correct TOT Entry
-	tep = &p->totp->tot_entry[tot_offset];
-	// LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK LOCK
-	// Lock this entry 
-	qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
-	pthread_mutex_lock(&tep->tot_mutex);
-	qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
-	// Record the update time, byte_location, and io_size for this I/O
-	if ((p->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) &&  
-		(tep->tot_op_number >= qp->target_op_number)) { // This means there is a real collision
-		fprintf(xgp->errout, "%s: qthread_io: Target %d QThread %d: INTERNAL ERROR: TOT Collision at entry %d, op number %lld, byte location is %lld [block %lld], my current op number is %lld,  my byte location is %lld [block %lld] last updated by qthread %d\n",
-			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number,
-			tot_offset,
-			(long long int)tep->tot_op_number,
-			(long long int)tep->tot_byte_location,
-			(long long int)(tep->tot_byte_location / (long long int)(p->iosize)),
-			(long long)qp->target_op_number,
-			(long long)qp->my_current_byte_location,
-			(long long int)(qp->my_current_byte_location / (long long int)(p->iosize)),
-			tep->tot_update_qthread_number);
-	}  else { // Only update if there was no collision or if there is no ordering in which case collisons do not matter
-		nclk_now(&tep->tot_update_ts);
-		tep->tot_update_qthread_number = qp->my_qthread_number;
-		tep->tot_op_number = qp->target_op_number;
-		tep->tot_byte_location = qp->my_current_byte_location;
-		tep->tot_io_size = qp->my_current_io_size;
+	if (p->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) {
+	    qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
+	    tot_update(p->totp,
+		       qp->target_op_number,
+		       qp->my_qthread_number,
+		       qp->my_current_byte_location,
+		       qp->my_current_io_size);
+	    qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
 	}
-	// Unlock this entry 
-	pthread_mutex_unlock(&tep->tot_mutex);
-	// UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED UNLOCKED
-
-
 } // End of xdd_qthread_update_target_counters()
 
 /*

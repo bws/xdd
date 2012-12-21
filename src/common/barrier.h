@@ -28,6 +28,10 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef BARRIER_H
+#define BARRIER_H
+#include <pthread.h>
+#include "xint_barrier.h"
 
 // Barrier Naming Convention: 
 //    (1) The first part of the name is the barrier "owner" or thread that initializes the barrier
@@ -139,7 +143,6 @@
 // Finally, an occupant_type of MAIN will have an occupant_name of "main".
 //
 
-#include <pthread.h>
 
 struct xdd_occupant {
 	struct		xdd_occupant	*prev_occupant;	// Previous occupant on the chain
@@ -182,6 +185,7 @@ struct xdd_barrier {
 };
 typedef struct xdd_barrier xdd_barrier_t;
 
+#endif
 /*
  * Local variables:
  *  indent-tabs-mode: t
