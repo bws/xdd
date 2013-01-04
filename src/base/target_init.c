@@ -136,7 +136,7 @@ xdd_target_init(ptds_t *p) {
 	    return(-1);
 	
 	// Initialize the Target Offset Table
-	status = tot_init(&(p->totp), p->queue_depth, p->numreqs);
+	status = tot_init(&(p->totp), p->queue_depth, p->target_ops);
 	if (status) {
 	    return(-1);
 	}
