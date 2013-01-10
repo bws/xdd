@@ -41,135 +41,137 @@
  */
 void
 xdd_datapattern_buffer_init(ptds_t *p) {
-	int32_t i;
-	int32_t pattern_length; // Length of the pattern
-	int32_t remaining_length; // Length of the space in the pattern buffer
-	unsigned char    *ucp;          // Pointer to an unsigned char type, duhhhh
-	uint32_t *lp;			// pointer to a pattern
-	xdd_data_pattern_t	*dpp;
+    int32_t i;
+    int32_t pattern_length; // Length of the pattern
+    int32_t remaining_length; // Length of the space in the pattern buffer
+    unsigned char    *ucp;          // Pointer to an unsigned char type, duhhhh
+    uint32_t *lp;			// pointer to a pattern
+    xdd_data_pattern_t	*dpp;
 
 
-	dpp = p->dpp;
-	if (dpp->data_pattern_options & DP_RANDOM_PATTERN) { // A nice random pattern
-			lp = (uint32_t *)p->rwbuf;
-			xgp->random_initialized = 0;
-			xgp->random_init_seed = 72058; // Backward compatibility with older xdd versions
-            /* Set each four-byte field in the I/O buffer to a random integer */
-			for(i = 0; i < (int32_t)(p->iosize / sizeof(int32_t)); i++ ) {
-				*lp=xdd_random_int();
-				lp++;
-			}
-    } else if (dpp->data_pattern_options & DP_RANDOM_BY_TARGET_PATTERN) { // A nice random pattern, unique by target number
-			lp = (uint32_t *)p->rwbuf;
-			xgp->random_initialized = 0;
-			xgp->random_init_seed = (p->my_target_number+1); 
-            /* Set each four-byte field in the I/O buffer to a random integer */
-			for(i = 0; i < (int32_t)(p->iosize / sizeof(int32_t)); i++ ) {
-				*lp=xdd_random_int();
-				lp++;
-			}
-	} else if ((dpp->data_pattern_options & DP_ASCII_PATTERN) ||
-	           (dpp->data_pattern_options & DP_HEX_PATTERN)) { // put the pattern that is in the pattern buffer into the io buffer
-			// Clear out the buffer before putting in the string so there are no strange characters in it.
-			memset(p->rwbuf,'\0',p->iosize);
-			if (dpp->data_pattern_options & DP_REPLICATE_PATTERN) { // Replicate the pattern throughout the buffer
-				ucp = (unsigned char *)p->rwbuf;
-				remaining_length = p->iosize;
-				while (remaining_length) { 
-					if (dpp->data_pattern_length < remaining_length) 
-						pattern_length = dpp->data_pattern_length;
-					else pattern_length = remaining_length;
-
-					memcpy(ucp,dpp->data_pattern,pattern_length);
-					remaining_length -= pattern_length;
-					ucp += pattern_length;
-				}
-			} else { // Just put the pattern at the beginning of the buffer once 
-				if (dpp->data_pattern_length < p->iosize) 
-					 pattern_length = dpp->data_pattern_length;
-				else pattern_length = p->iosize;
-				memcpy(p->rwbuf,dpp->data_pattern,pattern_length);
-			}
-	} else if (dpp->data_pattern_options & DP_LFPAT_PATTERN) {
-		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(lfpat);
-                fprintf(stderr,"LFPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(p->rwbuf,0x00,p->iosize);
-		remaining_length = p->iosize;
-		ucp = (unsigned char *)p->rwbuf;
-		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
-			else pattern_length = remaining_length;
-			memcpy(ucp,lfpat,pattern_length);
-			remaining_length -= pattern_length;
-			ucp += pattern_length;
-		}
-	} else if (dpp->data_pattern_options & DP_LTPAT_PATTERN) {
-		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(ltpat);
-                fprintf(stderr,"LTPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(p->rwbuf,0x00,p->iosize);
-		remaining_length = p->iosize;
-		ucp = (unsigned char *)p->rwbuf;
-		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
-			else pattern_length = remaining_length;
-			memcpy(ucp,ltpat,pattern_length);
-			remaining_length -= pattern_length;
-			ucp += pattern_length;
-		}
-	} else if (dpp->data_pattern_options & DP_CJTPAT_PATTERN) {
-		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(cjtpat);
-                fprintf(stderr,"CJTPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(p->rwbuf,0x00,p->iosize);
-		remaining_length = p->iosize;
-		ucp = (unsigned char *)p->rwbuf;
-		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
-			else pattern_length = remaining_length;
-			memcpy(ucp,cjtpat,pattern_length);
-			remaining_length -= pattern_length;
-			ucp += pattern_length;
-		}
-	} else if (dpp->data_pattern_options & DP_CRPAT_PATTERN) {
-		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(crpat);
-                fprintf(stderr,"CRPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(p->rwbuf,0x00,p->iosize);
-		remaining_length = p->iosize;
-		ucp = (unsigned char *)p->rwbuf;
-		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
-			else pattern_length = remaining_length;
-			memcpy(ucp,crpat,pattern_length);
-			remaining_length -= pattern_length;
-			ucp += pattern_length;
-		}
-	} else if (dpp->data_pattern_options & DP_CSPAT_PATTERN) {
-		memset(p->rwbuf,0x00,p->iosize);
-                dpp->data_pattern_length = sizeof(cspat);
-                fprintf(stderr,"CSPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(p->rwbuf,0x00,p->iosize);
-		remaining_length = p->iosize;
-		ucp = (unsigned char *)p->rwbuf;
-		while (remaining_length) { 
-			if (dpp->data_pattern_length < remaining_length) 
-				pattern_length = dpp->data_pattern_length;
-			else pattern_length = remaining_length;
-			memcpy(ucp,cspat,pattern_length);
-			remaining_length -= pattern_length;
-			ucp += pattern_length;
-		}
-    } else { // Otherwise set the entire buffer to the character in "dpp->data_pattern"
-                memset(p->rwbuf,*(dpp->data_pattern),p->iosize);
+    dpp = p->dpp;
+    if (dpp->data_pattern_options & DP_RANDOM_PATTERN) { // A nice random pattern
+	lp = (uint32_t *)p->rwbuf;
+	xgp->random_initialized = 0;
+	xgp->random_init_seed = 72058; // Backward compatibility with older xdd versions
+	/* Set each four-byte field in the I/O buffer to a random integer */
+	for(i = 0; i < (int32_t)(p->iosize / sizeof(int32_t)); i++ ) {
+	    *lp=xdd_random_int();
+	    lp++;
 	}
+    }
+    else if (dpp->data_pattern_options & DP_RANDOM_BY_TARGET_PATTERN) { // A nice random pattern, unique by target number
+	lp = (uint32_t *)p->rwbuf;
+	xgp->random_initialized = 0;
+	xgp->random_init_seed = (p->my_target_number+1); 
+	/* Set each four-byte field in the I/O buffer to a random integer */
+	for(i = 0; i < (int32_t)(p->iosize / sizeof(int32_t)); i++ ) {
+	    *lp=xdd_random_int();
+	    lp++;
+	}
+    }
+    else if ((dpp->data_pattern_options & DP_ASCII_PATTERN) ||
+	     (dpp->data_pattern_options & DP_HEX_PATTERN)) { // put the pattern that is in the pattern buffer into the io buffer
+	// Clear out the buffer before putting in the string so there are no strange characters in it.
+	memset(p->rwbuf,'\0',p->iosize);
+	if (dpp->data_pattern_options & DP_REPLICATE_PATTERN) { // Replicate the pattern throughout the buffer
+	    ucp = (unsigned char *)p->rwbuf;
+	    remaining_length = p->iosize;
+	    while (remaining_length) { 
+		if (dpp->data_pattern_length < remaining_length) 
+		    pattern_length = dpp->data_pattern_length;
+		else pattern_length = remaining_length;
 		
-	return;
+		memcpy(ucp,dpp->data_pattern,pattern_length);
+		remaining_length -= pattern_length;
+		ucp += pattern_length;
+	    }
+	} else { // Just put the pattern at the beginning of the buffer once 
+	    if (dpp->data_pattern_length < p->iosize) 
+		pattern_length = dpp->data_pattern_length;
+	    else pattern_length = p->iosize;
+	    memcpy(p->rwbuf,dpp->data_pattern,pattern_length);
+	}
+    } else if (dpp->data_pattern_options & DP_LFPAT_PATTERN) {
+	memset(p->rwbuf,0x00,p->iosize);
+	dpp->data_pattern_length = sizeof(lfpat);
+	fprintf(stderr,"LFPAT length is %d\n", (int)dpp->data_pattern_length);
+	memset(p->rwbuf,0x00,p->iosize);
+	remaining_length = p->iosize;
+	ucp = (unsigned char *)p->rwbuf;
+	while (remaining_length) { 
+	    if (dpp->data_pattern_length < remaining_length) 
+		pattern_length = dpp->data_pattern_length;
+	    else pattern_length = remaining_length;
+	    memcpy(ucp,lfpat,pattern_length);
+	    remaining_length -= pattern_length;
+	    ucp += pattern_length;
+	}
+    } else if (dpp->data_pattern_options & DP_LTPAT_PATTERN) {
+	memset(p->rwbuf,0x00,p->iosize);
+	dpp->data_pattern_length = sizeof(ltpat);
+	fprintf(stderr,"LTPAT length is %d\n", (int)dpp->data_pattern_length);
+	memset(p->rwbuf,0x00,p->iosize);
+	remaining_length = p->iosize;
+	ucp = (unsigned char *)p->rwbuf;
+	while (remaining_length) { 
+	    if (dpp->data_pattern_length < remaining_length) 
+		pattern_length = dpp->data_pattern_length;
+	    else pattern_length = remaining_length;
+	    memcpy(ucp,ltpat,pattern_length);
+	    remaining_length -= pattern_length;
+	    ucp += pattern_length;
+	}
+    } else if (dpp->data_pattern_options & DP_CJTPAT_PATTERN) {
+	memset(p->rwbuf,0x00,p->iosize);
+	dpp->data_pattern_length = sizeof(cjtpat);
+	fprintf(stderr,"CJTPAT length is %d\n", (int)dpp->data_pattern_length);
+	memset(p->rwbuf,0x00,p->iosize);
+	remaining_length = p->iosize;
+	ucp = (unsigned char *)p->rwbuf;
+	while (remaining_length) { 
+	    if (dpp->data_pattern_length < remaining_length) 
+		pattern_length = dpp->data_pattern_length;
+	    else pattern_length = remaining_length;
+	    memcpy(ucp,cjtpat,pattern_length);
+	    remaining_length -= pattern_length;
+	    ucp += pattern_length;
+	}
+    } else if (dpp->data_pattern_options & DP_CRPAT_PATTERN) {
+	memset(p->rwbuf,0x00,p->iosize);
+	dpp->data_pattern_length = sizeof(crpat);
+	fprintf(stderr,"CRPAT length is %d\n", (int)dpp->data_pattern_length);
+	memset(p->rwbuf,0x00,p->iosize);
+	remaining_length = p->iosize;
+	ucp = (unsigned char *)p->rwbuf;
+	while (remaining_length) { 
+	    if (dpp->data_pattern_length < remaining_length) 
+		pattern_length = dpp->data_pattern_length;
+	    else pattern_length = remaining_length;
+	    memcpy(ucp,crpat,pattern_length);
+	    remaining_length -= pattern_length;
+	    ucp += pattern_length;
+	}
+    } else if (dpp->data_pattern_options & DP_CSPAT_PATTERN) {
+	memset(p->rwbuf,0x00,p->iosize);
+	dpp->data_pattern_length = sizeof(cspat);
+	fprintf(stderr,"CSPAT length is %d\n", (int)dpp->data_pattern_length);
+	memset(p->rwbuf,0x00,p->iosize);
+	remaining_length = p->iosize;
+	ucp = (unsigned char *)p->rwbuf;
+	while (remaining_length) { 
+	    if (dpp->data_pattern_length < remaining_length) 
+		pattern_length = dpp->data_pattern_length;
+	    else pattern_length = remaining_length;
+	    memcpy(ucp,cspat,pattern_length);
+	    remaining_length -= pattern_length;
+	    ucp += pattern_length;
+	}
+    } else { // Otherwise set the entire buffer to the character in "dpp->data_pattern"
+	memset(p->rwbuf,*(dpp->data_pattern),p->iosize);
+    }
+		
+    return;
 } // end of xdd_datapattern_buffer_init()
 /*----------------------------------------------------------------------------*/
 /* xdd_datapattern_fill() - This subroutine will fill the buffer with a 

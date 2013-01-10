@@ -33,6 +33,8 @@
  * functions within xdd.
  */
 #include "xdd.h"
+#include <stdlib.h>
+
 /*----------------------------------------------------------------------------*/
 char *
 xdd_getnexttoken(char *tp) {
@@ -87,41 +89,46 @@ xdd_tokenize(char *cp) {
  */
 int
 xdd_random_int(void) {
-#ifdef  LINUX
-
-
-	if (xgp->random_initialized == 0) {
-		initstate(xgp->random_init_seed, xgp->random_init_state, 256);
-		xgp->random_initialized = 1;
-	}
+    
+#ifdef HAVE_INITSTATE
+    if (xgp->random_initialized == 0) {
+	initstate(xgp->random_init_seed, xgp->random_init_state, 256);
+	xgp->random_initialized = 1;
+    }
 #endif
-#ifdef WIN32
-	return(rand());
-#else
-	return(random());
+
+#ifdef HAVE_RANDOM
+    return random();
+#elif HAVE_RAND
+    return rand();
 #endif
 } /* end of xdd_random_int() */
 /*----------------------------------------------------------------------------*/
 /* xdd_random_float() - returns a random floating point number in double.
  */
-double
-xdd_random_float(void) {
-	double rm;
-	double recip;
-	double rval;
-#ifdef WIN32
-	return((double)(1.0 / RAND_MAX) * rand());
-#elif LINUX
-	rm = RAND_MAX;
-#else
-	rm = (2^31)-1;
+double xdd_random_float(void) {
+    double rm;
+    double recip;
+    double rval;
+    
+#ifdef HAVE_INITSTATE
+    if (xgp->random_initialized == 0) {
+	initstate(xgp->random_init_seed, xgp->random_init_state, 256);
+	xgp->random_initialized = 1;
+    }
 #endif
-	recip = 1.0 / rm;
-	rval = random();
-	rval = recip * rval;
-	if (rval > 1.0)
-		rval = 1.0/rval;
-	return(rval);
+
+#ifdef HAVE_RANDOM
+    rm = RAND_MAX;
+    recip = 1.0 / rm;
+    rval = random();
+    rval = recip * rval;
+    if (rval > 1.0)
+	rval = 1.0/rval;
+#elif HAVE_RAND
+    rval = ((double)(1.0 / RAND_MAX) * rand());
+#endif
+    return(rval);
 } /* end of xdd_random_float() */
  
 /*

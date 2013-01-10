@@ -4158,6 +4158,31 @@ _ACEOF
 fi
 done
 
+for ac_func in random rand
+do :
+  as_ac_var=`$as_echo "ac_cv_func_$ac_func" | $as_tr_sh`
+ac_fn_c_check_func "$LINENO" "$ac_func" "$as_ac_var"
+if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
+  cat >>confdefs.h <<_ACEOF
+#define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
+_ACEOF
+ break
+else
+  as_fn_error $? "Neither random() nor rand() is defined." "$LINENO" 5
+fi
+done
+
+for ac_func in initstate
+do :
+  ac_fn_c_check_func "$LINENO" "initstate" "ac_cv_func_initstate"
+if test "x$ac_cv_func_initstate" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_INITSTATE 1
+_ACEOF
+
+fi
+done
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing clock_gettime" >&5
 $as_echo_n "checking for library containing clock_gettime... " >&6; }

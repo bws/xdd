@@ -174,7 +174,7 @@ AC_CHECK_HEADERS([utmpx.h], [], [])
 AC_CHECK_HEADERS([numa.h], [], [])
 
 dnl
-dnl Check for C library function
+dnl Check for C standard library 
 dnl
 AC_TRY_LINK([#include <stdlib.h>],
 	    [atoi("0");],
@@ -220,6 +220,9 @@ dnl
 dnl Checks for library functions.
 dnl
 AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNCS([random rand], break, 
+               AC_MSG_ERROR([Neither random() nor rand() is defined.]))
+AC_CHECK_FUNCS([initstate])
 
 dnl
 dnl Checks for POSIX functions
