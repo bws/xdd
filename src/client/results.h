@@ -28,6 +28,9 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef RESULTS_H
+#define RESULTS_H
+
 /* results structure for multiple processes */
 // Results Flags definitions
 #define RESULTS_HEADER_TAG	0x0000000000000001		// Display the Header Tag
@@ -201,3 +204,13 @@ void xdd_results_fmt_e2e_last_write_time(results_t *rp);
 void xdd_results_fmt_delimiter(results_t *rp);
 void xdd_results_fmt_text(results_t *rp);
 
+#endif
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

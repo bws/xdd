@@ -210,9 +210,12 @@ xdd_process_pass_results(void) {
 
     // Next, display pass results for each Target
     for (target_number=0; target_number<xgp->number_of_targets; target_number++) {
-        p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+        /* Get the ptds for this target */
+        p = xgp->ptdsp[target_number]; 
+        
         // Init the Target Average Results struct
         tarp = xgp->target_average_resultsp[target_number];
+        memset(tarp, 0, sizeof(*tarp));
         tarp->format_string = xgp->format_string;
         tarp->what = "TARGET_AVERAGE";
         if (p->my_current_pass_number == 1) {
@@ -235,26 +238,26 @@ xdd_process_pass_results(void) {
         tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
         xdd_combine_results(tarp, trp);
 
-		// Display the Pass Results for this target
-		trp->format_string = xgp->format_string;
-		trp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_PASS);
-		trp->what = "TARGET_PASS   ";
-		trp->output = xgp->output;
-		trp->delimiter = ' ';
-		if (xgp->global_options & GO_VERBOSE) {
-			xdd_results_display(trp);
-			if (xgp->csvoutput) { // Display to CSV file if requested
-				trp->output = xgp->csvoutput;
-				trp->delimiter = ',';
-				xdd_results_display(trp);
-			}
-		}
-			
-	} /* end of FOR loop that looks at all targets */
+        // Display the Pass Results for this target
+        trp->format_string = xgp->format_string;
+        trp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_PASS);
+        trp->what = "TARGET_PASS   ";
+        trp->output = xgp->output;
+        trp->delimiter = ' ';
+        if (xgp->global_options & GO_VERBOSE) {
+            xdd_results_display(trp);
+            if (xgp->csvoutput) { // Display to CSV file if requested
+                trp->output = xgp->csvoutput;
+                trp->delimiter = ',';
+                xdd_results_display(trp);
+            }
+        }
+	
+    } /* end of FOR loop that looks at all targets */
+    
+    xgp->heartbeat_holdoff = 0;
 
-	xgp->heartbeat_holdoff = 0;
-
-	return(0);
+    return(0);
 } // End of xdd_process_pass_results() 
 
 /*----------------------------------------------------------------------------*/
@@ -940,3 +943,12 @@ xdd_results_dump(results_t *rp, char *dumptype) {
 	return(0);
 }
 #endif 
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */
