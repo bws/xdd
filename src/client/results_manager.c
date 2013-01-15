@@ -198,40 +198,42 @@ xdd_results_header_display(results_t *tmprp) {
 //
 void *
 xdd_process_pass_results(void) {
-	int			target_number;
-	ptds_t		*p;		// PTDS pointer of the Target PTDS
-	results_t	*tarp;	// Pointer to the Target Average results structure
-	results_t	*trp;	// Pointer to the Temporary Target Pass results
-	results_t	targetpass_results; // Temporary for target pass results
+    int			target_number;
+    ptds_t		*p;		// PTDS pointer of the Target PTDS
+    results_t	*tarp;	// Pointer to the Target Average results structure
+    results_t	*trp;	// Pointer to the Temporary Target Pass results
+    results_t	targetpass_results = {0}; // Temporary for target pass results
 
-	xgp->heartbeat_holdoff = 1;
+    xgp->heartbeat_holdoff = 1;
 
-	trp = &targetpass_results;
+    trp = &targetpass_results;
 
-	// Next, display pass results for each Target
-	for (target_number=0; target_number<xgp->number_of_targets; target_number++) {
-		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
-		// Init the Target Average Results struct
-		tarp = xgp->target_average_resultsp[target_number];
-		tarp->format_string = xgp->format_string;
-		tarp->what = "TARGET_AVERAGE";
-		if (p->my_current_pass_number == 1) {
-			tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
-			tarp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
-			tarp->shortest_op_time = (double)DOUBLE_MAX;
-			tarp->shortest_read_op_time = (double)DOUBLE_MAX;
-			tarp->shortest_write_op_time = (double)DOUBLE_MAX;
-		}
+    // Next, display pass results for each Target
+    for (target_number=0; target_number<xgp->number_of_targets; target_number++) {
+        p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+        // Init the Target Average Results struct
+        tarp = xgp->target_average_resultsp[target_number];
+        tarp->format_string = xgp->format_string;
+        tarp->what = "TARGET_AVERAGE";
+        if (p->my_current_pass_number == 1) {
+            tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
+            tarp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
+            tarp->shortest_op_time = (double)DOUBLE_MAX;
+            tarp->shortest_read_op_time = (double)DOUBLE_MAX;
+            tarp->shortest_write_op_time = (double)DOUBLE_MAX;
+        }
 		
-		// Init the Target Pass Results struct
-		trp = &targetpass_results;
+        // Init the Target Pass Results struct
+        trp = &targetpass_results;
 
-		// Get the results from this Target's PTDS and stuff them into a results struct for display
-		xdd_extract_pass_results(trp, p);
+        // Get the results from this Target's PTDS and
+        // stuff them into a results struct for display
+        xdd_extract_pass_results(trp, p);
 
-		// Combine the pass results from this target with its AVERAGE results from all previous passes
-		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
-		xdd_combine_results(tarp, trp);
+        // Combine the pass results from this target with its AVERAGE results
+        // from all previous passes
+        tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
+        xdd_combine_results(tarp, trp);
 
 		// Display the Pass Results for this target
 		trp->format_string = xgp->format_string;
