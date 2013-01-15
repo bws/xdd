@@ -124,8 +124,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	// The following uses strictly TCP
-	if (!qp->e2e_wait_1st_msg) 
-		nclk_now(&e2e_wait_1st_msg_start_time);
+	nclk_now(&e2e_wait_1st_msg_start_time);
 
 	maxmit = MAXMIT_TCP;
 	headersize = sizeof(xdd_e2e_header_t);
@@ -134,7 +133,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	qp->e2e_nd = getdtablehi();
 #endif
 
-	status = select(qp->e2e_nd, &qp->e2e_readset, NULL, NULL, NULL);
+	select(qp->e2e_nd, &qp->e2e_readset, NULL, NULL, NULL);
 	/* Handle all the descriptors that are ready */
 	/* There are two type of sockets: the one sd socket and multiple 
 	 * client sockets. We first check to see if the sd is in the readset.
@@ -174,7 +173,6 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 				p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
 			rcvd_so_far = 0;
                         recvcalls = 0;
-			recvsize = 0;
 			nclk_now(&qp->my_current_net_start_time);
 			while (rcvd_so_far < qp->e2e_iosize) {
 				recvsize = (qp->e2e_iosize-rcvd_so_far) > maxmit ? maxmit : (qp->e2e_iosize-rcvd_so_far);
