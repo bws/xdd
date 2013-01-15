@@ -278,11 +278,11 @@ xdd_save_seek_list(ptds_t *p) {
 	/* Collect and print any requested histogram information */
 	if (sp->seek_options & SO_SEEK_SEEKHIST) { /* This section will create a seek location histogram */
 		/* init the buckets and calculate the divisor */
-		buckets = malloc(sp->seek_NumSeekHistBuckets * sizeof(seek_t));
+		buckets = malloc(sp->seek_NumSeekHistBuckets * sizeof(uint64_t));
 		if (buckets == NULL) {
 			sprintf(errormessage,"#%s: Cannot allocate %lu bytes for seek histogram buckets\n", 
 				xgp->progname, 
-				(unsigned int)sp->seek_NumSeekHistBuckets*sizeof(seek_t));
+				(unsigned int)sp->seek_NumSeekHistBuckets*sizeof(uint64_t));
 			fputs(errormessage,xgp->errout);
 			fputs(errormessage,tmp);
 		} else {
@@ -308,11 +308,11 @@ xdd_save_seek_list(ptds_t *p) {
 		}
 	}
 	if (sp->seek_options & SO_SEEK_DISTHIST) { /* This section will create a seek distance histogram */
-		buckets = malloc(sp->seek_NumDistHistBuckets * sizeof(seek_t));
+		buckets = malloc(sp->seek_NumDistHistBuckets * sizeof(uint64_t));
 		if (buckets == NULL) {
 			sprintf(errormessage,"#%s: Cannot allocate %lu bytes for distance histogram buckets\n",
 				xgp->progname, 
-				(unsigned int)sp->seek_NumDistHistBuckets*sizeof(seek_t));
+				(unsigned int)sp->seek_NumDistHistBuckets*sizeof(uint64_t));
 			fputs(errormessage,xgp->errout);
 			fputs(errormessage,tmp);
 		} else {

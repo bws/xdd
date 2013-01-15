@@ -455,12 +455,10 @@ xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
 	char		*tot_mutex_state;
 	int32_t		tot_offset; // Offset into TOT
 	tot_entry_t	*tep;		// Pointer to a TOT Entry
-	int			sem_val;
+	int			sem_val = 0;
 	int			status;
 	int			save_errno;
 	int64_t		tot_block;
-
-	tep = &p->totp->tot_entry[0];
 
 	fprintf(fp,"Target %d has %d TOT Entries, queue depth of %d\n",
 		p->my_target_number, 
@@ -470,13 +468,13 @@ xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
 	for (tot_offset = 0; tot_offset < p->totp->tot_entries; tot_offset++) {
 		tep = &p->totp->tot_entry[tot_offset];
 		//status = sem_getvalue(&tep->tot_sem, &sem_val);
-		if (status) {
-			save_errno = errno;
-			fprintf(fp,"Error getting semaphore value for tot_sem at offset %d in the TOT\n",tot_offset);
-			errno = save_errno;
-			perror("Reason");
-			sem_val = -1;
-		}
+		//if (status) {
+		//	save_errno = errno;
+		//	fprintf(fp,"Error getting semaphore value for tot_sem at offset %d in the TOT\n",tot_offset);
+		//	errno = save_errno;
+		//	perror("Reason");
+		//	sem_val = -1;
+		//}
 		status = pthread_mutex_trylock(&tep->tot_mutex);
 		if (status == 0) {
 			tot_mutex_state = "unlocked";

@@ -36,6 +36,10 @@ void parse_line (
   char *keyword;
   int64_t secs, nsecs, ts_enter, ts_exit, size_exit;
   static int64_t  sum_size_op, size_enter;
+
+  /* Perform some initialization that I have no idea if its correct */
+  secs = 0;
+  ts_exit = 0;
  
   if ( strlen(cmdline) == 0  || cmdline[0]=='#' ) return;
 

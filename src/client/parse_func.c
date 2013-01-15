@@ -342,17 +342,20 @@ xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags)
 		}
 		pattern = (unsigned char *)argv[args+2];
 		pattern_length = strlen((char *)pattern);
+		pattern_value = 0;
 		if (pattern_length <= 0) {
 			fprintf(xgp->errout, "%s: WARNING: 0-length hex data pattern specified - using 0x00 instead.\n",xgp->progname);
 			pattern = (unsigned char *)"\0";
 		}
-		pattern_value = malloc(((pattern_length+1)/2));
-		if (pattern_value == 0) {
+		else {
+		    pattern_value = malloc(((pattern_length+1)/2));
+		    if (pattern_value == 0) {
 			fprintf(xgp->errout, "%s: WARNING: cannot allocate %d bytes for hex data pattern - defaulting to no pattern\n",
 				xgp->progname,
 				(int)((pattern_length+1)/2));
+		    }
+		    memset(pattern_value,0,((pattern_length+1)/2));
 		}
-		memset(pattern_value,0,((pattern_length+1)/2));
 		// At this point "pattern" points to the ascii string of hex characters (0-9,a-f)
 		// and pattern_length will be set to the length of that string in bytes
 		// Now we call  xdd_atohex() to convert the ascii sting to a hex bunch of digits
@@ -784,14 +787,12 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 	args_index++;
 	strcpy(cmdline,argv[args_index]);
 	hostname = base_port = port_count = 0;
-	number_of_ports = 0;
-	base_port_number = 0;
 	
 	cp = cmdline;
 	sp = cp;
 	hostname = sp;
 	len = 0;
-	while(*cp) {     
+	while(cp && *cp) {     
 	    if (*cp == ':') {
 		// The hostname/address is everything up to this point
 		hostname = sp;
@@ -819,7 +820,7 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 	sp = cp;
 	base_port = sp;
 	len = 0;
-	while(*cp) {     
+	while(cp && *cp) {     
 	    if (*cp == ',') {
 		// The base_port number is everything up to this point
 		base_port = sp;
@@ -842,14 +843,15 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 	    cp++;
 	    len++;
 	}
-	if (*base_port == '\0')
+	
+	if (NULL == base_port || *base_port == '\0')
 	    base_port = 0; // Indicates that a base port was not specified
 	
 	// Lets get the number of ports if specified
 	sp = cp;
 	port_count = sp;
 	len = 0;
-	while(*cp) {
+	while(cp && *cp) {
 	    // Skip preceding whitespace
 	    if (isspace(*cp) && (0 == len)) {
 		cp++;
@@ -872,14 +874,14 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 	    cp++;
 	    len++;
 	}
-	if (*port_count == '\0')
+	if (NULL == port_count || *port_count == '\0')
 	    port_count = 0; // Indicates that port_count was not specified
 	
 	// Parse NUMA node if specified
 	sp = cp;
 	numa_node = sp;
 	len=0;
-	while (*cp) {
+	while (cp && *cp) {
 	    if (isspace(*cp)) {
 		    numa_node = sp;
 		    *cp = '\0';
@@ -889,7 +891,7 @@ xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags)
 	    cp++;
 	    len++;
 	}
-	if ('\0' == *numa_node)
+	if (NULL == numa_node || '\0' == *numa_node)
 	    numa_node = 0;
 	
 	///////////// Done parsing the address:base_port,port_count,numa_node
@@ -1593,53 +1595,55 @@ int
 xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 {
     int 		mt;				// Master Target number
-	int			st;				// Slave Target number
+    int			st;				// Slave Target number
     double 		tmpf;
     ptds_t 		*masterp;		// Pointer to the Master PTDS
-	ptds_t		*slavep;		// Pointer to the Slave PTDS
+    ptds_t		*slavep;		// Pointer to the Slave PTDS
     int 		retval;			// Return value at any give time
     int 		lsmode;			// Lockstep mode
     char 		*when;			// Indicates WHEN to do something
-	char		*what;			// Indicates WHAT to do when triggered
-	char		*lockstep_startup; // Whether or not to start or wait at beginning
-	char		*lockstep_completion; // What to do after completed all I/O
-	lockstep_t	*mlsp;			// Pointer to the Master Lock Step Struct
-	lockstep_t	*slsp;			// Pointer to the Slave Lock Step Struct
+    char		*what;			// Indicates WHAT to do when triggered
+    char		*lockstep_startup; // Whether or not to start or wait at beginning
+    char		*lockstep_completion; // What to do after completed all I/O
+    lockstep_t	*mlsp;			// Pointer to the Master Lock Step Struct
+    lockstep_t	*slsp;			// Pointer to the Slave Lock Step Struct
 
 
-	if ((strcmp(argv[0], "-lockstep") == 0) ||
-		(strcmp(argv[0], "-ls") == 0))
-		lsmode = TO_LOCKSTEP;
-	else lsmode = TO_LOCKSTEPOVERLAPPED;
+    if ((strcmp(argv[0], "-lockstep") == 0) ||
+	(strcmp(argv[0], "-ls") == 0))
+	lsmode = TO_LOCKSTEP;
+    else lsmode = TO_LOCKSTEPOVERLAPPED;
 
-	mt = atoi(argv[1]); /* T1 is the master target */
-	st = atoi(argv[2]); /* T2 is the slave target */
-	/* Sanity checks on the target numbers */
-	masterp = xdd_get_ptdsp(mt, argv[0]);
-	if (masterp == NULL) return(-1);
-	slavep = xdd_get_ptdsp(st, argv[0]);
-	if (slavep == NULL) return(-1);
-
-	// Make sure there is a Master Lockstep Structure 
+    mt = atoi(argv[1]); /* T1 is the master target */
+    st = atoi(argv[2]); /* T2 is the slave target */
+    /* Sanity checks on the target numbers */
+    masterp = xdd_get_ptdsp(mt, argv[0]);
+    if (masterp == NULL) return(-1);
+    slavep = xdd_get_ptdsp(st, argv[0]);
+    if (slavep == NULL) return(-1);
+    
+    // Make sure there is a Master Lockstep Structure 
+    if (masterp->lockstepp == 0) {
+	masterp->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
 	if (masterp->lockstepp == 0) {
-		masterp->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (masterp->lockstepp == 0) {
-			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Master lockstep structure\n",
-				xgp->progname, (int)sizeof(lockstep_t));
+	    fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Master lockstep structure\n",
+		    xgp->progname, (int)sizeof(lockstep_t));
             return(0);
-		}
-	} 
-	mlsp = masterp->lockstepp;
-	// Make sure there is a Slave Lockstep Structure 
+	}
+	memset(masterp->lockstepp, 0, sizeof(*masterp->lockstepp));
+    } 
+    mlsp = masterp->lockstepp;
+    // Make sure there is a Slave Lockstep Structure 
+    if (slavep->lockstepp == 0) {
+	slavep->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
 	if (slavep->lockstepp == 0) {
-		slavep->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (slavep->lockstepp == 0) {
-			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Slave lockstep structure\n",
-				xgp->progname, (int)sizeof(lockstep_t));
+	    fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Slave lockstep structure\n",
+		    xgp->progname, (int)sizeof(lockstep_t));
             return(0);
-		}
-	} 
-	slsp = slavep->lockstepp;
+	}
+	memset(slavep->lockstepp, 0, sizeof(*slavep->lockstepp));
+    } 
+    slsp = slavep->lockstepp;
 	
 	
 	/* Both the master and the slave must know that they are in lockstep. */
@@ -4218,26 +4222,28 @@ xddfunc_throttle(int32_t argc, char *argv[], uint32_t flags)
             return(0);
         }
         if (p) {
-		    p->throttle_type = PTDS_THROTTLE_DELAY;
+	    p->throttle_type = PTDS_THROTTLE_DELAY;
             p->throttle = value;
         } else { /* Set option for all targets */
-			if (flags & XDD_PARSE_PHASE2) {
-				p = xgp->ptdsp[0];
-				i = 0;
-				while (p) {
-					p->throttle_type = PTDS_THROTTLE_DELAY;
-					p->throttle = value;
-					i++;
-					p = xgp->ptdsp[i];
-				}
-			}
+	    if (flags & XDD_PARSE_PHASE2) {
+		p = xgp->ptdsp[0];
+		i = 0;
+		while (p) {
+		    p->throttle_type = PTDS_THROTTLE_DELAY;
+		    p->throttle = value;
+		    i++;
+		    p = xgp->ptdsp[i];
 		}
-		return(retval);
+	    }
+	}
+	return(retval);
     } else if (strcmp(what, "var") == 0) { /* Throttle Variance */
-		if (value <= 0.0) {
-			fprintf(xgp->errout,"%s: throttle variance of %5.2f is not valid. throttle variance must be a number greater than 0.00 but less than the throttle value of %5.2f\n",xgp->progname,p->throttle_variance,p->throttle);
-			return(0);
-		}
+	if (NULL != p && value <= 0.0) {
+	    fprintf(xgp->errout,"%s: throttle variance of %5.2f is not valid. throttle variance must be a number greater than 0.00 but less than the throttle value of %5.2f\n",xgp->progname,p->throttle_variance,p->throttle);
+	    return(0);
+	}
+	else if (value <= 0.0)
+	    fprintf(xgp->errout,"%s: Negative throttle variance of %5.2f is not valid.\n",xgp->progname, value);
         if (p)
             p->throttle_variance = value;
 		else { /* Set option for all targets */

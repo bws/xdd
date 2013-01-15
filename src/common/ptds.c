@@ -149,6 +149,8 @@ xdd_calculate_xfer_info(ptds_t *tp) {
 		fprintf(xgp->errout,"%s: io_thread_init: ALERT! iothread for target %d queue %d has an iosize of 0, reqsize of %d, blocksize of %d\n",
 			xgp->progname, tp->my_target_number, tp->my_qthread_number, tp->reqsize, tp->block_size);
 		fflush(xgp->errout);
+		tp->target_bytes_to_xfer_per_pass = 0;
+		return;
 	}
 	if (tp->numreqs) 
 		tp->target_bytes_to_xfer_per_pass = (uint64_t)(tp->numreqs * tp->iosize);
