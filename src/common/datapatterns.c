@@ -33,7 +33,16 @@
  * used by XDD
  */
 #define XDD_DATA_PATTERN
+#include <assert.h>
 #include "xdd.h"
+
+
+int xdd_data_pattern_init(xdd_data_pattern_t* xdp)
+{
+    assert(0 != xdp);
+    memset(xdp, 0, sizeof(*xdp));
+    return 0;
+}
 
 /*----------------------------------------------------------------------------*/
 /* xdd_pattern_buffer() - init the I/O buffer with the appropriate pattern

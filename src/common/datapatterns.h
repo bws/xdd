@@ -28,6 +28,9 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef DATAPATTERNS_H
+#define DATAPATTERNS_H
+
 #define DP_RANDOM_PATTERN              0x0000000000000001ULL  // Use random data pattern for write operations 
 #define DP_SEQUENCED_PATTERN           0x0000000000000002ULL  // Sequenced Data Pattern in the data buffer 
 #define DP_ASCII_PATTERN               0x0000000000000004ULL  // ASCII Data Pattern in the data buffer 
@@ -46,19 +49,22 @@
 #define DP_RANDOM_BY_TARGET_PATTERN    0x0000000000008000ULL  // Use random data pattern for write operations, seed by target number
 
 struct xdd_data_pattern {
-	unsigned long long	data_pattern_options; 		// Type of data pattern options to use
-	unsigned char		*data_pattern; 				// Data pattern for write operations for each target - 
-													//      This is the ASCII string representation of the pattern 
-	unsigned char		*data_pattern_value; 		// This is the 64-bit hex value  
-	size_t				data_pattern_length; 		// Length of ASCII data pattern for write operations for each target 
-	unsigned char		*data_pattern_prefix; 		// Data pattern prefix which is a string of hex digits less than 8 bytes (16 nibbles) 
-	size_t				data_pattern_prefix_length; // Data pattern prefix 
-	unsigned char		*data_pattern_prefix_value; // This is the N-bit prefix value fully shifted to the right 
-	uint64_t			data_pattern_prefix_binary; // This is the 64-bit prefix value fully shifted to the left 
-	unsigned char		*data_pattern_name; 		// Data pattern name which is an ASCII string  
-	int32_t				data_pattern_name_length;	// Length of the data pattern name string 
-	char				*data_pattern_filename; 	// Name of a file that contains a data pattern to use 
-	int64_t				data_pattern_compare_errors;	// Number of content/sequence compare errors from the verify() subroutines
+    // Type of data pattern options to use
+    unsigned long long	data_pattern_options;
+    // Data pattern for write operations for each target
+    unsigned char *data_pattern;
+    
+    // This is the ASCII string representation of the pattern 
+    unsigned char *data_pattern_value; 	// This is the 64-bit hex value  
+    size_t data_pattern_length; // Length of ASCII data pattern for write operations for each target 
+    unsigned char *data_pattern_prefix; 		// Data pattern prefix which is a string of hex digits less than 8 bytes (16 nibbles) 
+    size_t data_pattern_prefix_length; // Data pattern prefix 
+    unsigned char *data_pattern_prefix_value; // This is the N-bit prefix value fully shifted to the right 
+    uint64_t data_pattern_prefix_binary; // This is the 64-bit prefix value fully shifted to the left 
+    unsigned char *data_pattern_name; 		// Data pattern name which is an ASCII string  
+    int32_t data_pattern_name_length;	// Length of the data pattern name string 
+    char *data_pattern_filename; 	// Name of a file that contains a data pattern to use 
+    int64_t data_pattern_compare_errors;	// Number of content/sequence compare errors from the verify() subroutines
 }; 
 typedef struct xdd_data_pattern xdd_data_pattern_t;
 #ifdef XDD_DATA_PATTERN
@@ -288,18 +294,17 @@ unsigned char cspat[] =  { 0xbc,0x95,0xb5,0xb5, 0xbc,0x95,0xb5,0xb5, 0xbc,0x95,0
                            0x7f,0x7f,0x7f,0x7f, 0x7f,0x7f,0x7f,0x7f, 0x7f,0x7f,0x7f,0x7f, // 
                            0xf1,0x96,0xdb,0x97, // CRC 
                            0xbc,0xb5,0xd5,0xd5  // EOFn
-}; // End of cspat 
+}; // End of cspat
+
 #endif
- 
-/*
- * Local variables:
- *  indent-tabs-mode: t
- *  c-indent-level: 4
- *  c-basic-offset: 4
- * End:
- *
- * vim: ts=4 sts=4 sw=4 noexpandtab
+
+/**
+ * Initialize memory associated with the data pattern
+ * @return 0 on success, otherwise non-zero
  */
+int xdd_data_pattern_init(xdd_data_pattern_t* xdp);
+
+#endif
 /*
  * Local variables:
  *  indent-tabs-mode: t

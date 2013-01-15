@@ -376,42 +376,44 @@ xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_
 /*----------------------------------------------------------------------------*/
 /* xdd_get_ptdsp() - return a pointer to the PTDS for the specified target
  */
-ptds_t *
-xdd_get_ptdsp(int32_t target_number, char *op) {
-	ptds_t				*p;
+ptds_t * xdd_get_ptdsp(int32_t target_number, char *op) {
+    ptds_t *p;
 
-	p = xgp->ptdsp[target_number];
-	if (p == 0) { // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
-		p = malloc(sizeof(struct ptds));
-		if (p == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
-			   	xgp->progname, target_number, op);
-			return(NULL);
-		}
-		xgp->ptdsp[target_number] = p;
-		// Zero out the memory first
-		memset((unsigned char *)p, 0, sizeof(ptds_t));
-
-		p->dpp = (struct xdd_data_pattern *)malloc(sizeof(struct xdd_data_pattern));
-		if (p->dpp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS Data Pattern Structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
-			return(NULL);
-		}
-
-		if (xgp->global_options & GO_EXTENDED_STATS) 
-			xdd_get_esp(p);
-
-		// Initialize the new PTDS and lets rock and roll!
-		xdd_init_new_ptds(p, target_number);
-		xgp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
-		if (xgp->target_average_resultsp[target_number] == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESULTS struct for target %d\n",
-			xgp->progname, (int)sizeof(results_t), target_number);
-			return(NULL);
-		}
+    p = xgp->ptdsp[target_number];
+    // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
+    if (p == 0) { 
+	p = malloc(sizeof(struct ptds));
+	if (p == NULL) {
+	    fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
+		    xgp->progname, target_number, op);
+	    return(NULL);
 	}
-	return(p);
+	xgp->ptdsp[target_number] = p;
+	// Zero out the memory first
+	memset((unsigned char *)p, 0, sizeof(ptds_t));
+
+	// Allocate and initialize the data pattern structure
+	p->dpp = (struct xdd_data_pattern *)malloc(sizeof(struct xdd_data_pattern));
+	if (p->dpp == NULL) {
+	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS Data Pattern Structure for target %d\n",
+		    xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
+	    return(NULL);
+	}
+	xdd_data_pattern_init(p->dpp);
+
+	if (xgp->global_options & GO_EXTENDED_STATS) 
+	    xdd_get_esp(p);
+
+	// Initialize the new PTDS and lets rock and roll!
+	xdd_init_new_ptds(p, target_number);
+	xgp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
+	if (xgp->target_average_resultsp[target_number] == NULL) {
+	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESULTS struct for target %d\n",
+		    xgp->progname, (int)sizeof(results_t), target_number);
+	    return(NULL);
+	}
+    }
+    return(p);
 } /* End of xdd_get_ptdsp() */
 
 /*----------------------------------------------------------------------------*/
