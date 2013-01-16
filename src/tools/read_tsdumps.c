@@ -437,6 +437,7 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
 	}
 
 	/* file header */
+	numts_entries = 0;
         if (src != NULL) {
               numts_entries = src->tt_size;
               if (src != NULL) fprintf(outfile,"#SOURCE");

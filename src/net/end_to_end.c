@@ -111,7 +111,6 @@ xdd_e2e_src_send(ptds_t *qp) {
  */
 int32_t
 xdd_e2e_dest_recv(ptds_t *qp) {
-	int 	status; 		// status of select() function call
 	int 	rcvd_so_far;	// Cumulative number of bytes received if multiple recvfrom() invocations are necessary
 	int		recvsize; 		// The number of bytes to receive for this invocation of recvfrom()
 	int		recvcalls; 		// The number of calls to recvfrom() to receive recvsize bytes
