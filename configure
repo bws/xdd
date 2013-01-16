@@ -4114,7 +4114,9 @@ pthread_barrier_t pb;
 }
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
-  CPPFLAGS="$CPPFLAGS -DHAVE_PTHREAD_BARRIER_T"
+
+$as_echo "#define HAVE_PTHREAD_BARRIER_T 1" >>confdefs.h
+
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
@@ -4130,7 +4132,9 @@ pthread_attr_setaffinity_np(0,0,0);
 }
 _ACEOF
 if ac_fn_c_try_compile "$LINENO"; then :
-  CPPFLAGS="$CPPFLAGS -DHAVE_PTHREAD_ATTR_SETAFFINITY_NP"
+
+$as_echo "#define HAVE_PTHREAD_ATTR_SETAFFINITY_NP 1" >>confdefs.h
+
 fi
 rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
 
@@ -4342,7 +4346,7 @@ $as_echo "$ac_cv_search_numa_node_to_cpus" >&6; }
 ac_res=$ac_cv_search_numa_node_to_cpus
 if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-  CPPFLAGS="$CPPFLAGS -DHAVE_NUMA_NODE_TO_CPUS"
+
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: LibNUMA support for numa_node_to_cpus not found thread binding disabled." >&5
 $as_echo "$as_me: WARNING: LibNUMA support for numa_node_to_cpus not found thread binding disabled." >&2;}
@@ -4402,7 +4406,7 @@ $as_echo "$ac_cv_search_numa_allocate_cpumask" >&6; }
 ac_res=$ac_cv_search_numa_allocate_cpumask
 if test "$ac_res" != no; then :
   test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
-  CPPFLAGS="$CPPFLAGS -DHAVE_NUMA_ALLOCATE_CPUMASK"
+
 else
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: LibNUMA support for numa_allocate_cpumask not found thread binding disabled." >&5
 $as_echo "$as_me: WARNING: LibNUMA support for numa_allocate_cpumask not found thread binding disabled." >&2;}

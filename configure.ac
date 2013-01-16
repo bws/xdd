@@ -200,15 +200,15 @@ dnl Check for pthread's pthread_barrier_t
 dnl 
 AC_TRY_COMPILE([#include <pthread.h>],
             [pthread_barrier_t pb;],
-            CPPFLAGS="$CPPFLAGS -DHAVE_PTHREAD_BARRIER_T",
+            AC_DEFINE(HAVE_PTHREAD_BARRIER_T,1,[Define if you have pthread_barrier_t type.]),
             [])
 
 dnl
 dnl Check for pthread's pthread_attr_setaffinity_np
-dnl 
+dnl
 AC_TRY_COMPILE([#include <pthread.h>],
             [pthread_attr_setaffinity_np(0,0,0);],
-            CPPFLAGS="$CPPFLAGS -DHAVE_PTHREAD_ATTR_SETAFFINITY_NP",
+            AC_DEFINE(HAVE_PTHREAD_ATTR_SETAFFINITY_NP,1,[Define if you have pthread_]),
             [])
 
 dnl

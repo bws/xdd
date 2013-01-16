@@ -107,17 +107,11 @@
  * Defines for functions
  *******************************************************************************/
 
-/* Define to 1 if you have the `memset' function. */
-#undef HAVE_MEMSET
-
 /* Define to 1 if you have the `initstate' function. */
 #undef HAVE_INITSTATE
 
-/* Define to 1 if you have the `random' function. */
-#undef HAVE_RANDOM
-
-/* Define to 1 if you have the `rand' function. */
-#undef HAVE_RAND
+/* Define to 1 if you have the `memset' function. */
+#undef HAVE_MEMSET
 
 /* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_NUMA_NODE_TO_CPUS
@@ -127,6 +121,15 @@
 
 /* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_POSIX_MEMALIGN
+
+/* Define to 1 if you have the `pthread_attr_setaffinity_np' function. */
+#undef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
+
+/* Define to 1 if you have the `random' function. */
+#undef HAVE_RANDOM
+
+/* Define to 1 if you have the `rand' function. */
+#undef HAVE_RAND
 
 /* Define to 1 if you have the `sched_getcpu' function. */
 #undef HAVE_SCHED_GETCPU
@@ -147,6 +150,12 @@
 
 /* Define if you have the MPI library. */
 #undef HAVE_MPI
+
+/* Define if you have the pthread. */
+#undef HAVE_PTHREAD_BARRIER_T
+
+/* Define if you have the pthread_attr_setaffinity_np function. */
+#undef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
