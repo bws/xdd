@@ -22,7 +22,8 @@ dnl
 dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
-AC_INIT(XDD, 7.0.0.rc24, bug@xdd.org)
+AC_PREREQ(2.59)
+AC_INIT([xdd], [7.0.0.rc24], bug@xdd.org)
 AC_CONFIG_HEADER([src/compat/config.h])
 
 
@@ -59,16 +60,13 @@ if test "$PLATFORM" = "AIX"; then
    ARFLAGS="-rcs -X 64"
    CPPFLAGS="-DAIX -D_THREAD_SAFE"
    LIBS="-lnsl -lxnet -v"
-   CFLAGS=""
    dnl On IBM systems we prefer the IBM compiler
 elif test "$PLATFORM" = "Linux"; then
    ARFLAGS="-rcs"
    CPPFLAGS="-DLINUX -DSG_IO -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE"
-   CFLAGS=""
 elif test "$PLATFORM" = "Darwin"; then
    ARFLAGS="-rcs"
    CPPFLAGS="-DDARWIN -D__INTEL__ -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE"
-   CFLAGS="-Werror"
 else
    AC_MSG_ERROR(Unsupported build platform: $PLATFORM)
 fi
@@ -76,7 +74,7 @@ fi
 dnl
 dnl Ensure compiler provides C
 dnl
-AC_PROG_CC([xlc_r gcc])
+AC_PROG_CC([xlc_r clang gcc])
 AC_LANG_C
 AC_SUBST(CC)
 
@@ -89,8 +87,8 @@ if test "$CC" = "xlc_r"; then
    dnl AX_CFLAGS_AIX_OPTION([-qthreaded])
    CFLAGS="-q64 -qcpluscmt -qthreaded"
    LDFLAGS="-q64 -qthreaded"
-elif test "$CC" = "bws_clang"; then
-   CFLAGS="-g"
+elif test "$CC" = "clang"; then
+   CFLAGS="-g -pedantic -Wall -Wextra"
    LDFLAGS="-g"
 elif test "$CC" = "gcc"; then
    AX_CFLAGS_GCC_OPTION([-std=c99])
@@ -114,6 +112,8 @@ if test "x$enable_static" = "xyes"; then
    dnl
    if test "$CC" = "gcc"; then
       LDFLAGS="-static"
+   elif test "$CC" = "clang"; then
+      LDFLAGS="-static"
    elif test "$CC" = "xlc_r"; then
       LDFLAGS="-bstatic"
    fi		
@@ -126,7 +126,7 @@ dnl
 depc_exists="no"
 AC_PATH_PROG([depc_exists],
              [gcc], 
-             AC_MSG_ERROR(GCC is required to generate C code dependencies.))
+             AC_MSG_ERROR(gcc is required to generate C code dependencies.))
 DEPC_PATH=$depc_exists
 AC_SUBST(DEPC_PATH)
 
@@ -237,17 +237,18 @@ AC_CHECK_FUNCS([posix_memalign])
 
 dnl
 dnl Check for useful non-standard stuff
+dnl
 AC_CHECK_FUNCS([valloc])
 
 dnl
 dnl Search for the NUMA function numa_node_to_cpus
 dnl
 AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
-               [CPPFLAGS="$CPPFLAGS -DHAVE_NUMA_NODE_TO_CPUS"],
+               [],
                AC_MSG_WARN([LibNUMA support for numa_node_to_cpus not found thread binding disabled.]))
 
 AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
-               [CPPFLAGS="$CPPFLAGS -DHAVE_NUMA_ALLOCATE_CPUMASK"],
+               [],
                AC_MSG_WARN([LibNUMA support for numa_allocate_cpumask not found thread binding disabled.]))
 
 dnl
@@ -255,7 +256,7 @@ dnl Check for Linux CPU_SET(3)
 dnl
 AC_TRY_COMPILE([#include <sched.h>],
             [cpu_set_t pb;],
-            CPPFLAGS="$CPPFLAGS -DHAVE_CPU_SET_T",
+            AC_DEFINE(HAVE_CPU_SET_T,1,[Define if you have the cpu_set_t type.]),
             [])
 
 

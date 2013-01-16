@@ -32,9 +32,9 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-/*********************************************************************************
+/********************************************************************************
  * Autoconf stuff
- ********************************************************************************/
+ *******************************************************************************/
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
@@ -55,9 +55,9 @@
 #undef PACKAGE_VERSION
 
 
-/*********************************************************************************
+/********************************************************************************
  * Defines for headers
- ********************************************************************************/
+ *******************************************************************************/
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
@@ -120,6 +120,12 @@
 #undef HAVE_RAND
 
 /* Define to 1 if you have the `posix_memalign' function. */
+#undef HAVE_NUMA_NODE_TO_CPUS
+
+/* Define to 1 if you have the `posix_memalign' function. */
+#undef HAVE_NUMA_ALLOCATE_CPUMASK
+
+/* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_POSIX_MEMALIGN
 
 /* Define to 1 if you have the `sched_getcpu' function. */
@@ -131,6 +137,9 @@
 /********************************************************************************
  * Defines for featuress
  *******************************************************************************/
+
+/* Define if you have cpu_set_t type */
+#undef HAVE_CPU_SET_T
 
 /* Define to 1 if you have the declaration of `XFS_SUPER_MAGIC', and to 0 if
    you don't. */
