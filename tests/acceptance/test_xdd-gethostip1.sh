@@ -14,7 +14,7 @@ source ./test_config
 # Check IP of localhost
 #
 test_passes=0
-ip=$($XDDTEST_XDD_PATH/xdd-gethostip -d localhost)
+ip=$($XDDTEST_XDD_GETHOSTIP_EXE -d localhost)
 if [ "127.0.0.1" = "$ip" ]; then
     test_passes=1
 fi

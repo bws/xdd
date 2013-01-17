@@ -1,9 +1,7 @@
 To run the acceptance tests for XDD, you must first create a test_config based
-on the contents of test_config.example.  Then, simply run:
+on the contents of test_config.example. 
 
-./run_all_tests.sh
-
-Acceptance tests belong in the "scripts" directory.  Unit tests belong in the
+Acceptance tests belong in the "acceptance" directory.  Unit tests belong in the
 "unit" directory.  Other tests are stored in the "other" directory.
 
 Test output is stored in the output directory.

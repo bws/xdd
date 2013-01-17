@@ -360,6 +360,11 @@ dnl   AC_MSG_WARN(Some features of xddcp unavailable.  No working netstat utilit
 fi
 
 dnl
+dnl Search for the Google test framework to see if make check should be enabled
+dnl
+AC_CHECK_HEADERS([gtest/gtest.h], [], [], [/opt/local/includes])
+
+dnl
 dnl Set the default installation prefix
 dnl
 install_prefix='/opt/xdd'

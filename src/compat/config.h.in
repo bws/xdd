@@ -154,9 +154,6 @@
 /* Define if you have the pthread. */
 #undef HAVE_PTHREAD_BARRIER_T
 
-/* Define if you have the pthread_attr_setaffinity_np function. */
-#undef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
-
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 

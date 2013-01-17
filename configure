@@ -4986,6 +4986,20 @@ $as_echo "$as_me: WARNING: Support for xddcp disabled.  No working netstat utili
     xddcp_disable="yes"
 fi
 
+for ac_header in gtest/gtest.h
+do :
+  ac_fn_c_check_header_compile "$LINENO" "gtest/gtest.h" "ac_cv_header_gtest_gtest_h" "/opt/local/includes
+"
+if test "x$ac_cv_header_gtest_gtest_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_GTEST_GTEST_H 1
+_ACEOF
+
+fi
+
+done
+
+
 install_prefix='/opt/xdd'
 
 

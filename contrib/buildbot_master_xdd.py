@@ -4,11 +4,116 @@
 # following lines to the bottom of the default master.cfg
 #
 ####### Import the configuration to build/test XDD
-#import buildbot_master_xdd
-#reload(buildbot_master_xdd)
-#from buildbot_master_xdd import *
-#buildbot_master_xdd.loadConfig(config=c)
+# import buildbot_master_xdd
+# reload(buildbot_master_xdd)
+# from buildbot_master_xdd import *
+# buildbot_master_xdd.loadConfig(config=c)
+#
+# To retrieve the latest version of this file, run the following command:
+#
+# git archive --format=tar --prefix=xdd/ --remote=/ccs/proj/csc040/var/git/xdd.git master |tar xf - --strip=2 xdd/contrib/buildbot_master_xdd.py
+#
+#
 
+# This uses the BuildmasterConfig object referenced in master.cfg
+def loadConfig(config):
+
+    ####### CHANGESOURCES
+    # the 'change_source' setting tells the buildmaster how it should find out
+    # about source code changes.  Here we point to the buildbot clone of pyflakes.
+    from buildbot.changes.gitpoller import GitPoller
+    from buildbot.changes.filter import ChangeFilter
+    config['change_source'] = GitPoller( 
+      repourl = '/ccs/proj/csc040/var/git/xdd.git',
+      workdir='gitpoller-workdir-xdd-master', 
+      pollinterval=120, 
+      branch='master',
+      project='xdd')
+
+    xdd_filter = ChangeFilter(
+      project = 'xdd',
+      branch = 'testing')
+
+    ####### SCHEDULERS
+    # Configure the Schedulers, which decide how to react to incoming changes.  In this
+    # case, just kick off a 'runtests' build
+    from buildbot.schedulers.basic import SingleBranchScheduler
+    from buildbot.schedulers.timed import Periodic,Nightly
+    build_nightly_xdd=Nightly(
+      name="xdd-nightly-build-and-test", 
+      branch = "master",
+      properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
+      builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", "xdd-sles11-x86_64", "xdd-sles10-x86_64"],
+      hour = 2,
+      minute = 3)
+
+    config['schedulers'].append(build_nightly_xdd)
+
+    from buildbot.schedulers.forcesched import ForceScheduler
+    config['schedulers'].append(ForceScheduler(
+                        name="xdd-force",
+                        builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", "xdd-sles11-x86_64", "xdd-sles10-x86_64" ]))
+
+    ####### BUILDERS
+    # The 'builders' list defines the Builders, which tell Buildbot how to perform a build:
+    # what steps, and which slaves can execute them.  Note that any particular build will
+    # only take place on one slave.
+    from buildbot.process.factory import BuildFactory, GNUAutoconf
+    from buildbot.steps.source import Git
+    from buildbot.steps.shell import ShellCommand, Configure, Compile
+
+    xdd_factory = BuildFactory()
+
+    # Check out the source, configure, and compile
+    xdd_factory.addStep(Git(repourl='/ccs/proj/csc040/var/git/xdd.git', mode='copy', branch='master'))
+    xdd_factory.addStep(Configure())
+    xdd_factory.addStep(Compile(description=["compiling"]))
+
+    # Generate the test configuration
+    xdd_factory.addStep(ShellCommand(command=['./contrib/buildbot_gen_test_config.sh'], name="configuring"))
+
+    # Test basic XDD commands
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd1.sh'], name="test_xdd1.sh"))
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd2.sh'], name="test_xdd2.sh"))
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd3.sh'], name="test_xdd3.sh"))
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd4.sh'], name="test_xdd4.sh"))
+
+    # Test the XDD utilitites
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd-gethostip1.sh'], name="test_gethostip1.sh"))
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd-truncate1.sh'], name="test_truncate1.sh"))
+
+    # Test XDDCP capabilities
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp1.sh'], description=["XDDCP Test 1"], maxTime=1200, name="test_xddcp1.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp2.sh'], description=["XDDCP Test 2"], maxTime=1200, name="test_xddcp2.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp3.sh'], description=["XDDCP Test 3"], maxTime=1200, name="test_xddcp3.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp4.sh'], description=["XDDCP Test 4"], maxTime=1200, name="test_xddcp4.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp5.sh'], description=["XDDCP Test 5"], maxTime=1200, name="test_xddcp5.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp6.sh'], description=["XDDCP Test 6"], maxTime=1200, name="test_xddcp6.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp7.sh'], description=["XDDCP Test 7"], maxTime=1200, name="test_xddcp7.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp8.sh'], description=["XDDCP Test 8"], maxTime=1200, name="test_xddcp8.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp9.sh'], description=["XDDCP Test 9"], maxTime=1200, name="test_xddcp9.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp10.sh'], description=["XDDCP Test 10"], maxTime=1200, name="test_xddcp10.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp11.sh'], description=["XDDCP Test 11"], maxTime=1200, name="test_xddcp11.sh"))
+
+    # Test XDDCP MultiNIC capabilities
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic1.sh'], description=["MultiNIC Test"], maxTime=1200, name="test_xddcp_multinic1.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic2.sh'], maxTime=1200, name="test_xddcp-multinic2.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic3.sh'], maxTime=1200, name="test_xddcp-multinic3.sh"))
+
+    # Add the XDD Build factory to each of the available builders described in the master.cfg
+    from buildbot.config import BuilderConfig
+    config['builders'].append(BuilderConfig(name="xdd-rhel5-x86_64", slavenames=["pod7"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+    config['builders'].append(BuilderConfig(name="xdd-rhel6-x86_64", slavenames=["pod9"], factory=xdd_factory,  env={"XDDTEST_TIMEOUT": "900"},category='xdd'))
+    config['builders'].append(BuilderConfig(name="xdd-sles10-x86_64", slavenames=["pod10"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+    config['builders'].append(BuilderConfig(name="xdd-sles11-x86_64", slavenames=["pod11"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+    config['builders'].append(BuilderConfig(name="xdd-rhel6-ppc64", slavenames=["spry02"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+
+    ####### STATUS TARGETS
+    # 'status' is a list of Status Targets. The results of each build will be
+    # pushed to these targets. buildbot/status/*.py has a variety to choose from,
+    # including web pages, email senders, and IRC bots.
+    from buildbot.status.mail import MailNotifier
+    config['status'].append(MailNotifier(fromaddr="xdd-testing@ornl.gov", extraRecipients=['durmstrang-io@email.ornl.gov'], categories='xdd', buildSetSummary=False, messageFormatter=xddMail))
 
 
 from buildbot.status.builder import Results
@@ -75,105 +180,4 @@ def xddMail(mode, name, build, results, master_status):
     text += "----------------------------------"
     return { 'body' : text, 'type' : 'plain' }
 
-
-# This uses the BuildmasterConfig object referenced in master.cfg
-def loadConfig(config):
-
-    ####### CHANGESOURCES
-    # the 'change_source' setting tells the buildmaster how it should find out
-    # about source code changes.  Here we point to the buildbot clone of pyflakes.
-    from buildbot.changes.gitpoller import GitPoller
-    from buildbot.changes.filter import ChangeFilter
-    config['change_source'] = GitPoller( 
-      repourl = '/ccs/proj/csc040/var/git/xdd.git',
-      workdir='gitpoller-workdir-xdd-master', 
-      pollinterval=120, 
-      branch='master',
-      project='xdd')
-
-    xdd_filter = ChangeFilter(
-      project = 'xdd',
-      branch = 'testing')
-
-    ####### SCHEDULERS
-    # Configure the Schedulers, which decide how to react to incoming changes.  In this
-    # case, just kick off a 'runtests' build
-    from buildbot.schedulers.basic import SingleBranchScheduler
-    from buildbot.schedulers.timed import Periodic,Nightly
-    build_nightly_xdd=Nightly(
-      name="xdd-nightly-build-and-test", 
-      branch = "master",
-      properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
-      builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", "xdd-sles11-x86_64", "xdd-sles10-x86_64"],
-      hour = 2,
-      minute = 3)
-
-    config['schedulers'].append(build_nightly_xdd)
-
-    from buildbot.schedulers.forcesched import ForceScheduler
-    config['schedulers'].append(ForceScheduler(
-                        name="xdd-force",
-                        builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", "xdd-sles11-x86_64", "xdd-sles10-x86_64" ]))
-
-    ####### BUILDERS
-    # The 'builders' list defines the Builders, which tell Buildbot how to perform a build:
-    # what steps, and which slaves can execute them.  Note that any particular build will
-    # only take place on one slave.
-    from buildbot.process.factory import BuildFactory, GNUAutoconf
-    from buildbot.steps.source import Git
-    from buildbot.steps.shell import ShellCommand, Configure, Compile
-
-    xdd_factory = BuildFactory()
-    # check out the source
-    xdd_factory.addStep(Git(repourl='/ccs/proj/csc040/var/git/xdd.git', mode='copy', branch='master'))
-    xdd_factory.addStep(Configure())
-    xdd_factory.addStep(Compile(description=["compiling"]))
-    #factory.addStep(Compile(command=["./build-with-ompi.sh", "make", "test"], description=["testing"]))
-    xdd_factory.addStep(ShellCommand(command=['./contrib/nightly_build_and_test_pods.sh'], name="configuring"))
-    #factory.addStep(ShellCommand(command=['sleep','60'], maxTime=20, haltOnFailure=False))
-    xdd_factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance1.sh'], name="test_acceptance1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance2.sh'], name="test_acceptance2.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance3.sh'], name="test_acceptance3.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance4.sh'], name="test_acceptance4.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance_gethostip1.sh'], name="test_acceptance_gethostip1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance_truncate1.sh'], name="test_acceptance_truncate1.sh"))
-
-    # this test is long and hard to debug
-    #factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance_hpcs14.sh']))
-    # fails
-    #factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance_multinic1.sh']))
-    # don't bother with these until threading is fixed
-    #factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance_xdd-analysis1.sh']))
-
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp1.sh'], description=["Multi Threaded Test 1"], maxTime=1200, name="test_acceptance_xddcp1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp2.sh'], description=["Multi Threaded Test 2"], maxTime=1200, name="test_acceptance_xddcp2.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp3.sh'], description=["Multi Threaded Test 3"], maxTime=1200, name="test_acceptance_xddcp3.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp4.sh'], description=["Multi Threaded Test 4"], maxTime=1200, name="test_acceptance_xddcp4.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp5.sh'], description=["Multi Threaded Test 5"], maxTime=1200, name="test_acceptance_xddcp5.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_multinic1.sh'], description=["Multi NIC Test"], maxTime=1200, name="test_acceptance_multinic1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp-r-a-n.sh'], maxTime=1200, name="test_acceptance_xddcp-r-a-n.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp-F-a-n.sh'], maxTime=1200, name="test_acceptance_xddcp-F-a-n.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp-multinic-a.sh'], maxTime=1200, name="test_acceptance_xddcp-multinic-a.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp-multinic-r-a-n.sh'], maxTime=1200, name="test_acceptance_xddcp-multinic-r-a-n.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp1_single_thread.sh'], description=["Single Threaded Test 1"], maxTime=1200, name="test_acceptance_xddcp1_single_thread.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp2_single_thread.sh'], description=["Single Threaded Test 2"], maxTime=1200, name="test_acceptance_xddcp2_single_thread.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp3_single_thread.sh'], description=["Single Threaded Test 3"], maxTime=1200, name="test_acceptance_xddcp3_single_thread.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/scripts/test_acceptance_xddcp4_single_thread.sh'], description=["Single Threaded Test 4"], maxTime=1200, name="test_acceptance_xddcp4_single_thread.sh"))
-
-    #factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance_xddcp_analysis.sh'], maxTime=600))
-    #factory.addStep(ShellCommand(command=['./tests/scripts/test_acceptance_xddcp_analysis_kernel.sh'], maxTime=600))
-
-    from buildbot.config import BuilderConfig
-    config['builders'].append(BuilderConfig(name="xdd-rhel5-x86_64", slavenames=["pod7"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
-    config['builders'].append(BuilderConfig(name="xdd-rhel6-x86_64", slavenames=["pod9"], factory=xdd_factory,  env={"XDDTEST_TIMEOUT": "900"},category='xdd'))
-    config['builders'].append(BuilderConfig(name="xdd-sles10-x86_64", slavenames=["pod10"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
-    config['builders'].append(BuilderConfig(name="xdd-sles11-x86_64", slavenames=["pod11"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
-    config['builders'].append(BuilderConfig(name="xdd-rhel6-ppc64", slavenames=["spry02"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
-
-    ####### STATUS TARGETS
-    # 'status' is a list of Status Targets. The results of each build will be
-    # pushed to these targets. buildbot/status/*.py has a variety to choose from,
-    # including web pages, email senders, and IRC bots.
-    from buildbot.status.mail import MailNotifier
-    config['status'].append(MailNotifier(fromaddr="xdd-testing@ornl.gov", extraRecipients=['durmstrang-io@email.ornl.gov'], categories='xdd', buildSetSummary=True, messageFormatter=xddMail))
 
