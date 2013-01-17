@@ -9,21 +9,30 @@
 buildslave_host=`hostname -s`
 nightly_base_path=$(pwd)/build_tests
 case "${buildslave_host}" in
-
-    "pod7" )
-    "pod9" )
-    "pod10" )
-    "pod11" )
+    pod7)
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/xfs/$USER/source
         dest_mnt=/data/xfs/$USER/dest
         ;;
-    "spry01" )
+    pod9)
+        nightly_base_path=$(pwd)/build_tests
+        source_mnt=/data/xfs/$USER/source
+        dest_mnt=/data/xfs/$USER/dest
+        ;;
+    pod10)
+        nightly_base_path=$(pwd)/build_tests
+        source_mnt=/data/xfs/$USER/source
+        dest_mnt=/data/xfs/$USER/dest
+        ;;
+    pod11)
+        nightly_base_path=$(pwd)/build_tests
+        source_mnt=/data/xfs/$USER/source
+        dest_mnt=/data/xfs/$USER/dest
+        ;;
+    spry01)
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/$USER/source
         dest_mnt=/data/$USER/dest
-        ;;
-    * )
         ;;
 esac
 
