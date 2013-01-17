@@ -39,11 +39,12 @@ esac
 #
 # Testing locations
 #
-build_dir=$nightly_base_path/build
+build_dir=${nightly_base_path}/build
 install_dir=$(pwd)
-output_dir=$nightly_base_path/logs
-test_src_dir=$source_mnt/xdd/$datestamp/test
-test_dest_dir=$dest_mnt/xdd/$datestamp/test
+output_dir=${nightly_base_path}/logs
+test_src_dir=${source_mnt}/test-data
+test_dest_dir=${dest_mnt}/test-data
+test_local_dir=${source_mnt}/local-test-data
 
 #
 # Other test settings
