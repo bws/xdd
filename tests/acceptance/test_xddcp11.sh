@@ -25,37 +25,29 @@ if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then
 fi
 
 # Perform pre-test 
-echo "Beginning File List with Restart Test 1 . . ."
-test_dir=$XDDTEST_SOURCE_MOUNT/xddcp-F-a-n
-data_dir=$test_dir/data
-rm -rf $test_dir
-ssh -q $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp-F-a-n"
+echo "Beginning File List with Restart Test . . ."
+src_dir=$XDDTEST_SOURCE_MOUNT/xddcp_test11/data
+dest_dir=$XDDTEST_DEST_MOUNT/xddcp_test11/data
+rm -rf $XDDTEST_SOURCE_MOUNT/xddcp_test11
+ssh -q $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp_test11"
 
 #
 # Create the source directories
 #
-mkdir -p $data_dir/foo1/foo2/foo3
-mkdir -p $data_dir/bar1/bar2/bar3
-mkdir -p $data_dir/baz1/baz2/baz3/baz4
+mkdir -p $src_dir/foo1/foo2/foo3
+mkdir -p $src_dir/bar1/bar2/bar3
+mkdir -p $src_dir/baz1/baz2/baz3/baz4
 
 #
 # Create the files
 #
-targets=( $data_dir/t1 $data_dir/t2  $data_dir/foo1/t3  $data_dir/foo1/t4 $data_dir/foo1/foo2/t5 $data_dir/foo1/foo2/t6 $data_dir/foo1/foo2/foo3/t7 $data_dir/bar1/bar2/bar3/t8 )
-    $XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
-# Make them different/wierd sizes
+targets=( $src_dir/t1 $src_dir/t2  $src_dir/foo1/t3  $src_dir/foo1/t4 $src_dir/foo1/foo2/t5 $src_dir/foo1/foo2/t6 $src_dir/foo1/foo2/foo3/t7 $src_dir/bar1/bar2/bar3/t8 )
+$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
+
 # Build file list
-     file_list="${test_dir}/xddcp-F-a-n-file-list"
-     pattern=""
-     let "k = 0"
-     for i in ${targets[@]}; do
-         let "k += 1"
-         pattern="${pattern}$k"
-         echo "$pattern" >> $i
-         srcHash[$k]="$(md5sum $i |cut -d ' ' -f 1)"
-         echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
-         echo "$i" >> $file_list
-    done
+cd ${src_dir}
+file_list="$XDDTEST_SOURCE_MOUNT/xddcp_test11/xddcp_test11_flist"
+find . -type f  >${file_list}
      
 #
 # Start the killer process. Runs until timeout
@@ -73,7 +65,7 @@ export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
         (( n = 30 ))
         while (( n > 0 ))
         do
-          sleep 20
+          sleep 30
           elapsedtime="\$(\echo "\$(\date +%s) - $startime" | \bc)"
           if [ $testime -lt \$elapsedtime -o -f "$signal_file_path" ]; then
             echo "killer process...EXITing"
@@ -96,7 +88,7 @@ export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
           then
              for (( i=0; i<7; i++ )) 
              do
-             ssh ${XDDTEST_E2E_DEST} "pkill -9 -x xdd"
+             ssh -q ${XDDTEST_E2E_DEST} "pkill -9 -x xdd"
              sleep 1
              done 
           fi
@@ -106,15 +98,10 @@ EOF
 ) &
 
 #
-# Perform a file list copy
+# Perform a list-based copy with a large number of retries
 #
-rc=1
-cd $test_dir
-while [ 0 -ne $rc ]; do
-	# Perform a recursive copy. If not first pass, restarting
-	$XDDTEST_XDDCP_EXE $xddcp_opts -a -n 99 -F $file_list $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/xddcp-F-a-n
-        rc=$?
-done
+$XDDTEST_XDDCP_EXE $xddcp_opts -a -n 99 -F $file_list $XDDTEST_E2E_DEST:$dest_dir
+rc=$?
 
 # signal killer proc to exit
 touch ${signal_file_path}
@@ -126,20 +113,17 @@ rm ${signal_file_path}
 #
 # Perform MD5sum checks
 #
-let "k = 0"
 test_passes=1
-for i in ${targets[@]}; do
-    trimmedSrcFile=${i#${PWD}}
-    d=$XDDTEST_DEST_MOUNT/xddcp-F-a-n/${trimmedSrcFile}
-    destHash=$(ssh $XDDTEST_E2E_DEST "md5sum $d |cut -d ' ' -f 1")
-    let "k += 1"
-    echo "srcHash=${srcHash[$k]}: ${XDDTEST_E2E_SOURCE}: ${i}"
-    echo "dstHash=$destHash: ${XDDTEST_E2E_DEST}: ${d}"
-    if [ "${srcHash[$k]}" != "$destHash" ]; then
+for i in `cat ${file_list}`; do
+    src_file=${src_dir}/${i}
+    dest_file=${dest_dir}/${i}
+
+    # Calculate hashes and compare
+    src_hash=$(md5sum ${src_file}|cut -d ' ' -f 1)
+    dest_hash=$(ssh -q $XDDTEST_E2E_DEST "md5sum ${dest_file} |cut -d ' ' -f 1")
+    if [ "$src_hash" != "$dest_hash" ]; then
         test_passes=0
-        echo "ERROR: Failure in xddcp-F-a-n"
-        echo "\tSource hash for $i: ${srcHash[$k]}"
-        echo "\tDestination hash for $d: $destHash"
+        echo "ERROR: Hash mismatch ${src_file}: ${src_hash} ${dest_file}: ${dest_hash}"
     fi
 done
 
