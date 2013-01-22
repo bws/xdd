@@ -55,45 +55,14 @@ find . -type f  >${file_list}
 
 # Construct a NFS based file path to signal Hodson's killer
 signal_file_path=${HOME}/xddcp-testing-kill-signal-file
-startime=$(date +%s)
-let "testime = $XDDTEST_TIMEOUT - 360"
-export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
 
-        # start background kills proc w delay
-        # quites after n passes or testime exceeded
-        (ssh -q ${XDDTEST_E2E_SOURCE} /bin/bash --login <<EOF 
-        (( n = 30 ))
-        while (( n > 0 ))
-        do
-          sleep 30
-          elapsedtime="\$(\echo "\$(\date +%s) - $startime" | \bc)"
-          if [ $testime -lt \$elapsedtime -o -f "$signal_file_path" ]; then
-            echo "killer process...EXITing"
-            break
-          fi
-          (( k = n % 5 ))
-          if (( k == 0 ))
-          then
-             pkill -9 -x xddcp
-          fi
-          if (( k == 1 || k == 3 ))
-          then
-             for (( i=0; i<7; i++ )) 
-             do
-               pkill -9 -x xdd
-               sleep 1
-             done 
-          fi
-          if (( k == 2 || k == 4 ))
-          then
-             for (( i=0; i<7; i++ )) 
-             do
-             ssh -q ${XDDTEST_E2E_DEST} "pkill -9 -x xdd"
-             sleep 1
-             done 
-          fi
-          (( n -= 1 ))
-        done
+# Start background kills proc w delay
+# quites after n passes or testime exceeded
+(ssh -q ${XDDTEST_E2E_SOURCE} /bin/bash --login <<EOF 
+for ((n=0; n < 10; n += 1)); do
+    pkill -9 -x xdd
+    sleep 20
+done
 EOF
 ) &
 
