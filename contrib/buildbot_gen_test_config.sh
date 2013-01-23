@@ -9,32 +9,42 @@
 buildslave_host=`hostname -s`
 nightly_base_path=$(pwd)/build_tests
 case "${buildslave_host}" in
-
-    "pod7" )
-    "pod9" )
-    "pod10" )
-    "pod11" )
+    pod7)
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/xfs/$USER/source
         dest_mnt=/data/xfs/$USER/dest
         ;;
-    "spry01" )
+    pod9)
+        nightly_base_path=$(pwd)/build_tests
+        source_mnt=/data/xfs/$USER/source
+        dest_mnt=/data/xfs/$USER/dest
+        ;;
+    pod10)
+        nightly_base_path=$(pwd)/build_tests
+        source_mnt=/data/xfs/$USER/source
+        dest_mnt=/data/xfs/$USER/dest
+        ;;
+    pod11)
+        nightly_base_path=$(pwd)/build_tests
+        source_mnt=/data/xfs/$USER/source
+        dest_mnt=/data/xfs/$USER/dest
+        ;;
+    spry01)
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/$USER/source
         dest_mnt=/data/$USER/dest
-        ;;
-    * )
         ;;
 esac
 
 #
 # Testing locations
 #
-build_dir=$nightly_base_path/build
+build_dir=${nightly_base_path}/build
 install_dir=$(pwd)
-output_dir=$nightly_base_path/logs
-test_src_dir=$source_mnt/xdd/$datestamp/test
-test_dest_dir=$dest_mnt/xdd/$datestamp/test
+output_dir=${nightly_base_path}/logs
+test_src_dir=${source_mnt}/test-data
+test_dest_dir=${dest_mnt}/test-data
+test_local_dir=${source_mnt}/local-test-data
 
 #
 # Other test settings

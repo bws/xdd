@@ -1730,23 +1730,23 @@ function xddcp_main {
     fi
 
     # Parse options
-    destDIOFlag=0
-    destOrderedFlag=0
-    e2ePort=$XDDCP_DEFAULT_E2E_PORT
-    fileListFlag=0
-    fileListFile=""
-    forceFlag=1
-    queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
-    recursiveFlag=0
-    retryCount=$XDDCP_DEFAULT_RETRY_COUNT
-    resumeFlag=0
-    srcDIOFlag=0
-    srcOrderedFlag=0
-    sshOption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
-    verbosity=0
-    binaryDumpFlag=0
-    kernelTraceFlag=0
-    windowSize=0
+    local destDIOFlag=0
+    local destOrderedFlag=0
+    local e2ePort=$XDDCP_DEFAULT_E2E_PORT
+    local fileListFlag=0
+    local fileListFile=""
+    local forceFlag=1
+    local queueDepth=$XDDCP_DEFAULT_QUEUE_DEPTH
+    local recursiveFlag=0
+    local retryCount=$XDDCP_DEFAULT_RETRY_COUNT
+    local resumeFlag=0
+    local srcDIOFlag=0
+    local srcOrderedFlag=0
+    local sshOption=$XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT
+    local verbosity=0
+    local binaryDumpFlag=0
+    local kernelTraceFlag=0
+    local windowSize=0
 
     while getopts ":FYab:cDd:fhl:n:o:p:rsTt:vVw:W:" option; do
         case $option in
@@ -1881,17 +1881,17 @@ function xddcp_main {
     fi
 
     # Get the source path
-    srcPath="${1}"
-    srcRemoteFlag=0
+    local srcPath="${1}"
+    local srcRemoteFlag=0
 
     # Parse the destination endpoint spec
-    destRemoteFlag=0
+    local destRemoteFlag=0
     parse_endpoint_spec "${2}" destPath destRemoteFlag destUser destHostArray \
         destIPArray destNodeArray
 
     # Get the specified size if it is defined
-    fileSizeFlag=0
-    totalBytes=0
+    local fileSizeFlag=0
+    local totalBytes=0
     if [ ! -z "${3}" ]; then
         fileSizeFlag=1
         totalBytes=${3}
@@ -1910,9 +1910,9 @@ function xddcp_main {
     #
     # Begin a transfer try
     #
-    transferRC=1
-    retries=0
-    srcHost=$(\hostname -s)
+    local transferRC=1
+    local retries=0
+    local srcHost=$(\hostname -s)
     while [ 0 -ne "${transferRC}" -a "${retries}" -le "${retryCount}" ]; do
 
         # Do things unique to retries
@@ -1934,9 +1934,8 @@ function xddcp_main {
 	        "${verbosity}" "${binaryDumpFlag}"
             transferRC=$?
         elif [ 1 -eq "${fileListFlag}" ]; then
-            srcFileList="${srcPath}"
-            srcPath="$PWD"
-	    transfer_file_list "${srcFileList}" "${srcPath}" "${srcHost}" \
+            local srcFileList="${srcPath}"
+	    transfer_file_list "${srcFileList}" "${PWD}" "${srcHost}" \
                 "${srcUser}" "${srcRemoteFlag}" "${srcDIOFlag}" \
                 "${srcOrderedFlag}" "${destPath}" "${destHostArray[*]}" \
                 "${destIPArray[*]}" "${destNodeArray[*]}" "${destUser}" \
