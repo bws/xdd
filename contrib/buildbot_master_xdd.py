@@ -132,7 +132,7 @@ def xddSummaryMail(mode, name, build, results, master_status):
     subject = ""
     if results == SUCCESS:
         subject = "[Buildbot] XDD Nightly Test SUCCESS"
-    else
+    else:
         subject = "[Buildbot] XDD Nightly Test FAILURE"
 
     # Construct the mail body
