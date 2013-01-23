@@ -37,22 +37,25 @@ def loadConfig(config):
     ####### SCHEDULERS
     # Configure the Schedulers, which decide how to react to incoming changes.  In this
     # case, just kick off a 'runtests' build
+
+    # Configure the nightly testing so that every test lives in the same buildset
     from buildbot.schedulers.basic import SingleBranchScheduler
     from buildbot.schedulers.timed import Periodic,Nightly
-    build_nightly_xdd=Nightly(
-      name="xdd-nightly-build-and-test", 
-      branch = "master",
-      properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
-      builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", "xdd-sles11-x86_64", "xdd-sles10-x86_64"],
-      hour = 2,
-      minute = 3)
-
+    build_nightly_xdd=Nightly(name="xdd-nightly1", 
+                              branch = "master",
+                              properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
+                              builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", 
+                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64"],
+                              hour = 2,
+                              minute = 3)
     config['schedulers'].append(build_nightly_xdd)
 
+    # Configure each force build seperately so that they live in differing buildsets
     from buildbot.schedulers.forcesched import ForceScheduler
-    config['schedulers'].append(ForceScheduler(
-                        name="xdd-force",
-                        builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", "xdd-sles11-x86_64", "xdd-sles10-x86_64" ]))
+    config['schedulers'].append(ForceScheduler(name="xdd-force1", builderNames=["xdd-rhel5-x86_64"])
+    config['schedulers'].append(ForceScheduler(name="xdd-force2", builderNames=["xdd-rhel6-x86_64"])
+    config['schedulers'].append(ForceScheduler(name="xdd-force3", builderNames=["xdd-sles10-x86_64"])
+    config['schedulers'].append(ForceScheduler(name="xdd-force4", builderNames=["xdd-sles11-x86_64"])
 
     ####### BUILDERS
     # The 'builders' list defines the Builders, which tell Buildbot how to perform a build:
@@ -66,6 +69,7 @@ def loadConfig(config):
 
     # Check out the source, configure, and compile
     xdd_factory.addStep(Git(repourl='/ccs/proj/csc040/var/git/xdd.git', mode='copy', branch='master'))
+    xdd_factory.addStep(ShellCommand(command=['autoconf'], name="autoconf"))
     xdd_factory.addStep(Configure())
     xdd_factory.addStep(Compile(description=["compiling"]))
 
@@ -121,6 +125,10 @@ def loadConfig(config):
     config['status'].append(xddMN)
 
 
+#
+# Generate the BuildSetSummary mail format for XDD's nightly build
+# and test information
+#
 from buildbot.status.builder import Results
 from buildbot.status.results import FAILURE, SUCCESS, WARNINGS, Results
 import urllib
