@@ -1,6 +1,17 @@
 #!/usr/bin/python
 #
-# The buildbot settings for XDD.  In order to enable these tests, add the 
+# The buildbot settings for XDD.  We assume the following build slaves are 
+# defined in the master.cfg:
+#
+# c['slaves'] = []
+# c['slaves'].append(BuildSlave("pod9", "banana"))
+# c['slaves'].append(BuildSlave("pod7", "banana"))
+# c['slaves'].append(BuildSlave("pod10", "banana"))
+# c['slaves'].append(BuildSlave("pod11", "banana"))
+# c['slaves'].append(BuildSlave("spry02", "banana"))
+# c['slaves'].append(BuildSlave("natureboy", "banana"))
+#
+# In order to enable these tests, add the 
 # following lines to the bottom of the default master.cfg
 #
 ####### Import the configuration to build/test XDD
@@ -33,29 +44,6 @@ def loadConfig(config):
     xdd_filter = ChangeFilter(
       project = 'xdd',
       branch = 'testing')
-
-    ####### SCHEDULERS
-    # Configure the Schedulers, which decide how to react to incoming changes.  In this
-    # case, just kick off a 'runtests' build
-
-    # Configure the nightly testing so that every test lives in the same buildset
-    from buildbot.schedulers.basic import SingleBranchScheduler
-    from buildbot.schedulers.timed import Periodic,Nightly
-    build_nightly_xdd=Nightly(name="xdd-nightly1", 
-                              branch = "master",
-                              properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
-                              builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", 
-                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64"],
-                              hour = 2,
-                              minute = 3)
-    config['schedulers'].append(build_nightly_xdd)
-
-    # Configure each force build seperately so that they live in differing buildsets
-    from buildbot.schedulers.forcesched import ForceScheduler
-    config['schedulers'].append(ForceScheduler(name="xdd-force1", builderNames=["xdd-rhel5-x86_64"]))
-    config['schedulers'].append(ForceScheduler(name="xdd-force2", builderNames=["xdd-rhel6-x86_64"]))
-    config['schedulers'].append(ForceScheduler(name="xdd-force3", builderNames=["xdd-sles10-x86_64"]))
-    config['schedulers'].append(ForceScheduler(name="xdd-force4", builderNames=["xdd-sles11-x86_64"]))
 
     ####### BUILDERS
     # The 'builders' list defines the Builders, which tell Buildbot how to perform a build:
@@ -100,9 +88,9 @@ def loadConfig(config):
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp11.sh'], description=["XDDCP Test 11"], maxTime=1200, name="test_xddcp11.sh"))
 
     # Test XDDCP MultiNIC capabilities
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic1.sh'], description=["MultiNIC Test"], maxTime=1200, name="test_xddcp_multinic1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic2.sh'], maxTime=1200, name="test_xddcp-multinic2.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic3.sh'], maxTime=1200, name="test_xddcp-multinic3.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic1.sh'], description=["MultiNIC Test 1"], maxTime=1200, name="test_xddcp_multinic1.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic2.sh'], description=["MultiNIC Test 2"], maxTime=1200, name="test_xddcp-multinic2.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic3.sh'], description=["MultiNIC Test 3"], maxTime=1200, name="test_xddcp-multinic3.sh"))
 
     # Add the XDD Build factory to each of the available builders described in the master.cfg
     from buildbot.config import BuilderConfig
@@ -111,6 +99,32 @@ def loadConfig(config):
     config['builders'].append(BuilderConfig(name="xdd-sles10-x86_64", slavenames=["pod10"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-sles11-x86_64", slavenames=["pod11"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-rhel6-ppc64", slavenames=["spry02"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+    config['builders'].append(BuilderConfig(name="xdd-osx-10-8", slavenames=["natureboy"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+
+    ####### SCHEDULERS
+    # Configure the Schedulers, which decide how to react to incoming changes.  In this
+    # case, just kick off a 'runtests' build
+
+    # Configure the nightly testing so that every test lives in the same buildset
+    from buildbot.schedulers.basic import SingleBranchScheduler
+    from buildbot.schedulers.timed import Periodic,Nightly
+    build_nightly_xdd=Nightly(name="xdd-nightly1", 
+                              branch = "master",
+                              properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
+                              builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", 
+                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64"],
+                              hour = 2,
+                              minute = 3)
+    config['schedulers'].append(build_nightly_xdd)
+
+    # Configure each force build seperately so that they live in differing buildsets
+    from buildbot.schedulers.forcesched import ForceScheduler
+    config['schedulers'].append(ForceScheduler(name="xdd-force1", builderNames=["xdd-rhel5-x86_64"]))
+    config['schedulers'].append(ForceScheduler(name="xdd-force2", builderNames=["xdd-rhel6-x86_64"]))
+    config['schedulers'].append(ForceScheduler(name="xdd-force3", builderNames=["xdd-sles10-x86_64"]))
+    config['schedulers'].append(ForceScheduler(name="xdd-force4", builderNames=["xdd-sles11-x86_64"]))
+    config['schedulers'].append(ForceScheduler(name="xdd-force5", builderNames=["xdd-rhel6-ppc"]))
+    config['schedulers'].append(ForceScheduler(name="xdd-force6", builderNames=["xdd-osx-10-8"]))
 
     ####### STATUS TARGETS
     # 'status' is a list of Status Targets. The results of each build will be
