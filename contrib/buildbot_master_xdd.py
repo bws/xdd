@@ -113,71 +113,37 @@ def loadConfig(config):
     # pushed to these targets. buildbot/status/*.py has a variety to choose from,
     # including web pages, email senders, and IRC bots.
     from buildbot.status.mail import MailNotifier
-    config['status'].append(MailNotifier(fromaddr="xdd-testing@ornl.gov", extraRecipients=['durmstrang-io@email.ornl.gov'], categories='xdd', buildSetSummary=False, messageFormatter=xddMail))
+    xddMN = MailNotifier(fromaddr="xdd-testing@ornl.gov", 
+                         extraRecipients=['durmstrang-io@email.ornl.gov'],
+                         categories='xdd', 
+                         buildSetSummary=True, 
+                         messageFormatter=xddSummaryMail)
+    config['status'].append(xddMN)
 
 
 from buildbot.status.builder import Results
 from buildbot.status.results import FAILURE, SUCCESS, WARNINGS, Results
 import urllib
-def xddMail(mode, name, build, results, master_status):
-    """Generate a buildbot mail message and return a tuple of message text
-        and type."""
-
-    ss = build.getSourceStamp()  
-    prev = build.getPreviousBuild()
-    text = ""
-    if results == FAILURE:
-        if "change" in mode and prev and prev.getResults() != results or \
-               "problem" in mode and prev and prev.getResults() != FAILURE:
-            text += "The Buildbot has detected a new failure"
-        else:
-            text += "The Buildbot has detected a failed build"
-    elif results == WARNINGS:
-        text += "The Buildbot has detected a problem in the build"
-    elif results == SUCCESS:
-        if "change" in mode and prev and prev.getResults() != results:
-            text += "The Buildbot has detected a restored build"
-        else:
-            text += "The Buildbot has detected a passing build"
-
-    if ss and ss.project:
-        project = ss.project
-    else:
-        project = master_status.getTitle()
-    text += " on builder %s while building %s.\n" % (name, project)
-
-    if master_status.getURLForThing(build):
-        text += "Full details are available at: %s\n" % master_status.getURLForThing(build)
-
-    if master_status.getBuildbotURL():
-        text += "Buildbot URL: %s\n" % urllib.quote(master_status.getBuildbotURL(), '/:')
-
-    text += "Buildslave for this Build: %s\n" % build.getSlavename()
-    text += "Build Reason: %s\n" % build.getReason()
-    source = ""
-    if ss and ss.branch:
-        source += "[branch %s] " % ss.branch
-    if ss and ss.revision:
-        source += str(ss.revision)
-    else:
-        source += "HEAD"
-    if ss and ss.patch:
-        source += " (plus patch)"
-
-    text += "Build Source Stamp: %s\n" % source
-    t = build.getText()
-    if t:
-        t = ": " + " ".join(t)
-    else:
-        t = ""
-
+def xddSummaryMail(mode, name, build, results, master_status):
+    """Generate a buildbot mail message and return a tuple of the subject,
+       message text, and mail type."""
+    
+    # Construct the mail subject
+    subject = ""
     if results == SUCCESS:
-        text += "Build succeeded!\n"
-    elif results == WARNINGS:
-        text += "Build Had Warnings%s\n" % t
-    else:
-        text += "BUILD FAILED%s\n" % t
-    text += "----------------------------------"
-    return { 'body' : text, 'type' : 'plain' }
+        subject = "[Buildbot] XDD Nightly Test SUCCESS"
+    else
+        subject = "[Buildbot] XDD Nightly Test FAILURE"
+
+    # Construct the mail body
+    body = ""
+    body += "Build Result: %s\n" % Results[results]
+    body += "Build Logs available at: %s\n" % urllib.quote(master_status.getBuildbotURL(), '/:')
+    body += "Flagged Build: %s\n" % build.getSlavename()
+    if results != success:
+        body += "Failed tests: %s\n" % build.getText()
+    body += "--\n\n"
+
+    return { 'subject' : subject, 'body' : body, 'type' : 'plain' }
 
 
