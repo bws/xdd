@@ -217,7 +217,8 @@ xdd_target_ttd_before_io_op(ptds_t *p) {
 
 	// Lock Step Processing (located in lockstep.c)
 	status = xdd_lockstep_before_io_op(p);
-	if (status) return(-1);
+	if (status != XDD_RC_GOOD) 
+		return(XDD_RC_UGLY);
 
 	/* init the error number and break flag for good luck */
 	errno = 0;

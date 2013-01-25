@@ -44,8 +44,11 @@
 #define OFF 0
 #define TRUE 1
 #define FALSE 0
-#define SUCCESS 1
-#define FAILED 0
+#define SUCCESS 0
+#define FAILED 1
+#define XDD_RC_GOOD 0
+#define XDD_RC_BAD 1
+#define XDD_RC_UGLY -1
 #define MAX_TARGETS 8192
 #define MAX_TARGET_NAME_LENGTH 2048
 #define MAXSEM 1
