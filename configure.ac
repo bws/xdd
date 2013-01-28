@@ -223,6 +223,7 @@ AC_CHECK_FUNCS([memset])
 AC_CHECK_FUNCS([random rand], break, 
                AC_MSG_ERROR([Neither random() nor rand() is defined.]))
 AC_CHECK_FUNCS([initstate])
+AC_CHECK_FUNCS([nanosleep])
 
 dnl
 dnl Checks for POSIX functions

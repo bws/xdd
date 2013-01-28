@@ -174,7 +174,9 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 	int  	status; /* status of send/recv function calls */
 	char 	msg[256];
 	int 	type;
-
+	static const int connect_try_limit = 4;
+	int i;
+	
 	// The socket type is SOCK_STREAM because this is a TCP connection 
 	type = SOCK_STREAM;
 
@@ -193,11 +195,30 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 	qp->e2e_sname.sin_port = htons(qp->e2e_dest_port);
 	qp->e2e_snamelen = sizeof(qp->e2e_sname);
 
-	// Connecting to the server....
-	status = connect(qp->e2e_sd, (struct sockaddr *) &qp->e2e_sname, sizeof(qp->e2e_sname));
-	if (status) {
-		xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","error connecting to socket for E2E destination\n");
-		return(-1);
+	// Attempt to connect to the server for roughly 10 seconds
+	i = 0;
+	status = 1;
+	while (i < connect_try_limit && 0 != status) {
+
+	    /* If this is a retry, sleep for 3 seconds before retrying */
+	    if (i > 0) {
+		struct timespec req = {0};
+		req.tv_sec = 3;
+		fprintf(xgp->errout,
+			"Socket connection error, retrying in %d seconds: %d\n",
+			req.tv_sec, status);
+		nanosleep(&req, (struct timespec *)NULL);
+	    }
+	    
+	    status = connect(qp->e2e_sd,
+			     (struct sockaddr *) &qp->e2e_sname,
+			     sizeof(qp->e2e_sname));
+	    i++;
+	}
+	
+	if (0 != status) {
+	    xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","error connecting to socket for E2E destination\n");
+	    return(-1);
 	}
 
 	return(0);
