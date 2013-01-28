@@ -153,17 +153,17 @@ def xddSummaryMail(mode, name, build, results, master_status):
     # Construct the mail subject
     subject = ""
     if results == SUCCESS:
-        subject = "[Buildbot] XDD Nightly Test SUCCESS"
+        subject = "[Buildbot] SUCCESS -- XDD Acceptance Test -- SUCCESS"
     else:
-        subject = "[Buildbot] XDD Nightly Test FAILURE"
+        subject = "[Buildbot] FAILURE -- XDD Acceptance Test -- FAILURE"
 
     # Construct the mail body
     body = ""
+    body += "Build Host: %s (%s)\n" % (build.getSlavename(), name)
     body += "Build Result: %s\n" % Results[results]
-    body += "Build Logs available at: %s\n" % urllib.quote(master_status.getBuildbotURL(), '/:')
-    body += "Flagged Build: %s\n" % build.getSlavename()
-    if results != success:
-        body += "Failed tests: %s\n" % build.getText()
+    body += "Build Log: %s\n" % master_status.getURLForThing(build)
+    if results != SUCCESS:
+        body += "Failed Test(s): %s\n" % build.getText()
     body += "--\n\n"
 
     return { 'subject' : subject, 'body' : body, 'type' : 'plain' }
