@@ -206,7 +206,7 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 		req.tv_sec = 3;
 		fprintf(xgp->errout,
 			"Socket connection error, retrying in %d seconds: %d\n",
-			req.tv_sec, status);
+			(int)req.tv_sec, status);
 		nanosleep(&req, (struct timespec *)NULL);
 	    }
 	    
