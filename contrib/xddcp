@@ -316,7 +316,8 @@ function error_print {
 #
 function handle_signal_common {
     local signum=$1
-
+    
+    #echo "SrcPid: $g_xddcpSrcXddPid SSHPid: $g_xddcpDestSSHPid Fifo: $g_xddcpFifoPath RecursiveList: $g_xddcpRecursiveListFileName"
     # Attempt to deliver the signal to source-side XDD
     if [ -1 -ne $g_xddcpSrcXddPid ]; then
         kill -$signum $g_xddcpSrcXddPid &>$XDDCP_DEV_NULL
