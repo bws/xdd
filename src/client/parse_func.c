@@ -1609,9 +1609,8 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
     lockstep_t	*slsp;			// Pointer to the Slave Lock Step Struct
 
 
-    if ((strcmp(argv[0], "-lockstep") == 0) ||
-	(strcmp(argv[0], "-ls") == 0))
-	lsmode = TO_LOCKSTEP;
+    if ((strcmp(argv[0], "-lockstep") == 0) || (strcmp(argv[0], "-ls") == 0))
+		lsmode = TO_LOCKSTEP;
     else lsmode = TO_LOCKSTEPOVERLAPPED;
 
     mt = atoi(argv[1]); /* T1 is the master target */
@@ -1622,35 +1621,40 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
     slavep = xdd_get_ptdsp(st, argv[0]);
     if (slavep == NULL) return(-1);
     
-    // Make sure there is a Master Lockstep Structure 
+    // Make sure there is a Lockstep Structure for the MASTER
     if (masterp->lockstepp == 0) {
-	masterp->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
-	if (masterp->lockstepp == 0) {
-	    fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Master lockstep structure\n",
-		    xgp->progname, (int)sizeof(lockstep_t));
-            return(0);
-	}
-	memset(masterp->lockstepp, 0, sizeof(*masterp->lockstepp));
+		masterp->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (masterp->lockstepp == 0) {
+			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Master lockstep structure\n",
+			xgp->progname, (int)sizeof(lockstep_t));
+			return(0);
+		}
     } 
-    mlsp = masterp->lockstepp;
-    // Make sure there is a Slave Lockstep Structure 
+    // Make sure there is a Lockstep Structure for the SLAVE
     if (slavep->lockstepp == 0) {
-	slavep->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
-	if (slavep->lockstepp == 0) {
-	    fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Slave lockstep structure\n",
-		    xgp->progname, (int)sizeof(lockstep_t));
-            return(0);
-	}
-	memset(slavep->lockstepp, 0, sizeof(*slavep->lockstepp));
+		slavep->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (slavep->lockstepp == 0) {
+			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Slave lockstep structure\n",
+		    	xgp->progname, (int)sizeof(lockstep_t));
+			return(0);
+		}
     } 
-    slsp = slavep->lockstepp;
 	
-	
-	/* Both the master and the slave must know that they are in lockstep. */
+	// Clear the Lockstep Structure and set the state to indicate this is a MASTER
+	mlsp = masterp->lockstepp;
+	memset(mlsp, 0, sizeof(*mlsp));
+	mlsp->ls_ms_state |= LS_I_AM_A_MASTER;
 	masterp->target_options |= lsmode;
+	mlsp->ls_slave = st; // The master has to know the number of its SLAVE
+
+	// Clear the Lockstep Structure and set the state to indicate this is a SLAVE
+	slsp = slavep->lockstepp;
+	memset(slsp, 0, sizeof(*slsp));
+	slsp->ls_ms_state |= LS_I_AM_A_SLAVE;
 	slavep->target_options |= lsmode; 
-	mlsp->ls_slave = st; /* The master has to know the number of the slave target */
-	slsp->ls_master = mt; /* The slave has to know the target number of its master */
+	slsp->ls_master = mt; // The slave has to know the target number of its MASTER
+
+	// Lockstep sub-options
 	when = argv[3];
 
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
@@ -1765,11 +1769,11 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 	}
 	lockstep_startup = argv[7];  
 	if (strcmp(lockstep_startup,"run") == 0) { /* have the slave start running immediately */
-		slsp->ls_ms_state |= LS_SLAVE_RUN_IMMEDIATELY;
+		slsp->ls_ms_state |= LS_SLAVE_RUN_NOW;
 		slsp->ls_ms_state &= ~LS_SLAVE_WAITING;
 		slsp->ls_task_counter = 1;
 	} else { /* Have the slave wait for the master to tell it to run */
-		slsp->ls_ms_state &= ~LS_SLAVE_RUN_IMMEDIATELY;
+		slsp->ls_ms_state &= ~LS_SLAVE_RUN_NOW;
 		slsp->ls_ms_state |= LS_SLAVE_WAITING;
 		slsp->ls_task_counter = 0;
 	}

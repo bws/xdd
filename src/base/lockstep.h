@@ -56,13 +56,15 @@ struct lockstep	{
 									 		// set to the appropriate number of seconds, ops, or bytes to run/execute/transfer
 									 		// per "task".
 	uint64_t		ls_task_base_value;		// This is the base value to which the task value is compared to 
-#define LS_SLAVE_WAITING	0x00000001 		// The slave is waiting for the master to enter the ls_barrier 
-#define LS_SLAVE_RUN_IMMEDIATELY 0x00000002	// The slave should start running immediately 
-#define LS_SLAVE_COMPLETE	0x00000004 		// The slave should complete all operations after this I/O 
-#define LS_SLAVE_STOP		0x00000008 		// The slave should abort after this I/O 
-#define LS_SLAVE_FINISHED	0x00000010 		// The slave is finished 
-#define LS_MASTER_FINISHED	0x00000020 		// The master has completed its pass 
-#define LS_MASTER_WAITING	0x00000040 		// The master is waiting at the barrier 
+#define LS_I_AM_A_SLAVE		0x00000001 		// This target is a SLAVE to the MASTER target specified in ls_master
+#define LS_I_AM_A_MASTER	0x00000002 		// This target is a MASTER to the SLAVE target specified in ls_slave
+#define LS_SLAVE_WAITING	0x00000004 		// The slave is waiting for the master to enter the ls_barrier 
+#define LS_SLAVE_RUN_NOW 	0x00000008		// The slave should start running immediately 
+#define LS_SLAVE_COMPLETE	0x00000010 		// The slave should complete all operations after this I/O 
+#define LS_SLAVE_STOP		0x00000020 		// The slave should abort after this I/O 
+#define LS_SLAVE_FINISHED	0x00000040 		// The slave is finished 
+#define LS_MASTER_FINISHED	0x00000080 		// The master has completed its pass 
+#define LS_MASTER_WAITING	0x00000100 		// The master is waiting at the barrier 
 	uint32_t		ls_ms_state;			// This is the state of the master and slave at any given time. 
 											// If this is set to SLAVE_WAITING
 									 		// then the slave has entered the ls_barrier and is waiting for the master to enter

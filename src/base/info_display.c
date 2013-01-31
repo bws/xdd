@@ -396,7 +396,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 				sp = xgp->ptdsp[p->lockstepp->ls_slave];
 				fprintf(out,"\t\tSlave Target, %d\n", p->lockstepp->ls_slave);
 				fprintf(out,"\t\tSlave Task value and type, %lld,%s\n", (long long)sp->lockstepp->ls_task_value,sp->lockstepp->ls_task_units);
-				fprintf(out,"\t\tSlave initial condition, %s\n",(sp->lockstepp->ls_ms_state & LS_SLAVE_RUN_IMMEDIATELY)?"Run":"Wait");
+				fprintf(out,"\t\tSlave initial condition, %s\n",(sp->lockstepp->ls_ms_state & LS_SLAVE_RUN_NOW)?"Run":"Wait");
 				fprintf(out,"\t\tSlave termination, %s\n",(sp->lockstepp->ls_ms_state & LS_SLAVE_COMPLETE)?"Complete":"Abort");
 			}
 		}
