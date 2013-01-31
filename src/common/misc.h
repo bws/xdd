@@ -84,6 +84,9 @@ typedef enum {false = 0, true} bool;
 #ifndef ULLONG_MAX
 #define ULLONG_MAX 18446744073709551615LL
 #endif
+#ifndef ULONGLONG_MIN
+#define ULONGLONG_MIN 0x0ULL
+#endif
 #ifndef ULONGLONG_MAX
 #define ULONGLONG_MAX ULLONG_MAX
 #endif

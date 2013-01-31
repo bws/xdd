@@ -172,7 +172,6 @@ xdd_e2e_src_init(ptds_t *qp) {
 int32_t
 xdd_e2e_setup_src_socket(ptds_t *qp) {
 	int  	status; /* status of send/recv function calls */
-	char 	msg[256];
 	int 	type;
 	static const int connect_try_limit = 4;
 	int i;
@@ -186,7 +185,7 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 		xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","ERROR: error openning socket\n");
 		return(-1);
 	}
-	(void) xdd_e2e_set_socket_opts (qp,msg,qp->e2e_sd);
+	(void) xdd_e2e_set_socket_opts (qp,qp->e2e_sd);
 
 	/* Now build the "name" of the DESTINATION machine socket thingy and connect to it. */
 	(void) memset(&qp->e2e_sname, 0, sizeof(qp->e2e_sname));
@@ -202,7 +201,10 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 
 	    /* If this is a retry, sleep for 3 seconds before retrying */
 	    if (i > 0) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
 		struct timespec req = {0};
+#pragma clang diagnostic pop
 		req.tv_sec = 3;
 		fprintf(xgp->errout,
 			"Socket connection error, retrying in %d seconds: %d\n",
@@ -313,8 +315,8 @@ xdd_e2e_dest_init(ptds_t *qp) {
 int32_t
 xdd_e2e_setup_dest_socket(ptds_t *qp) {
 	int  	status;
-	char 	msg[256];
 	int 	type;
+	char 	msg[256];
 
 
 	// Set the "type" of socket being requested: for TCP, type=SOCK_STREAM 
@@ -327,7 +329,7 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 		return(-1);
 	}
 
-	(void) xdd_e2e_set_socket_opts (qp,msg,qp->e2e_sd);
+	(void) xdd_e2e_set_socket_opts (qp, qp->e2e_sd);
 
 	/* Bind the name to the socket */
 	(void) memset(&qp->e2e_sname, 0, sizeof(qp->e2e_sname));
@@ -363,7 +365,7 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
  *
  */
 void 
-xdd_e2e_set_socket_opts(ptds_t *qp, char *sktname, int skt) {
+xdd_e2e_set_socket_opts(ptds_t *qp, int skt) {
 	int status;
 	int level = SOL_SOCKET;
 #if WIN32
@@ -408,7 +410,7 @@ xdd_e2e_set_socket_opts(ptds_t *qp, char *sktname, int skt) {
  *
  */
 void 
-xdd_e2e_prt_socket_opts(char *sktname, int skt) {
+xdd_e2e_prt_socket_opts(int skt) {
 	int 		level = SOL_SOCKET;
 	int 		sockbuf_sizs;
 	int			sockbuf_sizr;

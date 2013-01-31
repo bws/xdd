@@ -52,7 +52,7 @@ void
 xdd_datapattern_buffer_init(ptds_t *p) {
     int32_t i;
     int32_t pattern_length; // Length of the pattern
-    int32_t remaining_length; // Length of the space in the pattern buffer
+    size_t remaining_length; // Length of the space in the pattern buffer
     unsigned char    *ucp;          // Pointer to an unsigned char type, duhhhh
     uint32_t *lp;			// pointer to a pattern
     xdd_data_pattern_t	*dpp;
@@ -96,7 +96,7 @@ xdd_datapattern_buffer_init(ptds_t *p) {
 		ucp += pattern_length;
 	    }
 	} else { // Just put the pattern at the beginning of the buffer once 
-	    if (dpp->data_pattern_length < p->iosize) 
+	    if (dpp->data_pattern_length < (size_t)p->iosize) 
 		pattern_length = dpp->data_pattern_length;
 	    else pattern_length = p->iosize;
 	    memcpy(p->rwbuf,dpp->data_pattern,pattern_length);
@@ -190,7 +190,7 @@ xdd_datapattern_buffer_init(ptds_t *p) {
  */
 void
 xdd_datapattern_fill(ptds_t *qp) {
-	int32_t  		j;					// random variables 
+	size_t  		j;					// random variables 
 	uint64_t 		*posp;             	// Position Pointer 
 	nclk_t			start_time;			// Used for calculating elapsed times of ops
 	nclk_t			end_time;			// Used for calculating elapsed times of ops

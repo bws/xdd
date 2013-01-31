@@ -226,8 +226,9 @@ xdd_ts_write(ptds_t *p) {
 void
 xdd_ts_cleanup(struct tthdr *ttp) {
 // xdd_unlock_memory((unsigned char *)ttp, ttp->tt_bytes, "TimeStampTable");
-// free(ttp);
+    free(ttp);
 } /* end of xdd_ts_cleanup() */
+
 /*----------------------------------------------------------------------------*/
 /* xdd_ts_reports() - Generate the time stamp reports.    
  *    In this section disk_io_time is the time from the start of
