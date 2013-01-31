@@ -113,6 +113,9 @@
 /* Define to 1 if you have the `memset' function. */
 #undef HAVE_MEMSET
 
+/* Define to 1 if you have the `nanosleep' function. */
+#undef HAVE_NANOSLEEP
+
 /* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_NUMA_NODE_TO_CPUS
 

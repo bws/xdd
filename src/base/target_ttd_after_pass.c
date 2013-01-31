@@ -79,9 +79,7 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 		p->e2e_sr_time /= p->queue_depth;
 	}
 
-	if (status) return(1);
-
-	return(0);
+	return(status);
 } // End of xdd_target_ttd_after_pass()
 
  

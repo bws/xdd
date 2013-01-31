@@ -126,9 +126,9 @@ xdd_target_init(ptds_t *p) {
 	}
 
 	/* This section will initialize the slave side of the lock step mutex and barriers */
-//	status = xdd_lockstep_init(p); TMR-TTD
-//	if (status != SUCCESS)
-//		return(status);
+	status = xdd_lockstep_init(p); 
+	if (status != XDD_RC_GOOD)
+		return(status);
 	
 	// Initialize the barriers and mutex
 	status = xdd_target_init_barriers(p);

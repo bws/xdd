@@ -30,10 +30,10 @@ DEST_DATA_NETWORK_2=${XDDTEST_E2E_DEST}-10g
 DEST_DATA_NETWORK_3=${XDDTEST_E2E_DEST}-ib0
 
 # Perform pre-test 
-src_dir=$XDDTEST_SOURCE_MOUNT/test_xddcp_multinic3/data
-dest_dir=$XDDTEST_DEST_MOUNT/test_xddcp_multinic3/data
-rm -rf $XDDTEST_SOURCE_MOUNT/test_xddcp_multinic3
-ssh -q $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/test_xddcp_multinic3"
+src_dir=$XDDTEST_SOURCE_MOUNT/test_xddcp_multinic5/data
+dest_dir=$XDDTEST_DEST_MOUNT/test_xddcp_multinic5/data
+rm -rf $XDDTEST_SOURCE_MOUNT/test_xddcp_multinic5
+ssh -q $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/test_xddcp_multinic5"
 
 #
 # Create the source directories
@@ -46,7 +46,7 @@ mkdir -p $src_dir/bax1/bax2/bax3/bax4/bax5/bax6
 mkdir -p $src_dir/box1/box2/box3/box4/box5/box6/box7/box8/box9
 
 # Create the destination diretories
-ssh -q $XDDTEST_E2E_DEST "mkdir -p $XDDTEST_DEST_MOUNT/test_xddcp_multinic3"
+ssh -q $XDDTEST_E2E_DEST "mkdir -p $XDDTEST_DEST_MOUNT/test_xddcp_multinic5"
 
 #
 # Create the files
@@ -67,12 +67,14 @@ export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
     for (( i=0; i < 30; i++ )); do
         sleep 20
         elapsedtime="\$(\echo "\$(\date +%s) - $startime" | \bc)"
-        if [ $killer_timeout -lt \$elapsedtime -o -f "${HOME}/xdd_killer_exit" ]; then
+        if [ $killer_timeout -lt \$elapsedtime -o -f ${HOME}/xdd_killer_exit ]; then
             echo "killer process...EXITing"
             break
         fi
-        #pkill -9 -x xddcp
-        pkill -x xddcp
+        for (( j=0; j<7; j++ )); do 
+            ssh ${XDDTEST_E2E_DEST} "pkill -9 -x xdd"
+            sleep 1
+        done
     done
 EOF
 ) &
@@ -81,10 +83,8 @@ EOF
 # Perform a recursive copy
 #
 rc=1
-while [ 0 -ne $rc ]; do
-    $XDDTEST_XDDCP_EXE $xddcp_opts -r -a -n 99 $src_dir $DEST_DATA_NETWORK_1,$DEST_DATA_NETWORK_2,$DEST_DATA_NETWORK_3:$XDDTEST_DEST_MOUNT/test_xddcp_multinic3
-    rc=$?
-done
+$XDDTEST_XDDCP_EXE $xddcp_opts -r -a -n 99 $src_dir $DEST_DATA_NETWORK_1,$DEST_DATA_NETWORK_2,$DEST_DATA_NETWORK_3:$XDDTEST_DEST_MOUNT/test_xddcp_multinic5
+rc=$?
 
 # signal killer proc to exit
 touch $HOME/xdd_killer_exit
@@ -115,9 +115,9 @@ done
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance XDDCP: Multinic Test 3 - Check: PASSED."
+  echo "Acceptance XDDCP: Multinic Test 5 - Check: PASSED."
   exit 0
 else
-  echo "Acceptance XDDCP: Multinic Test 3 - Check: FAILED."
+  echo "Acceptance XDDCP: Multinic Test 5 - Check: FAILED."
   exit 1
 fi

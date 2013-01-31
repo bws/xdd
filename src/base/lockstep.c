@@ -33,9 +33,6 @@
 //******************************************************************************
 // Contains subroutines that implement the lockstep option
 //******************************************************************************
-/*----------------------------------------------------------------------------*/
-/* xdd_lockstep_init(ptds_t *p) {
- */
 int32_t
 xdd_lockstep_init(ptds_t *p) {
 	int32_t			i;		// loop counter
@@ -45,12 +42,13 @@ xdd_lockstep_init(ptds_t *p) {
 
 
 	if (p->lockstepp == 0)
-		return(0); // No Lockstep Operation Requested
+		return(XDD_RC_GOOD); // No Lockstep Operation Requested
 
 	lsp = p->lockstepp;
 	/* This section will initialize the slave side of the lock step mutex and barriers */
-	if (lsp->ls_master >= 0) { /* This means that this target has a master and therefore must be a slave */
+	if (lsp->ls_master >= 0) { /* This means that this target has a master and therefore THIS TARGET must be a slave */
 		/* init the task counter mutex and the lock step barrier */
+fprintf(stderr,"xdd_lockstep_init: ENTER, I am a slave p=%p, lsp=%p, the master is target %d\n",p,lsp,lsp->ls_master);
 		status = pthread_mutex_init(&lsp->ls_mutex, 0);
 		if (status) {
 			sprintf(errmsg,"%s: io_thread_init:Error initializing lock step slave target %d task counter mutex",
@@ -60,7 +58,7 @@ xdd_lockstep_init(ptds_t *p) {
 				xgp->progname,p->my_target_number);
 			fflush(xgp->errout);
 			xgp->abort = 1;
-			return(-1);
+			return(XDD_RC_UGLY);
 		}
 		for (i=0; i<=1; i++) {
 				sprintf(lsp->Lock_Step_Barrier[i].name,"LockStep_T%d_%d",lsp->ls_master,p->my_target_number);
@@ -69,215 +67,336 @@ xdd_lockstep_init(ptds_t *p) {
 		lsp->Lock_Step_Barrier_Slave_Index = 0;
 		lsp->Lock_Step_Barrier_Master_Index = 0;
 	} else { /* Make sure these are uninitialized */
+fprintf(stderr,"xdd_lockstep_init: ENTER, I am a master p=%p, lsp=%p, the slave is target %d\n",p,lsp,lsp->ls_slave);
 		for (i=0; i<=1; i++) {
 			lsp->Lock_Step_Barrier[i].flags &= ~XDD_BARRIER_FLAG_INITIALIZED;
 		}
 		lsp->Lock_Step_Barrier_Slave_Index = 0;
 		lsp->Lock_Step_Barrier_Master_Index = 0;
 	}
-	return(0);
+	return(XDD_RC_GOOD);
 } // End of xdd_lockstep_init()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_lockstep_before_io_op(ptds_t *p) {
+/* xdd_lockstep_master_before_io_op(ptds_t *p)
  */
 int32_t
-xdd_lockstep_before_io_op(ptds_t *p) {
-	int32_t	ping_slave;			// indicates whether or not to ping the slave 
-	int32_t	slave_wait;			// indicates the slave should wait before continuing on 
-	nclk_t   time_now;			// used by the lock step functions 
-	ptds_t	*p2;				// Secondary PTDS pointer
-	lockstep_t *lsp;			// Pointer to the lock step struct
-	lockstep_t *lsp2;			// Pointer to the lock step struct
+xdd_lockstep_master_before_io_op(ptds_t *p) {
+	int32_t		ping_slave;			// indicates whether or not to ping the slave 
+	nclk_t   	time_now;			// used by the lock step functions 
+	ptds_t		*slave_p;			// Slave PTDS pointer
+	lockstep_t 	*master_lsp;			// Pointer to the master lock step struct
+	lockstep_t 	*slave_lsp;			// Pointer to the slave lock step struct
 
-	/* Check to see if we are in lockstep with another target.
-	 * If so, then if we are a master, then do the master thing.
-	 * Then check to see if we are also a slave and do the slave thing.
-	 */
-	if (p->lockstepp == 0)
-		return(0);
-	lsp = p->lockstepp;
-	if (lsp->ls_slave >= 0) { /* Looks like we are the MASTER in lockstep with a slave target */
-		p2 = xgp->ptdsp[lsp->ls_slave]; /* This is a pointer to the slave ptds */
-		lsp2 = p2->lockstepp;
-		ping_slave = FALSE;
-		/* Check to see if it is time to ping the slave to do something */
-		if (lsp->ls_interval_type & LS_INTERVAL_TIME) {
-			/* If we are past the start time then signal the specified target to start.
-			 */
-			nclk_now(&time_now);
-			if (time_now > (lsp->ls_interval_value + lsp->ls_interval_base_value)) {
-				ping_slave = TRUE;
-				lsp->ls_interval_base_value = time_now; /* reset the new base time */
-			}
+
+	master_lsp = p->lockstepp;
+	slave_p = xgp->ptdsp[master_lsp->ls_slave]; 	
+	slave_lsp = slave_p->lockstepp;
+	ping_slave = FALSE;
+
+fprintf(stderr,"xdd_lockstep_master_before_io_op: ENTER master_p=%p, master_lsp=%p, the SLAVE target is %d, slave_p=%p, slave_lsp=%p\n",p,master_lsp,master_lsp->ls_slave,slave_p,slave_lsp);
+	/* Check to see if it is time to ping the slave to do something */
+	if (master_lsp->ls_interval_type & LS_INTERVAL_TIME) {
+fprintf(stderr,"xdd_lockstep_master_before_io_op: Time Interval\n");
+		// If we are past the start time then signal the specified target to start.
+		nclk_now(&time_now);
+		if (time_now > (master_lsp->ls_interval_value + master_lsp->ls_interval_base_value)) {
+			ping_slave = TRUE;
+			master_lsp->ls_interval_base_value = time_now; /* reset the new base time */
 		}
-		if (lsp->ls_interval_type & LS_INTERVAL_OP) {
-			/* If we are past the specified operation, then signal the specified target to start.
-			 */
-			if (p->my_current_op_number >= (lsp->ls_interval_value + lsp->ls_interval_base_value)) {
-				ping_slave = TRUE;
-				lsp->ls_interval_base_value = p->my_current_op_number;
-			}
+	}
+	if (master_lsp->ls_interval_type & LS_INTERVAL_OP) {
+fprintf(stderr,"xdd_lockstep_master_before_io_op: OP Interval\n");
+		// If we are past the specified operation, then signal the specified target to start.
+fprintf(stderr,"xdd_lockstep_master_before_io_op: MASTER OP Interval: my_current_op_number=%lld, ls_interval_value=%lld, ls_interval_base_value=%lld\n",(long long int)p->my_current_op_number,(long long int)master_lsp->ls_interval_value,(long long int)master_lsp->ls_interval_base_value);
+		if (p->my_current_op_number >= (master_lsp->ls_interval_value + master_lsp->ls_interval_base_value)) {
+			ping_slave = TRUE;
+			master_lsp->ls_interval_base_value = p->my_current_op_number;
 		}
-		if (lsp->ls_interval_type & LS_INTERVAL_PERCENT) {
-			/* If we have completed percentage of operations then signal the specified target to start.
-			 */
-			if (p->my_current_op_number >= ((lsp->ls_interval_value*lsp->ls_interval_base_value) * p->qthread_ops)) {
-				ping_slave = TRUE;
-				lsp->ls_interval_base_value++;
-			}
+	}
+	if (master_lsp->ls_interval_type & LS_INTERVAL_PERCENT) {
+fprintf(stderr,"xdd_lockstep_master_before_io_op: Percent Interval\n");
+		// If we have completed percentage of operations then signal the specified target to start.
+		if (p->my_current_op_number >= ((master_lsp->ls_interval_value*master_lsp->ls_interval_base_value) * p->qthread_ops)) {
+			ping_slave = TRUE;
+			master_lsp->ls_interval_base_value++;
 		}
-		if (lsp->ls_interval_type & LS_INTERVAL_BYTES) {
-			/* If we have completed transferring the specified number of bytes, then signal the 
-			 * specified target to start.
-			 */
-			if (p->my_current_bytes_xfered >= (lsp->ls_interval_value + (int64_t)(lsp->ls_interval_base_value))) {
-				ping_slave = TRUE;
-				lsp->ls_interval_base_value = p->my_current_bytes_xfered;
-			}
+	}
+	if (master_lsp->ls_interval_type & LS_INTERVAL_BYTES) {
+fprintf(stderr,"xdd_lockstep_master_before_io_op: Bytes Interval\n");
+		// If we have completed transferring the specified number of bytes, then signal the specified target to start.
+		if (p->my_current_bytes_xfered >= (master_lsp->ls_interval_value + (int64_t)(master_lsp->ls_interval_base_value))) {
+			ping_slave = TRUE;
+			master_lsp->ls_interval_base_value = p->my_current_bytes_xfered;
 		}
-		if (ping_slave) { /* Looks like it is time to ping the slave to do something */
-			/* note that the SLAVE owns the mutex and the counter used to tell it to do something */
-			/* Get the mutex lock for the ls_task_counter and increment the counter */
-			pthread_mutex_lock(&lsp2->ls_mutex);
-			/* At this point the slave could be in one of three places. Thus this next section of code
-			 * must be carefully structured to prevent a race condition between the master and the slave.
-			 * If the slave is simply waiting for the master to release it, then the ls_task_counter lock
-			 * can be released and the master can enter the lock_step_barrier to get the slave going again.
-			 * If the slave is running, then it will have to wait for the ls_task_counter lock and
-			 * when it gets the lock, it will discover that the ls_task_counter is non-zero and will simply
-			 * decrement the counter by 1 and continue on executing a lock. 
-			 */
-			lsp2->ls_task_counter++;
-			/* Now that we have updated the slave's task counter, we need to check to see if the slave is 
-			 * waiting for us to give it a kick. If so, enter the barrier which will release the slave and
-			 * us as well. 
-			 * ****************Currently this is set up simply to do overlapped lockstep.*******************
-			 */
-			if (lsp2->ls_ms_state & LS_SLAVE_WAITING) { /* looks like the slave is waiting for something to do */
-				lsp2->ls_ms_state &= ~LS_SLAVE_WAITING;
-				pthread_mutex_unlock(&lsp2->ls_mutex);
-				xdd_barrier(&lsp2->Lock_Step_Barrier[lsp2->Lock_Step_Barrier_Master_Index],&p->occupant,0);
-				lsp2->Lock_Step_Barrier_Master_Index ^= 1;
-				/* At this point the slave outght to be running. */
-			} else {
-				pthread_mutex_unlock(&lsp2->ls_mutex);
-			}
-		} /* Done pinging the slave */
-	} /* end of SLAVE processing as a MASTER */
-	if (lsp->ls_master >= 0) { /* Looks like we are a slave to some other MASTER target */
-		/* As a slave, we need to check to see if we should stop running at this point. If not, keep on truckin'.
-		 */   
-		/* Look at the type of task that we need to perform and the quantity. If we have exhausted
-		 * the quantity of operations for this interval then enter the lockstep barrier.
-		 */
-		pthread_mutex_lock(&lsp->ls_mutex);
-		if (lsp->ls_task_counter > 0) {
-			/* Ahhhh... we must be doing something... */
-			slave_wait = FALSE;
-			if (lsp->ls_task_type & LS_TASK_TIME) {
-				/* If we are past the start time then signal the specified target to start.
-				*/
-				nclk_now(&time_now);
-				if (time_now > (lsp->ls_task_value + lsp->ls_task_base_value)) {
-					slave_wait = TRUE;
-					lsp->ls_task_base_value = time_now;
-					lsp->ls_task_counter--;
-				}
-			}
-			if (lsp->ls_task_type & LS_TASK_OP) {
-				/* If we are past the specified operation, then indicate slave to wait.
-				*/
-				if (p->my_current_op_number >= (lsp->ls_task_value + lsp->ls_task_base_value)) {
-					slave_wait = TRUE;
-					lsp->ls_task_base_value = p->my_current_op_number;
-					lsp->ls_task_counter--;
-				}
-			}
-			if (lsp->ls_task_type & LS_TASK_PERCENT) {
-				/* If we have completed percentage of operations then indicate slave to wait.
-				*/
-				if (p->my_current_op_number >= ((lsp->ls_task_value * lsp->ls_task_base_value) * p->qthread_ops)) {
-					slave_wait = TRUE;
-					lsp->ls_task_base_value++;
-					lsp->ls_task_counter--;
-				}
-			}
-			if (lsp->ls_task_type & LS_TASK_BYTES) {
-				/* If we have completed transferring the specified number of bytes, then indicate slave to wait.
-				*/
-				if (p->my_current_bytes_xfered >= (lsp->ls_task_value + (int64_t)(lsp->ls_task_base_value))) {
-					slave_wait = TRUE;
-					lsp->ls_task_base_value = p->my_current_bytes_xfered;
-					lsp->ls_task_counter--;
-				}
-			}
+	}
+	if (ping_slave) { // Looks like it is time to ping the slave to do something 
+fprintf(stderr,"xdd_lockstep_master_before_io_op: pinging slave\n");
+		// Note that the SLAVE owns the mutex and the counter used to tell it to do something 
+		// Get the mutex lock for the ls_task_counter and increment the counter 
+		pthread_mutex_lock(&slave_lsp->ls_mutex);
+		// At this point the slave could be in one of three places. Thus this next section of code
+		// must be carefully structured to prevent a race condition between the master and the slave.
+		// If the slave is simply waiting for the master to release it, then the ls_task_counter lock
+		// can be released and the master can enter the lock_step_barrier to get the slave going again.
+		// If the slave is running, then it will have to wait for the ls_task_counter lock and
+		// when it gets the lock, it will discover that the ls_task_counter is non-zero and will simply
+		// decrement the counter by 1 and continue on executing a lock. 
+		slave_lsp->ls_task_counter++;
+		// Now that we have updated the slave's task counter, we need to check to see if the slave is 
+	 	// waiting for us to give it a kick. If so, enter the barrier which will release the slave and
+	 	// us as well. 
+	 	// ****************Currently this is set up simply to do overlapped lockstep.*******************
+		if (slave_lsp->ls_ms_state & LS_SLAVE_WAITING) { // looks like the slave is waiting for something to do 
+			slave_lsp->ls_ms_state &= ~LS_SLAVE_WAITING;
+			pthread_mutex_unlock(&slave_lsp->ls_mutex);
+fprintf(stderr,"xdd_lockstep_master_before_io_op: pinging slave... entering the slave lock_step_barrier %p...\n",&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index]);
+			xdd_barrier(&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index],&p->occupant,0);
+fprintf(stderr,"xdd_lockstep_master_before_io_op: pinging slave... return from the slave lock_step_barrier %p...\n",&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index]);
+			slave_lsp->Lock_Step_Barrier_Master_Index ^= 1;
+			// At this point the slave outght to be running. 
 		} else {
-			slave_wait = TRUE;
+			pthread_mutex_unlock(&slave_lsp->ls_mutex);
 		}
-		if (slave_wait) { /* At this point it looks like the slave needs to wait for the master to tell us to do something */
-			/* Get the lock on the task counter and check to see if we need to actually wait or just slide on
-			 * through to the next task.
-			 */
-			/* slave_wait will be set for one of two reasons: either the task counter is zero or the slave
-			 * has finished the last task and needs to wait for the next ping from the master.
-			 */
-			/* If the master has finished then don't bother waiting for it to enter this barrier because it never will */
-			if ((lsp->ls_ms_state & LS_MASTER_FINISHED) && (lsp->ls_ms_state & LS_SLAVE_COMPLETE)) {
-				/* if we need to simply finish all this, just release the lock and move on */
-				lsp->ls_ms_state &= ~LS_SLAVE_WAITING; /* Slave is no longer waiting for anything */
-				if (lsp->ls_ms_state & LS_MASTER_WAITING) {
-					lsp->ls_ms_state &= ~LS_MASTER_WAITING;
-					pthread_mutex_unlock(&lsp->ls_mutex);
-					xdd_barrier(&lsp->Lock_Step_Barrier[lsp->Lock_Step_Barrier_Slave_Index],&p->occupant,0);
-					lsp->Lock_Step_Barrier_Slave_Index ^= 1;
-					lsp->ls_slave_loop_counter++;
-				} else {
-					pthread_mutex_unlock(&lsp->ls_mutex);
+fprintf(stderr,"xdd_lockstep_master_before_io_op: done pinging slave\n");
+	} // Done pinging the slave 
+fprintf(stderr,"xdd_lockstep_master_before_io_op: RETURN XDD_RC_GOOD\n");
+	return(XDD_RC_GOOD);
+
+} // xdd_lockstep_master_before_io_op()
+/*----------------------------------------------------------------------------*/
+// xdd_lockstep_slave_before_io_op(ptds_t *p)
+// This is run by the SLAVE of a LOCKSTEP operation
+// 
+int32_t
+xdd_lockstep_slave_before_io_op(ptds_t *p) {
+	int32_t		slave_wait;			// Indicates that we (the slave)  should wait before continuing on 
+	nclk_t   	time_now;			// Used by the lock step functions 
+	lockstep_t 	*slave_lsp;			// Pointer to slave lock step struct
+
+
+	// The "slave_lsp" variable always points to our lockstep structure.
+	slave_lsp = p->lockstepp;
+	// As a slave, we need to check to see if we should stop running at this point. If not, keep on truckin'.
+	// Look at the type of task that we need to perform and the quantity. If we have exhausted
+	// the quantity of operations for this interval then enter the lockstep barrier.
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: ENTER I am a SLAVE, p=%p, slave_lsp=%p, my master is target %d, slave_lsp->ls_task_counter=%d\n",p,slave_lsp,slave_lsp->ls_master,slave_lsp->ls_task_counter);
+	pthread_mutex_lock(&slave_lsp->ls_mutex);
+	if (slave_lsp->ls_task_counter > 0) {
+		// Ahhhh... we must be doing something... 
+		slave_wait = FALSE;
+		if (slave_lsp->ls_task_type & LS_TASK_TIME) {
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: SLAVE processing TIME task\n");
+			// If we are past the start time then signal the specified target to start.
+			nclk_now(&time_now);
+			if (time_now > (slave_lsp->ls_task_value + slave_lsp->ls_task_base_value)) {
+				slave_wait = TRUE;
+				slave_lsp->ls_task_base_value = time_now;
+				slave_lsp->ls_task_counter--;
+			}
+		}
+		if (slave_lsp->ls_task_type & LS_TASK_OP) {
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: SLAVE  processing OP task\n");
+				// If we are past the specified operation, then indicate slave to wait.
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: SLAVE OP Interval: my_current_op_number=%lld, ls_task_value=%lld, ls_task_base_value=%lld\n",(long long int)p->my_current_op_number,(long long int)slave_lsp->ls_task_value,(long long int)slave_lsp->ls_task_base_value);
+				if (p->my_current_op_number >= (slave_lsp->ls_task_value + slave_lsp->ls_task_base_value)) {
+					slave_wait = TRUE;
+					slave_lsp->ls_task_base_value = p->my_current_op_number;
+					slave_lsp->ls_task_counter--;
 				}
-			} else if ((lsp->ls_ms_state & LS_MASTER_FINISHED) && (lsp->ls_ms_state & LS_SLAVE_STOP)) {
+			}
+			if (slave_lsp->ls_task_type & LS_TASK_PERCENT) {
+				// If we have completed percentage of operations then indicate slave to wait.
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: ENTER I am a SLAVE, p=%p, processing PERCENT task\n",p);
+				if (p->my_current_op_number >= ((slave_lsp->ls_task_value * slave_lsp->ls_task_base_value) * p->qthread_ops)) {
+					slave_wait = TRUE;
+					slave_lsp->ls_task_base_value++;
+					slave_lsp->ls_task_counter--;
+				}
+			}
+			if (slave_lsp->ls_task_type & LS_TASK_BYTES) {
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: ENTER I am a SLAVE, p=%p, processing BYTES task\n",p);
+				// If we have completed transferring the specified number of bytes, then indicate slave to wait.
+				if (p->my_current_bytes_xfered >= (slave_lsp->ls_task_value + (int64_t)(slave_lsp->ls_task_base_value))) {
+					slave_wait = TRUE;
+					slave_lsp->ls_task_base_value = p->my_current_bytes_xfered;
+					slave_lsp->ls_task_counter--;
+				}
+			}
+	} else {
+		slave_wait = TRUE;
+	}
+	if (slave_wait) { 
+		// At this point it looks like the slave needs to wait for the master to tell us to do something 
+		// Get the lock on the task counter and check to see if we need to actually wait or just slide on through to the next task.
+		// slave_wait will be set for one of two reasons: either the task counter is zero or the slave
+		// has finished the last task and needs to wait for the next ping from the master.
+		// If the master has finished then don't bother waiting for it to enter this barrier because it never will 
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: I am a SLAVE, p=%p, slave_lsp=%p, waiting....\n",p,slave_lsp);
+			if ((slave_lsp->ls_ms_state & LS_MASTER_FINISHED) && (slave_lsp->ls_ms_state & LS_SLAVE_COMPLETE)) {
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: I am a SLAVE, p=%p, slave_lsp=%p, MASTER is finished and SLAVE is Complete....\n",p,slave_lsp);
+				/* if we need to simply finish all this, just release the lock and move on */
+				slave_lsp->ls_ms_state &= ~LS_SLAVE_WAITING; /* Slave is no longer waiting for anything */
+				if (slave_lsp->ls_ms_state & LS_MASTER_WAITING) {
+					slave_lsp->ls_ms_state &= ~LS_MASTER_WAITING;
+					pthread_mutex_unlock(&slave_lsp->ls_mutex);
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: MASTER_FINISHED+MASTER_WAITING... entering the slave lock_step_barrier %p...\n",&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index]);
+					xdd_barrier(&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Slave_Index],&p->occupant,0);
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: MASTER_FINISHED+MASTER_WAITING... return from the slave lock_step_barrier %p...\n",&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index]);
+					slave_lsp->Lock_Step_Barrier_Slave_Index ^= 1;
+					slave_lsp->ls_slave_loop_counter++;
+				} else {
+					pthread_mutex_unlock(&slave_lsp->ls_mutex);
+				}
+			} else if ((slave_lsp->ls_ms_state & LS_MASTER_FINISHED) && (slave_lsp->ls_ms_state & LS_SLAVE_STOP)) {
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: I am a SLAVE, p=%p, slave_lsp=%p, MASTER is finished and SLAVE is Stopped....\n",p,slave_lsp);
 				/* This is the case where the master is finished and we need to stop NOW.
 				 * Therefore, release the lock and break this loop.
 				 */
-				lsp->ls_ms_state &= ~LS_SLAVE_WAITING; /* Slave is no longer waiting for anything */
-				if (lsp->ls_ms_state & LS_MASTER_WAITING) {
-					lsp->ls_ms_state &= ~LS_MASTER_WAITING;
-					pthread_mutex_unlock(&lsp->ls_mutex);
-					xdd_barrier(&lsp->Lock_Step_Barrier[lsp->Lock_Step_Barrier_Slave_Index],&p->occupant,0);
-					lsp->Lock_Step_Barrier_Slave_Index ^= 1;
-					lsp->ls_slave_loop_counter++;
+				slave_lsp->ls_ms_state &= ~LS_SLAVE_WAITING; /* Slave is no longer waiting for anything */
+				if (slave_lsp->ls_ms_state & LS_MASTER_WAITING) {
+					slave_lsp->ls_ms_state &= ~LS_MASTER_WAITING;
+					pthread_mutex_unlock(&slave_lsp->ls_mutex);
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: MASTER_FINISHED+COMPLETE_NOW... entering the slave lock_step_barrier %p...\n",&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index]);
+					xdd_barrier(&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Slave_Index],&p->occupant,0);
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: MASTER_FINISHED+COMPLETE_NOW... return from the slave lock_step_barrier %p...\n",&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index]);
+					slave_lsp->Lock_Step_Barrier_Slave_Index ^= 1;
+					slave_lsp->ls_slave_loop_counter++;
 				} else {
-					pthread_mutex_unlock(&lsp->ls_mutex);
+					pthread_mutex_unlock(&slave_lsp->ls_mutex);
 				}
-				return(1);
+				return(XDD_RC_GOOD);
 			} else { /* At this point the master is not finished and we need to wait for something to do */
-				if (lsp->ls_ms_state & LS_MASTER_WAITING)
-					lsp->ls_ms_state &= ~LS_MASTER_WAITING;
-				lsp->ls_ms_state |= LS_SLAVE_WAITING;
-				pthread_mutex_unlock(&lsp->ls_mutex);
-				xdd_barrier(&lsp->Lock_Step_Barrier[lsp->Lock_Step_Barrier_Slave_Index],&p->occupant,0);
-				lsp->Lock_Step_Barrier_Slave_Index ^= 1;
-				lsp->ls_slave_loop_counter++;
+				if (slave_lsp->ls_ms_state & LS_MASTER_WAITING) {
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: I am a SLAVE - MASTER is waiting so we turn off the master_waiting bit in slave state\n");
+					slave_lsp->ls_ms_state &= ~LS_MASTER_WAITING;
+				}
+				slave_lsp->ls_ms_state |= LS_SLAVE_WAITING;
+				pthread_mutex_unlock(&slave_lsp->ls_mutex);
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: MASTER_NOT_FINISHED+SLAVE_WAITING_FOR_TASK... entering the slave lock_step_barrier %p...\n",&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index]);
+				xdd_barrier(&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Slave_Index],&p->occupant,0);
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: MASTER_NOT_FINISHED+SLAVE_WAITING_FOR_TASK... return from the slave lock_step_barrier %p...\n",&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index]);
+				slave_lsp->Lock_Step_Barrier_Slave_Index ^= 1;
+				slave_lsp->ls_slave_loop_counter++;
 			}
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: I am a SLAVE - done waiting....\n");
 		} else {
-			pthread_mutex_unlock(&lsp->ls_mutex);
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: NO SLAVE WAIT - done with xdd_lockstep_slave_before_io_op...\n");
+			pthread_mutex_unlock(&slave_lsp->ls_mutex);
 		}
 		/* At this point the slave does not have to wait for anything so keep on truckin... */
 
-	} // End of being the master in a lockstep op
-	return(0);
+fprintf(stderr,"xdd_lockstep_slave_before_io_op: RETURN XDD_RC_GOOD.\n");
+	return(XDD_RC_GOOD);
+
+} // xdd_lockstep_slave_before_io_op()
+/*----------------------------------------------------------------------------*/
+/* xdd_lockstep_before_io_op(ptds_t *p) 
+ */
+int32_t
+xdd_lockstep_before_io_op(ptds_t *p) {
+	lockstep_t 	*lsp;	// Pointer to the lock step struct
+
+
+	// Check to see if we are in lockstep with another target.
+	// If so, then if we are a master, then do the master thing.
+	// Then check to see if we are also a slave and do the slave thing.
+	//
+	if (p->lockstepp == 0)
+		return(XDD_RC_GOOD);
+
+	lsp = p->lockstepp;
+
+	// At this point we know that this target is part of a lockstep operation.
+	// Therefore this process is either a MASTER or a SLAVE target or both and
+	// "lsp" points to our lockstep structure. 
+	// The "ls_slave" and "ls_master" members of our lockstep structure contain
+	// the target number of our slave or our master target. 
+	// If we are a MASTER, then "ls_slave" will be the target number of our SLAVE.
+	// Likewise, if we are a SLAVE, then "ls_master" will be the target number 
+	// of our MASTER. 
+	// It is possible that we are a MASTER to one target an a SLAVE to another 
+	// target. We cannot be a MASTER or SLAVE to ourself.
+	//
+	if (lsp->ls_slave >= 0) 
+		xdd_lockstep_master_before_io_op(p);
+
+	// If there is a pointer to a MASTER lockstep structure then we must be a SLAVE.
+	//
+	if (lsp->ls_master >= 0) 
+		xdd_lockstep_slave_before_io_op(p);
+
+	return(XDD_RC_GOOD);
 
 } // xdd_lockstep_before_io_op()
 
+#ifdef ndef
+/*----------------------------------------------------------------------------*/
+/* xdd_lockstep_after_io_op(ptds_t *p) 
+ */
+int32_t
+xdd_lockstep_after_io_op(ptds_t *p) {
+	lockstep_t 	*lsp;	// Pointer to the lock step struct
+
+
+	// Check to see if we are in lockstep with another target.
+	// If so, then if we are a master, then do the master thing.
+	// Then check to see if we are also a slave and do the slave thing.
+	//
+	if (p->lockstepp == 0)
+		return(XDD_RC_GOOD);
+
+	/* This ought to return something other than 0 but this is it for now... */
+	/* If there is a slave to this target then we need to tell the slave that we (the master) are finished
+	** and that it ought to abort or finish (depending on the command-line option) but in either case it
+	** should no longer wait for the master to tell it to do something.
+	**/
+	if (p->ls_master >= 0) {
+		/* If this is the slave and we are finishing first, turn off the SLAVE_WAITING flag so the
+		** master does not inadvertently wait for the slave to complete.
+		*                                   */
+		pthread_mutex_lock(&p->ls_mutex);
+		p->ls_ms_state &= ~LS_SLAVE_WAITING;
+		p->ls_ms_state |= LS_SLAVE_FINISHED;
+		pthread_mutex_unlock(&p->ls_mutex);
+	}
+	if (p->ls_slave >= 0) {
+		/* Get the mutex lock for the ls_task_counter and increment the counter */
+		p2 = xgp->ptdsp[p->ls_slave];
+		pthread_mutex_lock(&p2->ls_mutex);
+		p2->ls_ms_state |= LS_MASTER_FINISHED;
+		/* At this point the slave could be in one of three places. Thus this next section of code
+		** must be carefully structured to prevent a race condition between the master and the slave.
+		** If the slave is simply waiting for the master to release it, then the ls_task_counter lock
+		** can be released and the master can enter the lock_step_barrier to get the slave going again.
+		** If the slave is running, then it will have to wait for the ls_task_counter lock and
+		** when it gets the lock, it will discover that the ls_task_counter is non-zero and will simply
+		** decrement the counter by 1 and continue on executing a lock.
+		**/
+		p2->ls_task_counter++;
+		if (p2->ls_ms_state & LS_SLAVE_WAITING) { /* looks like the slave is waiting for something to do */
+			p2->ls_ms_state &= ~LS_SLAVE_WAITING;
+			pthread_mutex_unlock(&p2->ls_mutex);
+			xdd_barrier(&p2->Lock_Step_Barrier[p2->Lock_Step_Barrier_Master_Index]);
+			p2->Lock_Step_Barrier_Master_Index ^= 1;
+		} else {
+			pthread_mutex_unlock(&p2->ls_mutex);
+		}
+	}
+
+} // xdd_lockstep_after_io_op()
+#endif
+
 /*----------------------------------------------------------------------------*/
 /* xdd_lockstep_before_pass() - This subroutine initializes the variables that
- * are used by the end-to-end option
+ * are used by the lockstep option.
  */
 void
 xdd_lockstep_before_pass(ptds_t *p) {
 	lockstep_t *lsp;			// Pointer to the lock step struct
 
 
+fprintf(stderr,"xdd_lockstep_before_pass: ENTER, p=%p\n",p);
 	if (p->lockstepp == 0)
 		return;
 	lsp = p->lockstepp;
@@ -312,6 +431,7 @@ xdd_lockstep_before_pass(ptds_t *p) {
 		}
 	}
 
+fprintf(stderr,"xdd_lockstep_before_pass: EXIT, p=%p\n",p);
 } // xdd_lockstep_before_pass()
 
 /*----------------------------------------------------------------------------*/
@@ -322,20 +442,22 @@ int32_t
 xdd_lockstep_after_pass(ptds_t *p) {
 	ptds_t	*p2;		// Secondary PTDS pointer
 	lockstep_t *lsp;			// Pointer to the lock step struct
-	lockstep_t *lsp2;			// Pointer to the lock step struct
+	lockstep_t *slave_lsp;			// Pointer to the lock step struct
 
 	/* This ought to return something other than 0 but this is it for now... */
 	/* If there is a slave to this target then we need to tell the slave that we (the master) are finished
 	 * and that it ought to abort or finish (depending on the command-line option) but in either case it
 	 * should no longer wait for the master to tell it to do something.
 	 */
+fprintf(stderr,"xdd_lockstep_after_pass: ENTER1, p=%p, lockstepp=%p\n",p,p->lockstepp);
 	if (p->lockstepp == 0)
-		return(0);
+		return(XDD_RC_GOOD);
 	lsp = p->lockstepp;
 	if (lsp->ls_master >= 0) {
 		/* If this is the slave and we are finishing first, turn off the SLAVE_WAITING flag so the 
 		 * master does not inadvertently wait for the slave to complete.
 		 */
+fprintf(stderr,"xdd_lockstep_after_pass: ENTER2, p=%p, lsp=%p, I am a SLAVE and I have finished\n",p,lsp);
 		pthread_mutex_lock(&lsp->ls_mutex);
 		lsp->ls_ms_state &= ~LS_SLAVE_WAITING;
 		lsp->ls_ms_state |= LS_SLAVE_FINISHED;
@@ -343,10 +465,13 @@ xdd_lockstep_after_pass(ptds_t *p) {
 	}
 	if (lsp->ls_slave >= 0) {  
 		/* Get the mutex lock for the ls_task_counter and increment the counter */
+fprintf(stderr,"xdd_lockstep_after_pass: ENTER2, p=%p, lsp=%p, I am a MASTER and I have finished\n",p,lsp);
 		p2 = xgp->ptdsp[lsp->ls_slave];
-		lsp2 = p2->lockstepp;
-		pthread_mutex_lock(&lsp2->ls_mutex);
-		lsp2->ls_ms_state |= LS_MASTER_FINISHED;
+		slave_lsp = p2->lockstepp;
+fprintf(stderr,"xdd_lockstep_after_pass: ENTER2, p2=%p, slave_lsp=%p, I am a MASTER and I have finished - slave's task counter is %d\n",p2,slave_lsp,slave_lsp->ls_task_counter);
+		pthread_mutex_lock(&slave_lsp->ls_mutex);
+fprintf(stderr,"xdd_lockstep_after_pass: ENTER2, p=%p, lsp=%p, I am a MASTER and I have finished - got the slave's lock\n",p,lsp);
+		slave_lsp->ls_ms_state |= LS_MASTER_FINISHED;
 		/* At this point the slave could be in one of three places. Thus this next section of code
 			* must be carefully structured to prevent a race condition between the master and the slave.
 			* If the slave is simply waiting for the master to release it, then the ls_task_counter lock
@@ -355,17 +480,20 @@ xdd_lockstep_after_pass(ptds_t *p) {
 			* when it gets the lock, it will discover that the ls_task_counter is non-zero and will simply
 			* decrement the counter by 1 and continue on executing a lock. 
 			*/
-		lsp2->ls_task_counter++;
-		if (lsp2->ls_ms_state & LS_SLAVE_WAITING) { /* looks like the slave is waiting for something to do */
-			lsp2->ls_ms_state &= ~LS_SLAVE_WAITING;
-			pthread_mutex_unlock(&lsp2->ls_mutex);
-			xdd_barrier(&lsp2->Lock_Step_Barrier[lsp2->Lock_Step_Barrier_Master_Index],&p->occupant,0);
-			lsp2->Lock_Step_Barrier_Master_Index ^= 1;
+		slave_lsp->ls_task_counter++;
+		if (slave_lsp->ls_ms_state & LS_SLAVE_WAITING) { /* looks like the slave is waiting for something to do */
+			slave_lsp->ls_ms_state &= ~LS_SLAVE_WAITING;
+			pthread_mutex_unlock(&slave_lsp->ls_mutex);
+fprintf(stderr,"xdd_lockstep_after_pass: ENTER2, p=%p, lsp=%p, I am a MASTER Entering slave's lock step barrier - index %d\n",p,lsp,slave_lsp->Lock_Step_Barrier_Master_Index);
+			xdd_barrier(&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Master_Index],&p->occupant,0);
+fprintf(stderr,"xdd_lockstep_after_pass: ENTER2, p=%p, lsp=%p, I am a MASTER out of slave's lock step barrier - index %d\n",p,lsp,slave_lsp->Lock_Step_Barrier_Master_Index);
+			slave_lsp->Lock_Step_Barrier_Master_Index ^= 1;
 		} else {
-			pthread_mutex_unlock(&lsp2->ls_mutex);
+			pthread_mutex_unlock(&slave_lsp->ls_mutex);
 		}
 	}
 
-	return(0);
+fprintf(stderr,"xdd_lockstep_after_pass: EXIT, p=%p\n",p);
+	return(XDD_RC_GOOD);
 
 } /* end of xdd_lockstep_after_pass() */
