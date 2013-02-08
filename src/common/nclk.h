@@ -37,6 +37,7 @@
 /* -------- */
 /* Includes */
 /* -------- */
+#include <limits.h>
 #include "misc.h" /* bool, LONGLONG_MAX, LONGLONG_MIN */
 /* ----- */
 /* Types  */
@@ -45,8 +46,8 @@ typedef unsigned long long int nclk_t;  /* Number of nanoseconds */
 /* --------- */
 /* Constants */
 /* --------- */
-#define NCLK_MAX LONGLONG_MAX
-#define NCLK_BAD LONGLONG_MIN
+#define NCLK_MAX ULONGLONG_MAX
+#define NCLK_BAD ULONGLONG_MIN
 /* --------------------- */
 /* Structure declarations */
 /* --------------------- */

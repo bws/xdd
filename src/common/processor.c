@@ -134,6 +134,11 @@ xdd_processor(ptds_t *p) {
 		perror("Reason");
 	}
 	return;
+#else
+        fprintf(xgp->errout,"%s: **WARNING** Error assigning target %d to processor %d\n",
+                xgp->progname, p->my_target_number, p->processor);
+        perror("Reason");
+        return;
 #endif
 } /* end of xdd_processor() */
 /*----------------------------------------------------------------------------*/

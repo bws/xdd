@@ -68,9 +68,9 @@ readonly XDDCP_DEFAULT_QUEUE_DEPTH=8
 readonly XDDCP_DEFAULT_SSH_PSEUDO_TERMINAL_OPT="-T"
 readonly XDDCP_DEFAULT_HEARTBEAT_SECS=4
 readonly XDDCP_DEFAULT_TIMESTAMP="$(\date -u +'%Y-%m-%d-%H%M%S')-GMT"
-readonly XDDCP_DEFAULT_NETWORK_SLEEP_SECS=4
-readonly XDDCP_DEFAULT_RETRY_SLEEP_SECS=4
-readonly XDDCP_DEFAULT_NETWORK_CLEAR_SECS=2
+readonly XDDCP_DEFAULT_NETWORK_SLEEP_SECS=0
+readonly XDDCP_DEFAULT_RETRY_SLEEP_SECS=0
+readonly XDDCP_DEFAULT_NETWORK_CLEAR_SECS=0
 readonly XDDCP_DEFAULT_FIFO_PATH="/tmp/xddcp-$USER.$$"
 readonly XDDCP_DEFAULT_RETRY_COUNT=0
 readonly XDDCP_NUMA_NODE_WILDCARD="all"
@@ -316,7 +316,8 @@ function error_print {
 #
 function handle_signal_common {
     local signum=$1
-
+    
+    #echo "SrcPid: $g_xddcpSrcXddPid SSHPid: $g_xddcpDestSSHPid Fifo: $g_xddcpFifoPath RecursiveList: $g_xddcpRecursiveListFileName"
     # Attempt to deliver the signal to source-side XDD
     if [ -1 -ne $g_xddcpSrcXddPid ]; then
         kill -$signum $g_xddcpSrcXddPid &>$XDDCP_DEV_NULL

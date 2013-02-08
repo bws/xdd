@@ -245,7 +245,7 @@ xdd_raw_reader_init(ptds_t *p) {
 int32_t
 xdd_raw_read_wait(ptds_t *p) {
 	int 		status; /* status of send/recv function calls */
-	int  		bytes_received;
+	unsigned int  	bytes_received;
 	int  		bytes_remaining;
 	xdd_raw_t	*rawp;
 

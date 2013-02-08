@@ -86,11 +86,15 @@ def loadConfig(config):
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp9.sh'], description=["XDDCP Test 9"], maxTime=1200, name="test_xddcp9.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp10.sh'], description=["XDDCP Test 10"], maxTime=1200, name="test_xddcp10.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp11.sh'], description=["XDDCP Test 11"], maxTime=1200, name="test_xddcp11.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp12.sh'], description=["XDDCP Test 12"], maxTime=1200, name="test_xddcp12.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp13.sh'], description=["XDDCP Test 13"], maxTime=1200, name="test_xddcp13.sh"))
 
     # Test XDDCP MultiNIC capabilities
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic1.sh'], description=["MultiNIC Test 1"], maxTime=1200, name="test_xddcp_multinic1.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic2.sh'], description=["MultiNIC Test 2"], maxTime=1200, name="test_xddcp-multinic2.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic3.sh'], description=["MultiNIC Test 3"], maxTime=1200, name="test_xddcp-multinic3.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic4.sh'], description=["MultiNIC Test 4"], maxTime=1200, name="test_xddcp-multinic4.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic5.sh'], description=["MultiNIC Test 5"], maxTime=1200, name="test_xddcp-multinic5.sh"))
 
     # Add the XDD Build factory to each of the available builders described in the master.cfg
     from buildbot.config import BuilderConfig
@@ -153,16 +157,18 @@ def xddSummaryMail(mode, name, build, results, master_status):
     # Construct the mail subject
     subject = ""
     if results == SUCCESS:
-        subject = "[Buildbot] XDD Nightly Test SUCCESS"
+        subject = "[Buildbot] SUCCESS -- XDD Acceptance Test -- SUCCESS"
     else:
-        subject = "[Buildbot] XDD Nightly Test FAILURE"
+        subject = "[Buildbot] FAILURE -- XDD Acceptance Test -- FAILURE"
 
     # Construct the mail body
     body = ""
+    body += "Build Host: %s (%s)\n" % (build.getSlavename(), name)
     body += "Build Result: %s\n" % Results[results]
-    body += "Build Logs available at: %s\n" % urllib.quote(master_status.getBuildbotURL(), '/:')
-    body += "Flagged Build: %s\n" % build.getSlavename()
-    if results != success:
+    body += "Build Status: %stgrid\n" % master_status.getURLForThing(build)
+    #body += "Build Logs available at: %s\n" % urllib.quote(master_status.getBuildbotURL(), '/:')
+    #body += "Flagged Build: %s\n" % build.getSlavename()
+    if results != SUCCESS:
         body += "Failed tests: %s\n" % build.getText()
     body += "--\n\n"
 
