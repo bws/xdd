@@ -200,7 +200,7 @@ xdd_runtime_before_io_op(ptds_t *p) {
  *
  */
 int32_t
-xdd_target_ttd_before_io_op(ptds_t *p) {
+xdd_target_ttd_before_io_op(ptds_t *p, ptds_t *qp) {
 	int32_t	status;	// Return status from various subroutines
 
 	// Syncio barrier - wait for all others to get here 
@@ -234,7 +234,25 @@ xdd_target_ttd_before_io_op(ptds_t *p) {
 	if (xgp->global_options & GO_INTERACTIVE)	
 		xdd_barrier(&xgp->interactive_barrier,&p->occupant,0);
 
-	return(0);
+	// Check to see if either the pass or run time limit has 
+	// expired - if so, we need to leave this loop
+	if ((p->my_time_limit_expired) || (xgp->run_time_expired)) 
+		return(XDD_RC_BAD);
+
+	// Check to see if we've been canceled - if so, we need 
+	// to set the QTSYNC_BUSY flag and leave this loop
+	if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
+		// When we got this QThread the QTSYNC_BUSY flag was 
+		// set by get_any_available_qthread()
+		// We need to reset it so that the subsequent loop 
+		// will find it with get_specific_qthread()
+		// Normally we would get the mutex lock to do this 
+		// update but at this point it is not necessary.
+		qp->qthread_target_sync &= ~QTSYNC_BUSY;
+		return(XDD_RC_BAD);
+	}
+
+	return(XDD_RC_GOOD);
 
 } // End of xdd_target_ttd_before_io_op()
 

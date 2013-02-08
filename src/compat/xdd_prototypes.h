@@ -136,6 +136,8 @@ int32_t	xdd_lockstep_init(ptds_t *p);
 int32_t	xdd_lockstep_before_io_op(ptds_t *p);
 void	xdd_lockstep_before_pass(ptds_t *p);
 int32_t	xdd_lockstep_after_pass(ptds_t *p);
+int32_t xdd_lockstep_master_after_io_op(ptds_t *p);
+int32_t xdd_lockstep_slave_after_io_op(ptds_t *p);
 
 // memory.c
 void	xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);
@@ -354,7 +356,8 @@ void	xdd_syncio_before_io_op(ptds_t *p);
 int32_t	xdd_start_trigger_before_io_op(ptds_t *p);
 int32_t	xdd_timelimit_before_io_op(ptds_t *p);
 int32_t	xdd_runtime_before_io_op(ptds_t *p);
-int32_t	xdd_target_ttd_before_io_op(ptds_t *p);
+int32_t	xdd_target_ttd_before_io_op(ptds_t *p, ptds_t *qp);
+int32_t	xdd_target_ttd_after_io_op(ptds_t *p, ptds_t *qp);
 
 // target_ttd_before_pass.c
 void	xdd_timer_calibration_before_pass(void);

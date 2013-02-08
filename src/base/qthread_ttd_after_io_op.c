@@ -350,6 +350,9 @@ xdd_qthread_ttd_after_io_op(ptds_t *qp) {
 	// Extended Statistics 
 	xdd_extended_stats(qp);
 
+	// Lockstep
+	xdd_lockstep_after_io_op(qp->target_ptds);
+
 } // End of xdd_qthread_ttd_after_io_op()
 
 /*

@@ -1594,19 +1594,19 @@ xddfunc_kbytes(int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 {
-    int 		mt;				// Master Target number
-    int			st;				// Slave Target number
+    int 		mt;						// Master Target number
+    int			st;						// Slave Target number
     double 		tmpf;
-    ptds_t 		*masterp;		// Pointer to the Master PTDS
-    ptds_t		*slavep;		// Pointer to the Slave PTDS
-    int 		retval;			// Return value at any give time
-    int 		lsmode;			// Lockstep mode
-    char 		*when;			// Indicates WHEN to do something
-    char		*what;			// Indicates WHAT to do when triggered
-    char		*lockstep_startup; // Whether or not to start or wait at beginning
-    char		*lockstep_completion; // What to do after completed all I/O
-    lockstep_t	*mlsp;			// Pointer to the Master Lock Step Struct
-    lockstep_t	*slsp;			// Pointer to the Slave Lock Step Struct
+    ptds_t 		*masterp;				// Pointer to the Master PTDS
+    ptds_t		*slavep;				// Pointer to the Slave PTDS
+    int 		retval;					// Return value at any give time
+    int 		lsmode;					// Lockstep mode
+    char 		*when;					// Indicates WHEN to do something
+    char		*what;					// Indicates WHAT to do when triggered
+    char		*lockstep_startup; 		// Whether or not to start or wait at beginning
+    char		*lockstep_completion; 	// What to do after completed all I/O
+    lockstep_t	*master_lsp;			// Pointer to the Master Lock Step Struct
+    lockstep_t	*slave_lsp;				// Pointer to the Slave Lock Step Struct
 
 
     if ((strcmp(argv[0], "-lockstep") == 0) || (strcmp(argv[0], "-ls") == 0))
@@ -1620,70 +1620,74 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
     if (masterp == NULL) return(-1);
     slavep = xdd_get_ptdsp(st, argv[0]);
     if (slavep == NULL) return(-1);
-    
+ 
     // Make sure there is a Lockstep Structure for the MASTER
-    if (masterp->lockstepp == 0) {
-		masterp->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (masterp->lockstepp == 0) {
+    if (masterp->master_lsp == 0) {
+		masterp->master_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (masterp->master_lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Master lockstep structure\n",
 			xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
     } 
     // Make sure there is a Lockstep Structure for the SLAVE
-    if (slavep->lockstepp == 0) {
-		slavep->lockstepp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (slavep->lockstepp == 0) {
+    if (slavep->slave_lsp == 0) {
+		slavep->slave_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (slavep->slave_lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Slave lockstep structure\n",
 		    	xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
     } 
-	
-	// Clear the Lockstep Structure and set the state to indicate this is a MASTER
-	mlsp = masterp->lockstepp;
-	memset(mlsp, 0, sizeof(*mlsp));
-	mlsp->ls_ms_state |= LS_I_AM_A_MASTER;
-	masterp->target_options |= lsmode;
-	mlsp->ls_slave = st; // The master has to know the number of its SLAVE
 
-	// Clear the Lockstep Structure and set the state to indicate this is a SLAVE
-	slsp = slavep->lockstepp;
-	memset(slsp, 0, sizeof(*slsp));
-	slsp->ls_ms_state |= LS_I_AM_A_SLAVE;
+	// Clear the Lockstep Structures and initialize the MASTER/SLAVE variables
+	master_lsp = masterp->master_lsp;
+	memset(master_lsp, 0, sizeof(*master_lsp));
+	slave_lsp = slavep->slave_lsp;
+	memset(slave_lsp, 0, sizeof(*slave_lsp));
+
+	master_lsp->ls_ms_state |= LS_I_AM_A_MASTER;
+	masterp->target_options |= lsmode;
+	master_lsp->ls_ms_target = st; // The master has to know the target number of its SLAVE
+	master_lsp->ls_slavep = slavep;
+	master_lsp->ls_slave_lsp = slave_lsp;
+
+	slave_lsp->ls_ms_state |= LS_I_AM_A_SLAVE;
 	slavep->target_options |= lsmode; 
-	slsp->ls_master = mt; // The slave has to know the target number of its MASTER
+	slave_lsp->ls_ms_target = mt; // The slave has to know the target number of its MASTER
+	slave_lsp->ls_masterp = masterp;
+	slave_lsp->ls_master_lsp = master_lsp;
 
 	// Lockstep sub-options
 	when = argv[3];
 
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		mlsp->ls_interval_type = LS_INTERVAL_TIME;
-		mlsp->ls_interval_units = "SECONDS";
-		mlsp->ls_interval_value = (nclk_t)(tmpf * BILLION);
-		if (mlsp->ls_interval_value <= 0.0) {
+		master_lsp->ls_interval_type = LS_INTERVAL_TIME;
+		master_lsp->ls_interval_units = "SECONDS";
+		master_lsp->ls_interval_value = (nclk_t)(tmpf * BILLION);
+		if (master_lsp->ls_interval_value <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep interval time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
             return(0);
 		};
 		retval = 5;
 	} else if (strcmp(when,"op") == 0){ /* get the number of operations to wait before triggering the other target */
-		mlsp->ls_interval_value = atoll(argv[4]);
-		mlsp->ls_interval_type = LS_INTERVAL_OP;
-		mlsp->ls_interval_units = "OPERATIONS";
-		if (mlsp->ls_interval_value <= 0) {
+		master_lsp->ls_interval_value = atoll(argv[4]);
+		master_lsp->ls_interval_type = LS_INTERVAL_OP;
+		master_lsp->ls_interval_units = "OPERATIONS";
+		if (master_lsp->ls_interval_value <= 0) {
 			fprintf(stderr,"%s: Invalid lockstep interval op: %lld. This value must be greater than 0\n",
 				xgp->progname, 
-				(long long)mlsp->ls_interval_value);
+				(long long)master_lsp->ls_interval_value);
             return(0);
 		}
 		retval = 5;  
 	} else if (strcmp(when,"percent") == 0){ /* get the percentage of operations to wait before triggering the other target */
-		mlsp->ls_interval_value = (uint64_t)(atof(argv[4]) / 100.0);
-		mlsp->ls_interval_type = LS_INTERVAL_PERCENT;
-		mlsp->ls_interval_units = "PERCENT";
-		if ((mlsp->ls_interval_value < 0.0) || (mlsp->ls_interval_value > 1.0)) {
+		master_lsp->ls_interval_value = (uint64_t)(atof(argv[4]) / 100.0);
+		master_lsp->ls_interval_type = LS_INTERVAL_PERCENT;
+		master_lsp->ls_interval_units = "PERCENT";
+		if ((master_lsp->ls_interval_value < 0.0) || (master_lsp->ls_interval_value > 1.0)) {
 			fprintf(stderr,"%s: Invalid lockstep interval percent: %f. This value must be between 0.0 and 100.0\n",
 				xgp->progname, atof(argv[4]) );
             return(0);
@@ -1691,9 +1695,9 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 		retval = 5;    
 	} else if (strcmp(when,"mbytes") == 0){ /* get the number of megabytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		mlsp->ls_interval_value = (uint64_t)(tmpf * 1024*1024);
-		mlsp->ls_interval_type = LS_INTERVAL_BYTES;
-		mlsp->ls_interval_units = "BYTES";
+		master_lsp->ls_interval_value = (uint64_t)(tmpf * 1024*1024);
+		master_lsp->ls_interval_type = LS_INTERVAL_BYTES;
+		master_lsp->ls_interval_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep interval mbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1702,9 +1706,9 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 		retval = 5;    
 	} else if (strcmp(when,"kbytes") == 0){ /* get the number of kilobytes to wait before triggering the other target */
 		tmpf = atof(argv[4]);
-		mlsp->ls_interval_value = (uint64_t)(tmpf * 1024);
-		mlsp->ls_interval_type = LS_INTERVAL_BYTES;
-		mlsp->ls_interval_units = "BYTES";
+		master_lsp->ls_interval_value = (uint64_t)(tmpf * 1024);
+		master_lsp->ls_interval_type = LS_INTERVAL_BYTES;
+		master_lsp->ls_interval_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep interval kbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1720,31 +1724,31 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 	what = argv[5];
 	if (strcmp(what,"time") == 0){ /* get the number of seconds to run a task */
 		tmpf = atof(argv[6]);
-		slsp->ls_task_type = LS_TASK_TIME;
-		slsp->ls_task_units = "SECONDS";
-		slsp->ls_task_value = (nclk_t)(tmpf * BILLION);
-		if (slsp->ls_task_value <= 0.0) {
+		slave_lsp->ls_task_type = LS_TASK_TIME;
+		slave_lsp->ls_task_units = "SECONDS";
+		slave_lsp->ls_task_value = (nclk_t)(tmpf * BILLION);
+		if (slave_lsp->ls_task_value <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
             return(0);
 		};
 		retval += 2;
 	} else if (strcmp(what,"op") == 0){ /* get the number of operations to execute per task */
-		slsp->ls_task_value = atoll(argv[6]);
-		slsp->ls_task_type = LS_TASK_OP;
-		slsp->ls_task_units = "OPERATIONS";
-		if (slsp->ls_task_value <= 0) {
+		slave_lsp->ls_task_value = atoll(argv[6]);
+		slave_lsp->ls_task_type = LS_TASK_OP;
+		slave_lsp->ls_task_units = "OPERATIONS";
+		if (slave_lsp->ls_task_value <= 0) {
 			fprintf(stderr,"%s: Invalid lockstep task op: %lld. This value must be greater than 0\n",
 				xgp->progname, 
-				(long long)slsp->ls_task_value);
+				(long long)slave_lsp->ls_task_value);
             return(0);
 		}
 		retval += 2;       
 	} else if (strcmp(what,"mbytes") == 0){ /* get the number of megabytes to transfer per task */
 		tmpf = atof(argv[6]);
-		slsp->ls_task_value = (uint64_t)(tmpf * 1024*1024);
-		slsp->ls_task_type = LS_TASK_BYTES;
-		slsp->ls_task_units = "BYTES";
+		slave_lsp->ls_task_value = (uint64_t)(tmpf * 1024*1024);
+		slave_lsp->ls_task_type = LS_TASK_BYTES;
+		slave_lsp->ls_task_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task mbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1753,9 +1757,9 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 		retval += 2;     
 	} else if (strcmp(what,"kbytes") == 0){ /* get the number of kilobytes to transfer per task */
 		tmpf = atof(argv[6]);
-		slsp->ls_task_value = (uint64_t)(tmpf * 1024);
-		slsp->ls_task_type = LS_TASK_BYTES;
-		slsp->ls_task_units = "BYTES";
+		slave_lsp->ls_task_value = (uint64_t)(tmpf * 1024);
+		slave_lsp->ls_task_type = LS_TASK_BYTES;
+		slave_lsp->ls_task_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task kbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1769,20 +1773,20 @@ xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags)
 	}
 	lockstep_startup = argv[7];  
 	if (strcmp(lockstep_startup,"run") == 0) { /* have the slave start running immediately */
-		slsp->ls_ms_state |= LS_SLAVE_RUN_NOW;
-		slsp->ls_ms_state &= ~LS_SLAVE_WAITING;
-		slsp->ls_task_counter = 1;
+		slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_RUN;
+		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_WAIT;
+		slave_lsp->ls_task_counter = 1;
 	} else { /* Have the slave wait for the master to tell it to run */
-		slsp->ls_ms_state &= ~LS_SLAVE_RUN_NOW;
-		slsp->ls_ms_state |= LS_SLAVE_WAITING;
-		slsp->ls_task_counter = 0;
+		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_RUN;
+		slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_WAIT;
+		slave_lsp->ls_task_counter = 0;
 	}
     retval++;
 	lockstep_completion = argv[8];
 	if (strcmp(lockstep_completion,"complete") == 0) { /* Have slave complete all operations if master finishes first */
-		slsp->ls_ms_state |= LS_SLAVE_COMPLETE;
+		slave_lsp->ls_ms_state |= LS_SLAVE_COMPLETION_COMPLETE;
 	} else if (strcmp(lockstep_completion,"stop") == 0){ /* Have slave stop when master stops */
-		slsp->ls_ms_state |= LS_SLAVE_STOP;
+		slave_lsp->ls_ms_state |= LS_SLAVE_COMPLETION_STOP;
 	} else {
 		fprintf(stderr,"%s: Invalid lockstep slave completion directive: %s. This value must be either 'complete' or 'stop'\n",
 				xgp->progname,lockstep_completion);

@@ -81,9 +81,11 @@ xdd_targetpass(ptds_t *p) {
 	p->bytes_completed = 0;
 	p->bytes_remaining = p->target_bytes_to_xfer_per_pass;
 
-/////////////////////////////// Loop Starts Here ////////////////////////////////////
-	// The pass loops are handled by one of two subroutines depending on whether this is 
-	// the Destination Side of an E2E operation or not. 
+/////////////////////////////// PSEUDO-Loop Starts Here ////////////////////////
+// The PSEUDO-Loop just means that the actual "looping" in done in 
+// the xdd_targetpass_loop() subroutine (or the e2e equivalent).
+	// The pass loops are handled by one of two subroutines depending on 
+	// whether this is the Destination Side of an E2E operation or not. 
 	p->my_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
 	if (p->target_options & TO_ENDTOEND) { // E2E operations are *different*
 		if (p->target_options & TO_E2E_SOURCE)
@@ -93,7 +95,7 @@ xdd_targetpass(ptds_t *p) {
 		xdd_targetpass_loop(p);
 	}
 	p->my_current_state |= CURRENT_STATE_PASS_COMPLETE;
-/////////////////////////////// Loop  Ends  Here ////////////////////////////////////
+/////////////////////////////// PSEUDO-Loop Ends  Here /////////////////////////
 	// If this is an E2E operation and we had gotten canceled - just return
 	if ((p->target_options & TO_ENDTOEND) && (xgp->canceled))
 		return(-1); 
@@ -101,14 +103,16 @@ xdd_targetpass(ptds_t *p) {
 	// Things that the Target Thread needs to do after a pass has completed
 	xdd_target_ttd_after_pass(p);
 
-	// Release the results_manager() to process/display the results for this pass
+	// Release the results_manager() to process/display the 
+	// results for this pass
 	xdd_barrier(&xgp->results_targets_endpass_barrier,&p->occupant,0);
 
-	// At this point all the Target Threads have completed their pass and have
-	// passed thru the previous barrier releasing the results_manager() 
+	// At this point all the Target Threads have completed their pass and 
+	// have passed thru the previous barrier releasing the results_manager() 
 	// to process/display the results for this pass. 
 
-	// Wait at this barrier for the results_manager() to process/display the results for this last pass
+	// Wait at this barrier for the results_manager() to process/display the 
+	// results for this last pass
 	xdd_barrier(&xgp->results_targets_display_barrier,&p->occupant,0);
 
 	// This pass is complete - return to the Target Thread
@@ -125,41 +129,38 @@ void
 xdd_targetpass_loop(ptds_t *p) {
 	ptds_t	*qp;
 	int		q;
+	int32_t	status;	// Return status from various subroutines
 
 
+/////////////////////////////// Loop Starts Here ///////////////////////////////
+// This loop will transfer all data for a target until it runs out of
+// bytes or if we get canceled.
+// This loop will block/wait in xdd_get_and_available_qthread() until a 
+// qthread becomes available for use. The number of qthreads available to do
+// work is determined by the queue_depth for this target. Therefore, if the
+// queue_depth is 1 then there is only 1 qthread available and this loop will
+// only ever be able to issue one I/O operation at a time and will have to wait
+// for an I/O operation to complete before moving on to the next. 
+//
 	while (p->bytes_remaining) {
-		// Things to do before an I/O is issued
-			
-		xdd_target_ttd_before_io_op(p);
-		// Check to see if either the pass or run time limit has expired - if so, we need to leave this loop
-		if ((p->my_time_limit_expired) || (xgp->run_time_expired)) 
-			break;
-
 		// Get pointer to next QThread to issue a task to
 		qp = xdd_get_any_available_qthread(p);
 
-		// Check to see if we've been canceled - if so, we need to leave this loop
-		if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
-			// When we got this QThread the QTSYNC_BUSY flag was set by get_any_available_qthread()
-			// We need to reset it so that the subsequent loop will find it with get_specific_qthread()
-			// Normally we would get the mutex lock to do this update but at this point it is not necessary.
-			qp->qthread_target_sync &= ~QTSYNC_BUSY;
+		// Things to do before an I/O is issued
+		status = xdd_target_ttd_before_io_op(p, qp);
+		if (status != XDD_RC_GOOD)
 			break;
-		}
 
 		// Set up the task for the QThread
 		xdd_targetpass_task_setup(qp);
 
-		// Update the pointers/counters in the Target PTDS to get ready for the next I/O operation
-		p->my_current_byte_location += qp->my_current_io_size;
-		p->my_current_op_number++;
-		p->bytes_issued += qp->my_current_io_size;
-		p->bytes_remaining -= qp->my_current_io_size;
-
-		// Release the QThread to let it start working on this task
+		// Release the QThread to let it start working on this task.
+		// This effectively causes the I/O operation to be issued.
 		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
 
 	} // End of WHILE loop that transfers data for a single pass
+//
+/////////////////////////////// Loop Ends Here /////////////////////////////////
 
 	// Check to see if we've been canceled - if so, we need to leave 
 	if (xgp->canceled) {
@@ -231,6 +232,12 @@ xdd_targetpass_task_setup(ptds_t *qp) {
 		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
 		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
 	}
+	// Update the pointers/counters in the Target PTDS to get 
+	// ready for the next I/O operation
+	p->my_current_byte_location += qp->my_current_io_size;
+	p->my_current_op_number++;
+	p->bytes_issued += qp->my_current_io_size;
+	p->bytes_remaining -= qp->my_current_io_size;
 
 } // End of xdd_targetpass_task_setup()
 

@@ -140,8 +140,6 @@ xdd_qthread_io(ptds_t *qp) {
 	// over to the Destination Side of the E2E operation. 
 	xdd_qthread_ttd_after_io_op(qp);
 
-	xdd_lockstep_after_io_op(p);
-
 } // End of xdd_qthread_io()
 
 /*----------------------------------------------------------------------------*/
