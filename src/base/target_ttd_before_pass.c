@@ -102,11 +102,12 @@ fprintf(xgp->output,"XDD Timer Calibration Info: Requested sleep time in nanosec
  */
 void
 xdd_start_delay_before_pass(ptds_t *p) {
-	int32_t 		sleep_time_dw;
 	int				status;
-	uint64_t 		tmp;	// Temp 
 	struct timespec	req;	// The requested sleep time
 	struct timespec	rem;	// The remaining sleep time is awoken early
+#if (WIN32 | IRIX)
+	int32_t 		sleep_time_dw;
+#endif
 
 
 	/* Check to see if this thread has a start delay time. If so, just hang out
@@ -117,13 +118,13 @@ xdd_start_delay_before_pass(ptds_t *p) {
 		return; // No start delay
 
 	// Convert the start delay from nanoseconds to milliseconds
-	sleep_time_dw = (int32_t)(p->start_delay_psec/BILLION);
 #ifdef WIN32
+	sleep_time_dw = (int32_t)(p->start_delay_psec/BILLION);
 	Sleep(sleep_time_dw);
 #elif (IRIX )
+	sleep_time_dw = (int32_t)(p->start_delay_psec/BILLION);
 	sginap((sleep_time_dw*CLK_TCK)/1000);
 #else
-	tmp = p->start_delay; // Number of *seconds*
 	req.tv_sec = p->start_delay; // Whole seconds
 	req.tv_nsec = (p->start_delay - req.tv_sec) * BILLION; // Fraction of a second
 	fprintf(xgp->output, "\nTarget %d Beginning requested Start Delay for %f seconds before pass %d...\n",p->my_target_number, p->start_delay, p->my_current_pass_number);
