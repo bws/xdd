@@ -351,6 +351,7 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 
 	// Now we wait here at this barrier until all the other threads arrive...
 	nclk_now(&occupantp->entry_time);
+
 #ifdef HAVE_PTHREAD_BARRIER_T
 	status = pthread_barrier_wait(&bp->pbar);
 	nclk_now(&occupantp->exit_time);

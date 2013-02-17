@@ -159,26 +159,18 @@ void
 xdd_targetpass_e2e_loop_src(ptds_t *p) {
 	ptds_t	*qp;
 	int		q;
+	int32_t	status;
 
 
 	while (p->bytes_remaining) {
-		// Things to do before an I/O is issued
-		xdd_target_ttd_before_io_op(p);
-		// Check to see if either the pass or run time limit has expired - if so, we need to leave this loop
-		if ((p->my_time_limit_expired) || (xgp->run_time_expired)) 
-			break;
-
 		// Get pointer to next QThread to issue a task to
 		qp = xdd_get_any_available_qthread(p);
 
-		// Check to see if we've been canceled - if so, we need to leave this loop
-		if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
-			// When we got this QThread the QTSYNC_BUSY flag was set by get_any_available_qthread()
-			// We need to reset it so that the subsequent loop will find it with get_specific_qthread()
-			// Normally we would get the mutex lock to do this update but at this point it is not necessary.
-			qp->qthread_target_sync &= ~QTSYNC_BUSY;
+		// Things to do before an I/O is issued
+		status = xdd_target_ttd_before_io_op(p,qp);
+		// Check to see if either the pass or run time limit has expired - if so, we need to leave this loop
+		if (status != XDD_RC_GOOD)
 			break;
-		}
 
 		// Set up the task for the QThread
 		xdd_targetpass_e2e_task_setup_src(qp);

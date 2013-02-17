@@ -352,9 +352,10 @@ struct ptds {
 	struct xdd_sgio				*sgiop;			// SGIO Structure Pointer
 	struct xdd_data_pattern		*dpp;			// Data Pattern Structure Pointer
 	struct xdd_raw				*rawp;          // RAW Data Structure Pointer
-	struct lockstep				*lockstepp;		// pointer to the lockstep structure used by the lockstep option
-	struct restart				*restartp;		// pointer to the restart structure used by the restart monitor
-	struct ptds					*pm1;			// ptds minus  1 - used for report print queueing - don't ask 
+	struct lockstep				*master_lsp;	// Pointer to the lockstep structure used by the lockstep option
+	struct lockstep				*slave_lsp;		// Pointer to the lockstep structure used by the lockstep option
+	struct restart				*restartp;		// Pointer to the restart structure used by the restart monitor
+	struct ptds					*pm1;			// PTDS minus  1 - used for report print queueing - don't ask 
 #if (LINUX || DARWIN)
 	struct stat			statbuf;				// Target File Stat buffer used by xdd_target_open()
 #elif (AIX || SOLARIS)
