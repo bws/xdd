@@ -192,11 +192,8 @@ xdd_raw_before_io_op(ptds_t *qp) {
  */
 int32_t	
 xdd_e2e_before_io_op(ptds_t *qp) {
-	ptds_t	*p;				// Pointer to parent Taraget PTDS
 	int32_t	status;			// Status of subroutine calls
 
-
-	p = qp->target_ptds;
 
 	// If there is no end-to-end operation then just skip all this...
 	if (!(qp->target_options & TO_ENDTOEND)) 
