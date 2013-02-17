@@ -44,7 +44,6 @@ xdd_qthread(void *pin) {
 	ptds_t			*qp;		// Pointer to this QThread's PTDS
 	ptds_t			*p;			// Pointer to this QThread's Target PTDS
 	nclk_t			checktime;
-	int				mycpu;
 
 	qp = (ptds_t *)pin; 
 	p = qp->target_ptds;	// This is the pointer to this QThread's Target PTDS
@@ -141,7 +140,6 @@ xdd_qthread(void *pin) {
 		// Mark this QThread Available
 		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
 		nclk_now(&checktime);
-		mycpu=xdd_get_processor();
 		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
 		if (qp->qthread_target_sync & QTSYNC_TARGET_WAITING) {
 		    // Release the target that is waiting on this QThread
