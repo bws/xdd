@@ -79,7 +79,6 @@ xdd_lockstep_init(ptds_t *p) {
 			}
 			master_lsp->Lock_Step_Barrier_Index = 0;
 		} 
-<<<<<<< HEAD
 	}
 	slave_lsp = p->slave_lsp;
 	if (slave_lsp) {
@@ -104,34 +103,6 @@ xdd_lockstep_init(ptds_t *p) {
 			slave_lsp->Lock_Step_Barrier_Index = 0;
 		} 
 	}
-=======
-	}
-	slave_lsp = p->slave_lsp;
-	if (slave_lsp) {
-		if (slave_lsp->ls_ms_state & LS_I_AM_A_SLAVE) {
-			// Init the task-counter mutex and the lockstep barrier 
-			status = pthread_mutex_init(&slave_lsp->ls_mutex, 0);
-			if (status) {
-				sprintf(errmsg,"%s: io_thread_init:Error initializing lock step slave target %d task counter mutex",
-					xgp->progname,p->my_target_number);
-				perror(errmsg);
-				fprintf(xgp->errout,"%s: io_thread_init: Aborting I/O for target %d due to lockstep mutex allocation failure\n",
-					xgp->progname,p->my_target_number);
-				fflush(xgp->errout);
-				xgp->abort = 1;
-				return(XDD_RC_UGLY);
-			}
-			// Initialize only the SLAVE barriers in this lockstep structure
-			for (i=0; i<=1; i++) {
-				sprintf(slave_lsp->Lock_Step_Barrier[i].name,"LockStep_SLAVE_M%d_S%d",p->my_target_number,slave_lsp->ls_ms_target);
-				xdd_init_barrier(&slave_lsp->Lock_Step_Barrier[i], 2, slave_lsp->Lock_Step_Barrier[i].name);
-			}
-			slave_lsp->Lock_Step_Barrier_Index = 0;
-		} 
-	}
->>>>>>> lockstep
-
-
 	return(XDD_RC_GOOD);
 } // End of xdd_lockstep_init()
 
@@ -214,16 +185,11 @@ xdd_lockstep_after_pass(ptds_t *p) {
 		 	* master does not inadvertently wait for the slave to complete.
 		 	*/
 			pthread_mutex_lock(&slave_lsp->ls_mutex);
-<<<<<<< HEAD
-			slave_lsp->ls_ms_state &= ~LS_SLAVE_WAITING;
-			slave_lsp->ls_ms_state |= LS_SLAVE_FINISHED;
-=======
 			slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_WAIT;
 			slave_lsp->ls_ms_state &= ~LS_SLAVE_WAITING;
 			slave_lsp->ls_ms_state |= LS_SLAVE_FINISHED;
 			slave_lsp->ls_ms_state &= ~LS_MASTER_WAITING;
 			slave_lsp->ls_ms_state &= ~LS_MASTER_PASS_COMPLETED;
->>>>>>> lockstep
 			pthread_mutex_unlock(&slave_lsp->ls_mutex);
 		}
 	}
