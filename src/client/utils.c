@@ -53,7 +53,6 @@ xdd_tokenize(char *cp) {
 	int		tokens;		// Current number of tokens
 	int		len;		// Length of the line 
 	int		tokenlen;	// length of a token
-	char	*tp;		// Pointer to the start of a token
 
 	len = strlen(cp);
 	if (len < 1) 
@@ -68,7 +67,6 @@ xdd_tokenize(char *cp) {
 			cp++;
 		}
 		// Now that we are at the start of the token, skip over the token
-		tp = cp;
 		while ((*cp != TAB) && (*cp != SPACE) && (*cp != '\0') && (*cp != '\n')) {
 			len--;
 			cp++;
