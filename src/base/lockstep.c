@@ -46,7 +46,6 @@
 
 int32_t
 xdd_lockstep_init(ptds_t *p) {
-	int32_t		i;				// loop counter
 	int32_t		status;			// Status of a function call
 	lockstep_t	*master_lsp;	// Pointer to the MASTER's Lock Step Struct
 	lockstep_t 	*slave_lsp;		// Pointer to the SLAVE's Lock Step Struct
@@ -72,12 +71,9 @@ xdd_lockstep_init(ptds_t *p) {
 				xgp->abort = 1;
 				return(XDD_RC_UGLY);
 			}
-			// Initialize only the SLAVE barriers in this lockstep structure
-			for (i=0; i<=1; i++) {
-				sprintf(master_lsp->Lock_Step_Barrier[i].name,"LockStep_MASTER_M%d_S%d",p->my_target_number,master_lsp->ls_ms_target);
-				xdd_init_barrier(&master_lsp->Lock_Step_Barrier[i], 2, master_lsp->Lock_Step_Barrier[i].name);
-			}
-			master_lsp->Lock_Step_Barrier_Index = 0;
+			// Initialize barrier in this lockstep structure
+			sprintf(master_lsp->Lock_Step_Barrier.name,"LockStep_MASTER_M%d_S%d",p->my_target_number,master_lsp->ls_ms_target);
+			xdd_init_barrier(&master_lsp->Lock_Step_Barrier, 2, master_lsp->Lock_Step_Barrier.name);
 		} 
 	}
 	slave_lsp = p->slave_lsp;
@@ -95,12 +91,9 @@ xdd_lockstep_init(ptds_t *p) {
 				xgp->abort = 1;
 				return(XDD_RC_UGLY);
 			}
-			// Initialize only the SLAVE barriers in this lockstep structure
-			for (i=0; i<=1; i++) {
-				sprintf(slave_lsp->Lock_Step_Barrier[i].name,"LockStep_SLAVE_M%d_S%d",p->my_target_number,slave_lsp->ls_ms_target);
-				xdd_init_barrier(&slave_lsp->Lock_Step_Barrier[i], 2, slave_lsp->Lock_Step_Barrier[i].name);
-			}
-			slave_lsp->Lock_Step_Barrier_Index = 0;
+			// Initialize barrier in this lockstep structure
+			sprintf(slave_lsp->Lock_Step_Barrier.name,"LockStep_SLAVE_S%d_M%d",p->my_target_number,slave_lsp->ls_ms_target);
+			xdd_init_barrier(&slave_lsp->Lock_Step_Barrier, 2, slave_lsp->Lock_Step_Barrier.name);
 		} 
 	}
 	return(XDD_RC_GOOD);
@@ -258,7 +251,7 @@ xdd_lockstep_before_io_op_slave(ptds_t *p) {
 		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_WAIT;
 	}
 	pthread_mutex_unlock(&slave_lsp->ls_mutex);
-	xdd_barrier(&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Index],&p->occupant,0);
+	xdd_barrier(&slave_lsp->Lock_Step_Barrier,&p->occupant,0);
 	return(XDD_RC_GOOD);
 
 } // xdd_lockstep_before_io_op_slave()
@@ -320,7 +313,7 @@ xdd_lockstep_after_io_op_slave(ptds_t *p) {
 	pthread_mutex_unlock(&slave_lsp->ls_mutex);
 
 	if (wakeup_master == TRUE) { // Enter the MASTER's barrier to release it
-		xdd_barrier(&master_lsp->Lock_Step_Barrier[master_lsp->Lock_Step_Barrier_Index],&p->occupant,0);
+		xdd_barrier(&master_lsp->Lock_Step_Barrier,&p->occupant,0);
 	}
 	return(XDD_RC_GOOD);
 } // xdd_lockstep_after_io_op_slave()
@@ -360,13 +353,13 @@ xdd_lockstep_after_io_op_master(ptds_t *p) {
 		pthread_mutex_unlock(&slave_lsp->ls_mutex);
 
 		// Enter the SLAVE's barrier which will release the SLAVE
-		xdd_barrier(&slave_lsp->Lock_Step_Barrier[slave_lsp->Lock_Step_Barrier_Index],&p->occupant,0);
+		xdd_barrier(&slave_lsp->Lock_Step_Barrier,&p->occupant,0);
 		// At this point the slave outght to be running. 
 		// Now that the SLAVE is running, we (the MASTER) may need to wait for the SLAVE to finish
 		// If the MASTER has not yet finished its pass, then enter the MASTER's barrier 
 		// and wait for the SLAVE to release us
 		if (slave_lsp->ls_ms_state |= LS_MASTER_WAITING)
-			xdd_barrier(&master_lsp->Lock_Step_Barrier[master_lsp->Lock_Step_Barrier_Index],&p->occupant,0);
+			xdd_barrier(&master_lsp->Lock_Step_Barrier,&p->occupant,0);
 	} // Done releasing the slave 
 	return(XDD_RC_GOOD);
 
