@@ -95,6 +95,20 @@ xdd_target_preallocate_for_os(ptds_t *p) {
 			pos += max_bytes;
 			rem -= max_bytes;
 		}
+
+        /* A regression in XFS means that preallocate fixes the extents, but
+           performance is still bad during file extend sequences.  Truncate
+           the file to length to improve performance */
+       status = ftruncate(p->fd, p->preallocate);
+       if (0 != status) {
+           fprintf(xgp->errout,
+                   "%s: xdd_target_preallocatefor_os<LINUX>: WARNING: Target %d name %s: preallocation ftruncate failed\n",
+                   xgp->progname,
+                   p->my_target_number,
+                   p->target_full_pathname);
+            perror("Reason");
+            fflush(xgp->errout);
+        }
 	}
 		
 	// Everything must have worked :)
