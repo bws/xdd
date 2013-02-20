@@ -280,10 +280,6 @@ void
 xdd_sg_set_reserved_size(ptds_t *p, int fd) {
 	int		reserved_size;
 	int		status;
-	xdd_sgio_t		*sgiop;			// Pointer to the XDD sgio structure
-
-
-	sgiop = p->sgiop;				// The xdd_sgio struct contains all the info for this I/O
 
 
 	reserved_size = (p->block_size*p->reqsize);

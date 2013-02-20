@@ -212,10 +212,8 @@ xdd_raw_after_io_op(ptds_t *qp) {
  */
 void
 xdd_e2e_after_io_op(ptds_t *qp) {
-	ptds_t	*p;			// Pointer to the Target PTDS for this QThread
 
 
-	p = qp->target_ptds;
 	if ( (qp->my_current_io_status > 0) && (qp->target_options & TO_ENDTOEND) ) {
 		if (qp->target_options & TO_E2E_SOURCE) {
 			// For Serial Ordering, wait for the Previous I/O to complete before the associated QThread releases this QThread. 

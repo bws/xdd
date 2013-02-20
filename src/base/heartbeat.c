@@ -53,7 +53,6 @@ xdd_heartbeat(void *junk) {
 	int32_t 	i;						// If it is not obvious what "i" is then you should not be reading this
 	nclk_t 		now;					// Current time
 	nclk_t 		earliest_start_time;	// The earliest start time of the qthreads for a target
-	nclk_t 		latest_end_time;		// The latest End Time of all qthreads
 	int64_t		total_bytes_xferred;	// The total number of bytes xferred for all qthreads for a target
 	int64_t		total_ops_issued;		// This is the total number of ops issued/completed up til now
 	double		elapsed;				// Elapsed time for this qthread
@@ -61,7 +60,6 @@ xdd_heartbeat(void *junk) {
 	int			activity_index;			// A number from 0 to 4 to index into the activity indicators table
 	int			prior_activity_index;	// Used to save the state of the activity index 
 	int			scattered_output;		// When set to something other than 0 it means that the output is directed to mutliple files
-	double		et;						// Estimate time to completion
 	uint32_t	interval;				// The shortest heartbeat interval that is greater than 0
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
@@ -122,7 +120,6 @@ xdd_heartbeat(void *junk) {
 				xdd_heartbeat_legend(p);
 			total_bytes_xferred = 0;
 			earliest_start_time = NCLK_MAX;
-			latest_end_time = 0.0;
 			total_ops_issued = 0;
 			if (p->my_pass_start_time == NCLK_MAX) { // Haven't started yet...
 				fprintf(p->hb.hb_file_pointer," + WAITING");
@@ -144,7 +141,6 @@ xdd_heartbeat(void *junk) {
 				now = p->my_pass_end_time;
 				prior_activity_index = activity_index;
 				activity_index = 4;
-				et = 0.0;
 			} else nclk_now(&now);
 
 			// Calculate the elapsed time so far

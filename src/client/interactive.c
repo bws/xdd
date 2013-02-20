@@ -44,7 +44,6 @@ extern xdd_interactive_func_t xdd_interactive_func[];
 void *
 xdd_interactive(void *debugger) {
 	char			*fstatus;						// Status of fgets() 
-	int				status;							// Status of barrier init
 	FILE			*cmdin;							// Where to read commands from (stdin normally)
 	char			cmdline[XDD_CMDLINE_LENGTH];	// The command line buffer
 	char			*cp;							// character pointer to the next token in the command line
@@ -62,7 +61,7 @@ xdd_interactive(void *debugger) {
 	} else { // Otherwise, this is just the interactive option
 		// Init the interactive flow control barriers
 		identity = "ICP";
-		status =  xdd_init_barrier(&xgp->interactive_barrier, xgp->number_of_targets+1, "interactive_barrier");
+		xdd_init_barrier(&xgp->interactive_barrier, xgp->number_of_targets+1, "interactive_barrier");
 	
 		// Initialize our "occupant" structure
 		xdd_init_barrier_occupant(&xgp->interactive_occupant, "INTERACTIVE", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);

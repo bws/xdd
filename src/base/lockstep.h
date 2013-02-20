@@ -82,8 +82,7 @@ struct lockstep	{
 	ptds_t			*ls_slavep;  			// My SLAVE's PTDS
 	struct lockstep	*ls_master_lsp;  		// My MASTER's Lockstep structure
 	struct lockstep	*ls_slave_lsp;  		// My SLAVE's Lockstep structure
-	xdd_barrier_t 	Lock_Step_Barrier[2]; 	// The Lock Step Barrier for synchronous lockstep
-	int32_t			Lock_Step_Barrier_Index; // The index for the Lock Step Barrier 
+	xdd_barrier_t 	Lock_Step_Barrier;	 	// The Lock Step Barrier for synchronous lockstep
 };
 typedef struct lockstep lockstep_t;
 

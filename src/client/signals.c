@@ -46,8 +46,6 @@ static int enter_debugger_on_sigint = 0;
  */
 void
 xdd_signal_handler(int signum, siginfo_t *sip, void *ucp) {
-	ucontext_t	*up;		// Pointer to the ucontext structure
-	up = (ucontext_t *)ucp;
 	int enter_debugger = 0;
         
 	fprintf(xgp->errout,"\n%s: xdd_signal_handler: Received signal %d: ", xgp->progname, signum);

@@ -133,11 +133,15 @@ unsigned char *xdd_init_io_buffers(ptds_t *p);
 
 // lockstep.c
 int32_t	xdd_lockstep_init(ptds_t *p);
-int32_t	xdd_lockstep_before_io_op(ptds_t *p);
 void	xdd_lockstep_before_pass(ptds_t *p);
+int32_t	xdd_lockstep_before_io_op(ptds_t *p);
+int32_t xdd_lockstep_before_io_op_master(ptds_t *p);
+int32_t xdd_lockstep_before_io_op_slave(ptds_t *p);
 int32_t	xdd_lockstep_after_pass(ptds_t *p);
-int32_t xdd_lockstep_master_after_io_op(ptds_t *p);
-int32_t xdd_lockstep_slave_after_io_op(ptds_t *p);
+int32_t xdd_lockstep_after_io_op(ptds_t *p);
+int32_t xdd_lockstep_after_io_op_master(ptds_t *p);
+int32_t xdd_lockstep_after_io_op_slave(ptds_t *p);
+int32_t xdd_lockstep_check_triggers(ptds_t *p, lockstep_t *lsp);
 
 // memory.c
 void	xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);
