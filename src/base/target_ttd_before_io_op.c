@@ -76,7 +76,7 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
  	*/
 	trigp1 = p->trigp;
 	if (trigp1 == NULL)
-		return(0);
+		return(XDD_RC_GOOD);
 
 	if ((p->target_options & TO_WAITFORSTART) && (trigp1->run_status == 0)) { 
 		/* Enter the barrier and wait to be told to go */
@@ -120,7 +120,7 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 			}
 		}
 	} /* End of the trigger processing */
-	return(0);
+	return(XDD_RC_GOOD);
 
 } // End of xdd_start_trigger_before_io_op()
 
@@ -151,10 +151,11 @@ xdd_timelimit_before_io_op(ptds_t *p) {
 		 		xgp->progname,
 			 	p->my_target_number,
 			 	p->time_limit);
+			return(XDD_RC_BAD);
 		}
 	}
 
-	return(0);
+	return(XDD_RC_GOOD);
 
 } // End of xdd_timelimit_before_io_op()
 
@@ -184,10 +185,11 @@ xdd_runtime_before_io_op(ptds_t *p) {
 			fprintf(xgp->output,"\n%s: xdd_runtime_before_io_op: Specified run time of %f seconds exceeded.\n",
 		 		xgp->progname,
 			 	xgp->run_time);
+			return(XDD_RC_BAD);
 		}
 	}
 
-	return(0);
+	return(XDD_RC_GOOD);
 
 } // End of xdd_runtime_before_io_op()
 
@@ -210,10 +212,14 @@ xdd_target_ttd_before_io_op(ptds_t *p, ptds_t *qp) {
 	xdd_start_trigger_before_io_op(p);
 
 	// Check to see if we exceeded the time limit for this pass
-	xdd_timelimit_before_io_op(p);
+	status = xdd_timelimit_before_io_op(p);
+	if (status != XDD_RC_GOOD) 
+		return(status);
 
 	// Check to see if we exceeded the time limit for this run
-	xdd_runtime_before_io_op(p);
+	status = xdd_runtime_before_io_op(p);
+	if (status != XDD_RC_GOOD) 
+		return(status);
 
 	// Lock Step Processing (located in lockstep.c)
 	status = xdd_lockstep_before_io_op(p);
