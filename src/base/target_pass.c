@@ -148,8 +148,13 @@ xdd_targetpass_loop(ptds_t *p) {
 
 		// Things to do before an I/O is issued
 		status = xdd_target_ttd_before_io_op(p, qp);
-		if (status != XDD_RC_GOOD)
+		if (status != XDD_RC_GOOD) {
+			// Mark this qthread NOT BUSY and break out of this loop
+			pthread_mutex_lock(&qp->qthread_target_sync_mutex);
+			qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
+			pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 			break;
+		}
 
 		// Set up the task for the QThread
 		xdd_targetpass_task_setup(qp);
