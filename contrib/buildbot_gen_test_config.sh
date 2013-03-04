@@ -34,6 +34,11 @@ case "${buildslave_host}" in
         source_mnt=/data/$USER/source
         dest_mnt=/data/$USER/dest
         ;;
+    natureboy)
+        nightly_base_path=$(pwd)/build_tests
+        source_mnt=/data/hfsplus/$USER/source
+        dest_mnt=/data/hfsplus/$USER/dest
+        ;;
 esac
 
 #
