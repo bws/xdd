@@ -508,8 +508,8 @@ function check_transfer_preconditions {
     fi
 
     # Check if file is a character special device (like zero or null)
-    local sfType=$(file -b ${sourceSideFilename} 2>$XDDCP_DEV_NULL)
-    local dfType=$(file -b %F ${destSidePathname} 2>$XDDCP_DEV_NULL)
+    local sfType=$(file -b ${sourceSideFilename} |cut -c 1-17 2>$XDDCP_DEV_NULL)
+    local dfType=$(file -b ${destSidePathname} |cut -c 1-17 2>$XDDCP_DEV_NULL)
 
     # Ensure file is large enough
     if [ "$sfType" != "character special" ]; then
@@ -524,9 +524,9 @@ function check_transfer_preconditions {
     fi
 
     # Ensure devices and Direct I/O are not combined
-    if [ "$sfType" = "character special file" -a 0 -ne "${srcDIOFlag}" ]; then
+    if [ "$sfType" = "character special" -a 0 -ne "${srcDIOFlag}" ]; then
         error_exit $XDDCP_ERR_CODE_SRC_DEV_DIRECT_IO
-    elif [ "$dfType" = "character special file" -a 0 -ne "${destDIOFlag}" ]; then
+    elif [ "$dfType" = "character special" -a 0 -ne "${destDIOFlag}" ]; then
         error_exit $XDDCP_ERR_CODE_DEST_DEV_DIRECT_IO
     fi
     return 0

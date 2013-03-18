@@ -33,7 +33,7 @@
 # Global constants
 #
 DEFAULT_DIO_FLAG=1
-DEFAULT_IO_SIZE=16384
+DEFAULT_IO_SIZE=$((16384*1024))
 DEFAULT_IOP_COUNT=1024
 DEFAULT_PROCESS_COUNT=1
 DEFAULT_SEED=$(/bin/date +%s)
@@ -73,10 +73,10 @@ function main() {
     #
     # Set the fork-thread parameters
     #
-    local blockSize=1024
+    local blockSize=$DEFAULT_IO_SIZE
     local dioFlag=$DEFAULT_DIO_FLAG
     local filename=""
-    local ioSize=$((DEFAULT_IO_SIZE/1024))
+    local ioSize=$DEFAULT_IO_SIZE
     local iopCount=$DEFAULT_IOP_COUNT
     local processCount=$DEFAULT_PROCESS_COUNT
     local threadCount=$DEFAULT_THREAD_COUNT
@@ -150,22 +150,22 @@ function main() {
     #
     # Configure XDD parameters
     #
-    local seekRange=$(((fileSize-ioSize)/1024))
+    local seekRange=$((fileSize / ioSize - 1))
     local totalIops=$((iopCount*threadCount))
 
     local dioOption="-dio"
     if [ 0 == "$dioFlag" ]; then
        dioOption=""
     fi
-    FN="xddft.reqsize.${ioSize}.blocksize.${blockSize}.numreqs.${iopCount}.qd.${threadCount}.sr.${seekRange}.ds.${DATE_STAMP}"
+    fileName="xddft_iosize-${ioSize}_numreqs-${iopCount}_qd-${threadCount}_sr-${seekRange}_${DATE_STAMP}"
 
     #
     # Perform IOP tests
     #
     $XDD_EXE -op read \
 	-target $filename \
-        -reqsize $ioSize \
-	-blocksize $blockSize \
+        -reqsize 1 \
+	-blocksize $ioSize \
 	-numreqs $totalIops \
         -seek random \
 	-seek seed $randomSeed \
@@ -177,8 +177,8 @@ function main() {
 	-heartbeat pct \
 	-verbose \
 	-qthreadinfo \
-        -ts output ${FN} \
-        -csvout ${FN}.csv
+        -ts output ${fileName} \
+        -csvout ${fileName}.csv
 
     return 0
 }
