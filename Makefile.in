@@ -169,6 +169,8 @@ libs: $(LIB_DIR)/libxdd.a
 $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
+.PHONY: libs
+
 #
 # Build rules for executable targets
 #
@@ -247,8 +249,12 @@ dist: clean baseversion tarball
 fulldist: clean baseversion all tarball
 	echo "Base Version $(XDDVERSION) built"
 
+TARPATH := $(shell basename ${PWD})
+TARFLAGS := --exclude \*.o --exclude \*~ --exclude .DS_STORE --exclude .git
 tarball:
-	tar cfz ../$(PROJECT).$(XDD_VERSION).tgz .
+	pushd .; cd .. && tar $(TARFLAGS) -czf xdd-$(shell date +%s).tgz $(TARPATH); popd
+
+.PHONY: baseversion dist fulldist tarball
 
 #
 # Build rules for documentation
@@ -335,7 +341,3 @@ endif
 	@mkdir -p $(shell dirname $@)
 	@$(DEPGEN) $(shell dirname $<) $(DEPC) -MM $(INCLUDES) $< > $@
 
-#
-# Make meta-directives
-#
-.PHONY: all doc fastinstall install tarball
