@@ -245,11 +245,11 @@ dnl
 dnl Search for the NUMA function numa_node_to_cpus
 dnl
 AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
-               [],
+               AC_DEFINE(HAVE_NUMA_NODE_TO_CPUS),
                AC_MSG_WARN([LibNUMA support for numa_node_to_cpus not found thread binding disabled.]))
 
 AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
-               [],
+               AC_DEFINE(HAVE_NUMA_ALLOCATE_CPUMASK),
                AC_MSG_WARN([LibNUMA support for numa_allocate_cpumask not found thread binding disabled.]))
 
 dnl
