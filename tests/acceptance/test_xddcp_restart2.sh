@@ -6,6 +6,12 @@
 #
 
 #
+# Test identity
+#
+test_name=$(basename $0)
+echo "Beginning $test_name . . ."
+
+#
 # Source the test configuration environment
 #
 source ./test_config
@@ -83,9 +89,9 @@ fi
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance XDDCP2: Retry Test - Check: PASSED."
+  echo "Acceptance $test_name - Check: PASSED."
   exit 0
 else
-  echo "Acceptance XDDCP2: Retry Test - Check: FAILED."
+  echo "Acceptance $test_name - Check: FAILED."
   exit 1
 fi

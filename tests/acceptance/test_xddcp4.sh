@@ -83,7 +83,7 @@ if [ 0 -ne $rc ]; then
     echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $xddcp_opts -V $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-3"
     test_passes=0
 else
-    ls xdd-*-source3-*.log &>/dev/null
+    ls xddcp-*-source3-*.log &>/dev/null
     if [ 0 -ne $? -a -e e2e.target.0000.csv ]; then
 	echo "Failure: did not produce a log when requested."
 	test_passes=0
