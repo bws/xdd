@@ -76,10 +76,8 @@ def loadConfig(config):
 
     # Test XDDCP capabilities
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp1.sh'], description=["XDDCP Test 1"], maxTime=1200, name="test_xddcp1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp2.sh'], description=["XDDCP Test 2"], maxTime=1200, name="test_xddcp2.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp3.sh'], description=["XDDCP Test 3"], maxTime=1200, name="test_xddcp3.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp4.sh'], description=["XDDCP Test 4"], maxTime=1200, name="test_xddcp4.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp5.sh'], description=["XDDCP Test 5"], maxTime=1200, name="test_xddcp5.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp4.sh'], description=["XDDCP Test 2"], maxTime=1200, name="test_xddcp2.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp5.sh'], description=["XDDCP Test 3"], maxTime=1200, name="test_xddcp3.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp6.sh'], description=["XDDCP Test 6"], maxTime=1200, name="test_xddcp6.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp7.sh'], description=["XDDCP Test 7"], maxTime=1200, name="test_xddcp7.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp8.sh'], description=["XDDCP Test 8"], maxTime=1200, name="test_xddcp8.sh"))
@@ -88,6 +86,13 @@ def loadConfig(config):
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp11.sh'], description=["XDDCP Test 11"], maxTime=1200, name="test_xddcp11.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp12.sh'], description=["XDDCP Test 12"], maxTime=1200, name="test_xddcp12.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp13.sh'], description=["XDDCP Test 13"], maxTime=1200, name="test_xddcp13.sh"))
+
+    # Test XDDCP recursive capabilities
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_recursive1.sh'], description=["Recursive Test 1"], maxTime=1200, name="test_xddcp_recursive1.sh"))
+
+    # Test XDDCP restart capabilities
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_restart1.sh'], description=["Restart Test 1"], maxTime=1200, name="test_xddcp_restart1.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_restart2.sh'], description=["Restart Test 2"], maxTime=1200, name="test_xddcp_restart2.sh"))
 
     # Test XDDCP MultiNIC capabilities
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic1.sh'], description=["MultiNIC Test 1"], maxTime=1200, name="test_xddcp_multinic1.sh"))
@@ -165,7 +170,7 @@ def xddSummaryMail(mode, name, build, results, master_status):
     body = ""
     body += "Build Host: %s (%s)\n" % (build.getSlavename(), name)
     body += "Build Result: %s\n" % Results[results]
-    body += "Build Status: %stgrid\n" % master_status.getURLForThing(build)
+    body += "Build Status: %s\n" % master_status.getURLForThing(build)
     #body += "Build Logs available at: %s\n" % urllib.quote(master_status.getBuildbotURL(), '/:')
     #body += "Flagged Build: %s\n" % build.getSlavename()
     if results != SUCCESS:
