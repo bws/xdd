@@ -76,8 +76,8 @@ def loadConfig(config):
 
     # Test XDDCP capabilities
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp1.sh'], description=["XDDCP Test 1"], maxTime=1200, name="test_xddcp1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp4.sh'], description=["XDDCP Test 2"], maxTime=1200, name="test_xddcp2.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp5.sh'], description=["XDDCP Test 3"], maxTime=1200, name="test_xddcp3.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp4.sh'], description=["XDDCP Test 4"], maxTime=1200, name="test_xddcp4.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp5.sh'], description=["XDDCP Test 5"], maxTime=1200, name="test_xddcp5.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp6.sh'], description=["XDDCP Test 6"], maxTime=1200, name="test_xddcp6.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp7.sh'], description=["XDDCP Test 7"], maxTime=1200, name="test_xddcp7.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp8.sh'], description=["XDDCP Test 8"], maxTime=1200, name="test_xddcp8.sh"))
