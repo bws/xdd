@@ -2,7 +2,7 @@
 #
 # Acceptance test for XDD.
 #
-# Validate that data dump transfers produce a log and csv
+# Validate that non verbose transfers produce no logs
 #
 
 #
@@ -32,10 +32,10 @@ fi
 # Create a source file
 #
 test_sdir=$XDDTEST_SOURCE_MOUNT/$test_name
-test_ddir=$XDDTEST_DEST_MOUNT/$test_name
+test_ddir=$XDDTEST_SOURCE_MOUNT/$test_name
 rm -rf $test_sdir $test_ddir
 mkdir -p $test_sdir $test_ddir
-rm -rf xddcp-*-source*-*log xddcp-*-source*target.0000.csv
+rm -rf xddcp-*-source*-*log xddcp-*-source*-target.0000.csv
 
 #
 # Test result
@@ -43,23 +43,24 @@ rm -rf xddcp-*-source*-*log xddcp-*-source*target.0000.csv
 test_passes=0
 
 #
-# Perform an extra verbose transfer (ensure timestamps exist)
+# Perform a non-verbose transfer (ensure no logs exist)
 #
-test_file=$test_sdir/source3
+test_file=$test_sdir/source1
 $XDDTEST_XDD_EXE -target $test_file -op write -reqsize 4096 -mbytes 4000 -qd 4 -datapattern random >/dev/null
-$XDDTEST_XDDCP_EXE $xddcp_opts -V $test_file $XDDTEST_E2E_DEST:$test_ddir/v1-3
+$XDDTEST_XDDCP_EXE $xddcp_opts $test_file $XDDTEST_E2E_DEST:$test_ddir/v1-1
 rc=$?
 if [ 0 -ne $rc ]; then
-    echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $xddcp_opts -V $test_file $XDDTEST_E2E_DEST:$test_ddir/v1-3"
+    echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $xddcp_opts  $test_file $XDDTEST_E2E_DEST:$test_ddir/v1-1"
+    test_passes=0
 else
-    ls xddcp*-source3-*.log &>/dev/null
+    ls xddcp-*-source2-*.log &>/dev/null
     log_missing=$?
-    ls xddcp-*-source3-*.target.0000.csv &>/dev/null
+    ls xddcp-*-source2-*-target.0000.csv &>/dev/null
     csv_missing=$?
-    if [ 0 -eq $log_missing -a 0 -eq $csv_missing ]; then
+    if [ 0 -ne $log_missing -a 0 -ne $csv_missing ]; then
         test_passes=1
     else
-	echo "Failure: did not produce a log and csv when requested."
+	echo "Failure: produced a log when none requested."
     fi
 fi
 

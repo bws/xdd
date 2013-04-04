@@ -554,13 +554,13 @@ function post_transfer_analysis {
         if [ -d $destPath ]; then
             dstBase=$srcBase
         fi
-	local srcBinDump="xdd-${srcHost}-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
-	local dstBinDump="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
-	local dstCsvFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.csv"
-	local dstLogFile="xdd-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
+	local srcBinDump="xddcp-${srcHost}-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+	local dstBinDump="xddcp-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.bin"
+	local dstCsvFile="xddcp-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.target.0000.csv"
+	local dstLogFile="xddcp-${destHost}-${dstBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 
 	# where our data will be stored afterwards
-	local dataPrefix="xdd-${srcHost}_to_${destHost}_${srcBase}_${XDDCP_DEFAULT_TIMESTAMP}"
+	local dataPrefix="xddcp-${srcHost}_to_${destHost}_${srcBase}_${XDDCP_DEFAULT_TIMESTAMP}"
 	local dataDir="."
  	local myLogFile="${dataDir}/ANALYSIS_${dataPrefix}.log"
  	local tsPlotPrefix="${dataDir}/ANALYSIS_${dataPrefix}"
@@ -914,7 +914,7 @@ function get_destination_cmds {
 
     # binary timestamp dump
     if [ 1 -eq $binaryDumpFlag -o 2 -eq $verbosity ]; then
-        local binaryDumpPrefix="xdd-${destHostArray[0]}-${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}"
+        local binaryDumpPrefix="xddcp-${destHostArray[0]}-${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}"
     fi
 
     # if restart, get srcFile mod time
@@ -1034,7 +1034,7 @@ if [ "." = \$path_char ]; then
 fi
 
 # Create the log file name
-destination_log_base="xdd-${destHostArray[0]}-\${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}.log"
+destination_log_base="xddcp-${destHostArray[0]}-\${destination_base}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 destination_log="\${destination_dir}/\${destination_log_base}"
 
 # Ensure destination is writable
@@ -1168,7 +1168,7 @@ function get_source_cmds {
 
     # Construct source XDD settings
     local srcBase=$(\basename ${srcFile})
-    local srcLog="xdd-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
+    local srcLog="xddcp-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 
     # Direct I/O option
     if [ 1 -eq $srcDIOFlag ]; then
@@ -1185,12 +1185,12 @@ function get_source_cmds {
     if [ 1 -eq $verbosity ]; then
         local verboseOpt="-verbose"
     elif [ 2 -eq $verbosity ]; then
-        local verboseOpt="-verbose -ts detailed -ts output xdd-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
+        local verboseOpt="-verbose -ts detailed -ts output xddcp-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
     fi
 
     # binary timestamp dump option
     if [ 1 -eq $binaryDumpFlag ]; then
-        local binaryDumpOpt="-ts dump xdd-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
+        local binaryDumpOpt="-ts dump xddcp-$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}"
     fi
     
     # Determine if output can be sent to log file
@@ -1230,7 +1230,7 @@ fi
 
 # Add the command to the log file
 if [ $verbosity -gt 0 ]; then
-    src_log="xdd-\$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
+    src_log="xddcp-\$(\hostname)-${srcBase}-${XDDCP_DEFAULT_TIMESTAMP}.log"
 else
     src_log=/dev/null
 fi
