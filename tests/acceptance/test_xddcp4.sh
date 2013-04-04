@@ -30,7 +30,7 @@ test_file=$test_dir/source1
 rm -rf $test_dir
 mkdir -p $test_dir
 rm -rf $XDDTEST_DEST_MOUNT/verbose1
-rm -rf xdd*-source*-*log e2e.target.0000.csv
+rm -rf xddcp*-source*-*log e2e.target.0000.csv
 $XDDTEST_XDD_EXE -target $test_file -op write -reqsize 4096 -mbytes 4000 -qd 4 -datapattern random >/dev/null
 
 #
@@ -47,7 +47,7 @@ if [ 0 -ne $rc ]; then
     echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $xddcp_opts  $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-1"
     test_passes=0
 else
-    ls xdd*-source1-*.log &>/dev/null
+    ls xddcp*-source1-*.log &>/dev/null
     if [ 2 -ne $? ]; then
 	echo "Failure: produced a log when none requested."
 	test_passes=0
@@ -65,7 +65,7 @@ if [ 0 -ne $rc ]; then
     echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $xddcp_opts -v $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-2"
     test_passes=0
 else
-    ls xdd*-source2-*.log &>/dev/null
+    ls xddcp*-source2-*.log &>/dev/null
     if [ 0 -ne $? ]; then
 	echo "Failure: did not produce a log when requested."
 	test_passes=0
@@ -83,7 +83,7 @@ if [ 0 -ne $rc ]; then
     echo "Failure: transfer failed: $XDDTEST_XDDCP_EXE $xddcp_opts -V $test_file $XDDTEST_E2E_DEST:$XDDTEST_DEST_MOUNT/v1-3"
     test_passes=0
 else
-    ls xdd-*-source3-*.log &>/dev/null
+    ls xddcp-*-source3-*.log &>/dev/null
     if [ 0 -ne $? -a -e e2e.target.0000.csv ]; then
 	echo "Failure: did not produce a log when requested."
 	test_passes=0
