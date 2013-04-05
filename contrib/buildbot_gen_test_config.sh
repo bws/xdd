@@ -8,6 +8,21 @@
 #
 buildslave_host=`hostname -s`
 nightly_base_path=$(pwd)/build_tests
+
+#
+# Default test settings
+#
+nightly_base_path=$(pwd)/build_tests
+source_mnt=/data/xfs/$USER/source
+dest_mnt=/data/xfs/$USER/dest
+srchost=${buildslave_host}
+dsthost=${buildslave_host}
+test_timeout=600
+
+
+#
+# Overrides for specific hosts
+#
 case "${buildslave_host}" in
     pod7)
         nightly_base_path=$(pwd)/build_tests
@@ -38,6 +53,8 @@ case "${buildslave_host}" in
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/hfsplus/$USER/source
         dest_mnt=/data/hfsplus/$USER/dest
+        srchost=${buildslave_host}
+        dsthost=localhost
         ;;
 esac
 
@@ -50,13 +67,6 @@ output_dir=${nightly_base_path}/logs
 test_src_dir=${source_mnt}/test-data
 test_dest_dir=${dest_mnt}/test-data
 test_local_dir=${source_mnt}/local-test-data
-
-#
-# Other test settings
-#
-test_timeout=600
-srchost=${buildslave_host}
-dsthost=${buildslave_host}
 
 #
 # Setup the scratch space

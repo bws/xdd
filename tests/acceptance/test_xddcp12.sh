@@ -42,7 +42,7 @@ mkdir -p $src_dir/baz1/baz2/baz3/baz4
 # Create the files
 #
 targets=( $src_dir/t1 $src_dir/t2  $src_dir/foo1/t3  $src_dir/foo1/t4 $src_dir/foo1/foo2/t5 $src_dir/foo1/foo2/t6 $src_dir/foo1/foo2/foo3/t7 $src_dir/bar1/bar2/bar3/t8 )
-$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
+$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 2048 -qd 4 -datapattern randbytarget 
 
 # Build file list
 cd ${src_dir}
