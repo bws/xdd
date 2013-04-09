@@ -40,6 +40,7 @@
 int32_t
 main(int32_t argc,char *argv[]) {
 	int32_t status;
+	int32_t i;
 	char *c;
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 	int32_t	return_value;
@@ -111,10 +112,17 @@ DFLOW("\n----------------------All targets should start now---------------------
 	// Display the Ending Time for this run
 	xgp->current_time_for_this_run = time(NULL);
 	c = ctime(&xgp->current_time_for_this_run);
+
+	status = 0;
+	for (i=0; i<MAX_TARGETS; i++) 
+			status += xgp->target_errno[i];
 	if (xgp->canceled) {
 		fprintf(xgp->output,"Ending time for this run, %s This run was canceled\n",c);
 		return_value = XDD_RETURN_VALUE_CANCELED;
 	} else if (xgp->abort) {
+		fprintf(xgp->output,"Ending time for this run, %s This run terminated with errors\n",c);
+		return_value = XDD_RETURN_VALUE_IOERROR;
+	} else if (status != 0) {
 		fprintf(xgp->output,"Ending time for this run, %s This run terminated with errors\n",c);
 		return_value = XDD_RETURN_VALUE_IOERROR;
 	} else {

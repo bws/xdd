@@ -175,6 +175,7 @@ struct xdd_global_data {
 	/* Target Specific variables */
 	ptds_t			*ptdsp[MAX_TARGETS];				/* Pointers to the active PTDSs - Per Target Data Structures */
 	results_t		*target_average_resultsp[MAX_TARGETS];/* Results area for the "target" which is a composite of all its qthreads */
+	int64_t			target_errno[MAX_TARGETS];			// Is set by each target to indicate its final return code
 
 #ifdef LINUX
 	rlim_t	rlimit;
