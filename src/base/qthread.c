@@ -102,10 +102,7 @@ xdd_qthread(void *pin) {
 				return(0);
 			case TASK_REQ_EOF:
 				// E2E Source Side only - send EOF packets to Destination 
-				status = xdd_e2e_eof_source_side(qp);
-				if (status) {
-					p->my_current_io_status = status;
-				}
+				p->my_current_io_status = xdd_e2e_eof_source_side(qp);
 				break;
 			default:
 				// Technically, we should never see this....

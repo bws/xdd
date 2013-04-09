@@ -184,7 +184,7 @@ xdd_targetpass_loop(ptds_t *p) {
 		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 	}
 	if (p->my_current_io_status != 0) 
-			xgp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
+		xgp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
 	return;
 } // End of xdd_targetpass_loop()
 
