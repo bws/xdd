@@ -74,6 +74,7 @@ xdd_qthread(void *pin) {
 	// The subroutine that is called for any particular task will set the "xgp->canceled" flag to
 	// indicate that there was a condition that warrants canceling the entire run
 	while (1) {
+		status = 0;
 		// Enter the QThread_TargetPass_Wait barrier until we are assigned something to do by targetpass()
 		nclk_now(&checktime);
 		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&qp->occupant,1);
@@ -101,7 +102,10 @@ xdd_qthread(void *pin) {
 				return(0);
 			case TASK_REQ_EOF:
 				// E2E Source Side only - send EOF packets to Destination 
-				xdd_e2e_eof_source_side(qp);
+				status = xdd_e2e_eof_source_side(qp);
+				if (status) {
+					p->my_current_io_status = status;
+				}
 				break;
 			default:
 				// Technically, we should never see this....
