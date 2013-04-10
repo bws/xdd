@@ -142,6 +142,9 @@ xdd_targetpass_e2e_loop_dst(ptds_t *p) {
 		}
 	}
 
+	if (p->my_current_io_status != 0) 
+		xgp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
+
 	return;
 
 } // End of xdd_targetpass_e2e_loop_dst()
