@@ -204,6 +204,7 @@ xdd_targetpass_e2e_loop_src(ptds_t *p) {
 	// Assign each of the QThreads an End-of-Data Task
 	xdd_targetpass_e2e_eof_src(p);
 
+
 	// Wait for all QThreads to complete their most recent task
 	// The easiest way to do this is to get the QThread pointer for each
 	// QThread specifically and then reset it's "busy" bit to 0.
@@ -214,6 +215,8 @@ xdd_targetpass_e2e_loop_src(ptds_t *p) {
 		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 	}
 
+	if (p->my_current_io_status != 0) 
+		xgp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
 
 	return;
 
