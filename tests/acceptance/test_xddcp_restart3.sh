@@ -2,7 +2,9 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the retry flag with xddcp with the -a resume flag
+# Ensure that restarts occur when the transfer dies during EOF processing
+# Note that the sleep time may need to be tuned depending on the storage
+# and connect time.
 #
 
 #
@@ -39,20 +41,20 @@ dest_file=$XDDTEST_DEST_MOUNT/retry1/file1
 #
 # Create the source file
 #
-$XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern random >/dev/null
+$XDDTEST_XDD_EXE -target $source_file -op write -reqsize 32768 -numreqs 128 -qd 128 -datapattern random >/dev/null
 
 #
 # Start a long copy
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-bash $XDDTEST_XDDCP_EXE $xddcp_opts -a -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
+bash $XDDTEST_XDDCP_EXE $xddcp_opts -a -n 1 -t 128 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
 #
 # Kill the destination side
 #
-sleep 10
-ssh $XDDTEST_E2E_DEST "pkill -9 -x xdd" &>/dev/null
+sleep 12
+ssh $XDDTEST_E2E_DEST "pkill -f \"\\-op write\""
 
 #
 # Let the retry complete

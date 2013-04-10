@@ -29,7 +29,6 @@ fi
 
 
 # Perform pre-test 
-echo "Beginning XDDCP Retry Test 2 . . ."
 test_dir=$XDDTEST_SOURCE_MOUNT/retry2
 rm -rf $test_dir
 mkdir -p $test_dir

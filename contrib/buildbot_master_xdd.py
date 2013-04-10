@@ -95,6 +95,7 @@ def loadConfig(config):
     # Test XDDCP restart capabilities
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_restart1.sh'], description=["Restart Test 1"], maxTime=1200, name="test_xddcp_restart1.sh"))
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_restart2.sh'], description=["Restart Test 2"], maxTime=1200, name="test_xddcp_restart2.sh"))
+    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_restart3.sh'], description=["Restart Test 3"], maxTime=1200, name="test_xddcp_restart3.sh"))
 
     # Test XDDCP MultiNIC capabilities
     xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic1.sh'], description=["MultiNIC Test 1"], maxTime=1200, name="test_xddcp_multinic1.sh"))
