@@ -4,13 +4,13 @@
 #
 # Validate xdd E2E running over multiple NICs 
 #
-###### set -x
+
 #
-# Source the test configuration environment
+# Test identity
 #
-###############################################################
-# Set variables to control test configuration
-#
+test_name=$(basename $0)
+echo "Beginning $test_name . . ."
+
 #
 # Source the test configuration environment
 #
@@ -29,14 +29,24 @@ DEST_DATA_NETWORK_2=${XDDTEST_E2E_DEST}-10g
 DEST_DATA_NETWORK_3=${XDDTEST_E2E_DEST}
 DEST_DATA_NETWORK_4=localhost
 
+$XDDTEST_XDD_GETHOSTIP_EXE $DEST_DATA_NETWORK1 &>/dev/null
+net1_rc=$?
+$XDDTEST_XDD_GETHOSTIP_EXE $DEST_DATA_NETWORK2 &>/dev/null
+net2_rc=$?
+$XDDTEST_XDD_GETHOSTIP_EXE $DEST_DATA_NETWORK3 &>/dev/null
+net3_rc=$?
+$XDDTEST_XDD_GETHOSTIP_EXE $DEST_DATA_NETWORK4 &>/dev/null
+net4_rc=$?
+if [ 0 -ne $net1_rc -o 0 -ne $net2_rc -o 0 -ne $net3_rc -o 0 -ne $net4_rc ]; then
+    echo "Acceptance $test_name: SKIPPED"
+    exit 2
+fi
+
 # Perform pre-test 
-echo "Beginning XDD Multi NIC Test 1 on CONTROL machine $XDDTEST_E2E_CONTROL - DATESTAMP $DATESTAMP "
 test_source=$XDDTEST_SOURCE_MOUNT/multinic/source
-echo "Multi NIC Test 1 - Making directory $test_source on $XDDTEST_E2E_SOURCE"
 ssh $XDDTEST_E2E_SOURCE "rm   -rf $test_source " 
 ssh $XDDTEST_E2E_SOURCE "mkdir -p $test_source " 
 test_dest=$XDDTEST_DEST_MOUNT/multinic/dest
-echo "Multi NIC Test 1 - Making directory $test_dest on $XDDTEST_E2E_DEST" 
 ssh $XDDTEST_E2E_DEST "rm   -rf $test_dest" 
 ssh $XDDTEST_E2E_DEST "mkdir -p $test_dest"
 
@@ -47,7 +57,6 @@ destination_log=${dest_output_file_prefix}_destination.log
 #
 # Create the source file
 #
-echo "Multi NIC Test 1 - Making test file $source_file on $XDDTEST_E2E_SOURCE using $XDDTEST_XDD_EXE"
 ssh $XDDTEST_E2E_SOURCE \
 	$XDDTEST_XDD_EXE \
 		-target $source_file \
@@ -64,8 +73,6 @@ sleep 2
 #
 # Start a copy over two interfaces
 #
-echo "Multi NIC Test 1 - Starting copy from $XDDTEST_E2E_SOURCE to $XDDTEST_E2E_DEST" 
-echo "Multi NIC Test 1 - Destination side first... $XDDTEST_E2E_DEST"
 ssh $XDDTEST_E2E_DEST \
 	$XDDTEST_XDD_EXE \
 		-target $dest_file \
@@ -82,8 +89,8 @@ ssh $XDDTEST_E2E_DEST \
 		-e2e destination $DEST_DATA_NETWORK_2 \
 		-e2e destination $DEST_DATA_NETWORK_3 \
 		-e2e destination $DEST_DATA_NETWORK_4  > $destination_log 2>&1 &
+
 sleep 5
-echo "Multi NIC Test 1 - ...Now the source side... $XDDTEST_E2E_SOURCE"
 ssh $XDDTEST_E2E_SOURCE \
 	$XDDTEST_XDD_EXE \
 		-target $source_file \

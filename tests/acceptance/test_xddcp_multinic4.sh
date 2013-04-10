@@ -11,6 +11,12 @@
 #
 
 #
+# Test identity
+#
+test_name=$(basename $0)
+echo "Beginning $test_name . . ."
+
+#
 # Source the test configuration environment
 #
 source ./test_config
@@ -29,6 +35,16 @@ DEST_DATA_NETWORK_1=${XDDTEST_E2E_DEST}
 DEST_DATA_NETWORK_2=${XDDTEST_E2E_DEST}-10g
 DEST_DATA_NETWORK_3=${XDDTEST_E2E_DEST}-ib0
 
+$XDDTEST_XDD_GETHOSTIP_EXE $DEST_DATA_NETWORK1 &>/dev/null
+net1_rc=$?
+$XDDTEST_XDD_GETHOSTIP_EXE $DEST_DATA_NETWORK2 &>/dev/null
+net2_rc=$?
+$XDDTEST_XDD_GETHOSTIP_EXE $DEST_DATA_NETWORK3 &>/dev/null
+net3_rc=$?
+if [ 0 -ne $net1_rc -o 0 -ne $net2_rc -o 0 -ne $net3_rc ]; then
+    echo "Acceptance $test_name: SKIPPED"
+    exit 2
+fi
 # Perform pre-test 
 src_dir=$XDDTEST_SOURCE_MOUNT/test_xddcp_multinic4/data
 dest_dir=$XDDTEST_DEST_MOUNT/test_xddcp_multinic4/data
