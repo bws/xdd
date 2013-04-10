@@ -1,8 +1,10 @@
 autom4te.cache
+config.h
 config.log
 config.status
 GNUmakefile
 Makefile
+tests/test_config
 *.o
 *.csv
 *~
