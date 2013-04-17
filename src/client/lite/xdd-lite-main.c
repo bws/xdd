@@ -29,10 +29,11 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 #include "libxdd.h"
-#include "xdd-lite.h"
+#include "xint-lite.h"
 
 int print_usage() {
     xint_lite_print_usage();
+    return 0;
 }
 
 /** Main */
@@ -40,8 +41,8 @@ int main(int argc, char** argv) {
 
     int rc;
     size_t num_targets;
-    xdd_lite_options_t opts;
-    xdd_plan_t lite_plan;
+    xint_lite_options_t opts;
+    xdd_plan_pub_t lite_plan;
 
     /* Initialize and parse options */
     rc = xint_lite_options_init(&opts);    
@@ -50,7 +51,7 @@ int main(int argc, char** argv) {
     } else {
         goto cleanup_options;
     }
-    if (0 != rc || 1 == opts->help_flag) {
+    if (0 != rc || 1 == opts.help_flag) {
         print_usage();
         goto cleanup_options;
     }
@@ -67,7 +68,7 @@ int main(int argc, char** argv) {
   cleanup_plan:
     xdd_plan_destroy(&lite_plan);
   cleanup_options:
-    xint_light_options_destroy(&opts);
+    xint_lite_options_destroy(&opts);
     
     return rc;
 }

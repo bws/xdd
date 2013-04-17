@@ -26,4 +26,5 @@ BASE_SRC := $(DIR)/heartbeat.c \
 	$(DIR)/target_ttd_after_pass.c \
 	$(DIR)/target_ttd_before_io_op.c \
 	$(DIR)/target_ttd_before_pass.c \
-	$(DIR)/verify.c
+	$(DIR)/verify.c \
+	$(DIR)/xint_plan.c

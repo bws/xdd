@@ -45,7 +45,7 @@
 #include "sgio.h"
 #include "triggers.h"
 #include "extended_stats.h"
-#include "xdd_plan.h"
+#include "xint_plan.h"
 
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS

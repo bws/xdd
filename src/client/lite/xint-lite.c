@@ -134,7 +134,7 @@ int xint_lite_options_parse(xint_lite_options_t* opts, int argc, char** argv) {
 }
 
 /** Convert the options into a valid plan */
-int xint_lite_plan_create(xint_lite_options_t* opts, xdd_plan_t* plan) {
+int xint_lite_options_plan_create(xint_lite_options_t* opts, xdd_plan_pub_t* plan) {
     int rc;
     int i = 0;
 

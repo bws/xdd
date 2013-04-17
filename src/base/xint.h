@@ -45,8 +45,8 @@
 #include "xdd_irix.h"
 #endif
 
-#include "xdd_common.h"
-#include "xdd_prototypes.h"
-#include "global_data.h"
-#include "xdd_plan.h"
+#include "xint_common.h"
+#include "xint_prototypes.h"
+#include "xint_global_data.h"
+#include "xint_plan.h"
 

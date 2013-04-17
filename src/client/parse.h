@@ -29,7 +29,7 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
-#include "xdd_plan.h"
+#include "xint_plan.h"
 
 #define XDD_PARSE_PHASE1			0x00000001 // Preprocess phase - phase 1 
 #define XDD_PARSE_PHASE2			0x00000002 // Parse Phase 2 occurs after we know how many targets there really are

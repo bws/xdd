@@ -33,10 +33,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-
-struct xdd_plan;
-typedef struct xdd_plan xdd_plan_t;
-
+#include <xdd_plan.h>
 
 typedef enum xint_op {NULL_OP_TYPE = 0, READ, WRITE} xint_op_t;
 
@@ -74,7 +71,7 @@ int xint_lite_options_destroy(xint_lite_options_t* opts);
 
 int xint_lite_options_parse(xint_lite_options_t* opts, int argc, char** argv);
 
-int xint_lite_options_plan_create(xint_lite_options_t* opts, xdd_plan_t* plan);
+int xint_lite_options_plan_create(xint_lite_options_t* opts, xdd_plan_pub_t* plan);
 
 int xint_lite_print_usage();
 

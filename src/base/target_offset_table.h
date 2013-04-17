@@ -33,7 +33,7 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <stddef.h>
-#include "nclk.h"
+#include "xint_nclk.h"
 
 /** typedef unsigned long long iotimer_t; */
 struct tot_entry {
