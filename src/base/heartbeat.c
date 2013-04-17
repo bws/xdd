@@ -121,24 +121,24 @@ xdd_heartbeat(void *data) {
 			total_bytes_xferred = 0;
 			earliest_start_time = NCLK_MAX;
 			total_ops_issued = 0;
-			if (p->my_pass_start_time == NCLK_MAX) { // Haven't started yet...
+			if (p->tgtstp->my_pass_start_time == NCLK_MAX) { // Haven't started yet...
 				fprintf(p->hb.hb_file_pointer," + WAITING");
 				continue; 
 			}
 			// Get the number of bytes xferred by all QThreads for this Target
-			total_bytes_xferred = p->my_current_bytes_xfered;
-			total_ops_issued = p->my_current_op_count;
+			total_bytes_xferred = p->tgtstp->my_current_bytes_xfered;
+			total_ops_issued = p->tgtstp->my_current_op_count;
 			// Determine if this is the earliest start time
-			if (earliest_start_time > p->my_pass_start_time) 
-				earliest_start_time = p->my_pass_start_time;
+			if (earliest_start_time > p->tgtstp->my_pass_start_time) 
+				earliest_start_time = p->tgtstp->my_pass_start_time;
 
 			// At this point we have the total number of bytes transferred for this target
 			// as well as the time the first qthread started and the most recent op number issued.
 			// From that we can calculate the estimated BW for the target as a whole 
 
 			p = planp->ptdsp[i];
-			if (p->my_current_state & CURRENT_STATE_PASS_COMPLETE) {
-				now = p->my_pass_end_time;
+			if (p->tgtstp->my_current_state & CURRENT_STATE_PASS_COMPLETE) {
+				now = p->tgtstp->my_pass_end_time;
 				prior_activity_index = activity_index;
 				activity_index = 4;
 			} else nclk_now(&now);
@@ -183,7 +183,7 @@ xdd_heartbeat_legend(xdd_plan_t* planp, ptds_t *p) {
 		 fprintf(p->hb.hb_file_pointer,"\n"); // Put a LineFeed character at the end of this line
 	else fprintf(p->hb.hb_file_pointer,"\r"); // Otherwise just a carriage return
 
-	fprintf(p->hb.hb_file_pointer,"Pass,%04d,",p->my_current_pass_number);
+	fprintf(p->hb.hb_file_pointer,"Pass,%04d,",p->tgtstp->my_current_pass_number);
 	if (p->hb.hb_options & HB_HOST)  // Display Current number of OPS performed 
 		fprintf(p->hb.hb_file_pointer,"/HOST,%s,",planp->hostname.nodename);
 
@@ -322,7 +322,7 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 	}
 	// Estimated time is based on "unadjusted bytes" otherwise the ETC would be skewed
 	if (p->hb.hb_options & HB_ET) {  // Display Estimated Time to Completion
-		if (p->my_current_state & CURRENT_STATE_PASS_COMPLETE) 
+		if (p->tgtstp->my_current_state & CURRENT_STATE_PASS_COMPLETE) 
 			d = 0.0;
 		else if (ops > 0) {
 			// Estimate the time to completion -> ((total_ops/ops_completed)*elapsed_time - elapsed)

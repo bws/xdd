@@ -401,6 +401,14 @@ xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
 	}
 	xdd_data_pattern_init(p->dpp);
 
+	// Allocate and initialize the target state structure
+	p->tgtstp = (struct xdd_target_state *)malloc(sizeof(struct xdd_target_state));
+	if (p->tgtstp == NULL) {
+	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for target %d\n",
+		    xgp->progname, (int)sizeof(struct xdd_target_state), target_number);
+	    return(NULL);
+	}
+
 	if (xgp->global_options & GO_EXTENDED_STATS) 
 	    xdd_get_esp(p);
 

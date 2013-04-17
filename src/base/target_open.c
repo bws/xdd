@@ -178,7 +178,7 @@ xdd_target_name(ptds_t *p) {
 
 	/* Set the extension to correspond with the current pass number */
 	if (p->target_options & TO_CREATE_NEW_FILES) { // Create a new file name for this target
-		sprintf(p->target_extension,"%08d",p->my_current_pass_number);
+		sprintf(p->target_extension,"%08d",p->tgtstp->my_current_pass_number);
 	}
 	
 	/* create the fully qualified target name */

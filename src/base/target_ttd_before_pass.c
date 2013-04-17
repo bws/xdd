@@ -127,7 +127,7 @@ xdd_start_delay_before_pass(ptds_t *p) {
 #else
 	req.tv_sec = p->start_delay; // Whole seconds
 	req.tv_nsec = (p->start_delay - req.tv_sec) * BILLION; // Fraction of a second
-	fprintf(xgp->output, "\nTarget %d Beginning requested Start Delay for %f seconds before pass %d...\n",p->my_target_number, p->start_delay, p->my_current_pass_number);
+	fprintf(xgp->output, "\nTarget %d Beginning requested Start Delay for %f seconds before pass %d...\n",p->my_target_number, p->start_delay, p->tgtstp->my_current_pass_number);
 	fflush(xgp->output);
 	rem.tv_sec = 0; // zero this out just to make sure
 	rem.tv_nsec = 0; // zero this out just to make sure
@@ -139,7 +139,7 @@ xdd_start_delay_before_pass(ptds_t *p) {
 		rem.tv_nsec = 0; // zero this out just to make sure
 		status = nanosleep(&req, &rem);
 	} 
-	fprintf(xgp->output, "\nTarget %d Starting pass %d after requested delay of %f seconds\n",p->my_target_number,p->my_current_pass_number, p->start_delay);
+	fprintf(xgp->output, "\nTarget %d Starting pass %d after requested delay of %f seconds\n",p->my_target_number,p->tgtstp->my_current_pass_number, p->start_delay);
 	fflush(xgp->output);
 #endif
 } // End of xdd_start_delay_before_pass()
@@ -207,25 +207,25 @@ void
 xdd_init_ptds_before_pass(ptds_t *p) {
     
 	// Init all the pass-related variables to 0
-	p->my_elapsed_pass_time = 0;
-	p->my_first_op_start_time = 0;
-	p->my_accumulated_op_time = 0; 
-	p->my_accumulated_read_op_time = 0;
-	p->my_accumulated_write_op_time = 0;
-	p->my_accumulated_pattern_fill_time = 0;
-	p->my_accumulated_flush_time = 0;
+	p->tgtstp->my_elapsed_pass_time = 0;
+	p->tgtstp->my_first_op_start_time = 0;
+	p->tgtstp->my_accumulated_op_time = 0; 
+	p->tgtstp->my_accumulated_read_op_time = 0;
+	p->tgtstp->my_accumulated_write_op_time = 0;
+	p->tgtstp->my_accumulated_pattern_fill_time = 0;
+	p->tgtstp->my_accumulated_flush_time = 0;
 	//
-	p->my_current_op_number = 0; 		// The current operation number init to 0
-	p->my_current_op_count = 0; 		// The number of read+write operations that have completed so far
-	p->my_current_read_op_count = 0;	// The number of read operations that have completed so far 
-	p->my_current_write_op_count = 0;	// The number of write operations that have completed so far 
-	p->my_current_bytes_xfered = 0;		// Total number of bytes transferred to far (to storage device, not network)
-	p->my_current_bytes_read = 0;		// Total number of bytes read to far (from storage device, not network)
-	p->my_current_bytes_written = 0;	// Total number of bytes written to far (to storage device, not network)
-	p->my_current_byte_location = 0; 	// Current byte location for this I/O operation 
-	p->my_current_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
-	p->my_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
-	p->my_current_error_count = 0;		// The number of I/O errors for this qthread
+	p->tgtstp->my_current_op_number = 0; 		// The current operation number init to 0
+	p->tgtstp->my_current_op_count = 0; 		// The number of read+write operations that have completed so far
+	p->tgtstp->my_current_read_op_count = 0;	// The number of read operations that have completed so far 
+	p->tgtstp->my_current_write_op_count = 0;	// The number of write operations that have completed so far 
+	p->tgtstp->my_current_bytes_xfered = 0;		// Total number of bytes transferred to far (to storage device, not network)
+	p->tgtstp->my_current_bytes_read = 0;		// Total number of bytes read to far (from storage device, not network)
+	p->tgtstp->my_current_bytes_written = 0;	// Total number of bytes written to far (to storage device, not network)
+	p->tgtstp->my_current_byte_location = 0; 	// Current byte location for this I/O operation 
+	p->tgtstp->my_current_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
+	p->tgtstp->my_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
+	p->tgtstp->my_current_error_count = 0;		// The number of I/O errors for this qthread
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS
 	if (p->esp) {
@@ -243,7 +243,7 @@ xdd_init_ptds_before_pass(ptds_t *p) {
 		p->esp->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
 	}
 
-	p->my_time_limit_expired = 0;		// The time limit expiration indicator
+	p->tgtstp->my_time_limit_expired = 0;		// The time limit expiration indicator
 
 } // End of xdd_init_ptds_before_pass()
  
@@ -281,43 +281,43 @@ xdd_target_ttd_before_pass(ptds_t *p) {
 	p->iosize = p->reqsize * p->block_size;
 
 	/* Get the starting time stamp */
-	if (p->my_current_pass_number == 1) { // For the *first* pass...
+	if (p->tgtstp->my_current_pass_number == 1) { // For the *first* pass...
 		if ((p->target_options & TO_ENDTOEND) && (p->target_options & TO_E2E_DESTINATION)) {  
 			// Since the Destination Side starts and *waits* for the Source Side, the
 			// actual "first pass start time" is set to a LARGE number so that it later
 			// gets set to the time that the first packet of data was actually received.
 			// That is done by the Results Manager at the end of a pass.
 			p->first_pass_start_time = NCLK_MAX;
-			p->my_pass_start_time = NCLK_MAX;
+			p->tgtstp->my_pass_start_time = NCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
 			nclk_now(&p->first_pass_start_time);
-			p->my_pass_start_time = p->first_pass_start_time;
+			p->tgtstp->my_pass_start_time = p->first_pass_start_time;
 		}
 		// Get the current CPU user and system times 
-		times(&p->my_starting_cpu_times_this_run);
-		memcpy(&p->my_starting_cpu_times_this_pass,&p->my_starting_cpu_times_this_run, sizeof(struct tms));
+		times(&p->tgtstp->my_starting_cpu_times_this_run);
+		memcpy(&p->tgtstp->my_starting_cpu_times_this_pass,&p->tgtstp->my_starting_cpu_times_this_run, sizeof(struct tms));
 	} else { // For pass number greater than 1
 		if ((p->target_options & TO_ENDTOEND) && (p->target_options & TO_E2E_DESTINATION)) {
 			// Same as above... Pass numbers greater than one will be used when the
 			// multi-file copy support is added
-			p->my_pass_start_time = NCLK_MAX;
+			p->tgtstp->my_pass_start_time = NCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
-			nclk_now(&p->my_pass_start_time);
+			nclk_now(&p->tgtstp->my_pass_start_time);
 		}
-		times(&p->my_starting_cpu_times_this_pass);
+		times(&p->tgtstp->my_starting_cpu_times_this_pass);
 	}
 
 	qp = p->next_qp;
 	while (qp) { // Set up the pass_start_times for all the QThreads 
-		if (p->my_current_pass_number == 1) {
+		if (p->tgtstp->my_current_pass_number == 1) {
 			qp->first_pass_start_time = p->first_pass_start_time;
-			qp->my_pass_start_time = qp->first_pass_start_time;
+			qp->tgtstp->my_pass_start_time = qp->first_pass_start_time;
 			// Get the current CPU user and system times 
-			times(&qp->my_starting_cpu_times_this_run);
-			memcpy(&qp->my_starting_cpu_times_this_pass,&qp->my_starting_cpu_times_this_run, sizeof(struct tms));
+			times(&qp->tgtstp->my_starting_cpu_times_this_run);
+			memcpy(&qp->tgtstp->my_starting_cpu_times_this_pass,&qp->tgtstp->my_starting_cpu_times_this_run, sizeof(struct tms));
 		} else { 
-			qp->my_pass_start_time = p->my_pass_start_time;
-			times(&qp->my_starting_cpu_times_this_pass);
+			qp->tgtstp->my_pass_start_time = p->tgtstp->my_pass_start_time;
+			times(&qp->tgtstp->my_starting_cpu_times_this_pass);
 		}
 		xdd_init_ptds_before_pass(qp);
 		qp = qp->next_qp;

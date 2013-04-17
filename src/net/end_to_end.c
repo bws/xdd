@@ -56,9 +56,9 @@ xdd_e2e_src_send(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	qp->e2ep->e2e_header.sendqnum = qp->my_qthread_number;
-	qp->e2ep->e2e_header.sequence = qp->target_op_number;
-	qp->e2ep->e2e_header.location = qp->my_current_byte_location;
-	qp->e2ep->e2e_header.length = qp->my_current_io_size;
+	qp->e2ep->e2e_header.sequence = qp->tgtstp->target_op_number;
+	qp->e2ep->e2e_header.location = qp->tgtstp->my_current_byte_location;
+	qp->e2ep->e2e_header.length = qp->tgtstp->my_current_io_size;
 
 	// The message header for this data packet is placed after the user data in the buffer
 	memcpy(qp->rwbuf+qp->iosize,&qp->e2ep->e2e_header, sizeof(qp->e2ep->e2e_header));
@@ -70,25 +70,25 @@ xdd_e2e_src_send(ptds_t *qp) {
 	maxmit = MAXMIT_TCP;
 	sent = 0;
         sentcalls = 0;
-	nclk_now(&qp->my_current_net_start_time);
+	nclk_now(&qp->tgtstp->my_current_net_start_time);
 	while (sent < qp->e2ep->e2e_iosize) {
 		sendsize = (qp->e2ep->e2e_iosize-sent) > maxmit ? maxmit : (qp->e2ep->e2e_iosize-sent);
 		qp->e2ep->e2e_send_status = sendto(qp->e2ep->e2e_sd,(char *)qp->rwbuf+sent, sendsize, 0, (struct sockaddr *)&qp->e2ep->e2e_sname, sizeof(struct sockaddr_in));
 		sent += qp->e2ep->e2e_send_status;
                 sentcalls++;
 	}
-	nclk_now(&qp->my_current_net_end_time);
+	nclk_now(&qp->tgtstp->my_current_net_end_time);
 	// Time stamp if requested
 	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
 		p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_size = qp->e2ep->e2e_iosize;
-		p->ttp->tte[qp->tsp->ts_current_entry].net_start = qp->my_current_net_start_time;
-		p->ttp->tte[qp->tsp->ts_current_entry].net_end = qp->my_current_net_end_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_start = qp->tgtstp->my_current_net_start_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_end = qp->tgtstp->my_current_net_end_time;
 		p->ttp->tte[qp->tsp->ts_current_entry].net_processor_end = xdd_get_processor();
 		p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_calls = sentcalls;
 	}
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
-	qp->e2ep->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);
+	qp->e2ep->e2e_sr_time = (qp->tgtstp->my_current_net_end_time - qp->tgtstp->my_current_net_start_time);
 
 	if (sent != qp->e2ep->e2e_iosize) {
 		xdd_e2e_err(qp,"xdd_e2e_src_send","ERROR: could not send data from e2e source\n");
@@ -170,7 +170,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 				p->ttp->tte[qp->tsp->ts_current_entry].net_processor_start = xdd_get_processor();
 			rcvd_so_far = 0;
                         recvcalls = 0;
-			nclk_now(&qp->my_current_net_start_time);
+			nclk_now(&qp->tgtstp->my_current_net_start_time);
 			while (rcvd_so_far < qp->e2ep->e2e_iosize) {
 				recvsize = (qp->e2ep->e2e_iosize-rcvd_so_far) > maxmit ? maxmit : (qp->e2ep->e2e_iosize-rcvd_so_far);
 				qp->e2ep->e2e_recv_status = recvfrom(qp->e2ep->e2e_csd[qp->e2ep->e2e_current_csd], (char *) qp->rwbuf+rcvd_so_far, recvsize, 0, NULL,NULL);
@@ -192,16 +192,16 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 				qp->e2ep->e2e_recv_status = rcvd_so_far;
 			}
 
-			nclk_now(&qp->my_current_net_end_time);
+			nclk_now(&qp->tgtstp->my_current_net_end_time);
 
 			// This will record the amount of time that we waited from the time we started until we got the first packet
 			if (!qp->e2ep->e2e_wait_1st_msg) 
-				qp->e2ep->e2e_wait_1st_msg = qp->my_current_net_end_time - e2e_wait_1st_msg_start_time;
+				qp->e2ep->e2e_wait_1st_msg = qp->tgtstp->my_current_net_end_time - e2e_wait_1st_msg_start_time;
 
 			// Timestamp this operation if requested
 			if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-				p->ttp->tte[qp->tsp->ts_current_entry].net_start = qp->my_current_net_start_time;
-				p->ttp->tte[qp->tsp->ts_current_entry].net_end = qp->my_current_net_end_time;
+				p->ttp->tte[qp->tsp->ts_current_entry].net_start = qp->tgtstp->my_current_net_start_time;
+				p->ttp->tte[qp->tsp->ts_current_entry].net_end = qp->tgtstp->my_current_net_end_time;
 				p->ttp->tte[qp->tsp->ts_current_entry].net_processor_end = xdd_get_processor();
 				p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_calls = recvcalls;
 			}
@@ -210,11 +210,11 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 			// *start* of this pass. The reason is that the initial recvfrom() may have been issued long before the
 			// Source side started sending data and we need to ignore that startup delay. 
 			if (qp->first_pass_start_time == LONGLONG_MAX)  { // This is an indication that this is the fist recvfrom() that has completed
-				qp->first_pass_start_time = qp->my_current_net_end_time;
-				qp->my_pass_start_time =  qp->my_current_net_end_time;
+				qp->first_pass_start_time = qp->tgtstp->my_current_net_end_time;
+				qp->tgtstp->my_pass_start_time =  qp->tgtstp->my_current_net_end_time;
 				qp->e2ep->e2e_sr_time = 0; // The first Send/Receive time is zero.
 			} else { // Calculate the Send/Receive time by the time it took the last recvfrom() to run
-				qp->e2ep->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);
+				qp->e2ep->e2e_sr_time = (qp->tgtstp->my_current_net_end_time - qp->tgtstp->my_current_net_start_time);
 			}
 			// Check the status of the last recvfrom()
 			// The normal condition where the recvfrom() call returns the expected amount of data (recvsize)
@@ -226,17 +226,17 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 			if (qp->e2ep->e2e_recv_status == qp->e2ep->e2e_iosize) {  // This is the total amount of data we should have received (data+header)
 				/* Copy meta data into destinations e2e_header struct */
 				memcpy(&qp->e2ep->e2e_header, qp->rwbuf+qp->iosize, sizeof(qp->e2ep->e2e_header));
-	 			qp->e2ep->e2e_header.recvtime = qp->my_current_net_end_time; // This needs to be the net_end_time from this side of the operation
+	 			qp->e2ep->e2e_header.recvtime = qp->tgtstp->my_current_net_end_time; // This needs to be the net_end_time from this side of the operation
 			} else if (qp->e2ep->e2e_recv_status == headersize) { // This should be an EOF packet from the Source Side but check the magic number to be certain
 				memcpy(&qp->e2ep->e2e_header, qp->rwbuf, sizeof(qp->e2ep->e2e_header)); // In this case the header is at the very beginning of the RW Buffer because there is no data
-	 			qp->e2ep->e2e_header.recvtime = qp->my_current_net_end_time; // This needs to be the net_end_time from this side of the operation
+	 			qp->e2ep->e2e_header.recvtime = qp->tgtstp->my_current_net_end_time; // This needs to be the net_end_time from this side of the operation
 			} else if (qp->e2ep->e2e_recv_status == 0) { // A status of 0 means that the source side shut down unexpectedly - essentially and Enf-Of-File
 				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: ERROR: Connection closed prematurely by Source, op number %lld, location %lld\n",
 					xgp->progname,
 					qp->my_target_number,
 					qp->my_qthread_number,
-					(long long int)qp->target_op_number,
-					(long long int)qp->my_current_byte_location);
+					(long long int)qp->tgtstp->target_op_number,
+					(long long int)qp->tgtstp->my_current_byte_location);
 	  	 	 	// At this point we need to clear out this csd and "Deactivate" the socket. 
 	  			FD_CLR(qp->e2ep->e2e_csd[qp->e2ep->e2e_current_csd], &qp->e2ep->e2e_active);
 	  			(void) closesocket(qp->e2ep->e2e_csd[qp->e2ep->e2e_current_csd]);
@@ -249,8 +249,8 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 					qp->my_target_number,
 					qp->my_qthread_number,
 					errno,
-					(long long int)qp->target_op_number,
-					(long long int)qp->my_current_byte_location);
+					(long long int)qp->tgtstp->target_op_number,
+					(long long int)qp->tgtstp->my_current_byte_location);
 
 				// Restore the errno and display the reason for the error
 				errno = errno_save;
@@ -316,9 +316,9 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	maxmit = MAXMIT_TCP;
 	p = qp->target_ptds;
 
-	nclk_now(&qp->my_current_net_start_time);
+	nclk_now(&qp->tgtstp->my_current_net_start_time);
 	qp->e2ep->e2e_header.sendqnum = qp->my_qthread_number;
-	qp->e2ep->e2e_header.sequence = (p->target_op_number + qp->my_qthread_number); // This is an EOF packet header
+	qp->e2ep->e2e_header.sequence = (p->tgtstp->target_op_number + qp->my_qthread_number); // This is an EOF packet header
 	qp->e2ep->e2e_header.location = -1; // NA
 	qp->e2ep->e2e_header.length = 0;	// NA - no data being sent other than the header
 	qp->e2ep->e2e_header.magic = PTDS_E2E_MAGIQ;
@@ -344,14 +344,14 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 		sent += qp->e2ep->e2e_send_status;
 		sentcalls++;
 	}
-	nclk_now(&qp->my_current_net_end_time);
+	nclk_now(&qp->tgtstp->my_current_net_end_time);
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
-	qp->e2ep->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);
+	qp->e2ep->e2e_sr_time = (qp->tgtstp->my_current_net_end_time - qp->tgtstp->my_current_net_start_time);
 	// If time stamping is on then we need to reset these values
    	if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-		p->ttp->tte[qp->tsp->ts_current_entry].net_start = qp->my_current_net_start_time;
-		p->ttp->tte[qp->tsp->ts_current_entry].net_end = qp->my_current_net_end_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_start = qp->tgtstp->my_current_net_start_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_end = qp->tgtstp->my_current_net_end_time;
 		p->ttp->tte[qp->tsp->ts_current_entry].net_processor_end = xdd_get_processor();
 		p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_size = sent;
 		p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_calls = sentcalls;

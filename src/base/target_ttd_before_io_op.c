@@ -48,7 +48,7 @@ xdd_syncio_before_io_op(ptds_t *p) {
 
 	if ((p->my_planp->syncio > 0) && 
 	    (p->my_planp->number_of_targets > 1) && 
-	    (p->my_current_op_number % p->my_planp->syncio == 0)) {
+	    (p->tgtstp->my_current_op_number % p->my_planp->syncio == 0)) {
 		xdd_barrier(&p->my_planp->main_targets_syncio_barrier,&p->occupant,0);
 	}
 
@@ -94,19 +94,19 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 			if (trigp1->trigger_types & TRIGGER_STARTTIME) {
 			/* If we are past the start time then signal the specified target to start */
 				nclk_now(&tt);
-				if (tt > (trigp1->start_trigger_time + p->my_pass_start_time)) {
+				if (tt > (trigp1->start_trigger_time + p->tgtstp->my_pass_start_time)) {
 					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&p->occupant,0);
 				}
 			}
 			if (trigp1->trigger_types & TRIGGER_STARTOP) {
 				/* If we are past the specified operation, then signal the specified target to start */
-				if (p->my_current_op_number > trigp1->start_trigger_op) {
+				if (p->tgtstp->my_current_op_number > trigp1->start_trigger_op) {
 					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&p->occupant,0);
 				}
 			}
 			if (trigp1->trigger_types & TRIGGER_STARTPERCENT) {
 				/* If we have completed percentage of operations then signal the specified target to start */
-				if (p->my_current_op_number > (trigp1->start_trigger_percent * p->qthread_ops)) {
+				if (p->tgtstp->my_current_op_number > (trigp1->start_trigger_percent * p->qthread_ops)) {
 					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&p->occupant,0);
 				}
 			}
@@ -114,7 +114,7 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 				/* If we have completed transferring the specified number of bytes, then signal the 
 				* specified target to start 
 				*/
-				if (p->my_current_bytes_xfered > trigp1->start_trigger_bytes) {
+				if (p->tgtstp->my_current_bytes_xfered > trigp1->start_trigger_bytes) {
 					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&p->occupant,0);
 				}
 			}
@@ -144,9 +144,9 @@ xdd_timelimit_before_io_op(ptds_t *p) {
  	*/
 	if (p->time_limit_ticks) { 
 		nclk_now(&current_time);
-		elapsed_time = current_time - p->my_pass_start_time;
+		elapsed_time = current_time - p->tgtstp->my_pass_start_time;
 		if (elapsed_time >= p->time_limit_ticks) {
-			p->my_time_limit_expired = 1;
+			p->tgtstp->my_time_limit_expired = 1;
 			fprintf(xgp->output,"\n%s: xdd_timelimit_before_io_op: Target %d: Specified time limit of %f seconds exceeded.\n",
 		 		xgp->progname,
 			 	p->my_target_number,
@@ -230,11 +230,11 @@ xdd_target_ttd_before_io_op(ptds_t *p, ptds_t *qp) {
 	errno = 0;
 	/* Get the location to seek to */
 	if (p->seekhdr.seek_options & SO_SEEK_NONE) /* reseek to starting offset if noseek is set */
-		p->my_current_byte_location = (uint64_t)((p->my_target_number * p->my_planp->target_offset) + 
+		p->tgtstp->my_current_byte_location = (uint64_t)((p->my_target_number * p->my_planp->target_offset) + 
 											p->seekhdr.seeks[0].block_location) * 
 											p->block_size;
-	else p->my_current_byte_location = (uint64_t)((p->my_target_number * p->my_planp->target_offset) + 
-											p->seekhdr.seeks[p->my_current_op_number].block_location) * 
+	else p->tgtstp->my_current_byte_location = (uint64_t)((p->my_target_number * p->my_planp->target_offset) + 
+											p->seekhdr.seeks[p->tgtstp->my_current_op_number].block_location) * 
 											p->block_size;
 
 	if (xgp->global_options & GO_INTERACTIVE)	
@@ -242,12 +242,12 @@ xdd_target_ttd_before_io_op(ptds_t *p, ptds_t *qp) {
 
 	// Check to see if either the pass or run time limit has 
 	// expired - if so, we need to leave this loop
-	if ((p->my_time_limit_expired) || (xgp->run_time_expired)) 
+	if ((p->tgtstp->my_time_limit_expired) || (xgp->run_time_expired)) 
 		return(XDD_RC_BAD);
 
 	// Check to see if we've been canceled - if so, we need 
 	// to set the QTSYNC_BUSY flag and leave this loop
-	if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
+	if ((xgp->canceled) || (xgp->abort) || (p->tgtstp->abort)) {
 		// When we got this QThread the QTSYNC_BUSY flag was 
 		// set by get_any_available_qthread()
 		// We need to reset it so that the subsequent loop 

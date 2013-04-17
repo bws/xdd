@@ -51,16 +51,16 @@ xdd_threshold_after_io_op(ptds_t *qp) {
 
 
 	if (qp->report_threshold) {
-		if (qp->my_current_op_elapsed_time > qp->report_threshold) {
-			excess_time = (qp->my_current_op_elapsed_time - qp->report_threshold)/MILLION;
+		if (qp->tgtstp->my_current_op_elapsed_time > qp->report_threshold) {
+			excess_time = (qp->tgtstp->my_current_op_elapsed_time - qp->report_threshold)/MILLION;
 			fprintf(xgp->output, "%s: Target number %d QThread %d: INFO: Threshold, %lld, exceeded by, %lld, microseconds, IO time was, %lld, usec on block, %lld\n",
 				xgp->progname, 
 				qp->my_target_number, 
 				qp->my_qthread_number,
 				(long long)qp->report_threshold/MILLION, 
 				(long long)excess_time, 
-				(long long)qp->my_current_op_elapsed_time/MILLION, 
-				(long long)qp->my_current_byte_location);
+				(long long)qp->tgtstp->my_current_op_elapsed_time/MILLION, 
+				(long long)qp->tgtstp->my_current_byte_location);
 		}
 	}
 } // End of xdd_threshold_after_io_op(qp)
@@ -77,30 +77,30 @@ void
 xdd_status_after_io_op(ptds_t *qp) {
 
 	/* Check for errors in the last operation */
-	if ((qp->my_current_error_count > 0) && (xgp->global_options & GO_STOP_ON_ERROR)) {
+	if ((qp->tgtstp->my_current_error_count > 0) && (xgp->global_options & GO_STOP_ON_ERROR)) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d QThread %d: ERROR: Error on this target caused a Stop_On_Error Event\n",
 			xgp->progname,
 			qp->my_target_number, 
 			qp->my_qthread_number);
 	}
 
-	if (qp->my_current_error_count >= xgp->max_errors) {
+	if (qp->tgtstp->my_current_error_count >= xgp->max_errors) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d QThread %d: WARNING: Maximum error threshold reached on target - current error count is %lld, maximum count is %lld\n",
 			xgp->progname,
 			qp->my_target_number,
 			qp->my_qthread_number,
-			(long long int)qp->my_current_error_count,
+			(long long int)qp->tgtstp->my_current_error_count,
 			(long long int)xgp->max_errors);
 	}
 
-	if ((qp->my_current_io_status == 0) && (qp->my_current_io_errno == 0)) {
+	if ((qp->tgtstp->my_current_io_status == 0) && (qp->tgtstp->my_current_io_errno == 0)) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d QThread %d: WARNING: End-Of-File reached on target named '%s' status=%d, errno=%d\n",
 			xgp->progname,
 			qp->my_target_number,
 			qp->my_qthread_number,
 			qp->target_full_pathname,
-			qp->my_current_io_status, 
-			qp->my_current_io_errno);
+			qp->tgtstp->my_current_io_status, 
+			qp->tgtstp->my_current_io_errno);
 	}
 
 } // End of xdd_status_after_io_op(qp) 
@@ -133,8 +133,8 @@ xdd_dio_after_io_op(ptds_t *qp) {
 	// If the current I/O transfer size is an integer multiple of the page size *AND*
 	// if the current byte location (aka offset into the file/device) is an integer multiple
 	// of the page size then this I/O operation is fine - just return.
-	if ((qp->my_current_io_size % pagesize == 0) && 
-		(qp->my_current_byte_location % pagesize) == 0) {
+	if ((qp->tgtstp->my_current_io_size % pagesize == 0) && 
+		(qp->tgtstp->my_current_byte_location % pagesize) == 0) {
 	    return;
 	}
 
@@ -188,14 +188,14 @@ xdd_raw_after_io_op(ptds_t *qp) {
 		 * wrote - starting location and length of write.
 		 */
 	}
-	if ( (qp->my_current_io_status > 0) && (qp->target_options & TO_READAFTERWRITE) ) {
+	if ( (qp->tgtstp->my_current_io_status > 0) && (qp->target_options & TO_READAFTERWRITE) ) {
 		if (qp->target_options & TO_RAW_READER) { 
-			qp->rawp->raw_data_ready -= qp->my_current_io_status;
+			qp->rawp->raw_data_ready -= qp->tgtstp->my_current_io_status;
 		} else { /* I must be the writer, send a message to the reader if requested */
 			if (qp->rawp->raw_trigger & PTDS_RAW_MP) {
 				qp->rawp->raw_msg.magic = PTDS_RAW_MAGIC;
-				qp->rawp->raw_msg.length = qp->my_current_io_status;
-				qp->rawp->raw_msg.location = qp->my_current_byte_location;
+				qp->rawp->raw_msg.length = qp->tgtstp->my_current_io_status;
+				qp->rawp->raw_msg.location = qp->tgtstp->my_current_byte_location;
 				xdd_raw_writer_send_msg(qp);
 			}
 		}
@@ -214,7 +214,7 @@ void
 xdd_e2e_after_io_op(ptds_t *qp) {
 
 
-	if ( (qp->my_current_io_status > 0) && (qp->target_options & TO_ENDTOEND) ) {
+	if ( (qp->tgtstp->my_current_io_status > 0) && (qp->target_options & TO_ENDTOEND) ) {
 		if (qp->target_options & TO_E2E_SOURCE) {
 			// For Serial Ordering, wait for the Previous I/O to complete before the associated QThread releases this QThread. 
 			// It is important to note that for Srial Ordering, when we get released by the Previous QThread
@@ -228,11 +228,11 @@ xdd_e2e_after_io_op(ptds_t *qp) {
 
 			// Send the data to the Destination machine
 			qp->e2ep->e2e_header.magic = PTDS_E2E_MAGIC;
-			qp->my_current_state |= CURRENT_STATE_SRC_SEND;
+			qp->tgtstp->my_current_state |= CURRENT_STATE_SRC_SEND;
 
 			xdd_e2e_src_send(qp);
 
-			qp->my_current_state &= ~CURRENT_STATE_SRC_SEND;
+			qp->tgtstp->my_current_state &= ~CURRENT_STATE_SRC_SEND;
 
 			
 // If Loose Ordering is in effect then we need to wait for the Previous QThread to complete
@@ -273,44 +273,44 @@ xdd_extended_stats(ptds_t *qp) {
 	}
 	esp = qp->esp;
 	// Longest op time
-	if (qp->my_current_op_elapsed_time > esp->my_longest_op_time) {
-		esp->my_longest_op_time = qp->my_current_op_elapsed_time;
-		esp->my_longest_op_number = qp->my_current_op_number;
-		if (qp->seekhdr.seeks[qp->my_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
-			if (qp->my_current_op_elapsed_time > esp->my_longest_write_op_time) {
-				esp->my_longest_write_op_time = qp->my_current_op_elapsed_time;
-				esp->my_longest_write_op_number = qp->my_current_op_number;
+	if (qp->tgtstp->my_current_op_elapsed_time > esp->my_longest_op_time) {
+		esp->my_longest_op_time = qp->tgtstp->my_current_op_elapsed_time;
+		esp->my_longest_op_number = qp->tgtstp->my_current_op_number;
+		if (qp->seekhdr.seeks[qp->tgtstp->my_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
+			if (qp->tgtstp->my_current_op_elapsed_time > esp->my_longest_write_op_time) {
+				esp->my_longest_write_op_time = qp->tgtstp->my_current_op_elapsed_time;
+				esp->my_longest_write_op_number = qp->tgtstp->my_current_op_number;
 			}
-		} else if (qp->seekhdr.seeks[qp->my_current_op_number].operation == SO_OP_READ) {  // READ Operation
-			if (qp->my_current_op_elapsed_time > esp->my_longest_read_op_time) {
-				esp->my_longest_read_op_time = qp->my_current_op_elapsed_time;
-				esp->my_longest_read_op_number = qp->my_current_op_number;
+		} else if (qp->seekhdr.seeks[qp->tgtstp->my_current_op_number].operation == SO_OP_READ) {  // READ Operation
+			if (qp->tgtstp->my_current_op_elapsed_time > esp->my_longest_read_op_time) {
+				esp->my_longest_read_op_time = qp->tgtstp->my_current_op_elapsed_time;
+				esp->my_longest_read_op_number = qp->tgtstp->my_current_op_number;
 			}
 		} else { 																		// NOOP 
-			if (qp->my_current_op_elapsed_time > esp->my_longest_noop_op_time) {
-				esp->my_longest_noop_op_time = qp->my_current_op_elapsed_time;
-				esp->my_longest_noop_op_number = qp->my_current_op_number;
+			if (qp->tgtstp->my_current_op_elapsed_time > esp->my_longest_noop_op_time) {
+				esp->my_longest_noop_op_time = qp->tgtstp->my_current_op_elapsed_time;
+				esp->my_longest_noop_op_number = qp->tgtstp->my_current_op_number;
 			}
 		}
 	}
 	// Shortest op time
-	if (qp->my_current_op_elapsed_time < esp->my_shortest_op_time) {
-		esp->my_shortest_op_time = qp->my_current_op_elapsed_time;
-		esp->my_shortest_op_number = qp->my_current_op_number;
-		if (qp->seekhdr.seeks[qp->my_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
-			if (qp->my_current_op_elapsed_time < esp->my_shortest_write_op_time) {
-				esp->my_shortest_write_op_time = qp->my_current_op_elapsed_time;
-				esp->my_shortest_write_op_number = qp->my_current_op_number;
+	if (qp->tgtstp->my_current_op_elapsed_time < esp->my_shortest_op_time) {
+		esp->my_shortest_op_time = qp->tgtstp->my_current_op_elapsed_time;
+		esp->my_shortest_op_number = qp->tgtstp->my_current_op_number;
+		if (qp->seekhdr.seeks[qp->tgtstp->my_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
+			if (qp->tgtstp->my_current_op_elapsed_time < esp->my_shortest_write_op_time) {
+				esp->my_shortest_write_op_time = qp->tgtstp->my_current_op_elapsed_time;
+				esp->my_shortest_write_op_number = qp->tgtstp->my_current_op_number;
 			}
-		} else if (qp->seekhdr.seeks[qp->my_current_op_number].operation == SO_OP_READ) {  // READ Operation
-			if (qp->my_current_op_elapsed_time < esp->my_shortest_read_op_time) {
-				esp->my_shortest_read_op_time = qp->my_current_op_elapsed_time;
-				esp->my_shortest_read_op_number = qp->my_current_op_number;
+		} else if (qp->seekhdr.seeks[qp->tgtstp->my_current_op_number].operation == SO_OP_READ) {  // READ Operation
+			if (qp->tgtstp->my_current_op_elapsed_time < esp->my_shortest_read_op_time) {
+				esp->my_shortest_read_op_time = qp->tgtstp->my_current_op_elapsed_time;
+				esp->my_shortest_read_op_number = qp->tgtstp->my_current_op_number;
 			}
 		} else { 																		// NOOP 
-			if (qp->my_current_op_elapsed_time < esp->my_shortest_noop_op_time) {
-				esp->my_shortest_noop_op_time = qp->my_current_op_elapsed_time;
-				esp->my_shortest_noop_op_number = qp->my_current_op_number;
+			if (qp->tgtstp->my_current_op_elapsed_time < esp->my_shortest_noop_op_time) {
+				esp->my_shortest_noop_op_time = qp->tgtstp->my_current_op_elapsed_time;
+				esp->my_shortest_noop_op_number = qp->tgtstp->my_current_op_number;
 			}
 		}
 	}
@@ -330,7 +330,7 @@ xdd_qthread_ttd_after_io_op(ptds_t *qp) {
 	// I/O Operation Status Checking
 	xdd_status_after_io_op(qp);
 
-	if (qp->abort)
+	if (qp->tgtstp->abort)
 		return;
 
 	// Threshold Checking

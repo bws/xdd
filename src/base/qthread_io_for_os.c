@@ -45,70 +45,70 @@ xdd_io_for_os(ptds_t *qp) {
 	p = qp->target_ptds;
 
 	// Record the starting time for this write op
-	nclk_now(&qp->my_current_op_start_time);
+	nclk_now(&qp->tgtstp->my_current_op_start_time);
 	// Time stamp if requested
 	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->tsp->ts_current_entry].disk_start = qp->my_current_op_start_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_start = qp->tgtstp->my_current_op_start_time;
 		p->ttp->tte[qp->tsp->ts_current_entry].disk_processor_start = xdd_get_processor();
 	}
 
 	/* Do the deed .... */
-	qp->my_current_op_end_time = 0;
-	if (qp->my_current_op_type == OP_TYPE_WRITE) {  // Write Operation
-		qp->my_current_op_str = "WRITE";
+	qp->tgtstp->my_current_op_end_time = 0;
+	if (qp->tgtstp->my_current_op_type == OP_TYPE_WRITE) {  // Write Operation
+		qp->tgtstp->my_current_op_str = "WRITE";
 		// Call xdd_datapattern_fill() to fill the buffer with any required patterns
 		xdd_datapattern_fill(qp);
 
 		if (qp->target_options & TO_NULL_TARGET) { // If this is a NULL target then we fake the I/O
-			qp->my_current_io_status = qp->my_current_io_size;
+			qp->tgtstp->my_current_io_status = qp->tgtstp->my_current_io_size;
 		} else { // Issue the actual operation
 			if ((qp->target_options & TO_SGIO)) 
-			 	qp->my_current_io_status = xdd_sg_io(qp,'w'); // Issue the SGIO operation 
+			 	qp->tgtstp->my_current_io_status = xdd_sg_io(qp,'w'); // Issue the SGIO operation 
 			else if (!(qp->target_options & TO_NULL_TARGET))
-                            qp->my_current_io_status = pwrite(qp->fd,
+                            qp->tgtstp->my_current_io_status = pwrite(qp->fd,
                                                                qp->rwbuf,
-                                                               qp->my_current_io_size,
-                                                               (off_t)qp->my_current_byte_location); // Issue a positioned write operation
-                        else qp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->my_current_io_size); // Issue a normal write() op
+                                                               qp->tgtstp->my_current_io_size,
+                                                               (off_t)qp->tgtstp->my_current_byte_location); // Issue a positioned write operation
+                        else qp->tgtstp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->tgtstp->my_current_io_size); // Issue a normal write() op
 
 		}
-	} else if (qp->my_current_op_type == OP_TYPE_READ) {  // READ Operation
-		qp->my_current_op_str = "READ";
+	} else if (qp->tgtstp->my_current_op_type == OP_TYPE_READ) {  // READ Operation
+		qp->tgtstp->my_current_op_str = "READ";
 
 		if (qp->target_options & TO_NULL_TARGET) { // If this is a NULL target then we fake the I/O
-			qp->my_current_io_status = qp->my_current_io_size;
+			qp->tgtstp->my_current_io_status = qp->tgtstp->my_current_io_size;
 		} else { // Issue the actual operation
 			if ((qp->target_options & TO_SGIO)) 
-			 	qp->my_current_io_status = xdd_sg_io(qp,'r'); // Issue the SGIO operation 
+			 	qp->tgtstp->my_current_io_status = xdd_sg_io(qp,'r'); // Issue the SGIO operation 
 			else if (!(qp->target_options & TO_NULL_TARGET))
-                            qp->my_current_io_status = pread(qp->fd,
+                            qp->tgtstp->my_current_io_status = pread(qp->fd,
                                                                qp->rwbuf,
-                                                               qp->my_current_io_size,
-                                                               (off_t)qp->my_current_byte_location);// Issue a positioned read operation
-			else qp->my_current_io_status = read(qp->fd,
+                                                               qp->tgtstp->my_current_io_size,
+                                                               (off_t)qp->tgtstp->my_current_byte_location);// Issue a positioned read operation
+			else qp->tgtstp->my_current_io_status = read(qp->fd,
                                                               qp->rwbuf,
-                                                              qp->my_current_io_size);// Issue a normal read() operation
+                                                              qp->tgtstp->my_current_io_size);// Issue a normal read() operation
 		}
 	
 		if (p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
-			qp->dpp->data_pattern_compare_errors += xdd_verify(qp, qp->target_op_number);
+			qp->dpp->data_pattern_compare_errors += xdd_verify(qp, qp->tgtstp->target_op_number);
 		}
 	
 	} else {  // Must be a NOOP
 		// The NOOP is used to test the overhead usage of XDD when no actual I/O is done
-		qp->my_current_op_str = "NOOP";
+		qp->tgtstp->my_current_op_str = "NOOP";
 
 		// Make it look like a successful I/O
-		qp->my_current_io_status = qp->my_current_io_size;
+		qp->tgtstp->my_current_io_status = qp->tgtstp->my_current_io_size;
 		errno = 0;
 	} // End of NOOP operation
 
 	// Record the ending time for this op 
-	nclk_now(&qp->my_current_op_end_time);
+	nclk_now(&qp->tgtstp->my_current_op_end_time);
 	// Time stamp if requested
 	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->tsp->ts_current_entry].disk_end = qp->my_current_op_end_time;
-		p->ttp->tte[qp->tsp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_end = qp->tgtstp->my_current_op_end_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_xfer_size = qp->tgtstp->my_current_io_status;
 		p->ttp->tte[qp->tsp->ts_current_entry].disk_processor_end = xdd_get_processor();
 	}
 
@@ -127,66 +127,66 @@ xdd_io_for_os(ptds_t *qp) {
 	p = qp->target_ptds;
 
 	// Record the starting time for this write op
-	nclk_now(&qp->my_current_op_start_time);
+	nclk_now(&qp->tgtstp->my_current_op_start_time);
 	// Time stamp if requested
 	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->tsp->ts_current_entry].disk_start = qp->my_current_op_start_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_start = qp->tgtstp->my_current_op_start_time;
 		p->ttp->tte[qp->tsp->ts_current_entry].disk_processor_start = xdd_get_processor();
 	}
 
 	/* Do the deed .... */
-	qp->my_current_op_end_time = 0;
-	if (qp->my_current_op_type == OP_TYPE_WRITE) {  // Write Operation
-		qp->my_current_op_str = "WRITE";
+	qp->tgtstp->my_current_op_end_time = 0;
+	if (qp->tgtstp->my_current_op_type == OP_TYPE_WRITE) {  // Write Operation
+		qp->tgtstp->my_current_op_str = "WRITE";
 		// Call xdd_datapattern_fill() to fill the buffer with any required patterns
 		xdd_datapattern_fill(qp);
 
 		if (qp->target_options & TO_NULL_TARGET) { // If this is a NULL target then we fake the I/O
-			qp->my_current_io_status = qp->my_current_io_size;
+			qp->tgtstp->my_current_io_status = qp->tgtstp->my_current_io_size;
 		} else { // Issue the actual operation
 			if (!(qp->target_options & TO_NULL_TARGET))
-                            qp->my_current_io_status = pwrite(qp->fd,
+                            qp->tgtstp->my_current_io_status = pwrite(qp->fd,
                                                                qp->rwbuf,
-                                                               qp->my_current_io_size,
-                                                               (off_t)qp->my_current_byte_location); // Issue a positioned write operation
-                        else qp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->my_current_io_size); // Issue a normal write() op
+                                                               qp->tgtstp->my_current_io_size,
+                                                               (off_t)qp->tgtstp->my_current_byte_location); // Issue a positioned write operation
+                        else qp->tgtstp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->tgtstp->my_current_io_size); // Issue a normal write() op
 
 		}
-	} else if (qp->my_current_op_type == OP_TYPE_READ) {  // READ Operation
-		qp->my_current_op_str = "READ";
+	} else if (qp->tgtstp->my_current_op_type == OP_TYPE_READ) {  // READ Operation
+		qp->tgtstp->my_current_op_str = "READ";
 
 		if (qp->target_options & TO_NULL_TARGET) { // If this is a NULL target then we fake the I/O
-			qp->my_current_io_status = qp->my_current_io_size;
+			qp->tgtstp->my_current_io_status = qp->tgtstp->my_current_io_size;
 		} else { // Issue the actual operation
 			if (!(qp->target_options & TO_NULL_TARGET))
-                            qp->my_current_io_status = pread(qp->fd,
+                            qp->tgtstp->my_current_io_status = pread(qp->fd,
 							     qp->rwbuf,
-							     qp->my_current_io_size,
-							     (off_t)qp->my_current_byte_location);// Issue a positioned read operation
-			else qp->my_current_io_status = read(qp->fd,
+							     qp->tgtstp->my_current_io_size,
+							     (off_t)qp->tgtstp->my_current_byte_location);// Issue a positioned read operation
+			else qp->tgtstp->my_current_io_status = read(qp->fd,
                                                               qp->rwbuf,
-                                                              qp->my_current_io_size);// Issue a normal read() operation
+                                                              qp->tgtstp->my_current_io_size);// Issue a normal read() operation
 		}
 	
 		if (p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
-			qp->dpp->data_pattern_compare_errors += xdd_verify(qp, qp->target_op_number);
+			qp->dpp->data_pattern_compare_errors += xdd_verify(qp, qp->tgtstp->target_op_number);
 		}
 	
 	} else {  // Must be a NOOP
 		// The NOOP is used to test the overhead usage of XDD when no actual I/O is done
-		qp->my_current_op_str = "NOOP";
+		qp->tgtstp->my_current_op_str = "NOOP";
 
 		// Make it look like a successful I/O
-		qp->my_current_io_status = qp->my_current_io_size;
+		qp->tgtstp->my_current_io_status = qp->tgtstp->my_current_io_size;
 		errno = 0;
 	} // End of NOOP operation
 
 	// Record the ending time for this op 
-	nclk_now(&qp->my_current_op_end_time);
+	nclk_now(&qp->tgtstp->my_current_op_end_time);
 	// Time stamp if requested
 	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->tsp->ts_current_entry].disk_end = qp->my_current_op_end_time;
-		p->ttp->tte[qp->tsp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_end = qp->tgtstp->my_current_op_end_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_xfer_size = qp->tgtstp->my_current_io_status;
 		p->ttp->tte[qp->tsp->ts_current_entry].disk_processor_end = xdd_get_processor();
 	}		
 } // End of xdd_io_for_os()
@@ -210,8 +210,8 @@ xdd_io_for_os(ptds_t *p) {
 	unsigned long 	phi;
 
 
-	plow = (unsigned long)p->my_current_byte_location;
-	phi = (unsigned long)(p->my_current_byte_location >> 32);
+	plow = (unsigned long)p->tgtstp->my_current_byte_location;
+	phi = (unsigned long)(p->tgtstp->my_current_byte_location >> 32);
 
 	/* Position to the correct place on the storage device/file */
 	SetFilePointer(p->fd, plow, &phi, FILE_BEGIN);
@@ -222,15 +222,15 @@ xdd_io_for_os(ptds_t *p) {
 	 * For read operations, it is assumed that the data read was previously written by xdd
 	 * and is in the expected format.
 	 */
-	nclk_now(&p->my_current_start_time);
-	if (p->target_op_number == 0) /* record our starting time */
-		p->my_start_time = p->my_current_start_time;
-	if (p->seekhdr.seeks[p->my_current_op].operation == SO_OP_WRITE) {
+	nclk_now(&p->tgtstp->my_current_start_time);
+	if (p->tgtstp->target_op_number == 0) /* record our starting time */
+		p->my_start_time = p->tgtstp->my_current_start_time;
+	if (p->seekhdr.seeks[p->tgtstp->my_current_op].operation == SO_OP_WRITE) {
 		if (p->dpp) {
 			if (p->dpp->data_pattern_options & DP_SEQUENCED_PATTERN) {
 				posp = (uint64_t *)p->rwbuf;
-				for (uj=0; uj<(p->my_current_io_size/sizeof(p->my_current_byte_location)); uj++) {
-					*posp = p->my_current_byte_location + (uj * sizeof(p->my_current_byte_location));
+				for (uj=0; uj<(p->tgtstp->my_current_io_size/sizeof(p->tgtstp->my_current_byte_location)); uj++) {
+					*posp = p->tgtstp->my_current_byte_location + (uj * sizeof(p->tgtstp->my_current_byte_location));
 					*posp |= p->dpp->data_pattern_prefix_binary;
 					if (p->data_pattern_options & DP_INVERSE_PATTERN)
 						*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
@@ -239,18 +239,18 @@ xdd_io_for_os(ptds_t *p) {
 			}
 		}
 		/* Actually write the data to the storage device/file */
-			p->my_io_status = WriteFile(p->fd, p->rwbuf, p->my_current_io_size, &bytesxferred, NULL);
+			p->my_io_status = WriteFile(p->fd, p->rwbuf, p->tgtstp->my_current_io_size, &bytesxferred, NULL);
 		} else { /* Simply do the normal read operation */
-			p->my_io_status = ReadFile(p->fd, p->rwbuf, p->my_current_io_size, &bytesxferred, NULL);
+			p->my_io_status = ReadFile(p->fd, p->rwbuf, p->tgtstp->my_current_io_size, &bytesxferred, NULL);
 			if (p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
 				posp = (uint64_t *)p->rwbuf;
 				current_position = *posp; 
 			}
 		}
-        nclk_now(&p->my_current_end_time);
+        nclk_now(&p->tgtstp->my_current_end_time);
 		/* Take a time stamp if necessary */
 		if ((p->tsp->ts_options & TS_ON) && (p->tsp->ts_options & TS_TRIGGERED)) {  
-			p->ttp->tte[p->ttp->tte_indx++].disk_end = p->my_current_end_time;
+			p->ttp->tte[p->ttp->tte_indx++].disk_end = p->tgtstp->my_current_end_time;
 			if (p->ttp->tte_indx == p->ttp->tt_size) { /* Check to see if we are at the end of the buffer */
 				if (p->tsp->ts_options & TS_ONESHOT) 
 					p->tsp->ts_options &= ~TS_ON; /* Turn off Time Stamping now that we are at the end of the time stamp buffer */
@@ -261,7 +261,7 @@ xdd_io_for_os(ptds_t *p) {
 		/* Let's check the status of the last operation to see if things went well.
 		 * If not, tell somebody who cares - like the poor soul running this program.
 		 */
-		if ((p->my_io_status == FALSE) || (bytesxferred != (unsigned long)p->my_current_io_size)) { 
+		if ((p->my_io_status == FALSE) || (bytesxferred != (unsigned long)p->tgtstp->my_current_io_size)) { 
 			FormatMessage( 
 				FORMAT_MESSAGE_ALLOCATE_BUFFER | 
 				FORMAT_MESSAGE_FROM_SYSTEM | 
@@ -273,10 +273,10 @@ xdd_io_for_os(ptds_t *p) {
 				0,
 				NULL);
 			fprintf(xgp->errout,"%s: I/O error: could not %s target %s\n",
-				xgp->progname,(p->seekhdr.seeks[p->my_current_op].operation == SO_OP_WRITE)?"write":"read",p->target);
+				xgp->progname,(p->seekhdr.seeks[p->tgtstp->my_current_op].operation == SO_OP_WRITE)?"write":"read",p->target);
 			fprintf(xgp->errout,"reason:%s",lpMsgBuf);
 			fflush(xgp->errout);
-			p->my_current_error_count++;
+			p->tgtstp->my_current_error_count++;
 		}
 		p->my_io_status = bytesxferred;
 } // End of xdd_io_for_os()

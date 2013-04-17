@@ -62,13 +62,13 @@ xdd_dio_before_io_op(ptds_t *qp) {
 	// If the current I/O transfer size is an integer multiple of the page size *AND*
 	// if the current byte location (aka offset into the file/device) is an integer multiple
 	// of the page size then this I/O operation is fine - just return.
-	if ((qp->my_current_io_size % pagesize == 0) && 
-		(qp->my_current_byte_location % pagesize) == 0) {
+	if ((qp->tgtstp->my_current_io_size % pagesize == 0) && 
+		(qp->tgtstp->my_current_byte_location % pagesize) == 0) {
 		return;
 	}
 
 	// Otherwise, it is necessary to open this target file with DirectIO disabaled
-	qp->my_current_pass_number = qp->target_ptds->my_current_pass_number;
+	qp->tgtstp->my_current_pass_number = qp->target_ptds->tgtstp->my_current_pass_number;
 	qp->target_options &= ~TO_DIO;
 #if (SOLARIS || WIN32)
 	// In this OS it is necessary to close the file descriptor before reopening in BUFFERED I/O Mode
@@ -121,7 +121,7 @@ xdd_raw_before_io_op(ptds_t *qp) {
 						fprintf(xgp->errout,"%s: RAW: Error getting status on file\n", xgp->progname);
 						qp->rawp->raw_data_ready = qp->iosize;
 					} else { /* figure out how much more data we can read */
-						qp->rawp->raw_data_ready = statbuf.st_size - qp->my_current_byte_location;
+						qp->rawp->raw_data_ready = statbuf.st_size - qp->tgtstp->my_current_byte_location;
 						if (qp->rawp->raw_data_ready < 0) {
 							/* The result of this should be positive, otherwise, the target file
 							* somehow got smaller and there is a problem. 
@@ -214,11 +214,11 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 
 	// Lets read a packet of data from the Source side
 	// xdd_e2e_dest_recv() will block until there is data to read 
-	qp->my_current_state |= CURRENT_STATE_DEST_RECEIVE;
+	qp->tgtstp->my_current_state |= CURRENT_STATE_DEST_RECEIVE;
 
 	status = xdd_e2e_dest_recv(qp);
 
-	qp->my_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
+	qp->tgtstp->my_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
 
 	// If status is "-1" then soemthing happened to the connection - time to leave
 	if (status == -1) 
@@ -231,9 +231,9 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 
 	// Use the hearder.location as the new my_current_byte_location and the e2e_header.length as the new my_current_io_size for this op
 	// This will allow for the use of "no ordering" on the source side of an e2e operation
-	qp->my_current_byte_location = qp->e2ep->e2e_header.location;
-	qp->my_current_io_size = qp->e2ep->e2e_header.length;
-	qp->my_current_op_number = qp->e2ep->e2e_header.sequence;
+	qp->tgtstp->my_current_byte_location = qp->e2ep->e2e_header.location;
+	qp->tgtstp->my_current_io_size = qp->e2ep->e2e_header.length;
+	qp->tgtstp->my_current_op_number = qp->e2ep->e2e_header.sequence;
 	// Record the amount of data received 
 	qp->e2ep->e2e_data_recvd = qp->e2ep->e2e_header.length;
 
@@ -267,9 +267,9 @@ xdd_throttle_before_io_op(ptds_t *qp) {
 		if (qp->throttle_type & PTDS_THROTTLE_DELAY) {
 			sleep_time = qp->throttle*1000000;
 		} else { // Process the throttle for IOPS or BW
-			now -= qp->my_pass_start_time;
-			if (now < qp->seekhdr.seeks[qp->my_current_op_number].time1) { /* Then we may need to sleep */
-				sleep_time = (qp->seekhdr.seeks[qp->my_current_op_number].time1 - now) / BILLION; /* sleep time in milliseconds */
+			now -= qp->tgtstp->my_pass_start_time;
+			if (now < qp->seekhdr.seeks[qp->tgtstp->my_current_op_number].time1) { /* Then we may need to sleep */
+				sleep_time = (qp->seekhdr.seeks[qp->tgtstp->my_current_op_number].time1 - now) / BILLION; /* sleep time in milliseconds */
 				if (sleep_time > 0) {
 					sleep_time_dw = sleep_time;
 #ifdef WIN32

@@ -69,7 +69,7 @@ xdd_target_init(ptds_t *p) {
 #endif
 
 	// Set the pass number
-	p->my_current_pass_number = 1;
+	p->tgtstp->my_current_pass_number = 1;
 
 	// Check to see that the target is valid and can be opened properly
 	status = xdd_target_open(p);

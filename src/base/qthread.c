@@ -104,7 +104,7 @@ xdd_qthread(void *pin) {
 				// E2E Source Side only - send EOF packets to Destination 
 				status = xdd_e2e_eof_source_side(qp);
 				if (status) // Only set the status in the target PTDS if it is non-zero
-					p->my_current_io_status = status;
+					p->tgtstp->my_current_io_status = status;
 				break;
 			default:
 				// Technically, we should never see this....

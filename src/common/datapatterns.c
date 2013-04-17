@@ -200,15 +200,15 @@ xdd_datapattern_fill(ptds_t *qp) {
 	if (qp->dpp->data_pattern_options & DP_SEQUENCED_PATTERN) {
 		nclk_now(&start_time);
 		posp = (uint64_t *)qp->rwbuf;
-		for (j=0; j<(qp->my_current_io_size/sizeof(qp->my_current_byte_location)); j++) {
-			*posp = qp->my_current_byte_location + (j * sizeof(qp->my_current_byte_location));
+		for (j=0; j<(qp->tgtstp->my_current_io_size/sizeof(qp->tgtstp->my_current_byte_location)); j++) {
+			*posp = qp->tgtstp->my_current_byte_location + (j * sizeof(qp->tgtstp->my_current_byte_location));
 			*posp |= qp->dpp->data_pattern_prefix_binary;
 			if (qp->dpp->data_pattern_options & DP_INVERSE_PATTERN)
 				*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern
 			posp++;
 		}
 		nclk_now(&end_time);
-		qp->my_accumulated_pattern_fill_time = (end_time - start_time);
+		qp->tgtstp->my_accumulated_pattern_fill_time = (end_time - start_time);
 	}
 } // End of xdd_datapattern_fill() 
 

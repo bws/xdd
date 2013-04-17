@@ -108,47 +108,47 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"last_committed_length          %d Number of bytes transferred to/from last_committed_location \n",p->last_committed_length);
 	
     fprintf(xgp->output,"Stuff UPDATED during each pass\n"); 
-	fprintf(xgp->output,"my_current_pass_number         %d Current pass number \n",p->my_current_pass_number);
+	fprintf(xgp->output,"my_current_pass_number         %d Current pass number \n",p->tgtstp->my_current_pass_number);
 
 	fprintf(xgp->output,"Time stamps and timing information - RESET AT THE START OF EACH PASS \n");
-	fprintf(xgp->output,"my_pass_start_time             %lld The time stamp that this pass started but before the first operation is issued \n",(long long int)p->my_pass_start_time);
-	fprintf(xgp->output,"my_pass_end_time               %lld The time stamp that this pass ended \n",(long long int)p->my_pass_end_time);
+	fprintf(xgp->output,"my_pass_start_time             %lld The time stamp that this pass started but before the first operation is issued \n",(long long int)p->tgtstp->my_pass_start_time);
+	fprintf(xgp->output,"my_pass_end_time               %lld The time stamp that this pass ended \n",(long long int)p->tgtstp->my_pass_end_time);
 
 	fprintf(xgp->output,"Counters  - RESET AT THE START OF EACH PASS\n");
 
 	fprintf(xgp->output,"Updated by xdd_issue() at at the start of a Task IO request to a QThread\n");
-	fprintf(xgp->output,"my_current_byte_location       %lld Current byte location for this I/O operation \n",(long long int)p->my_current_byte_location);
-	fprintf(xgp->output,"my_current_io_size             %d Size of the I/O to be performed \n",p->my_current_io_size);
-	 fprintf(xgp->output,"my_current_op_str             '%s' - ASCII string of the I/O operation type - 'READ', 'WRITE', or 'NOOP' \n",(p->my_current_op_str != NULL)?p->my_current_op_str:"NA");
-	fprintf(xgp->output,"my_current_op_type             %d Current I/O operation type READ=%d, WRITE=%d, NOOP=%d\n",p->my_current_op_type, OP_TYPE_READ, OP_TYPE_WRITE, OP_TYPE_NOOP);
+	fprintf(xgp->output,"my_current_byte_location       %lld Current byte location for this I/O operation \n",(long long int)p->tgtstp->my_current_byte_location);
+	fprintf(xgp->output,"my_current_io_size             %d Size of the I/O to be performed \n",p->tgtstp->my_current_io_size);
+	 fprintf(xgp->output,"my_current_op_str             '%s' - ASCII string of the I/O operation type - 'READ', 'WRITE', or 'NOOP' \n",(p->tgtstp->my_current_op_str != NULL)?p->tgtstp->my_current_op_str:"NA");
+	fprintf(xgp->output,"my_current_op_type             %d Current I/O operation type READ=%d, WRITE=%d, NOOP=%d\n",p->tgtstp->my_current_op_type, OP_TYPE_READ, OP_TYPE_WRITE, OP_TYPE_NOOP);
 
 	fprintf(xgp->output,"Updated by the QThread upon completion of an I/O operation\n");
-	fprintf(xgp->output,"target_op_number                    %lld Operation number for the target represented by this I/O \n",(long long int)p->target_op_number);
-	fprintf(xgp->output,"my_current_op_number                %lld Current I/O operation number \n",(long long int)p->my_current_op_number);
-	fprintf(xgp->output,"my_current_op_count                 %lld The number of read+write operations that have completed so far \n",(long long int)p->my_current_op_count);
-	fprintf(xgp->output,"my_current_read_op_count            %lld The number of read operations that have completed so far \n",(long long int)p->my_current_read_op_count);
-	fprintf(xgp->output,"my_current_write_op_count           %lld The number of write operations that have completed so far \n",(long long int)p->my_current_write_op_count);
-	fprintf(xgp->output,"my_current_noop_op_count            %lld The number of noops that have completed so far \n",(long long int)p->my_current_noop_op_count);
-	fprintf(xgp->output,"my_current_bytes_xfered             %lld Total number of bytes transferred so far (to storage device, not network) \n",(long long int)p->my_current_bytes_xfered);
-	fprintf(xgp->output,"my_current_bytes_xfered_this_op     %lld Total number of bytes transferred on the most recent I/O operation \n",(long long int)p->my_current_bytes_xfered_this_op);
-	fprintf(xgp->output,"my_current_bytes_read               %lld Total number of bytes read so far (from storage device, not network) \n",(long long int)p->my_current_bytes_read);
-	fprintf(xgp->output,"my_current_bytes_written            %lld Total number of bytes written so far (to storage device, not network) \n",(long long int)p->my_current_bytes_written);
-	fprintf(xgp->output,"my_current_bytes_noop               %lld Total number of bytes processed by noops so far \n",(long long int)p->my_current_bytes_noop);
-	fprintf(xgp->output,"my_current_io_status                %d I/O Status of the last I/O operation for this qthread \n",p->my_current_io_status);
-	fprintf(xgp->output,"my_current_errno                    %d The errno associated with the status of this I/O for this thread \n",p->my_current_io_errno);
-	fprintf(xgp->output,"my_current_error_count              %lld The number of I/O errors for this qthread \n",(long long int)p->my_current_error_count);
-	fprintf(xgp->output,"my_elapsed_pass_time                %lld Rime between the start and end of this pass \n",(long long int)p->my_elapsed_pass_time);
-	fprintf(xgp->output,"my_first_op_start_time              %lld Time this qthread was able to issue its first operation for this pass \n",(long long int)p->my_first_op_start_time);
-	fprintf(xgp->output,"my_current_op_start_time            %lld Start time of the current op \n",(long long int)p->my_current_op_start_time);
-	fprintf(xgp->output,"my_current_op_end_time              %lld End time of the current op \n",(long long int)p->my_current_op_end_time);
-	fprintf(xgp->output,"my_current_elapsed_time             %lld Elapsed time of the current op \n",(long long int)p->my_current_op_elapsed_time);
-	fprintf(xgp->output,"my_accumulated_op_time              %lld Accumulated time spent in I/O \n",(long long int)p->my_accumulated_op_time);
-	fprintf(xgp->output,"my_accumulated_read_op_time         %lld Accumulated time spent in read \n",(long long int)p->my_accumulated_read_op_time);
-	fprintf(xgp->output,"my_accumulated_write_op_time        %lld Accumulated time spent in write \n",(long long int)p->my_accumulated_write_op_time);
-	fprintf(xgp->output,"my_accumulated_noop_op_time         %lld Accumulated time spent in noops \n",(long long int)p->my_accumulated_noop_op_time);
-	fprintf(xgp->output,"my_accumulated_pattern_fill_time    %lld Accumulated time spent in data pattern fill before all I/O operations \n",(long long int)p->my_accumulated_pattern_fill_time);
-	fprintf(xgp->output,"my_accumulated_flush_time           %lld Accumulated time spent doing flush (fsync) operations \n",(long long int)p->my_accumulated_flush_time);
-	fprintf(xgp->output,"my_current_state                  0x%08x State of this thread at any given time \n",(unsigned int)p->my_current_state);
+	fprintf(xgp->output,"target_op_number                    %lld Operation number for the target represented by this I/O \n",(long long int)p->tgtstp->target_op_number);
+	fprintf(xgp->output,"my_current_op_number                %lld Current I/O operation number \n",(long long int)p->tgtstp->my_current_op_number);
+	fprintf(xgp->output,"my_current_op_count                 %lld The number of read+write operations that have completed so far \n",(long long int)p->tgtstp->my_current_op_count);
+	fprintf(xgp->output,"my_current_read_op_count            %lld The number of read operations that have completed so far \n",(long long int)p->tgtstp->my_current_read_op_count);
+	fprintf(xgp->output,"my_current_write_op_count           %lld The number of write operations that have completed so far \n",(long long int)p->tgtstp->my_current_write_op_count);
+	fprintf(xgp->output,"my_current_noop_op_count            %lld The number of noops that have completed so far \n",(long long int)p->tgtstp->my_current_noop_op_count);
+	fprintf(xgp->output,"my_current_bytes_xfered             %lld Total number of bytes transferred so far (to storage device, not network) \n",(long long int)p->tgtstp->my_current_bytes_xfered);
+	fprintf(xgp->output,"my_current_bytes_xfered_this_op     %lld Total number of bytes transferred on the most recent I/O operation \n",(long long int)p->tgtstp->my_current_bytes_xfered_this_op);
+	fprintf(xgp->output,"my_current_bytes_read               %lld Total number of bytes read so far (from storage device, not network) \n",(long long int)p->tgtstp->my_current_bytes_read);
+	fprintf(xgp->output,"my_current_bytes_written            %lld Total number of bytes written so far (to storage device, not network) \n",(long long int)p->tgtstp->my_current_bytes_written);
+	fprintf(xgp->output,"my_current_bytes_noop               %lld Total number of bytes processed by noops so far \n",(long long int)p->tgtstp->my_current_bytes_noop);
+	fprintf(xgp->output,"my_current_io_status                %d I/O Status of the last I/O operation for this qthread \n",p->tgtstp->my_current_io_status);
+	fprintf(xgp->output,"my_current_errno                    %d The errno associated with the status of this I/O for this thread \n",p->tgtstp->my_current_io_errno);
+	fprintf(xgp->output,"my_current_error_count              %lld The number of I/O errors for this qthread \n",(long long int)p->tgtstp->my_current_error_count);
+	fprintf(xgp->output,"my_elapsed_pass_time                %lld Rime between the start and end of this pass \n",(long long int)p->tgtstp->my_elapsed_pass_time);
+	fprintf(xgp->output,"my_first_op_start_time              %lld Time this qthread was able to issue its first operation for this pass \n",(long long int)p->tgtstp->my_first_op_start_time);
+	fprintf(xgp->output,"my_current_op_start_time            %lld Start time of the current op \n",(long long int)p->tgtstp->my_current_op_start_time);
+	fprintf(xgp->output,"my_current_op_end_time              %lld End time of the current op \n",(long long int)p->tgtstp->my_current_op_end_time);
+	fprintf(xgp->output,"my_current_elapsed_time             %lld Elapsed time of the current op \n",(long long int)p->tgtstp->my_current_op_elapsed_time);
+	fprintf(xgp->output,"my_accumulated_op_time              %lld Accumulated time spent in I/O \n",(long long int)p->tgtstp->my_accumulated_op_time);
+	fprintf(xgp->output,"my_accumulated_read_op_time         %lld Accumulated time spent in read \n",(long long int)p->tgtstp->my_accumulated_read_op_time);
+	fprintf(xgp->output,"my_accumulated_write_op_time        %lld Accumulated time spent in write \n",(long long int)p->tgtstp->my_accumulated_write_op_time);
+	fprintf(xgp->output,"my_accumulated_noop_op_time         %lld Accumulated time spent in noops \n",(long long int)p->tgtstp->my_accumulated_noop_op_time);
+	fprintf(xgp->output,"my_accumulated_pattern_fill_time    %lld Accumulated time spent in data pattern fill before all I/O operations \n",(long long int)p->tgtstp->my_accumulated_pattern_fill_time);
+	fprintf(xgp->output,"my_accumulated_flush_time           %lld Accumulated time spent doing flush (fsync) operations \n",(long long int)p->tgtstp->my_accumulated_flush_time);
+	fprintf(xgp->output,"my_current_state                  0x%08x State of this thread at any given time \n",(unsigned int)p->tgtstp->my_current_state);
 
 	fprintf(stderr,"+++++++++++++ End of PTDS +++++++++++++\n");
 } /* end of xdd_show_ptds() */ 

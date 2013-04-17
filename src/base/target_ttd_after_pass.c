@@ -55,11 +55,11 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 #endif
         }
 	/* Get the ending time stamp */
-	nclk_now(&p->my_pass_end_time);
-	p->my_elapsed_pass_time = p->my_pass_end_time - p->my_pass_start_time;
+	nclk_now(&p->tgtstp->my_pass_end_time);
+	p->tgtstp->my_elapsed_pass_time = p->tgtstp->my_pass_end_time - p->tgtstp->my_pass_start_time;
 
 	/* Get the current CPU user and system times and the effective current wall clock time using nclk_now() */
-	times(&p->my_current_cpu_times);
+	times(&p->tgtstp->my_current_cpu_times);
 
 	status = xdd_lockstep_after_pass(p);
 
@@ -68,10 +68,10 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 	while (qp) {
 		if (qp->first_pass_start_time <= p->first_pass_start_time) 
 			p->first_pass_start_time = qp->first_pass_start_time;
-		if (qp->my_pass_start_time <= p->my_pass_start_time) 
-			p->my_pass_start_time = qp->my_pass_start_time;
-		if (qp->my_pass_end_time >= p->my_pass_end_time) 
-			p->my_pass_end_time = qp->my_pass_end_time;
+		if (qp->tgtstp->my_pass_start_time <= p->tgtstp->my_pass_start_time) 
+			p->tgtstp->my_pass_start_time = qp->tgtstp->my_pass_start_time;
+		if (qp->tgtstp->my_pass_end_time >= p->tgtstp->my_pass_end_time) 
+			p->tgtstp->my_pass_end_time = qp->tgtstp->my_pass_end_time;
 		qp = qp->next_qp;
 	}
 	if (p->target_options & TO_ENDTOEND) { 

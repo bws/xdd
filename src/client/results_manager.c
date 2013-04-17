@@ -219,7 +219,7 @@ xdd_process_pass_results(xdd_plan_t *planp) {
         memset(tarp, 0, sizeof(*tarp));
         tarp->format_string = planp->format_string;
         tarp->what = "TARGET_AVERAGE";
-        if (p->my_current_pass_number == 1) {
+        if (p->tgtstp->my_current_pass_number == 1) {
             tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
             tarp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
             tarp->shortest_op_time = (double)DOUBLE_MAX;
@@ -297,7 +297,7 @@ xdd_process_run_results(xdd_plan_t *planp) {
 		p = planp->ptdsp[target_number]; /* Get the ptds for this target */
 		tarp = planp->target_average_resultsp[target_number];
 
-		if (p->abort) 
+		if (p->tgtstp->abort) 
 			xgp->abort = 1; // Indicate that this run ended with errors of some sort
 			
 		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
@@ -695,16 +695,16 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp) {
 	memset(rp, 0, sizeof(results_t));
 
 	// Basic parameters
-	rp->pass_number = p->my_current_pass_number;	// int32
+	rp->pass_number = p->tgtstp->my_current_pass_number;	// int32
 	rp->my_target_number = p->my_target_number;		// int32
 	rp->queue_depth = p->queue_depth;				// int32
-	rp->bytes_xfered = p->my_current_bytes_xfered;	// int64
-	rp->bytes_read = p->my_current_bytes_read;		// int64
-	rp->bytes_written = p->my_current_bytes_written;// int64
-	rp->op_count = p->my_current_op_count;			// int64
-	rp->read_op_count = p->my_current_read_op_count;// int64
-	rp->write_op_count = p->my_current_write_op_count;// int64
-	rp->error_count = p->my_current_error_count;	// int64
+	rp->bytes_xfered = p->tgtstp->my_current_bytes_xfered;	// int64
+	rp->bytes_read = p->tgtstp->my_current_bytes_read;		// int64
+	rp->bytes_written = p->tgtstp->my_current_bytes_written;// int64
+	rp->op_count = p->tgtstp->my_current_op_count;			// int64
+	rp->read_op_count = p->tgtstp->my_current_read_op_count;// int64
+	rp->write_op_count = p->tgtstp->my_current_write_op_count;// int64
+	rp->error_count = p->tgtstp->my_current_error_count;	// int64
 	rp->reqsize = p->reqsize;						// int32
 
 	// Operation type
@@ -715,16 +715,16 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp) {
 	else rp->optype = "mixed";
 
 	// These next values get converted from raw nanoseconds to seconds or miliseconds 
-	rp->accumulated_op_time = (double)((double)p->my_accumulated_op_time / FLOAT_BILLION); // nano to seconds
-	rp->accumulated_read_op_time = (double)((double)p->my_accumulated_read_op_time / FLOAT_BILLION); // nano to seconds
-	rp->accumulated_write_op_time = (double)((double)p->my_accumulated_write_op_time / FLOAT_BILLION); // nano to seconds
-	rp->accumulated_pattern_fill_time = (double)((double)p->my_accumulated_pattern_fill_time / FLOAT_BILLION); // nano to milli
-	rp->accumulated_flush_time = (double)((double)p->my_accumulated_flush_time / FLOAT_BILLION); // nano to milli
+	rp->accumulated_op_time = (double)((double)p->tgtstp->my_accumulated_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_read_op_time = (double)((double)p->tgtstp->my_accumulated_read_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_write_op_time = (double)((double)p->tgtstp->my_accumulated_write_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_pattern_fill_time = (double)((double)p->tgtstp->my_accumulated_pattern_fill_time / FLOAT_BILLION); // nano to milli
+	rp->accumulated_flush_time = (double)((double)p->tgtstp->my_accumulated_flush_time / FLOAT_BILLION); // nano to milli
 	rp->earliest_start_time_this_run = (double)(p->first_pass_start_time); // nanoseconds
-	rp->earliest_start_time_this_pass = (double)(p->my_pass_start_time); // nanoseconds
-	rp->latest_end_time_this_run = (double)(p->my_pass_end_time); // nanoseconds
-	rp->latest_end_time_this_pass = (double)(p->my_pass_end_time); // nanoseconds
-	rp->elapsed_pass_time = (double)((double)(p->my_pass_end_time - p->my_pass_start_time) / FLOAT_BILLION); // nano to seconds
+	rp->earliest_start_time_this_pass = (double)(p->tgtstp->my_pass_start_time); // nanoseconds
+	rp->latest_end_time_this_run = (double)(p->tgtstp->my_pass_end_time); // nanoseconds
+	rp->latest_end_time_this_pass = (double)(p->tgtstp->my_pass_end_time); // nanoseconds
+	rp->elapsed_pass_time = (double)((double)(p->tgtstp->my_pass_end_time - p->tgtstp->my_pass_start_time) / FLOAT_BILLION); // nano to seconds
 	if (rp->elapsed_pass_time == 0.0) 
 		rp->elapsed_pass_time = -1.0; // This is done to prevent and divide-by-zero problems
 	rp->accumulated_elapsed_time += rp->elapsed_pass_time; 
@@ -749,8 +749,8 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp) {
 	else rp->latency = (double)((1.0/rp->iops) * 1000.0);  // milliseconds
 
 	// Times
-	rp->user_time =   (double)(p->my_current_cpu_times.tms_utime  - p->my_starting_cpu_times_this_pass.tms_utime)/(double)(xgp->clock_tick); // Seconds
-	rp->system_time = (double)(p->my_current_cpu_times.tms_stime  - p->my_starting_cpu_times_this_pass.tms_stime)/(double)(xgp->clock_tick); // Seconds
+	rp->user_time =   (double)(p->tgtstp->my_current_cpu_times.tms_utime  - p->tgtstp->my_starting_cpu_times_this_pass.tms_utime)/(double)(xgp->clock_tick); // Seconds
+	rp->system_time = (double)(p->tgtstp->my_current_cpu_times.tms_stime  - p->tgtstp->my_starting_cpu_times_this_pass.tms_stime)/(double)(xgp->clock_tick); // Seconds
 	rp->us_time = (double)(rp->user_time + rp->system_time); // MilliSeconds
 	if (rp->elapsed_pass_time == 0.0) {
 		rp->percent_user = 0.0;

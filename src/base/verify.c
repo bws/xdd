@@ -83,7 +83,7 @@ xdd_verify_hex(ptds_t *p, int64_t current_op) {
 					p->my_qthread_number, 
 					(long long int)current_op,
 					offset, 
-					(long long int)(p->my_current_byte_location/p->block_size), 
+					(long long int)(p->tgtstp->my_current_byte_location/p->block_size), 
 					*patternp, 
 					*bufferp);
 
@@ -119,8 +119,8 @@ xdd_verify_sequence(ptds_t *p, int64_t current_op) {
 
 	uint64p = (uint64_t *)p->rwbuf;
 	errors = 0;
-	for (i = 0; i < p->actual_iosize; i+=(sizeof(p->my_current_byte_location))) {
-		expected_data = p->my_current_byte_location + i;
+	for (i = 0; i < p->actual_iosize; i+=(sizeof(p->tgtstp->my_current_byte_location))) {
+		expected_data = p->tgtstp->my_current_byte_location + i;
 		if (p->dpp->data_pattern_options & DP_PATTERN_PREFIX) { // OR-in the pattern prefix
 			expected_data |= p->dpp->data_pattern_prefix_binary;
 		} 
@@ -136,7 +136,7 @@ xdd_verify_sequence(ptds_t *p, int64_t current_op) {
 					p->my_qthread_number, 
 					(long long int)current_op,
 					i, 
-					(long long int)(p->my_current_byte_location/p->block_size));
+					(long long int)(p->tgtstp->my_current_byte_location/p->block_size));
 
 				fprintf(xgp->errout, "expected 0x");
 				for (j=0, ucp=(unsigned char *)&expected_data; j<sizeof(uint64_t); j++, ucp++) {
@@ -186,7 +186,7 @@ xdd_verify_singlechar(ptds_t *p, int64_t current_op) {
 				p->my_qthread_number, 
 				(long long int)current_op,
 				i, 
-				(unsigned long long)(p->my_current_byte_location/p->block_size), 
+				(unsigned long long)(p->tgtstp->my_current_byte_location/p->block_size), 
 				*(p->dpp->data_pattern), 
 				*ucp);
 		errors++;
@@ -254,14 +254,14 @@ xdd_verify_location(ptds_t *p, int64_t current_op) {
 
 	errors = 0;
 	current_position = *(uint64_t *)p->rwbuf;
-	if (current_position != p->my_current_byte_location) {
+	if (current_position != p->tgtstp->my_current_byte_location) {
 		errors++;
 		fprintf(xgp->errout,"%s: xdd_verify_location: Target %d QThread %d: ERROR: op number %lld: Data Buffer Sequence mismatch - expected %lld, got %lld\n",
 			xgp->progname, 
 			p->my_target_number, 
 			p->my_qthread_number, 
-			(long long int)p->target_op_number, 
-			(long long int)p->my_current_byte_location, 
+			(long long int)p->tgtstp->target_op_number, 
+			(long long int)p->tgtstp->my_current_byte_location, 
 			(long long int)current_position);
 
 		fflush(xgp->errout);

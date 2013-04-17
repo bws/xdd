@@ -68,7 +68,7 @@ xdd_get_specific_qthread(ptds_t *p, int32_t q) {
 	if (qp->qthread_target_sync & QTSYNC_BUSY) { 
             // Set the "target waiting" bit, unlock the mutex,
             // and lets wait for this QThread to become available - i.e. not busy
-            p->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+            p->tgtstp->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
             qp->qthread_target_sync |= QTSYNC_TARGET_WAITING;
             nclk_now(&checktime);
 
@@ -76,7 +76,7 @@ xdd_get_specific_qthread(ptds_t *p, int32_t q) {
                 pthread_cond_wait(&qp->this_qthread_is_available_condition,
                                   &qp->qthread_target_sync_mutex);            
             }
-            p->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+            p->tgtstp->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
         }
         
         // Indicate that this QThread is now busy, and unlock
@@ -106,9 +106,9 @@ xdd_get_any_available_qthread(ptds_t *p) {
 	
 	pthread_mutex_lock(&p->any_qthread_available_mutex);
 	while (p->any_qthread_available <= 0) {
-	    p->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+	    p->tgtstp->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
 	    pthread_cond_wait(&p->any_qthread_available_condition, &p->any_qthread_available_mutex);
-	    p->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+	    p->tgtstp->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
 	}
 	p->any_qthread_available--;
         

@@ -72,7 +72,7 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, ptds_t *p) {
 	while (qp) { 
 
 		// Check to see if we've been canceled - if so, we need to leave this loop
-		if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
+		if ((xgp->canceled) || (xgp->abort) || (p->tgtstp->abort)) {
 			// When we got this QThread the QTSYNC_BUSY flag was set by get_any_available_qthread()
 			// We need to reset it so that the subsequent loop will find it with get_specific_qthread()
 			// Normally we would get the mutex lock to do this update but at this point it is not necessary.
@@ -83,10 +83,10 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, ptds_t *p) {
 	
 		// Make sure the QThread does not think the pass is complete
 		qp->task_request = TASK_REQ_IO;
-		qp->my_current_op_type = OP_TYPE_WRITE;
-		qp->target_op_number = p->my_current_op_number;
-		if (p->my_current_op_number == 0) 
-			nclk_now(&p->my_first_op_start_time);
+		qp->tgtstp->my_current_op_type = OP_TYPE_WRITE;
+		qp->tgtstp->target_op_number = p->tgtstp->my_current_op_number;
+		if (p->tgtstp->my_current_op_number == 0) 
+			nclk_now(&p->tgtstp->my_first_op_start_time);
 
    		// If time stamping is on then assign a time stamp entry to this QThread
    		if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -98,7 +98,7 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, ptds_t *p) {
 			} else if (p->tsp->ts_options & TS_WRAP) {
 				p->tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 			}
-			p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->my_current_pass_number;
+			p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->tgtstp->my_current_pass_number;
 			p->ttp->tte[qp->tsp->ts_current_entry].qthread_number = qp->my_qthread_number;
 			p->ttp->tte[qp->tsp->ts_current_entry].thread_id     = qp->my_thread_id;
 			p->ttp->tte[qp->tsp->ts_current_entry].op_type = OP_TYPE_WRITE;
@@ -111,7 +111,7 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, ptds_t *p) {
 		// Release the QThread to let it start working on this task
 		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
 	
-		p->my_current_op_number++;
+		p->tgtstp->my_current_op_number++;
 		// Get another QThread and lets keepit roling...
 		qp = xdd_get_any_available_qthread(p);
 	
@@ -142,7 +142,7 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, ptds_t *p) {
 		}
 	}
 
-	if (p->my_current_io_status != 0) 
+	if (p->tgtstp->my_current_io_status != 0) 
 		planp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
 
 	return;
@@ -179,10 +179,10 @@ xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, ptds_t *p) {
 		xdd_targetpass_e2e_task_setup_src(qp);
 
 		// Update the pointers/counters in the Target PTDS to get ready for the next I/O operation
-		p->my_current_byte_location += qp->my_current_io_size;
-		p->my_current_op_number++;
-		p->bytes_issued += qp->my_current_io_size;
-		p->bytes_remaining -= qp->my_current_io_size;
+		p->tgtstp->my_current_byte_location += qp->tgtstp->my_current_io_size;
+		p->tgtstp->my_current_op_number++;
+		p->bytes_issued += qp->tgtstp->my_current_io_size;
+		p->bytes_remaining -= qp->tgtstp->my_current_io_size;
 
 		// E2E Source Side needs to be monitored...
 		if (p->target_options & TO_E2E_SOURCE_MONITOR)
@@ -215,7 +215,7 @@ xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, ptds_t *p) {
 		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 	}
 
-	if (p->my_current_io_status != 0) 
+	if (p->tgtstp->my_current_io_status != 0) 
 		planp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
 
 	return;
@@ -235,25 +235,25 @@ xdd_targetpass_e2e_task_setup_src(ptds_t *qp) {
 	qp->e2ep->e2e_msg_sequence_number = p->e2ep->e2e_msg_sequence_number;
 	p->e2ep->e2e_msg_sequence_number++;
 
-	if (p->seekhdr.seeks[p->my_current_op_number].operation == SO_OP_READ) // READ Operation
-		qp->my_current_op_type = OP_TYPE_READ;
-	else qp->my_current_op_type = OP_TYPE_NOOP;
+	if (p->seekhdr.seeks[p->tgtstp->my_current_op_number].operation == SO_OP_READ) // READ Operation
+		qp->tgtstp->my_current_op_type = OP_TYPE_READ;
+	else qp->tgtstp->my_current_op_type = OP_TYPE_NOOP;
 
 	// Figure out the transfer size to use for this I/O
 	// It will be either the normal I/O size (p->iosize) or if this is the
 	// end of this file then the last transfer could be less than the
 	// normal I/O size. 
 	if (p->bytes_remaining < p->iosize)
-		qp->my_current_io_size = p->bytes_remaining;
-	else qp->my_current_io_size = p->iosize;
+		qp->tgtstp->my_current_io_size = p->bytes_remaining;
+	else qp->tgtstp->my_current_io_size = p->iosize;
 
 	// Set the location to seek to 
-	qp->my_current_byte_location = p->my_current_byte_location;
+	qp->tgtstp->my_current_byte_location = p->tgtstp->my_current_byte_location;
 
 	// Remember the operation number for this target
-	qp->target_op_number = p->my_current_op_number;
-	if (p->my_current_op_number == 0) 
-		nclk_now(&p->my_first_op_start_time);
+	qp->tgtstp->target_op_number = p->tgtstp->my_current_op_number;
+	if (p->tgtstp->my_current_op_number == 0) 
+		nclk_now(&p->tgtstp->my_first_op_start_time);
 
    	// If time stamping is on then assign a time stamp entry to this QThread
    	if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -265,12 +265,12 @@ xdd_targetpass_e2e_task_setup_src(ptds_t *qp) {
 		} else if (p->tsp->ts_options & TS_WRAP) {
 			p->tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
-		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->my_current_pass_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->tgtstp->my_current_pass_number;
 		p->ttp->tte[qp->tsp->ts_current_entry].qthread_number = qp->my_qthread_number;
 		p->ttp->tte[qp->tsp->ts_current_entry].thread_id     = qp->my_thread_id;
-		p->ttp->tte[qp->tsp->ts_current_entry].op_type = qp->my_current_op_type;
-		p->ttp->tte[qp->tsp->ts_current_entry].op_number = qp->target_op_number;
-		p->ttp->tte[qp->tsp->ts_current_entry].byte_location = qp->my_current_byte_location;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_type = qp->tgtstp->my_current_op_type;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_number = qp->tgtstp->target_op_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].byte_location = qp->tgtstp->my_current_byte_location;
 	}
 
 } // End of xdd_targetpass_e2e_task_setup_src()
@@ -308,7 +308,7 @@ xdd_targetpass_e2e_eof_src(ptds_t *p) {
 			} else if (p->tsp->ts_options & TS_WRAP) {
 				p->tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 			}
-		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->my_current_pass_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->tgtstp->my_current_pass_number;
 		p->ttp->tte[qp->tsp->ts_current_entry].qthread_number = qp->my_qthread_number;
 		p->ttp->tte[qp->tsp->ts_current_entry].thread_id     = qp->my_thread_id;
 		p->ttp->tte[qp->tsp->ts_current_entry].op_type = OP_TYPE_EOF;
@@ -337,7 +337,7 @@ xdd_targetpass_e2e_monitor(ptds_t *p) {
 	int qavail;
 
 
-	if ((p->my_current_op_number > 0) && ((p->my_current_op_number % p->queue_depth) == 0)) {
+	if ((p->tgtstp->my_current_op_number > 0) && ((p->tgtstp->my_current_op_number % p->queue_depth) == 0)) {
 		qmin = 0;
 		qmax = 0;
 		opmin = p->target_ops;
@@ -346,12 +346,12 @@ xdd_targetpass_e2e_monitor(ptds_t *p) {
 		tmpqp = p->next_qp; // first QThread on the chain
 		while (tmpqp) { // Scan the QThreads to determine the one furthest ahead and the one furthest behind
 			if (tmpqp->qthread_target_sync & QTSYNC_BUSY) {
-				if (tmpqp->target_op_number < opmin) {
-					opmin = tmpqp->target_op_number;
+				if (tmpqp->tgtstp->target_op_number < opmin) {
+					opmin = tmpqp->tgtstp->target_op_number;
 					qmin = tmpqp->my_qthread_number;
 				}
-				if (tmpqp->target_op_number > opmax) {
-					opmax = tmpqp->target_op_number;
+				if (tmpqp->tgtstp->target_op_number > opmax) {
+					opmax = tmpqp->tgtstp->target_op_number;
 					qmax = tmpqp->my_qthread_number;
 				}
 			} else {

@@ -70,7 +70,7 @@ xdd_qthread_init(ptds_t *qp) {
 #endif
 
 	// The "my_current_state_mutex" is used by the QThreads when checking or updating the state info
-	status = pthread_mutex_init(&qp->my_current_state_mutex, 0);
+	status = pthread_mutex_init(&qp->tgtstp->my_current_state_mutex, 0);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot init my_current_state_mutex \n",
 			xgp->progname, 

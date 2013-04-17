@@ -85,7 +85,7 @@ xdd_target_thread(void *pin) {
 	    xdd_targetpass(planp, p);
 
 		// Check to see if we got canceled or if we need to abort for some reason
-		if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
+		if ((xgp->canceled) || (xgp->abort) || (p->tgtstp->abort)) {
 			break;
 		}
 
@@ -96,7 +96,7 @@ xdd_target_thread(void *pin) {
 		if (planp->run_time_ticks > 0) {
 			if (xgp->run_time_expired) /* This is the alarm that goes off when the total run time specified has been exceeded */
 				break; /* Time to leave */
-			else if (p->my_current_pass_number == planp->passes) /* Otherwise if we just finished the last pass, we need to keep going */
+			else if (p->tgtstp->my_current_pass_number == planp->passes) /* Otherwise if we just finished the last pass, we need to keep going */
 				planp->passes++;
 		}
 
@@ -120,7 +120,7 @@ xdd_target_thread(void *pin) {
 					
 					// Put the Normal Completion information into the restart file
 					fprintf(p->restartp->fp,"File Copy Operation completed successfully.\n");
-					fprintf(p->restartp->fp,"%lld bytes written to file %s\n",(long long int)p->my_current_bytes_xfered,p->target_full_pathname);
+					fprintf(p->restartp->fp,"%lld bytes written to file %s\n",(long long int)p->tgtstp->my_current_bytes_xfered,p->target_full_pathname);
 					fflush(p->restartp->fp);
 					fclose(p->restartp->fp);
 				}
@@ -129,11 +129,11 @@ xdd_target_thread(void *pin) {
 		} // End of IF clause that deals with a restart file if there is one
 
 		// Check to see if we completed all passes in this run
- 		if (p->my_current_pass_number >= planp->passes)
+ 		if (p->tgtstp->my_current_pass_number >= planp->passes)
 			break; 
 
         /* Increment pass number and start work for next pass */
-        p->my_current_pass_number++;
+        p->tgtstp->my_current_pass_number++;
 
 		/* Close current file, create a new target file, and open the new (or existing) file is requested */
 		if ((p->target_options & TO_CREATE_NEW_FILES) || 
@@ -142,7 +142,7 @@ xdd_target_thread(void *pin) {
 			// Tell all QThreads to close and reopen the new file
 			xdd_target_reopen(p);
 		}
-	} /* end of FOR loop p->my_current_pass_number */
+	} /* end of FOR loop p->tgtstp->my_current_pass_number */
 
 	// If this is an E2E operation and we had gotten canceled - just return
 	if ((p->target_options & TO_ENDTOEND) && (xgp->canceled))

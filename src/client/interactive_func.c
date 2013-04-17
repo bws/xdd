@@ -288,40 +288,40 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	nclk_now(&now);		// Current time
-	fprintf(xgp->output,"    Current State is 0x%08x\n",qp->my_current_state);
-	if (qp->my_current_state & CURRENT_STATE_INIT)
+	fprintf(xgp->output,"    Current State is 0x%08x\n",qp->tgtstp->my_current_state);
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_INIT)
 		fprintf(xgp->output,"    Initializing\n");
-	if (qp->my_current_state & CURRENT_STATE_IO) {
-		tmp = (long long int)(now - qp->my_current_op_start_time)/BILLION;
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_IO) {
+		tmp = (long long int)(now - qp->tgtstp->my_current_op_start_time)/BILLION;
 		fprintf(xgp->output,"    Doing I/O - op %lld, location %lld, started at %lld or %lld milliseconds ago, end time is %lldn",
 			(long long int)qp->target_op_number, 
-			(long long int)qp->my_current_byte_location,
-			(long long int)qp->my_current_op_start_time,
+			(long long int)qp->tgtstp->my_current_byte_location,
+			(long long int)qp->tgtstp->my_current_op_start_time,
 			(long long int)tmp,
-			(long long int)qp->my_current_op_end_time);
+			(long long int)qp->tgtstp->my_current_op_end_time);
 	}
-	if (qp->my_current_state & CURRENT_STATE_DEST_RECEIVE) 
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_DEST_RECEIVE) 
 		fprintf(xgp->output,"    Destination Side of an E2E - waiting to receive data from Source, target op number %lld, location %lld, length %lld, recvfrom status is %d\n", 
 			(long long int)qp->target_op_number, 
 			(long long int)qp->e2ep->e2e_header.location, 
 			(long long int)qp->e2ep->e2e_header.length, 
 			qp->e2ep->e2e_recv_status);
-	if (qp->my_current_state & CURRENT_STATE_SRC_SEND) 
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_SRC_SEND) 
 		fprintf(xgp->output,"    Source Side of an E2E - waiting to send data to Destination, target op number %lld, location %lld, length %lld, sendto status is %d\n", 
 			(long long int)qp->target_op_number, 
 			(long long int)qp->e2ep->e2e_header.location, 
 			(long long int)qp->e2ep->e2e_header.length, 
 			qp->e2ep->e2e_send_status);
-	if (qp->my_current_state & CURRENT_STATE_BARRIER)
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_BARRIER)
 		fprintf(xgp->output,"    Inside barrier '%s'\n",qp->current_barrier->name);
-	if (qp->my_current_state & CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE)
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE)
 		fprintf(xgp->output,"    Waiting on the any_qthread_available semaphore\n");
-	if (qp->my_current_state & CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE)
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE)
 		fprintf(xgp->output,"    Waiting on the sem_this_qthread_is_available semaphore\n");
 	if (qp->qthread_target_sync & QTSYNC_BUSY)
 		fprintf(xgp->output,"    This QThread is BUSY\n");
-	if (qp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE) {
-		tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE) {
+		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 		tep = &p->totp->tot_entry[tot_offset];
 		fprintf(xgp->output,"    Waiting for TOT lock to update TOT Offset %d: \n",tot_offset);
 		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_location, %lld, block, %lld, delta, %lld, ops/blocks\n",
@@ -329,10 +329,10 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 			(long long int)tep->tot_op_number,
 			(long long int)tep->tot_byte_location,
 			(long long int)(tep->tot_byte_location / p->iosize),
-			(long long int)((long long int)(qp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
 	}
-	if (qp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE) {
-		tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE) {
+		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 		tep = &p->totp->tot_entry[tot_offset];
 		fprintf(xgp->output,"    Waiting for TOT lock to release TOT Offset %d: \n",tot_offset);
 		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_location, %lld, block, %lld, delta, %lld, ops/blocks\n",
@@ -340,10 +340,10 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 			(long long int)tep->tot_op_number,
 			(long long int)tep->tot_byte_location,
 			(long long int)(tep->tot_byte_location / p->iosize),
-			(long long int)((long long int)(qp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
 	}
-	if (qp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS) {
-		tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS) {
+		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
 		if (tot_offset < 0) 
 			tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
 		tep = &p->totp->tot_entry[tot_offset];
@@ -353,25 +353,25 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 			(long long int)tep->tot_op_number,
 			(long long int)tep->tot_byte_location,
 			(long long int)(tep->tot_byte_location / p->iosize),
-			(long long int)((long long int)(qp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
 	}
-	if (qp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO) {
-		tot_offset = ((qp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO) {
+		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
 		if (tot_offset < 0) 
 			tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
 		tep = &p->totp->tot_entry[tot_offset];
 		fprintf(xgp->output,"    Waiting for previous I/O at TOT Offset, %d, my current op number, %lld, my current byte offset, %lld, my current block offset, %lld, waiting for block, %lld\n",
 			tot_offset,
-			(long long int)qp->my_current_op_number,
-			(long long int)qp->my_current_byte_location,
-			(long long int)(qp->my_current_byte_location / p->iosize),
-			(long long int)((long long int)(qp->my_current_byte_location - p->iosize) / p->iosize));
+			(long long int)qp->tgtstp->my_current_op_number,
+			(long long int)qp->tgtstp->my_current_byte_location,
+			(long long int)(qp->tgtstp->my_current_byte_location / p->iosize),
+			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - p->iosize) / p->iosize));
 		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_location, %lld, block, %lld, delta, %lld, ops/blocks\n",
 			tot_offset,
 			(long long int)tep->tot_op_number,
 			(long long int)tep->tot_byte_location,
 			(long long int)(tep->tot_byte_location / p->iosize),
-			(long long int)((long long int)(qp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
 	}
 #endif
 

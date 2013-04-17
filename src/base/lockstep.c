@@ -118,7 +118,7 @@ xdd_lockstep_before_pass(ptds_t *p) {
 			master_lsp->ls_slave_loop_counter = 0;
 			master_lsp->ls_interval_base_value = 0;
 			if (master_lsp->ls_interval_type & LS_INTERVAL_TIME) {
-				master_lsp->ls_interval_base_value = p->my_pass_start_time;
+				master_lsp->ls_interval_base_value = p->tgtstp->my_pass_start_time;
 			}
 			if (master_lsp->ls_interval_type & LS_INTERVAL_OP) {
 				master_lsp->ls_interval_base_value = 0;
@@ -138,7 +138,7 @@ xdd_lockstep_before_pass(ptds_t *p) {
 			slave_lsp->ls_task_base_value = 0;
 			slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_WAIT;
 			if (slave_lsp->ls_task_type & LS_TASK_TIME) {
-				slave_lsp->ls_task_base_value = p->my_pass_start_time;
+				slave_lsp->ls_task_base_value = p->tgtstp->my_pass_start_time;
 			}
 			if (slave_lsp->ls_task_type & LS_TASK_OP) {
 				slave_lsp->ls_task_base_value = 0;
@@ -390,23 +390,23 @@ xdd_lockstep_check_triggers(ptds_t *p, lockstep_t *lsp) {
 	}
 	if (lsp->ls_interval_type & LS_INTERVAL_OP) {
 		// If we are past the specified operation, then signal the SLAVE to start.
-		if (p->my_current_op_number >= (lsp->ls_interval_value + lsp->ls_interval_base_value)) {
+		if (p->tgtstp->my_current_op_number >= (lsp->ls_interval_value + lsp->ls_interval_base_value)) {
 			status=TRUE;
-			lsp->ls_interval_base_value = p->my_current_op_number;
+			lsp->ls_interval_base_value = p->tgtstp->my_current_op_number;
 		}
 	}
 	if (lsp->ls_interval_type & LS_INTERVAL_PERCENT) {
 		// If we have completed percentage of operations then signal the SLAVE to start.
-		if (p->my_current_op_number >= ((lsp->ls_interval_value*lsp->ls_interval_base_value) * p->qthread_ops)) {
+		if (p->tgtstp->my_current_op_number >= ((lsp->ls_interval_value*lsp->ls_interval_base_value) * p->qthread_ops)) {
 			status=TRUE;
 			lsp->ls_interval_base_value++;
 		}
 	}
 	if (lsp->ls_interval_type & LS_INTERVAL_BYTES) {
 		// If we have completed transferring the specified number of bytes, then signal the SLAVE to start.
-		if (p->my_current_bytes_xfered >= (lsp->ls_interval_value + (int64_t)(lsp->ls_interval_base_value))) {
+		if (p->tgtstp->my_current_bytes_xfered >= (lsp->ls_interval_value + (int64_t)(lsp->ls_interval_base_value))) {
 			status=TRUE;
-			lsp->ls_interval_base_value = p->my_current_bytes_xfered;
+			lsp->ls_interval_base_value = p->tgtstp->my_current_bytes_xfered;
 		}
 	}
 	return(status);

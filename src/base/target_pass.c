@@ -75,8 +75,8 @@ xdd_targetpass(xdd_plan_t* planp, ptds_t *p) {
 
 	// Get the next available qthread and give it a task to perform
 	// We stay in the following loop for a single PASS
-	p->my_current_byte_location = 0;
-	p->my_current_op_number = 0;
+	p->tgtstp->my_current_byte_location = 0;
+	p->tgtstp->my_current_op_number = 0;
 	p->bytes_issued = 0;
 	p->bytes_completed = 0;
 	p->bytes_remaining = p->target_bytes_to_xfer_per_pass;
@@ -86,7 +86,7 @@ xdd_targetpass(xdd_plan_t* planp, ptds_t *p) {
 // the xdd_targetpass_loop() subroutine (or the e2e equivalent).
 	// The pass loops are handled by one of two subroutines depending on 
 	// whether this is the Destination Side of an E2E operation or not. 
-	p->my_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
+	p->tgtstp->my_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
 	if (p->target_options & TO_ENDTOEND) { // E2E operations are *different*
 		if (p->target_options & TO_E2E_SOURCE)
 		    xdd_targetpass_e2e_loop_src(planp, p);
@@ -94,7 +94,7 @@ xdd_targetpass(xdd_plan_t* planp, ptds_t *p) {
 	} else { // Normal operations (other than E2E)
 	    xdd_targetpass_loop(planp, p);
 	}
-	p->my_current_state |= CURRENT_STATE_PASS_COMPLETE;
+	p->tgtstp->my_current_state |= CURRENT_STATE_PASS_COMPLETE;
 /////////////////////////////// PSEUDO-Loop Ends  Here /////////////////////////
 	// If this is an E2E operation and we had gotten canceled - just return
 	if ((p->target_options & TO_ENDTOEND) && (xgp->canceled))
@@ -183,7 +183,7 @@ xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p) {
 		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
 		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 	}
-	if (p->my_current_io_status != 0) 
+	if (p->tgtstp->my_current_io_status != 0) 
 		planp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
 	return;
 } // End of xdd_targetpass_loop()
@@ -203,24 +203,24 @@ xdd_targetpass_task_setup(ptds_t *qp) {
 	qp->fd = p->fd;
 
 	// Set the Operation Type
-	if (p->seekhdr.seeks[p->my_current_op_number].operation == SO_OP_WRITE) // Write Operation
-		qp->my_current_op_type = OP_TYPE_WRITE;
-	else if (p->seekhdr.seeks[p->my_current_op_number].operation == SO_OP_READ) // READ Operation
-		qp->my_current_op_type = OP_TYPE_READ;
-	else qp->my_current_op_type = OP_TYPE_NOOP;
+	if (p->seekhdr.seeks[p->tgtstp->my_current_op_number].operation == SO_OP_WRITE) // Write Operation
+		qp->tgtstp->my_current_op_type = OP_TYPE_WRITE;
+	else if (p->seekhdr.seeks[p->tgtstp->my_current_op_number].operation == SO_OP_READ) // READ Operation
+		qp->tgtstp->my_current_op_type = OP_TYPE_READ;
+	else qp->tgtstp->my_current_op_type = OP_TYPE_NOOP;
 
 	// Figure out the transfer size to use for this I/O
 	if (p->bytes_remaining < p->iosize)
-		qp->my_current_io_size = p->bytes_remaining;
-	else qp->my_current_io_size = p->iosize;
+		qp->tgtstp->my_current_io_size = p->bytes_remaining;
+	else qp->tgtstp->my_current_io_size = p->iosize;
 
 	// Set the location to seek to 
-	qp->my_current_byte_location = p->my_current_byte_location;
+	qp->tgtstp->my_current_byte_location = p->tgtstp->my_current_byte_location;
 
 	// Remember the operation number for this target
-	qp->target_op_number = p->my_current_op_number;
-	if (p->my_current_op_number == 0) 
-		nclk_now(&p->my_first_op_start_time);
+	qp->tgtstp->target_op_number = p->tgtstp->my_current_op_number;
+	if (p->tgtstp->my_current_op_number == 0) 
+		nclk_now(&p->tgtstp->my_first_op_start_time);
 
    	// If time stamping is on then assign a time stamp entry to this QThread
    	if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -232,19 +232,19 @@ xdd_targetpass_task_setup(ptds_t *qp) {
 		} else if (p->tsp->ts_options & TS_WRAP) {
 			p->tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
-		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->my_current_pass_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->tgtstp->my_current_pass_number;
 		p->ttp->tte[qp->tsp->ts_current_entry].qthread_number = qp->my_qthread_number;
 		p->ttp->tte[qp->tsp->ts_current_entry].thread_id     = qp->my_thread_id;
-		p->ttp->tte[qp->tsp->ts_current_entry].op_type = qp->my_current_op_type;
-		p->ttp->tte[qp->tsp->ts_current_entry].op_number = qp->target_op_number;
-		p->ttp->tte[qp->tsp->ts_current_entry].byte_location = qp->my_current_byte_location;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_type = qp->tgtstp->my_current_op_type;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_number = qp->tgtstp->target_op_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].byte_location = qp->tgtstp->my_current_byte_location;
 	}
 	// Update the pointers/counters in the Target PTDS to get 
 	// ready for the next I/O operation
-	p->my_current_byte_location += qp->my_current_io_size;
-	p->my_current_op_number++;
-	p->bytes_issued += qp->my_current_io_size;
-	p->bytes_remaining -= qp->my_current_io_size;
+	p->tgtstp->my_current_byte_location += qp->tgtstp->my_current_io_size;
+	p->tgtstp->my_current_op_number++;
+	p->bytes_issued += qp->tgtstp->my_current_io_size;
+	p->bytes_remaining -= qp->tgtstp->my_current_io_size;
 
 } // End of xdd_targetpass_task_setup()
 
