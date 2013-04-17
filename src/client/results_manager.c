@@ -339,10 +339,10 @@ xdd_process_run_results(xdd_plan_t *planp) {
 	for (target_number=0; target_number<planp->number_of_targets; target_number++) { 
 		p = planp->ptdsp[target_number]; /* Get the ptds for this target */
 		/* Display and write the time stamping information if requested */
-		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
-			if (p->ts_current_entry > p->ttp->tt_size) 
+		if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+			if (p->tsp->ts_current_entry > p->ttp->tt_size) 
 				p->ttp->numents = p->ttp->tt_size;
-			else p->ttp->numents = p->ts_current_entry;
+			else p->ttp->numents = p->tsp->ts_current_entry;
 			xdd_ts_reports(p);  /* generate reports if requested */
 			xdd_ts_write(p); 
 			xdd_ts_cleanup(p->ttp); /* call this to free the TS table in memory */
@@ -763,12 +763,14 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp) {
 	}
 
 	// E2E Times
-	rp->e2e_sr_time_this_pass = (double)p->e2ep->e2e_sr_time/FLOAT_BILLION; // E2E SendReceive Time in MicroSeconds
-	rp->e2e_io_time_this_pass = (double)rp->elapsed_pass_time; // E2E IO  Time in MicroSeconds
-	if (rp->e2e_io_time_this_pass == 0.0)
-		rp->e2e_sr_time_percent_this_pass = 0.0; // Percentage of IO Time spent in SendReceive
-	else rp->e2e_sr_time_percent_this_pass = (rp->e2e_sr_time_this_pass/rp->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
-	rp->e2e_wait_1st_msg = (double)p->e2ep->e2e_wait_1st_msg/FLOAT_BILLION; // MicroSeconds
+	if (p->e2ep) {
+		rp->e2e_sr_time_this_pass = (double)p->e2ep->e2e_sr_time/FLOAT_BILLION; // E2E SendReceive Time in MicroSeconds
+		rp->e2e_io_time_this_pass = (double)rp->elapsed_pass_time; // E2E IO  Time in MicroSeconds
+		if (rp->e2e_io_time_this_pass == 0.0)
+			rp->e2e_sr_time_percent_this_pass = 0.0; // Percentage of IO Time spent in SendReceive
+		else rp->e2e_sr_time_percent_this_pass = (rp->e2e_sr_time_this_pass/rp->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
+		rp->e2e_wait_1st_msg = (double)p->e2ep->e2e_wait_1st_msg/FLOAT_BILLION; // MicroSeconds
+	}
 
 	// Extended Statistics
 	// The Hig/Low values are only updated when the -extendedstats option is specified

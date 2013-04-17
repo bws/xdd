@@ -613,10 +613,10 @@ xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags) {
 	for (target_number=0; target_number<xgp->number_of_targets; target_number++) { 
 		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
 		/* Display and write the time stamping information if requested */
-		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
-			if (p->ts_current_entry > p->ttp->tt_size) 
+		if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+			if (p->tsp->ts_current_entry > p->ttp->tt_size) 
 				p->ttp->numents = p->ttp->tt_size;
-			else p->ttp->numents = p->ts_current_entry;
+			else p->ttp->numents = p->tsp->ts_current_entry;
 			xdd_ts_reports(p);  /* generate reports if requested */
 		}
 	} // End of processing TimeStamp reports

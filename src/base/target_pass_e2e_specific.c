@@ -89,23 +89,23 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, ptds_t *p) {
 			nclk_now(&p->my_first_op_start_time);
 
    		// If time stamping is on then assign a time stamp entry to this QThread
-   		if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
-			qp->ts_current_entry = p->ts_current_entry;	
-			p->ts_current_entry++;
-			if (p->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
-				if (p->ts_current_entry == p->ts_size)
-					p->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
-			} else if (p->ts_options & TS_WRAP) {
-				p->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
+   		if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
+			qp->tsp->ts_current_entry = p->tsp->ts_current_entry;	
+			p->tsp->ts_current_entry++;
+			if (p->tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
+				if (p->tsp->ts_current_entry == p->tsp->ts_size)
+					p->tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
+			} else if (p->tsp->ts_options & TS_WRAP) {
+				p->tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 			}
-			p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
-			p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
-			p->ttp->tte[qp->ts_current_entry].thread_id     = qp->my_thread_id;
-			p->ttp->tte[qp->ts_current_entry].op_type = OP_TYPE_WRITE;
-			p->ttp->tte[qp->ts_current_entry].op_number = -1; 		// to be filled in after data received
-			p->ttp->tte[qp->ts_current_entry].byte_location = -1; 	// to be filled in after data received
-			p->ttp->tte[qp->ts_current_entry].disk_xfer_size = 0; 	// to be filled in after data received
-			p->ttp->tte[qp->ts_current_entry].net_xfer_size = 0; 	// to be filled in after data received
+			p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->my_current_pass_number;
+			p->ttp->tte[qp->tsp->ts_current_entry].qthread_number = qp->my_qthread_number;
+			p->ttp->tte[qp->tsp->ts_current_entry].thread_id     = qp->my_thread_id;
+			p->ttp->tte[qp->tsp->ts_current_entry].op_type = OP_TYPE_WRITE;
+			p->ttp->tte[qp->tsp->ts_current_entry].op_number = -1; 		// to be filled in after data received
+			p->ttp->tte[qp->tsp->ts_current_entry].byte_location = -1; 	// to be filled in after data received
+			p->ttp->tte[qp->tsp->ts_current_entry].disk_xfer_size = 0; 	// to be filled in after data received
+			p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_size = 0; 	// to be filled in after data received
 		}
 
 		// Release the QThread to let it start working on this task
@@ -256,21 +256,21 @@ xdd_targetpass_e2e_task_setup_src(ptds_t *qp) {
 		nclk_now(&p->my_first_op_start_time);
 
    	// If time stamping is on then assign a time stamp entry to this QThread
-   	if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
-		qp->ts_current_entry = p->ts_current_entry;	
-		p->ts_current_entry++;
-		if (p->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
-			if (p->ts_current_entry == p->ts_size)
-				p->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
-		} else if (p->ts_options & TS_WRAP) {
-			p->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
+   	if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
+		qp->tsp->ts_current_entry = p->tsp->ts_current_entry;	
+		p->tsp->ts_current_entry++;
+		if (p->tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
+			if (p->tsp->ts_current_entry == p->tsp->ts_size)
+				p->tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
+		} else if (p->tsp->ts_options & TS_WRAP) {
+			p->tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
-		p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
-		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
-		p->ttp->tte[qp->ts_current_entry].thread_id     = qp->my_thread_id;
-		p->ttp->tte[qp->ts_current_entry].op_type = qp->my_current_op_type;
-		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
-		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
+		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->my_current_pass_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].qthread_number = qp->my_qthread_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].thread_id     = qp->my_thread_id;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_type = qp->my_current_op_type;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_number = qp->target_op_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].byte_location = qp->my_current_byte_location;
 	}
 
 } // End of xdd_targetpass_e2e_task_setup_src()
@@ -299,21 +299,21 @@ xdd_targetpass_e2e_eof_src(ptds_t *p) {
 		qp->task_request = TASK_REQ_EOF;
 
    		// If time stamping is on then assign a time stamp entry to this QThread
-   		if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
-			qp->ts_current_entry = p->ts_current_entry;	
-			p->ts_current_entry++;
-			if (p->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
-				if (p->ts_current_entry == p->ts_size)
-					p->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
-			} else if (p->ts_options & TS_WRAP) {
-				p->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
+   		if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
+			qp->tsp->ts_current_entry = p->tsp->ts_current_entry;	
+			p->tsp->ts_current_entry++;
+			if (p->tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
+				if (p->tsp->ts_current_entry == p->tsp->ts_size)
+					p->tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
+			} else if (p->tsp->ts_options & TS_WRAP) {
+				p->tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 			}
-		p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
-		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
-		p->ttp->tte[qp->ts_current_entry].thread_id     = qp->my_thread_id;
-		p->ttp->tte[qp->ts_current_entry].op_type = OP_TYPE_EOF;
-		p->ttp->tte[qp->ts_current_entry].op_number = -1*qp->my_qthread_number;
-		p->ttp->tte[qp->ts_current_entry].byte_location = -1;
+		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->my_current_pass_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].qthread_number = qp->my_qthread_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].thread_id     = qp->my_thread_id;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_type = OP_TYPE_EOF;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_number = -1*qp->my_qthread_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].byte_location = -1;
 		}
 	
 		// Release the QThread to let it start working on this task

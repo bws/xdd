@@ -200,16 +200,6 @@ struct ptds {
 	// The following heartbeat structure and data is for the -heartbeat option
 	struct heartbeat	hb;						// Heartbeat data
     //
-    // ------------------ TimeStamp stuff --------------------------------------------------
-	// The following "ts_" members are for the time stamping (-ts) option
-	uint64_t			ts_options;  			// Time Stamping Options 
-	int64_t				ts_current_entry; 		// Index into the Timestamp Table of the current entry
-	int64_t				ts_size;  				// Time Stamping Size in number of entries 
-	int64_t				ts_trigop;  			// Time Stamping trigger operation number 
-	nclk_t				ts_trigtime; 			// Time Stamping trigger time 
-	char				*ts_binary_filename; 	// Timestamp filename for the binary output file for this Target
-	char				*ts_output_filename; 	// Timestamp report output filename for this Target
-	//
     // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
 	//
@@ -301,8 +291,7 @@ struct ptds {
 	nclk_t        		open_start_time; 			// Time just before the open is issued for this target 
 	nclk_t        		open_end_time; 				// Time just after the open completes for this target 
 
-	// ------------------ End of the End to End (E2E) stuff --------------------------------------
-	//
+	struct xdd_timestamp		*tsp;			// Pointer to the time stamp stuff
 	struct xdd_e2e				*e2ep;			// Pointer to the e2e struct when needed
 	struct xdd_extended_stats	*esp;			// Extended Stats Structure Pointer
 	struct xdd_triggers			*trigp;			// Triggers Structure Pointer

@@ -34,7 +34,7 @@
  */
 xdd_global_data_t*
 xdd_global_data_initialization(int32_t argc,char *argv[]) {
-	char				*errmsg[1024];
+	char				errmsg[1024];
 
 
 	xgp = (xdd_global_data_t *)malloc(sizeof(struct xdd_global_data));

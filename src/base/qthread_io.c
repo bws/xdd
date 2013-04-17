@@ -344,7 +344,8 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 		p->bytes_completed += qp->my_current_bytes_xfered_this_op;
 		p->my_current_bytes_xfered += qp->my_current_bytes_xfered_this_op;
 		p->my_current_op_count++;
-		p->e2ep->e2e_sr_time += qp->e2ep->e2e_sr_time; // E2E Send/Receive Time
+		if (p->e2ep && qp->e2ep)
+			p->e2ep->e2e_sr_time += qp->e2ep->e2e_sr_time; // E2E Send/Receive Time
 		if ( (qp->target_options & TO_ENDTOEND) && (qp->target_options & TO_E2E_DESTINATION)) {
 			if ( qp->first_pass_start_time < p->first_pass_start_time)  // Record the proper *First* pass start time
 				p->first_pass_start_time = qp->first_pass_start_time;

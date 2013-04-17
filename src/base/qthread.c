@@ -119,7 +119,7 @@ xdd_qthread(void *pin) {
 		
 		
 // Time stamp if requested
-//		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
+//		if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
 //			// Record the amount of system and user time used so far...
 //			status = getrusage(RUSAGE_THREAD, &usage);
 //			errno_save = errno;
@@ -132,12 +132,12 @@ xdd_qthread(void *pin) {
 //				errno = errno_save;
 //				perror("Reason");
 //			}
-//			p->ttp->tte[qp->ts_current_entry].usage_utime.tv_sec  = usage.ru_utime.tv_sec;
-//			p->ttp->tte[qp->ts_current_entry].usage_utime.tv_usec = usage.ru_utime.tv_usec;
-//			p->ttp->tte[qp->ts_current_entry].usage_stime.tv_sec  = usage.ru_stime.tv_sec;
-//			p->ttp->tte[qp->ts_current_entry].usage_stime.tv_usec = usage.ru_stime.tv_usec;
-//			p->ttp->tte[qp->ts_current_entry].nvcsw = usage.ru_nvcsw;
-//			p->ttp->tte[qp->ts_current_entry].nivcsw = usage.ru_nivcsw;
+//			p->ttp->tte[qp->tsp->ts_current_entry].usage_utime.tv_sec  = usage.ru_utime.tv_sec;
+//			p->ttp->tte[qp->tsp->ts_current_entry].usage_utime.tv_usec = usage.ru_utime.tv_usec;
+//			p->ttp->tte[qp->tsp->ts_current_entry].usage_stime.tv_sec  = usage.ru_stime.tv_sec;
+//			p->ttp->tte[qp->tsp->ts_current_entry].usage_stime.tv_usec = usage.ru_stime.tv_usec;
+//			p->ttp->tte[qp->tsp->ts_current_entry].nvcsw = usage.ru_nvcsw;
+//			p->ttp->tte[qp->tsp->ts_current_entry].nivcsw = usage.ru_nivcsw;
 //		}
 
 		// Mark this QThread Available

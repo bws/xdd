@@ -47,9 +47,9 @@ xdd_io_for_os(ptds_t *qp) {
 	// Record the starting time for this write op
 	nclk_now(&qp->my_current_op_start_time);
 	// Time stamp if requested
-	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
-		p->ttp->tte[qp->ts_current_entry].disk_processor_start = xdd_get_processor();
+	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_start = qp->my_current_op_start_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_processor_start = xdd_get_processor();
 	}
 
 	/* Do the deed .... */
@@ -106,10 +106,10 @@ xdd_io_for_os(ptds_t *qp) {
 	// Record the ending time for this op 
 	nclk_now(&qp->my_current_op_end_time);
 	// Time stamp if requested
-	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
-		p->ttp->tte[qp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
-		p->ttp->tte[qp->ts_current_entry].disk_processor_end = xdd_get_processor();
+	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_end = qp->my_current_op_end_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_processor_end = xdd_get_processor();
 	}
 
 } // End of xdd_io_for_linux()
@@ -129,9 +129,9 @@ xdd_io_for_os(ptds_t *qp) {
 	// Record the starting time for this write op
 	nclk_now(&qp->my_current_op_start_time);
 	// Time stamp if requested
-	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->ts_current_entry].disk_start = qp->my_current_op_start_time;
-		p->ttp->tte[qp->ts_current_entry].disk_processor_start = xdd_get_processor();
+	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_start = qp->my_current_op_start_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_processor_start = xdd_get_processor();
 	}
 
 	/* Do the deed .... */
@@ -184,10 +184,10 @@ xdd_io_for_os(ptds_t *qp) {
 	// Record the ending time for this op 
 	nclk_now(&qp->my_current_op_end_time);
 	// Time stamp if requested
-	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->ts_current_entry].disk_end = qp->my_current_op_end_time;
-		p->ttp->tte[qp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
-		p->ttp->tte[qp->ts_current_entry].disk_processor_end = xdd_get_processor();
+	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_end = qp->my_current_op_end_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_xfer_size = qp->my_current_io_status;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_processor_end = xdd_get_processor();
 	}		
 } // End of xdd_io_for_os()
 #endif
@@ -249,12 +249,12 @@ xdd_io_for_os(ptds_t *p) {
 		}
         nclk_now(&p->my_current_end_time);
 		/* Take a time stamp if necessary */
-		if ((p->ts_options & TS_ON) && (p->ts_options & TS_TRIGGERED)) {  
+		if ((p->tsp->ts_options & TS_ON) && (p->tsp->ts_options & TS_TRIGGERED)) {  
 			p->ttp->tte[p->ttp->tte_indx++].disk_end = p->my_current_end_time;
 			if (p->ttp->tte_indx == p->ttp->tt_size) { /* Check to see if we are at the end of the buffer */
-				if (p->ts_options & TS_ONESHOT) 
-					p->ts_options &= ~TS_ON; /* Turn off Time Stamping now that we are at the end of the time stamp buffer */
-				else if (p->ts_options & TS_WRAP) 
+				if (p->tsp->ts_options & TS_ONESHOT) 
+					p->tsp->ts_options &= ~TS_ON; /* Turn off Time Stamping now that we are at the end of the time stamp buffer */
+				else if (p->tsp->ts_options & TS_WRAP) 
 					p->ttp->tte_indx = 0; /* Wrap to the beginning of the time stamp buffer */
 			}
 		}

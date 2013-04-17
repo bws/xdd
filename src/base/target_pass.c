@@ -223,21 +223,21 @@ xdd_targetpass_task_setup(ptds_t *qp) {
 		nclk_now(&p->my_first_op_start_time);
 
    	// If time stamping is on then assign a time stamp entry to this QThread
-   	if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
-		qp->ts_current_entry = p->ts_current_entry;	
-		p->ts_current_entry++;
-		if (p->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
-			if (p->ts_current_entry == p->ts_size)
-				p->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
-		} else if (p->ts_options & TS_WRAP) {
-			p->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
+   	if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
+		qp->tsp->ts_current_entry = p->tsp->ts_current_entry;	
+		p->tsp->ts_current_entry++;
+		if (p->tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
+			if (p->tsp->ts_current_entry == p->tsp->ts_size)
+				p->tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
+		} else if (p->tsp->ts_options & TS_WRAP) {
+			p->tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
-		p->ttp->tte[qp->ts_current_entry].pass_number = p->my_current_pass_number;
-		p->ttp->tte[qp->ts_current_entry].qthread_number = qp->my_qthread_number;
-		p->ttp->tte[qp->ts_current_entry].thread_id     = qp->my_thread_id;
-		p->ttp->tte[qp->ts_current_entry].op_type = qp->my_current_op_type;
-		p->ttp->tte[qp->ts_current_entry].op_number = qp->target_op_number;
-		p->ttp->tte[qp->ts_current_entry].byte_location = qp->my_current_byte_location;
+		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->my_current_pass_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].qthread_number = qp->my_qthread_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].thread_id     = qp->my_thread_id;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_type = qp->my_current_op_type;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_number = qp->target_op_number;
+		p->ttp->tte[qp->tsp->ts_current_entry].byte_location = qp->my_current_byte_location;
 	}
 	// Update the pointers/counters in the Target PTDS to get 
 	// ready for the next I/O operation

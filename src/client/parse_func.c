@@ -901,7 +901,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) {
 	    p = xdd_get_ptdsp(planp, target_number, argv[0]);
 	    if (p == NULL) return(-1);
-	    e2ep = xdd_get_e2ep(target_number);
+	    e2ep = xdd_get_e2ep(p);
 	    if (e2ep == NULL) return(-1);
 
 	    p->target_options |= TO_ENDTOEND;
@@ -958,7 +958,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		i = 0;
 		while (p) {
 		    p->target_options |= TO_ENDTOEND;
-	    	e2ep = xdd_get_e2ep(target_number);
+	    	e2ep = xdd_get_e2ep(p);
 	    	if (e2ep == NULL) return(-1);
 		    strcpy(e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].hostname, hostname); 
 	            e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
@@ -1062,7 +1062,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) {
 	    p = xdd_get_ptdsp(planp, target_number, argv[0]);
 	    if (p == NULL) return(-1);
-	    e2ep = xdd_get_e2ep(target_number);
+	    e2ep = xdd_get_e2ep(p);
 	    if (e2ep == NULL) return(-1);
 	    p->target_options |= TO_ENDTOEND;
 	    base_port_number = atoi(argv[args_index]);
@@ -1075,7 +1075,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		i = 0;
 		base_port_number = atoi(argv[args_index]);
 		while (p) {
-	    	e2ep = xdd_get_e2ep(target_number);
+	    	e2ep = xdd_get_e2ep(p);
 	    	if (e2ep == NULL) return(-1);
 		    p->target_options |= TO_ENDTOEND;
 		    // Set the base_port number in each of the currently specified e2e_address_table entries
@@ -1093,7 +1093,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) {
 	    p = xdd_get_ptdsp(planp, target_number, argv[0]);
 	    if (p == NULL) return(-1);
-	    e2ep = xdd_get_e2ep(target_number);
+	    e2ep = xdd_get_e2ep(p);
 	    if (e2ep == NULL) return(-1);
 	    p->target_options |= TO_ENDTOEND;
 	    number_of_ports = atoi(argv[args_index]);
@@ -1106,7 +1106,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		i = 0;
 		number_of_ports = atoi(argv[args_index]);
 		while (p) {
-	    	e2ep = xdd_get_e2ep(target_number);
+	    	e2ep = xdd_get_e2ep(p);
 	    	if (e2ep == NULL) return(-1);
 		    p->target_options |= TO_ENDTOEND;
 		    // Set the base_port number in each of the currently specified e2e_address_table entries
@@ -1145,7 +1145,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) {
 	    p = xdd_get_ptdsp(planp, target_number, argv[0]);
 	    if (p == NULL) return(-1);
-    	e2ep = xdd_get_e2ep(target_number);
+    	e2ep = xdd_get_e2ep(p);
     	if (e2ep == NULL) return(-1);
 	    p->target_options |= TO_ENDTOEND;
 	    source_path  = argv[args_index+1];
@@ -1159,7 +1159,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		source_path  = argv[args_index+1];
 			    source_mtime = atoll(argv[args_index+2]);
 			    while (p) {
-    				e2ep = xdd_get_e2ep(target_number);
+    				e2ep = xdd_get_e2ep(p);
     				if (e2ep == NULL) return(-1);
 					p->target_options |= TO_ENDTOEND;
 					e2ep->e2e_src_file_path  = source_path;
@@ -3036,7 +3036,7 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			if (p == NULL) return(-1);
 			rp = xdd_get_restartp(p);
 			if (rp == NULL) return(-1);
-			e2ep = xdd_get_e2ep(target_number);
+			e2ep = xdd_get_e2ep(p);
    			if (e2ep == NULL) return(-1);
 
 			rp->byte_offset = atoll(argv[args_index+1]);
@@ -3054,7 +3054,7 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 				while (p) {
 					rp = xdd_get_restartp(p);
 					if (rp == NULL) return(-1);
-					e2ep = xdd_get_e2ep(target_number);
+					e2ep = xdd_get_e2ep(p);
    					if (e2ep == NULL) return(-1);
 					rp->byte_offset = atoll(argv[args_index+1]);
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
@@ -4383,6 +4383,7 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	int args, args_index; 
 	int target_number;
 	ptds_t *p;
+	xdd_timestamp_t *tsp;
 
 
 	args_index = 1;
@@ -4407,13 +4408,17 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
 			if (p == NULL) return(-1);
-			p->ts_options |= (TS_ON | TS_ALL);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= (TS_ON | TS_ALL);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= (TS_ON | TS_ALL);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= (TS_ON | TS_ALL);
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4423,13 +4428,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "off") == 0) { /* Turn off the time stamp reporting option */
 		if (target_number >= 0) { 
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options &= ~TS_ON; /* Turn OFF time stamping */
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options &= ~TS_ON; /* Turn OFF time stamping */
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options &= ~TS_ON; /* Turn OFF time stamping */
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options &= ~TS_ON; /* Turn OFF time stamping */
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4439,13 +4449,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "wrap") == 0) { /* Turn on the TS Wrap option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= TS_WRAP;
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= TS_WRAP;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= TS_WRAP;
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= TS_WRAP;
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4455,13 +4470,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "oneshot") == 0) { /* Turn on the TS Wrap option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= TS_ONESHOT;
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= TS_ONESHOT;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= TS_ONESHOT;
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= TS_ONESHOT;
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4476,13 +4496,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
         args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_size = atoi(argv[args_index]);
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_size = atoi(argv[args_index]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_size = atoi(argv[args_index]);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_size = atoi(argv[args_index]);
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4497,15 +4522,20 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
         args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= (TS_ON | TS_TRIGTIME);
-			p->ts_trigtime = atoll(argv[args_index]);
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= (TS_ON | TS_TRIGTIME);
+			p->tsp->ts_trigtime = atoll(argv[args_index]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= (TS_ON | TS_TRIGTIME);
-					p->ts_trigtime = atoll(argv[args_index]);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= (TS_ON | TS_TRIGTIME);
+					p->tsp->ts_trigtime = atoll(argv[args_index]);
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4520,15 +4550,20 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		args_index++;
         if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= (TS_ON | TS_TRIGOP);
-			p->ts_trigop = atoi(argv[args_index]);
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= (TS_ON | TS_TRIGOP);
+			p->tsp->ts_trigop = atoi(argv[args_index]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= (TS_ON | TS_TRIGOP);
-					p->ts_trigop = atoi(argv[args_index]);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= (TS_ON | TS_TRIGOP);
+					p->tsp->ts_trigop = atoi(argv[args_index]);
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4538,13 +4573,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "normalize") == 0) { /* set the time stamp Append Output File  reporting option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4559,13 +4599,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4576,13 +4621,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "append") == 0) { /* set the time stamp Append Output File  reporting option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4593,13 +4643,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
         args_index++;
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4610,13 +4665,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "summary") == 0) { /* set the time stamp SUMMARY reporting option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
 					i++;
 					p = planp->ptdsp[i];
 				}
@@ -4626,13 +4686,18 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "detailed") == 0) { /* set the time stamp DETAILED reporting option */
 		if (target_number >= 0) {
 			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			p->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
+			if (p == NULL) return(-1);
+			tsp = xdd_get_tsp(p);
+   			if (tsp == NULL) return(-1);
+			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
-					p->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
+					tsp = xdd_get_tsp(p);
+   					if (tsp == NULL) return(-1);
+					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
 					i++;
 					p = planp->ptdsp[i];
 				}
