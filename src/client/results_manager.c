@@ -763,12 +763,12 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp) {
 	}
 
 	// E2E Times
-	rp->e2e_sr_time_this_pass = (double)p->e2e_sr_time/FLOAT_BILLION; // E2E SendReceive Time in MicroSeconds
+	rp->e2e_sr_time_this_pass = (double)p->e2ep->e2e_sr_time/FLOAT_BILLION; // E2E SendReceive Time in MicroSeconds
 	rp->e2e_io_time_this_pass = (double)rp->elapsed_pass_time; // E2E IO  Time in MicroSeconds
 	if (rp->e2e_io_time_this_pass == 0.0)
 		rp->e2e_sr_time_percent_this_pass = 0.0; // Percentage of IO Time spent in SendReceive
 	else rp->e2e_sr_time_percent_this_pass = (rp->e2e_sr_time_this_pass/rp->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
-	rp->e2e_wait_1st_msg = (double)p->e2e_wait_1st_msg/FLOAT_BILLION; // MicroSeconds
+	rp->e2e_wait_1st_msg = (double)p->e2ep->e2e_wait_1st_msg/FLOAT_BILLION; // MicroSeconds
 
 	// Extended Statistics
 	// The Hig/Low values are only updated when the -extendedstats option is specified

@@ -303,15 +303,15 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 	if (qp->my_current_state & CURRENT_STATE_DEST_RECEIVE) 
 		fprintf(xgp->output,"    Destination Side of an E2E - waiting to receive data from Source, target op number %lld, location %lld, length %lld, recvfrom status is %d\n", 
 			(long long int)qp->target_op_number, 
-			(long long int)qp->e2e_header.location, 
-			(long long int)qp->e2e_header.length, 
-			qp->e2e_recv_status);
+			(long long int)qp->e2ep->e2e_header.location, 
+			(long long int)qp->e2ep->e2e_header.length, 
+			qp->e2ep->e2e_recv_status);
 	if (qp->my_current_state & CURRENT_STATE_SRC_SEND) 
 		fprintf(xgp->output,"    Source Side of an E2E - waiting to send data to Destination, target op number %lld, location %lld, length %lld, sendto status is %d\n", 
 			(long long int)qp->target_op_number, 
-			(long long int)qp->e2e_header.location, 
-			(long long int)qp->e2e_header.length, 
-			qp->e2e_send_status);
+			(long long int)qp->e2ep->e2e_header.location, 
+			(long long int)qp->e2ep->e2e_header.length, 
+			qp->e2ep->e2e_send_status);
 	if (qp->my_current_state & CURRENT_STATE_BARRIER)
 		fprintf(xgp->output,"    Inside barrier '%s'\n",qp->current_barrier->name);
 	if (qp->my_current_state & CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE)

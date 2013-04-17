@@ -227,7 +227,7 @@ xdd_e2e_after_io_op(ptds_t *qp) {
 // release us *after* it completes its sendto(). 
 
 			// Send the data to the Destination machine
-			qp->e2e_header.magic = PTDS_E2E_MAGIC;
+			qp->e2ep->e2e_header.magic = PTDS_E2E_MAGIC;
 			qp->my_current_state |= CURRENT_STATE_SRC_SEND;
 
 			xdd_e2e_src_send(qp);

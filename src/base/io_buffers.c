@@ -56,8 +56,8 @@ xdd_init_io_buffers(ptds_t *p) {
 
 	/* allocate slightly larger buffer for meta data for end-to-end ops */
 	if ((p->target_options & TO_ENDTOEND)) 
-		p->e2e_iosize = p->iosize + sizeof(p->e2e_header);
-	else	p->e2e_iosize = p->iosize;
+		p->e2ep->e2e_iosize = p->iosize + sizeof(p->e2ep->e2e_header);
+	else	p->e2ep->e2e_iosize = p->iosize;
 	/* Check to see if we want to use a shared memory segment and allocate it using shmget() and shmat().
 	 * NOTE: This is not supported by all operating systems. 
 	 */
@@ -66,9 +66,9 @@ xdd_init_io_buffers(ptds_t *p) {
 	    /* In AIX we need to get memory in a shared memory segment to avoid
 	     * the system continually trying to pin each page on every I/O operation */
 #if (AIX)
-		p->rwbuf_shmid = shmget(IPC_PRIVATE, p->e2e_iosize, IPC_CREAT | SHM_LGPAGE |SHM_PIN );
+		p->rwbuf_shmid = shmget(IPC_PRIVATE, p->e2ep->e2e_iosize, IPC_CREAT | SHM_LGPAGE |SHM_PIN );
 #else
-		p->rwbuf_shmid = shmget(IPC_PRIVATE, p->e2e_iosize, IPC_CREAT );
+		p->rwbuf_shmid = shmget(IPC_PRIVATE, p->e2ep->e2e_iosize, IPC_CREAT );
 #endif
 		if (p->rwbuf_shmid < 0) {
 			fprintf(xgp->errout,"%s: Cannot create shared memory segment\n", xgp->progname);
@@ -92,24 +92,24 @@ xdd_init_io_buffers(ptds_t *p) {
 			xgp->progname);
 		p->target_options &= ~TO_SHARED_MEMORY;
 #if (IRIX || SOLARIS || LINUX || AIX || DARWIN || FREEBSD)
-		rwbuf = valloc(p->e2e_iosize);
+		rwbuf = valloc(p->e2ep->e2e_iosize);
 #else
-		rwbuf = malloc(p->e2e_iosize);
+		rwbuf = malloc(p->e2ep->e2e_iosize);
 #endif
 #endif 
 	} else { /* Allocate memory the normal way */
 #if (AIX || LINUX)
-		posix_memalign((void **)&rwbuf, sysconf(_SC_PAGESIZE), p->e2e_iosize);
+		posix_memalign((void **)&rwbuf, sysconf(_SC_PAGESIZE), p->e2ep->e2e_iosize);
 #elif (IRIX || SOLARIS || LINUX || DARWIN || FREEBSD)
-		rwbuf = valloc(p->e2e_iosize);
+		rwbuf = valloc(p->e2ep->e2e_iosize);
 #else
-		rwbuf = malloc(p->e2e_iosize);
+		rwbuf = malloc(p->e2ep->e2e_iosize);
 #endif
 	}
 	/* Check to see if we really allocated some memory */
 	if (rwbuf == NULL) {
 		fprintf(xgp->errout,"%s: cannot allocate %d bytes of memory for I/O buffer\n",
-			xgp->progname,p->e2e_iosize);
+			xgp->progname,p->e2ep->e2e_iosize);
 		fflush(xgp->errout);
 #ifdef WIN32 
 		FormatMessage( 
@@ -132,7 +132,7 @@ xdd_init_io_buffers(ptds_t *p) {
 	/* Memory allocation must have succeeded */
 
 	/* Lock all rwbuf pages in memory */
-	xdd_lock_memory(rwbuf, p->e2e_iosize, "RW BUFFER");
+	xdd_lock_memory(rwbuf, p->e2ep->e2e_iosize, "RW BUFFER");
 
 	return(rwbuf);
 } /* end of xdd_init_io_buffers() */

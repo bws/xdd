@@ -210,7 +210,7 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 	/* ------------------------------------------------------ */
 	// We are the Destination side of an End-to-End op
 
-	qp->e2e_data_recvd = 0; // This will record how much data is recvd in this routine
+	qp->e2ep->e2e_data_recvd = 0; // This will record how much data is recvd in this routine
 
 	// Lets read a packet of data from the Source side
 	// xdd_e2e_dest_recv() will block until there is data to read 
@@ -225,17 +225,17 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 		return(-1);
 		
 	// Check to see of this is the last message in the transmission
-	if (qp->e2e_header.magic == PTDS_E2E_MAGIQ)  { // This must be the End of the File
+	if (qp->e2ep->e2e_header.magic == PTDS_E2E_MAGIQ)  { // This must be the End of the File
 		return(0);
 	}
 
 	// Use the hearder.location as the new my_current_byte_location and the e2e_header.length as the new my_current_io_size for this op
 	// This will allow for the use of "no ordering" on the source side of an e2e operation
-	qp->my_current_byte_location = qp->e2e_header.location;
-	qp->my_current_io_size = qp->e2e_header.length;
-	qp->my_current_op_number = qp->e2e_header.sequence;
+	qp->my_current_byte_location = qp->e2ep->e2e_header.location;
+	qp->my_current_io_size = qp->e2ep->e2e_header.length;
+	qp->my_current_op_number = qp->e2ep->e2e_header.sequence;
 	// Record the amount of data received 
-	qp->e2e_data_recvd = qp->e2e_header.length;
+	qp->e2ep->e2e_data_recvd = qp->e2ep->e2e_header.length;
 
 	return(0);
 

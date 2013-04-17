@@ -414,15 +414,15 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		fprintf(out,"\t\tEnd-to-End ACTIVE: this target is the %s side\n",
 			(p->target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
 		// Display all the hostname:base_port,port_count entries in the e2e_address_table
-		for (i = 0; i < p->e2e_address_table_host_count; i++) {
+		for (i = 0; i < p->e2ep->e2e_address_table_host_count; i++) {
 			fprintf(out,"\t\tEnd-to-End Destination Address %d of %d '%s' base port %d for %d ports [ports %d - %d]\n",
 				i+1,
-				p->e2e_address_table_host_count,
-				p->e2e_address_table[i].hostname,
-				p->e2e_address_table[i].base_port,
-				p->e2e_address_table[i].port_count,
-				p->e2e_address_table[i].base_port,
-				p->e2e_address_table[i].base_port + p->e2e_address_table[i].port_count -1);
+				p->e2ep->e2e_address_table_host_count,
+				p->e2ep->e2e_address_table[i].hostname,
+				p->e2ep->e2e_address_table[i].base_port,
+				p->e2ep->e2e_address_table[i].port_count,
+				p->e2ep->e2e_address_table[i].base_port,
+				p->e2ep->e2e_address_table[i].base_port + p->e2ep->e2e_address_table[i].port_count -1);
 		}
 
 		// Check for RESTART and setup restart structure if required
@@ -434,8 +434,8 @@ xdd_target_info(FILE *out, ptds_t *p) {
 				return;
 			} 
 			// ok - we have a good restart structure
-			p->restartp->source_host = p->e2e_src_hostname; 		// Name of the Source machine 
-			p->restartp->destination_host = p->e2e_dest_hostname; 	// Name of the Destination machine 
+			p->restartp->source_host = p->e2ep->e2e_src_hostname; 		// Name of the Source machine 
+			p->restartp->destination_host = p->e2ep->e2e_dest_hostname; 	// Name of the Destination machine 
 			if (p->restartp->flags & RESTART_FLAG_ISSOURCE) { // This is the SOURCE sside of the biz
 				 p->restartp->source_filename = p->target_full_pathname; 		// The source_filename is the name of the file being copied on the source side
 				 p->restartp->destination_filename = NULL;		// The destination_filename is the name of the file being copied on the destination side
