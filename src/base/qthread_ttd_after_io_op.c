@@ -356,6 +356,7 @@ xdd_qthread_ttd_after_io_op(ptds_t *qp) {
 /*
  * Local variables:
  *  indent-tabs-mode: t
+ *  default-tab-width: 4
  *  c-indent-level: 4
  *  c-basic-offset: 4
  * End:

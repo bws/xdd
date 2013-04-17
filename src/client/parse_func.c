@@ -4812,6 +4812,7 @@ xddfunc_target_inout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fla
 /*
  * Local variables:
  *  indent-tabs-mode: t
+ *  default-tab-width: 4
  *  c-indent-level: 4
  *  c-basic-offset: 4
  * End:

@@ -334,6 +334,8 @@ xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed) {
 /*
  * Local variables:
  *  indent-tabs-mode: t
+ *  default-tab-width: 4
+ *  default-tab-width: 4
  *  c-indent-level: 4
  *  c-basic-offset: 4
  * End:

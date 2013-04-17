@@ -311,6 +311,7 @@ xdd_restart_monitor(void *data) {
 /*
  * Local variables:
  *  indent-tabs-mode: t
+ *  default-tab-width: 4
  *  c-indent-level: 4
  *  c-basic-offset: 4
  * End:

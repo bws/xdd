@@ -113,6 +113,7 @@ extern int h_errno; // For socket calls
 /*
  * Local variables:
  *  indent-tabs-mode: t
+ *  default-tab-width: 4
  *  c-indent-level: 4
  *  c-basic-offset: 4
  * End:
