@@ -523,6 +523,24 @@ xdd_get_e2ep(ptds_t *p) {
 	}
 	return(p->e2ep);
 } /* End of xdd_get_esp() */
+
+/*----------------------------------------------------------------------------*/
+/* xdd_get_tsp() - return a pointer to the timestamp Data Structure 
+ * for the specified target
+ */
+xdd_timestamp_t *
+xdd_get_tsp(ptds_t *p) {
+	
+	if (p->tsp == 0) { // Since there is no existing Extended Stats structure, allocate a new one for this target, initialize it, and move on...
+		p->tsp = malloc(sizeof(struct xdd_timestamp));
+		if (p->tsp == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for xdd_e2e data structure for target %d\n",
+			xgp->progname, (int)sizeof(struct xdd_timestamp), p->my_target_number);
+			return(NULL);
+		}
+	}
+	return(p->tsp);
+} /* End of xdd_get_esp() */
 #if (LINUX)
 /*----------------------------------------------------------------------------*/
 /* xdd_linux_cpu_count() - return the number of CPUs on  this system

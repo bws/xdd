@@ -71,8 +71,8 @@ xdd_initialization(int32_t argc,char *argv[], xdd_plan_t *planp) {
 
 #if WIN32
 	/* Init the ts serializer mutex to compensate for a Windows bug */
-	xgp->ts_serializer_mutex_name = "ts_serializer_mutex";
-	ts_serializer_init(&xgp->ts_serializer_mutex, xgp->ts_serializer_mutex_name);
+	xgp->tsp->ts_serializer_mutex_name = "ts_serializer_mutex";
+	ts_serializer_init(&xgp->tsp->ts_serializer_mutex, xgp->tsp->ts_serializer_mutex_name);
 #endif
 
 	/* initialize the clocks */

@@ -75,30 +75,30 @@ xdd_ts_setup(ptds_t *p) {
 
 
 	/* check to make sure we really need to do this */
-	if (!(p->ts_options & TS_ON) && !(xgp->global_options & GO_DESKEW))
+	if (!(p->tsp->ts_options & TS_ON) && !(xgp->global_options & GO_DESKEW))
 		return;
 
 	/* If DESKEW is TRUE but the TS option was not requested, then do a DESKEW ts setup */
-	if ((xgp->global_options & GO_DESKEW) && !(p->ts_options & TS_ON)) {
-		p->ts_options |= (TS_ON | TS_ALL | TS_ONESHOT | TS_SUPPRESS_OUTPUT);
-		p->ts_size = (p->my_planp->passes + 1) * p->queue_depth;
-	} else p->ts_size = (p->my_planp->passes * p->target_ops) + p->queue_depth;
-	if (p->ts_options & (TS_TRIGTIME | TS_TRIGOP)) 
-		p->ts_options &= ~TS_ALL; /* turn off the "time stamp all operations" flag if a trigger was requested */
-	if (p->ts_options & TS_TRIGTIME) { /* adjust the trigger time to an actual local time */
-		p->ts_trigtime *= BILLION;
-		p->ts_trigtime += p->my_planp->ActualLocalStartTime;
+	if ((xgp->global_options & GO_DESKEW) && !(p->tsp->ts_options & TS_ON)) {
+		p->tsp->ts_options |= (TS_ON | TS_ALL | TS_ONESHOT | TS_SUPPRESS_OUTPUT);
+		p->tsp->ts_size = (p->my_planp->passes + 1) * p->queue_depth;
+	} else p->tsp->ts_size = (p->my_planp->passes * p->target_ops) + p->queue_depth;
+	if (p->tsp->ts_options & (TS_TRIGTIME | TS_TRIGOP)) 
+		p->tsp->ts_options &= ~TS_ALL; /* turn off the "time stamp all operations" flag if a trigger was requested */
+	if (p->tsp->ts_options & TS_TRIGTIME) { /* adjust the trigger time to an actual local time */
+		p->tsp->ts_trigtime *= BILLION;
+		p->tsp->ts_trigtime += p->my_planp->ActualLocalStartTime;
 	}
 
 	/* Calculate size of the time stamp table and malloc it */
-	tt_entries = p->ts_size; 
+	tt_entries = p->tsp->ts_size; 
 	if (tt_entries < ((p->my_planp->passes * p->target_ops) + p->queue_depth)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
-		if (((p->ts_options & TS_WRAP) == 0) &&
-			((p->ts_options & TS_ONESHOT) == 0) &&
+		if (((p->tsp->ts_options & TS_WRAP) == 0) &&
+			((p->tsp->ts_options & TS_ONESHOT) == 0) &&
 			(!(xgp->global_options & GO_DESKEW))) {
 			fprintf(xgp->errout,"%s: ***NOTICE*** The size specified for timestamp table for target %d is too small - enabling time stamp wrapping to compensate\n",xgp->progname,p->my_target_number);
 			fflush(xgp->errout);
-			p->ts_options |= TS_WRAP;
+			p->tsp->ts_options |= TS_WRAP;
 		}
 	}
 	/* calculate the total size in bytes of the time stamp table */
@@ -113,7 +113,7 @@ xdd_ts_setup(ptds_t *p) {
 			xgp->progname,p->my_target_number, tt_bytes);
 		fflush(xgp->errout);
 		perror("Reason");
-		p->ts_options &= ~TS_ON;
+		p->tsp->ts_options &= ~TS_ON;
 		return;
 	}
 	/* Lock the time stamp table in memory */
@@ -126,7 +126,7 @@ xdd_ts_setup(ptds_t *p) {
 		fprintf(xgp->errout,"%s: Could not initialize high-resolution clock\n",
 			xgp->progname);
 		fflush(xgp->errout);
-		p->ts_options &= ~TS_ON;
+		p->tsp->ts_options &= ~TS_ON;
 	}
 	xdd_ts_overhead(p->ttp);
 
@@ -148,42 +148,42 @@ xdd_ts_setup(ptds_t *p) {
 	t = time(NULL);
 	strcpy(p->ttp->td, ctime(&t));
 	p->ttp->tt_size = tt_entries;
-	p->ttp->trigtime = p->ts_trigtime;
-	p->ttp->trigop = p->ts_trigop;
+	p->ttp->trigtime = p->tsp->ts_trigtime;
+	p->ttp->trigop = p->tsp->ts_trigop;
 	p->ttp->tt_bytes = tt_bytes;
 	p->ttp->tte_indx = 0;
 	p->ttp->delta = p->my_planp->gts_delta;
-	p->ts_current_entry = 0;
+	p->tsp->ts_current_entry = 0;
 
 	// Generate the name(s) of the ASCII and/or binary output files
 
 	// First we do the binary output file name
 	ts_filename_size = strlen(p->my_planp->ts_binary_filename_prefix) + 32;
-    p->ts_binary_filename = malloc(ts_filename_size);
-	if (p->ts_binary_filename == NULL) {
+    p->tsp->ts_binary_filename = malloc(ts_filename_size);
+	if (p->tsp->ts_binary_filename == NULL) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp binary output filename\n",
 			xgp->progname,p->my_target_number, ts_filename_size);
 		fflush(xgp->errout);
 		perror("Reason");
-		p->ts_options &= ~TS_ON;
+		p->tsp->ts_options &= ~TS_ON;
 		return;
 	}
-	snprintf(p->ts_binary_filename,ts_filename_size,"%s.target.%04d.bin",p->my_planp->ts_binary_filename_prefix,p->my_target_number);
+	snprintf(p->tsp->ts_binary_filename,ts_filename_size,"%s.target.%04d.bin",p->my_planp->ts_binary_filename_prefix,p->my_target_number);
 
 	// Now do the ASCII output file name
 	// If -ts output filename option not used, then dont set it.
     if ( p->my_planp->ts_output_filename_prefix != NULL ) {
       ts_filename_size = strlen(p->my_planp->ts_output_filename_prefix) + 32;
-      p->ts_output_filename = malloc(ts_filename_size);
-  	  if (p->ts_output_filename == NULL) {
+      p->tsp->ts_output_filename = malloc(ts_filename_size);
+  	  if (p->tsp->ts_output_filename == NULL) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp output filename\n",
 			xgp->progname,p->my_target_number, ts_filename_size);
 		fflush(xgp->errout);
 		perror("Reason");
-		p->ts_options &= ~TS_ON;
+		p->tsp->ts_options &= ~TS_ON;
 		return;
 	  }
-	  snprintf(p->ts_output_filename,ts_filename_size,"%s.target.%04d.csv",p->my_planp->ts_output_filename_prefix,p->my_target_number);
+	  snprintf(p->tsp->ts_output_filename,ts_filename_size,"%s.target.%04d.csv",p->my_planp->ts_output_filename_prefix,p->my_target_number);
     }
 	return;
 } /* end of xdd_ts_setup() */
@@ -199,11 +199,11 @@ xdd_ts_write(ptds_t *p) {
 
 
 	ttp = p->ttp;
-	if ((p->ts_options & TS_DUMP) == 0)  /* dump only if DUMP was specified */
+	if ((p->tsp->ts_options & TS_DUMP) == 0)  /* dump only if DUMP was specified */
 		return;
-	ttfd = open(p->ts_binary_filename,O_WRONLY|O_CREAT,0666);
+	ttfd = open(p->tsp->ts_binary_filename,O_WRONLY|O_CREAT,0666);
 	if (ttfd < 0) {
-		fprintf(xgp->errout,"%s: cannot open timestamp table binary output file %s\n", xgp->progname,p->ts_binary_filename);
+		fprintf(xgp->errout,"%s: cannot open timestamp table binary output file %s\n", xgp->progname,p->tsp->ts_binary_filename);
 		fflush(xgp->errout);
 		perror("reason");
 		return;
@@ -211,12 +211,12 @@ xdd_ts_write(ptds_t *p) {
 	newsize = sizeof(struct tthdr) + (sizeof(struct tte) * ttp->numents);
 	i = write(ttfd,ttp,newsize);
 	if (i != newsize) {
-		fprintf(xgp->errout,"(%d) %s: cannot write timestamp table binary output file %s\n", p->my_target_number, xgp->progname,p->ts_binary_filename);
+		fprintf(xgp->errout,"(%d) %s: cannot write timestamp table binary output file %s\n", p->my_target_number, xgp->progname,p->tsp->ts_binary_filename);
 		fflush(xgp->errout);
 		perror("reason");
 	}
 	fprintf(xgp->output,"Timestamp table written to %s - %lld entries, %lld bytes\n",
-		p->ts_binary_filename, (long long)ttp->numents, (long long)newsize);
+		p->tsp->ts_binary_filename, (long long)ttp->numents, (long long)newsize);
 
 	close(ttfd);
 } /* end of xdd_ts_write() */
@@ -272,9 +272,9 @@ xdd_ts_reports(ptds_t *p) {
     char  opc2[8];
 #ifdef WIN32 /* This is required to circumvent the problem of mulitple streams to multiple files */
     /* We need to wait for the previous thread to finish writing its ts report and close the output stream before we can continue */
-    WaitForSingleObject(p->ts_serializer_mutex,INFINITE);
+    WaitForSingleObject(p->tsp->ts_serializer_mutex,INFINITE);
 #endif
-    if(p->ts_options & TS_SUPPRESS_OUTPUT)
+    if(p->tsp->ts_options & TS_SUPPRESS_OUTPUT)
 	return;
     if (!(p->my_current_state & CURRENT_STATE_PASS_COMPLETE)) {
 	fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d has not yet completed! Results beyond this point are unpredictable!\n",
@@ -284,12 +284,12 @@ xdd_ts_reports(ptds_t *p) {
     ttp = p->ttp;
     /* Open the correct output file */
     if (p->my_planp->ts_output_filename_prefix != 0) {
-	if (p->ts_options & TS_APPEND)
-	    p->tsfp = fopen(p->ts_output_filename, "a");
+	if (p->tsp->ts_options & TS_APPEND)
+	    p->tsfp = fopen(p->tsp->ts_output_filename, "a");
 	else
-	    p->tsfp = fopen(p->ts_output_filename, "w");
+	    p->tsfp = fopen(p->tsp->ts_output_filename, "w");
 	if (p->tsfp == NULL)  {
-	    fprintf(xgp->errout,"Cannot open file '%s' as output for time stamp reports - using stdout\n", p->ts_output_filename);
+	    fprintf(xgp->errout,"Cannot open file '%s' as output for time stamp reports - using stdout\n", p->tsp->ts_output_filename);
 	    fflush(xgp->errout);
 	    p->tsfp = stdout;
 	}
@@ -315,8 +315,8 @@ xdd_ts_reports(ptds_t *p) {
 	perror("Reason");
 	return;
     }
-    if (p->ts_options & TS_DETAILED) { /* Generate the detailed and summary report */
-	if ((p->ts_options & TS_WRAP) || (p->ts_options & TS_ONESHOT)) {
+    if (p->tsp->ts_options & TS_DETAILED) { /* Generate the detailed and summary report */
+	if ((p->tsp->ts_options & TS_WRAP) || (p->tsp->ts_options & TS_ONESHOT)) {
 	    if (ttp->tte_indx == 0) 
 		indx = ttp->tt_size - 1;
 	    else indx = ttp->tte_indx - 1;
@@ -444,7 +444,7 @@ xdd_ts_reports(ptds_t *p) {
 	if (net_fio_time > 0.0) 
 	    net_irate = ((ttp->reqsize)/(net_fio_time / BILLION))/1000000.0;
 	else net_irate = 0.0;
-	if (p->ts_options & TS_DETAILED) { /* Print the detailed report */
+	if (p->tsp->ts_options & TS_DETAILED) { /* Print the detailed report */
 	    disk_start_ts = ttp->tte[i].disk_start + ttp->delta;
 	    disk_end_ts = ttp->tte[i].disk_end + ttp->delta;
 	    net_start_ts = ttp->tte[i].net_start + ttp->delta;
@@ -511,10 +511,10 @@ xdd_ts_reports(ptds_t *p) {
     free(disk_io_time);
     free(net_io_time);
     
-    if (p->ts_options & TS_DETAILED)  /* Print the detailed report trailer */
+    if (p->tsp->ts_options & TS_DETAILED)  /* Print the detailed report trailer */
 	fprintf(p->tsfp,"End of DETAILED Time Stamp Report\n");
     fflush(p->tsfp);
-    if (p->ts_options & TS_SUMMARY) {  /* Generate just the summary report */
+    if (p->tsp->ts_options & TS_SUMMARY) {  /* Generate just the summary report */
 	if (ttp->numents == 0) {
 	    fprintf(xgp->errout,"%s: ALERT! ts_reports encounterd a numents of zero for target %d, skipping\n",
 					xgp->progname, p->my_target_number);
@@ -557,7 +557,7 @@ xdd_ts_reports(ptds_t *p) {
     if (p->tsfp != stdout)
 	fclose(p->tsfp);
 #ifdef WIN32 /* Allow the next thread to write its file */
-    ReleaseMutex(p->ts_serializer_mutex);
+    ReleaseMutex(p->tsp->ts_serializer_mutex);
 #endif
 } /* end of xdd_ts_reports() */
 

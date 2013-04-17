@@ -167,6 +167,7 @@ xdd_sgio_t 	*xdd_get_sgiop(ptds_t *p);
 xdd_triggers_t 	*xdd_get_trigp(ptds_t *p);
 xdd_extended_stats_t 	*xdd_get_esp(ptds_t *p);
 xdd_e2e_t 	*xdd_get_e2ep(ptds_t *p);
+xdd_timestamp_t 	*xdd_get_tsp(ptds_t *p);
 int32_t		xdd_linux_cpu_count(void);
 int32_t		xdd_cpu_count(void);
 int32_t		xdd_atohex(unsigned char *destp, char *sourcep);

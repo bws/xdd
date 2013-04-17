@@ -58,7 +58,8 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->throttle = DEFAULT_THROTTLE;
 	p->throttle_variance = DEFAULT_VARIANCE;
 	p->throttle_type = PTDS_THROTTLE_BW;
-	p->ts_options = DEFAULT_TS_OPTIONS;
+	p->tsp=xdd_get_tsp(p);
+	p->tsp->ts_options = DEFAULT_TS_OPTIONS;
 	p->target_options = DEFAULT_TARGET_OPTIONS; // Zero the target options field
 	p->time_limit = DEFAULT_TIME_LIMIT;
 	if (p->trigp) p->trigp->run_status = 1;   /* This is the status of this thread 0=not started, 1=running */
@@ -117,15 +118,17 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 		p->rawp->raw_trigger = PTDS_RAW_MP; /* default to a message passing */
 	}
 	/* Init the end-to-end fields */
-	p->e2ep->e2e_sd = 0; /* destination machine socket descriptor */
-	p->e2ep->e2e_src_hostname = NULL;  /* E2E source hostname */
-	p->e2ep->e2e_dest_hostname = NULL;  /* E2E destination hostname */
-	p->e2ep->e2e_dest_port = DEFAULT_E2E_PORT;
-	p->e2ep->e2e_address_table_host_count = 0;
-	p->e2ep->e2e_address_table_port_count = 0;
-	p->e2ep->e2e_dest_addr = 0;
-	p->e2ep->e2e_wait_1st_msg = 0;
-	p->e2ep->e2e_address_table_next_entry=0;
+	if (p->e2ep) {
+		p->e2ep->e2e_sd = 0; /* destination machine socket descriptor */
+		p->e2ep->e2e_src_hostname = NULL;  /* E2E source hostname */
+		p->e2ep->e2e_dest_hostname = NULL;  /* E2E destination hostname */
+		p->e2ep->e2e_dest_port = DEFAULT_E2E_PORT;
+		p->e2ep->e2e_address_table_host_count = 0;
+		p->e2ep->e2e_address_table_port_count = 0;
+		p->e2ep->e2e_dest_addr = 0;
+		p->e2ep->e2e_wait_1st_msg = 0;
+		p->e2ep->e2e_address_table_next_entry=0;
+	}
 
 	sprintf(p->occupant_name,"TARGET%04d",p->my_target_number);
 	xdd_init_barrier_occupant(&p->occupant, p->occupant_name, XDD_OCCUPANT_TYPE_TARGET, p);

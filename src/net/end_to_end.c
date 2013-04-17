@@ -63,8 +63,8 @@ xdd_e2e_src_send(ptds_t *qp) {
 	// The message header for this data packet is placed after the user data in the buffer
 	memcpy(qp->rwbuf+qp->iosize,&qp->e2ep->e2e_header, sizeof(qp->e2ep->e2e_header));
 
-	if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
-		p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
+	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
+		p->ttp->tte[qp->tsp->ts_current_entry].net_processor_start = xdd_get_processor();
 
 	// Note: the qp->e2ep->e2e_iosize is the size of the data field plus the size of the header
 	maxmit = MAXMIT_TCP;
@@ -79,12 +79,12 @@ xdd_e2e_src_send(ptds_t *qp) {
 	}
 	nclk_now(&qp->my_current_net_end_time);
 	// Time stamp if requested
-	if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[qp->ts_current_entry].net_xfer_size = qp->e2ep->e2e_iosize;
-		p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
-		p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
-		p->ttp->tte[qp->ts_current_entry].net_processor_end = xdd_get_processor();
-		p->ttp->tte[qp->ts_current_entry].net_xfer_calls = sentcalls;
+	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+		p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_size = qp->e2ep->e2e_iosize;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_start = qp->my_current_net_start_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_end = qp->my_current_net_end_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_processor_end = xdd_get_processor();
+		p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_calls = sentcalls;
 	}
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
@@ -166,8 +166,8 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 	 */
 	for (qp->e2ep->e2e_current_csd = 0; qp->e2ep->e2e_current_csd < FD_SETSIZE; qp->e2ep->e2e_current_csd++) { // Process all CSDs that are ready
 		if (FD_ISSET(qp->e2ep->e2e_csd[qp->e2ep->e2e_current_csd], &qp->e2ep->e2e_readset)) { /* Process this csd */
-			if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
-				p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
+			if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
+				p->ttp->tte[qp->tsp->ts_current_entry].net_processor_start = xdd_get_processor();
 			rcvd_so_far = 0;
                         recvcalls = 0;
 			nclk_now(&qp->my_current_net_start_time);
@@ -199,11 +199,11 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 				qp->e2ep->e2e_wait_1st_msg = qp->my_current_net_end_time - e2e_wait_1st_msg_start_time;
 
 			// Timestamp this operation if requested
-			if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
-				p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
-				p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
-				p->ttp->tte[qp->ts_current_entry].net_processor_end = xdd_get_processor();
-				p->ttp->tte[qp->ts_current_entry].net_xfer_calls = recvcalls;
+			if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+				p->ttp->tte[qp->tsp->ts_current_entry].net_start = qp->my_current_net_start_time;
+				p->ttp->tte[qp->tsp->ts_current_entry].net_end = qp->my_current_net_end_time;
+				p->ttp->tte[qp->tsp->ts_current_entry].net_processor_end = xdd_get_processor();
+				p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_calls = recvcalls;
 			}
 
 			// If this is the first packet received by this QThread then record the *end* of this operation as the
@@ -279,14 +279,14 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 			} 
 
    			// If time stamping is on then we need to reset these values
-   			if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
-				p->ttp->tte[qp->ts_current_entry].net_xfer_size = qp->e2ep->e2e_recv_status;
-				p->ttp->tte[qp->ts_current_entry].byte_location = qp->e2ep->e2e_header.location;
-				p->ttp->tte[qp->ts_current_entry].disk_xfer_size = qp->e2ep->e2e_header.length;
-				p->ttp->tte[qp->ts_current_entry].op_number = qp->e2ep->e2e_header.sequence;
+   			if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
+				p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_size = qp->e2ep->e2e_recv_status;
+				p->ttp->tte[qp->tsp->ts_current_entry].byte_location = qp->e2ep->e2e_header.location;
+				p->ttp->tte[qp->tsp->ts_current_entry].disk_xfer_size = qp->e2ep->e2e_header.length;
+				p->ttp->tte[qp->tsp->ts_current_entry].op_number = qp->e2ep->e2e_header.sequence;
 				if (qp->e2ep->e2e_header.magic == PTDS_E2E_MAGIQ)
-					 p->ttp->tte[qp->ts_current_entry].op_type = SO_OP_EOF;
-				else p->ttp->tte[qp->ts_current_entry].op_type = SO_OP_WRITE;
+					 p->ttp->tte[qp->tsp->ts_current_entry].op_type = SO_OP_EOF;
+				else p->ttp->tte[qp->tsp->ts_current_entry].op_type = SO_OP_WRITE;
 			}
 
 			return(0);
@@ -328,8 +328,8 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	// now it must be placed at the end to conform with data message protocol
 	memcpy(qp->rwbuf+qp->iosize, &qp->e2ep->e2e_header, sizeof(qp->e2ep->e2e_header));
 
-	if (p->ts_options & (TS_ON | TS_TRIGGERED)) 
-		p->ttp->tte[qp->ts_current_entry].net_processor_start = xdd_get_processor();
+	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
+		p->ttp->tte[qp->tsp->ts_current_entry].net_processor_start = xdd_get_processor();
 	// This will send the E2E Header to the Destination
 	sent = 0;
 	sentcalls = 0;
@@ -349,16 +349,16 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
 	qp->e2ep->e2e_sr_time = (qp->my_current_net_end_time - qp->my_current_net_start_time);
 	// If time stamping is on then we need to reset these values
-   	if ((p->ts_options & (TS_ON|TS_TRIGGERED))) {
-		p->ttp->tte[qp->ts_current_entry].net_start = qp->my_current_net_start_time;
-		p->ttp->tte[qp->ts_current_entry].net_end = qp->my_current_net_end_time;
-		p->ttp->tte[qp->ts_current_entry].net_processor_end = xdd_get_processor();
-		p->ttp->tte[qp->ts_current_entry].net_xfer_size = sent;
-		p->ttp->tte[qp->ts_current_entry].net_xfer_calls = sentcalls;
-		p->ttp->tte[qp->ts_current_entry].byte_location = -1;
-		p->ttp->tte[qp->ts_current_entry].disk_xfer_size = 0;
-		p->ttp->tte[qp->ts_current_entry].op_number = qp->e2ep->e2e_header.sequence;
-		p->ttp->tte[qp->ts_current_entry].op_type = OP_TYPE_EOF;
+   	if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
+		p->ttp->tte[qp->tsp->ts_current_entry].net_start = qp->my_current_net_start_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_end = qp->my_current_net_end_time;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_processor_end = xdd_get_processor();
+		p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_size = sent;
+		p->ttp->tte[qp->tsp->ts_current_entry].net_xfer_calls = sentcalls;
+		p->ttp->tte[qp->tsp->ts_current_entry].byte_location = -1;
+		p->ttp->tte[qp->tsp->ts_current_entry].disk_xfer_size = 0;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_number = qp->e2ep->e2e_header.sequence;
+		p->ttp->tte[qp->tsp->ts_current_entry].op_type = OP_TYPE_EOF;
 	}
 
 

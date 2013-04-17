@@ -121,6 +121,18 @@ typedef struct tthdr tthdr_t;
 #define TS_SUPPRESS_OUTPUT    0x00002000 /**< Suppress timestamp output */
 #define DEFAULT_TS_OPTIONS 0x00000000
 
+// The timestamp structure is pointed to from the ptds. 
+struct xdd_timestamp {
+	uint64_t			ts_options;  			// Time Stamping Options 
+	int64_t				ts_current_entry; 		// Index into the Timestamp Table of the current entry
+	int64_t				ts_size;  				// Time Stamping Size in number of entries 
+	int64_t				ts_trigop;  			// Time Stamping trigger operation number 
+	nclk_t				ts_trigtime; 			// Time Stamping trigger time 
+	char				*ts_binary_filename; 	// Timestamp filename for the binary output file for this Target
+	char				*ts_output_filename; 	// Timestamp report output filename for this Target
+};
+typedef struct xdd_timestamp xdd_timestamp_t;
+
 /*
  * Local variables:
  *  indent-tabs-mode: t
