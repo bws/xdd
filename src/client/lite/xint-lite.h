@@ -57,6 +57,7 @@ typedef struct xint_lite_options {
     size_t preallocate;
     int stop_on_error_flag;
     char* restart_fname;
+	int server_flag;
     size_t heartbeat_freq;
 
     /* List of e2e connection information */

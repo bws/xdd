@@ -81,6 +81,8 @@ int xint_lite_options_parse(xint_lite_options_t* opts, int argc, char** argv) {
         {"length", required_argument, 0, 'l'},
         /* Select ordering mode */
         {"ordering", required_argument, 0, 'r'},
+        /* Select ordering mode */
+        {"server", required_argument, 0, 'S'},
         /* Verbosity */
         {"verbose", no_argument, 0, 'v'},
         {0, 0, 0, 0}
@@ -94,29 +96,32 @@ int xint_lite_options_parse(xint_lite_options_t* opts, int argc, char** argv) {
                 printf("0 encountered");
                 rc = 1;
             case 'b':
-		rc = parse_heartbeat(opts, argv[option_idx]);
-		break;
+				rc = parse_heartbeat(opts, argv[option_idx]);
+				break;
             case 'd':
-		opts->dio_flag = 1;
-		break;
+				opts->dio_flag = 1;
+				break;
             case 'e':
-		rc = parse_e2e_spec(opts, argv[option_idx]);
-		break;
+				rc = parse_e2e_spec(opts, argv[option_idx]);
+				break;
             case 'h':
-		opts->help_flag = 1;
-		break;
+				opts->help_flag = 1;
+				break;
             case 'l':
-		rc = parse_length(opts, argv[option_idx]);
-		break;
+				rc = parse_length(opts, argv[option_idx]);
+				break;
             case 'o':
-		rc = parse_offset(opts, argv[option_idx]);
-		break;
+				rc = parse_offset(opts, argv[option_idx]);
+				break;
             case 'r':
-		rc = parse_e2e_spec(opts, argv[option_idx]);
-		break;
+				rc = parse_e2e_spec(opts, argv[option_idx]);
+				break;
+            case 'S':
+				opts->server_flag = 1;
+				break;
             case 'v':
-		rc = parse_verbosity(opts, argv[option_idx]);
-		break;
+				rc = parse_verbosity(opts, argv[option_idx]);
+				break;
             default:
                 printf("Unexpected option %c", c);
                 rc = 1;
