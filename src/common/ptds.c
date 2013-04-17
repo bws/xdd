@@ -216,7 +216,6 @@ xdd_create_qthread_ptds(ptds_t *tp, int32_t q) {
 	newqp->next_qp = NULL; 
 	newqp->restartp = NULL; // Zero this because the Target PTDS is the only PTDS with a restart struct
 	newqp->my_qthread_number = q;
-	tp->my_planp->number_of_iothreads++;
 	
 	sprintf(newqp->occupant_name,"TARGET%04d_QTHREAD%04d",newqp->my_target_number,newqp->my_qthread_number); 
 	xdd_init_barrier_occupant(&newqp->occupant, newqp->occupant_name, XDD_OCCUPANT_TYPE_QTHREAD, newqp);
@@ -375,6 +374,10 @@ xdd_build_ptds_substructure(xdd_plan_t* planp) {
 		// Allocate a shiney new PTDS for each qthread 
 		qp = tp;
 		for (q = 0; q < tp->queue_depth; q++ ) {
+
+                    // Increament the number of iothreads
+                    planp->number_of_iothreads++;
+                    
 			// Get a new QThread PTDS and have the previous PTDS point to it.
 			qp->next_qp = xdd_create_qthread_ptds(tp,q);
 			if (qp->next_qp == NULL) break;
