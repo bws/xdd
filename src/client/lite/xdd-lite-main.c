@@ -78,6 +78,7 @@ int main(int argc, char** argv) {
  *  indent-tabs-mode: t
  *  c-indent-level: 4
  *  c-basic-offset: 4
+ *  tab-width: 4
  * End:
  *
  * vim: ts=4 sts=4 sw=4 noexpandtab

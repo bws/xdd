@@ -71,9 +71,9 @@ xdd_e2e_qthread_init(ptds_t *qp)
 	int status;
 	in_addr_t addr;
 
-	qp->e2e_sr_time = 0;
+	qp->e2ep->e2e_sr_time = 0;
 
-	if(qp->e2e_dest_hostname == NULL) {
+	if(qp->e2ep->e2e_dest_hostname == NULL) {
 		fprintf(xgp->errout,"%s: xdd_e2e_qthread_init: Target %d QThread %d: No DESTINATION host name or IP address specified for this end-to-end operation.\n",
 				xgp->progname,
 				qp->my_target_number,
@@ -86,15 +86,15 @@ xdd_e2e_qthread_init(ptds_t *qp)
 	}
 
 	// Get the IP address of the destination host
-	status = xdd_lookup_addr(qp->e2e_dest_hostname, 0, &addr);
+	status = xdd_lookup_addr(qp->e2ep->e2e_dest_hostname, 0, &addr);
 	if (status) {
 		fprintf(xgp->errout, "%s: xdd_e2e_qthread_init: unable to identify host '%s'\n",
-				xgp->progname, qp->e2e_dest_hostname);
+				xgp->progname, qp->e2ep->e2e_dest_hostname);
 		return(-1);
 	}
 
 	// Convert to host byte order
-	qp->e2e_dest_addr = ntohl(addr);
+	qp->e2ep->e2e_dest_addr = ntohl(addr);
 
 	if (qp->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
 		status = xdd_e2e_dest_init(qp);
@@ -140,14 +140,14 @@ xdd_e2e_src_init(ptds_t *qp) {
 		return(-1);
 	}
 	// Init the relevant variables in the ptds
-	qp->e2e_msg_sent = 0;
-	qp->e2e_msg_sequence_number = 0;
+	qp->e2ep->e2e_msg_sent = 0;
+	qp->e2ep->e2e_msg_sequence_number = 0;
 	// Init the message header
-	qp->e2e_header.sequence = 0;
-	qp->e2e_header.sendtime = 0;
-	qp->e2e_header.recvtime = 0;
-	qp->e2e_header.location = 0;
-	qp->e2e_header.sendqnum = 0;
+	qp->e2ep->e2e_header.sequence = 0;
+	qp->e2ep->e2e_header.sendtime = 0;
+	qp->e2ep->e2e_header.recvtime = 0;
+	qp->e2ep->e2e_header.location = 0;
+	qp->e2ep->e2e_header.sendqnum = 0;
 
 	// Restart processing if necessary
 	if ((qp->target_options & TO_RESTART_ENABLE) && (qp->restartp)) { // Check to see if restart was requested
@@ -180,19 +180,19 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 	type = SOCK_STREAM;
 
 	// Create the socket 
-	qp->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
-	if (qp->e2e_sd < 0) {
+	qp->e2ep->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
+	if (qp->e2ep->e2e_sd < 0) {
 		xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","ERROR: error openning socket\n");
 		return(-1);
 	}
-	(void) xdd_e2e_set_socket_opts (qp,qp->e2e_sd);
+	(void) xdd_e2e_set_socket_opts (qp,qp->e2ep->e2e_sd);
 
 	/* Now build the "name" of the DESTINATION machine socket thingy and connect to it. */
-	(void) memset(&qp->e2e_sname, 0, sizeof(qp->e2e_sname));
-	qp->e2e_sname.sin_family = AF_INET;
-	qp->e2e_sname.sin_addr.s_addr = htonl(qp->e2e_dest_addr);
-	qp->e2e_sname.sin_port = htons(qp->e2e_dest_port);
-	qp->e2e_snamelen = sizeof(qp->e2e_sname);
+	(void) memset(&qp->e2ep->e2e_sname, 0, sizeof(qp->e2ep->e2e_sname));
+	qp->e2ep->e2e_sname.sin_family = AF_INET;
+	qp->e2ep->e2e_sname.sin_addr.s_addr = htonl(qp->e2ep->e2e_dest_addr);
+	qp->e2ep->e2e_sname.sin_port = htons(qp->e2ep->e2e_dest_port);
+	qp->e2ep->e2e_snamelen = sizeof(qp->e2ep->e2e_sname);
 
 	// Attempt to connect to the server for roughly 10 seconds
 	i = 0;
@@ -212,9 +212,9 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 		nanosleep(&req, (struct timespec *)NULL);
 	    }
 	    
-	    status = connect(qp->e2e_sd,
-			     (struct sockaddr *) &qp->e2e_sname,
-			     sizeof(qp->e2e_sname));
+	    status = connect(qp->e2ep->e2e_sd,
+			     (struct sockaddr *) &qp->e2ep->e2e_sname,
+			     sizeof(qp->e2ep->e2e_sname));
 	    i++;
 	}
 	
@@ -262,35 +262,35 @@ xdd_e2e_dest_init(ptds_t *qp) {
 	// Set up the descriptor table for the select() call
 	// This section is used when we are using TCP 
 	/* clear out the csd table */
-	for (qp->e2e_current_csd = 0; qp->e2e_current_csd < FD_SETSIZE; qp->e2e_current_csd++)
-		qp->e2e_csd[qp->e2e_current_csd] = 0;
+	for (qp->e2ep->e2e_current_csd = 0; qp->e2ep->e2e_current_csd < FD_SETSIZE; qp->e2ep->e2e_current_csd++)
+		qp->e2ep->e2e_csd[qp->e2ep->e2e_current_csd] = 0;
 
 	// Set the current and next csd indices to 0
-	qp->e2e_current_csd = qp->e2e_next_csd = 0;
+	qp->e2ep->e2e_current_csd = qp->e2ep->e2e_next_csd = 0;
 
 	/* Initialize the socket sets for select() */
-	FD_ZERO(&qp->e2e_readset);
-	FD_SET(qp->e2e_sd, &qp->e2e_readset);
-	qp->e2e_active = qp->e2e_readset;
-	qp->e2e_current_csd = qp->e2e_next_csd = 0;
+	FD_ZERO(&qp->e2ep->e2e_readset);
+	FD_SET(qp->e2ep->e2e_sd, &qp->e2ep->e2e_readset);
+	qp->e2ep->e2e_active = qp->e2ep->e2e_readset;
+	qp->e2ep->e2e_current_csd = qp->e2ep->e2e_next_csd = 0;
 
 	/* Find out how many sockets are in each set (berkely only) */
 #if (IRIX || WIN32 )
-	qp->e2e_nd = getdtablehi();
+	qp->e2ep->e2e_nd = getdtablehi();
 #endif
 #if (LINUX || DARWIN)
-	qp->e2e_nd = getdtablesize();
+	qp->e2ep->e2e_nd = getdtablesize();
 #endif
 #if (AIX)
-	qp->e2e_nd = FD_SETSIZE;
+	qp->e2ep->e2e_nd = FD_SETSIZE;
 #endif
 #if (SOLARIS )
-	qp->e2e_nd = FD_SETSIZE;
+	qp->e2ep->e2e_nd = FD_SETSIZE;
 #endif
 
 	// Initialize the message counter and sequencer to 0
-	qp->e2e_msg_recv = 0;
-	qp->e2e_msg_sequence_number = 0;
+	qp->e2ep->e2e_msg_recv = 0;
+	qp->e2ep->e2e_msg_sequence_number = 0;
 
 	// Check to see if restart was requested
 	if ((qp->target_options & TO_RESTART_ENABLE) && (qp->restartp)) { 
@@ -323,32 +323,32 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 	type = SOCK_STREAM;
 
 	// Create the socket 
-	qp->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
-	if (qp->e2e_sd < 0) {
+	qp->e2ep->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
+	if (qp->e2ep->e2e_sd < 0) {
 		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket","ERROR: error openning socket\n");
 		return(-1);
 	}
 
-	(void) xdd_e2e_set_socket_opts (qp, qp->e2e_sd);
+	(void) xdd_e2e_set_socket_opts (qp, qp->e2ep->e2e_sd);
 
 	/* Bind the name to the socket */
-	(void) memset(&qp->e2e_sname, 0, sizeof(qp->e2e_sname));
-	qp->e2e_sname.sin_family = AF_INET;
-	qp->e2e_sname.sin_addr.s_addr = htonl(qp->e2e_dest_addr);
-	qp->e2e_sname.sin_port = htons(qp->e2e_dest_port);
-	qp->e2e_snamelen = sizeof(qp->e2e_sname);
-	if (bind(qp->e2e_sd, (struct sockaddr *) &qp->e2e_sname, qp->e2e_snamelen)) {
+	(void) memset(&qp->e2ep->e2e_sname, 0, sizeof(qp->e2ep->e2e_sname));
+	qp->e2ep->e2e_sname.sin_family = AF_INET;
+	qp->e2ep->e2e_sname.sin_addr.s_addr = htonl(qp->e2ep->e2e_dest_addr);
+	qp->e2ep->e2e_sname.sin_port = htons(qp->e2ep->e2e_dest_port);
+	qp->e2ep->e2e_snamelen = sizeof(qp->e2ep->e2e_sname);
+	if (bind(qp->e2ep->e2e_sd, (struct sockaddr *) &qp->e2ep->e2e_sname, qp->e2ep->e2e_snamelen)) {
 		sprintf(msg,"Error binding name to socket - addr=0x%08x, port=0x%08x, specified as %d \n",
-			qp->e2e_sname.sin_addr.s_addr, 
-			qp->e2e_sname.sin_port,
-			qp->e2e_dest_port);
+			qp->e2ep->e2e_sname.sin_addr.s_addr, 
+			qp->e2ep->e2e_sname.sin_port,
+			qp->e2ep->e2e_dest_port);
 		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket",msg);
 		return(-1);
 	}
 
 	/* All set; prepare to accept connection requests */
 	if (type == SOCK_STREAM) { // If this is a stream socket then we need to listen for incoming data
-		status = listen(qp->e2e_sd, SOMAXCONN);
+		status = listen(qp->e2ep->e2e_sd, SOMAXCONN);
 		if (status) {
 			xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket","ERROR: bad status starting LISTEN on socket\n");
 			return(-1);

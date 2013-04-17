@@ -76,7 +76,7 @@ xdd_qthread_io(ptds_t *qp) {
 	// done receiving data from the Source Side.
 	// If there is Loose or Serial Ordering in effect then we need to release the Next QThread
 	// before returning.
-	if ((qp->target_options & TO_E2E_DESTINATION) && (qp->e2e_header.magic == PTDS_E2E_MAGIQ)) { 
+	if ((qp->target_options & TO_E2E_DESTINATION) && (qp->e2ep->e2e_header.magic == PTDS_E2E_MAGIQ)) { 
 		// Indicate that this QThread has received its EOF Packet
 		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
 		qp->qthread_target_sync |= QTSYNC_EOF_RECEIVED;
@@ -344,7 +344,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 		p->bytes_completed += qp->my_current_bytes_xfered_this_op;
 		p->my_current_bytes_xfered += qp->my_current_bytes_xfered_this_op;
 		p->my_current_op_count++;
-		p->e2e_sr_time += qp->e2e_sr_time; // E2E Send/Receive Time
+		p->e2ep->e2e_sr_time += qp->e2ep->e2e_sr_time; // E2E Send/Receive Time
 		if ( (qp->target_options & TO_ENDTOEND) && (qp->target_options & TO_E2E_DESTINATION)) {
 			if ( qp->first_pass_start_time < p->first_pass_start_time)  // Record the proper *First* pass start time
 				p->first_pass_start_time = qp->first_pass_start_time;

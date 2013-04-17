@@ -269,30 +269,30 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 	    if (p->target_options & TO_ENDTOEND) {
 
 		// Find an e2e entry that has a valid port count
-		while (0 == p->e2e_address_table[e2e_addr_index].port_count) {
+		while (0 == p->e2ep->e2e_address_table[e2e_addr_index].port_count) {
 		    e2e_addr_index++;
 		}
-		//assert(e2e_addr_index < p->e2e_address_table->number_of_entries);
+		//assert(e2e_addr_index < p->e2ep->e2e_address_table->number_of_entries);
 		
-		qp->e2e_dest_hostname = p->e2e_address_table[e2e_addr_index].hostname;
-		qp->e2e_dest_port = p->e2e_address_table[e2e_addr_index].base_port + e2e_addr_port;
+		qp->e2ep->e2e_dest_hostname = p->e2ep->e2e_address_table[e2e_addr_index].hostname;
+		qp->e2ep->e2e_dest_port = p->e2ep->e2e_address_table[e2e_addr_index].base_port + e2e_addr_port;
 		
 		// Set the QThread Numa node if possible
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
 		status = pthread_attr_setaffinity_np(&qthread_attr,
-						     sizeof(p->e2e_address_table[e2e_addr_index].cpu_set),
-						     &p->e2e_address_table[e2e_addr_index].cpu_set);
+						     sizeof(p->e2ep->e2e_address_table[e2e_addr_index].cpu_set),
+						     &p->e2ep->e2e_address_table[e2e_addr_index].cpu_set);
 #endif
 		// Roll over to the begining of the list if that is required
 		e2e_addr_port++;
-		if (e2e_addr_port == p->e2e_address_table[e2e_addr_index].port_count) {
+		if (e2e_addr_port == p->e2ep->e2e_address_table[e2e_addr_index].port_count) {
 		    e2e_addr_index++;
 		    e2e_addr_port = 0;
 		}
 		if (xgp->global_options & GO_REALLYVERBOSE)
 		    fprintf(stderr,"Target Init: Target %d: assigning hostname %s port %d to qthread %d\n",
-			    p->my_target_number, qp->e2e_dest_hostname,
-			    qp->e2e_dest_port, qp->my_qthread_number);
+			    p->my_target_number, qp->e2ep->e2e_dest_hostname,
+			    qp->e2ep->e2e_dest_port, qp->my_qthread_number);
 	    }
 
 	    

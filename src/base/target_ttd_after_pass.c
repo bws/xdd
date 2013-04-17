@@ -76,7 +76,7 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 	}
 	if (p->target_options & TO_ENDTOEND) { 
 		// Average the Send/Receive Time 
-		p->e2e_sr_time /= p->queue_depth;
+		p->e2ep->e2e_sr_time /= p->queue_depth;
 	}
 
 	return(status);

@@ -221,9 +221,9 @@ int parse_e2e_spec(xint_lite_options_t* opts, char* spec) {
 }
 /*
  * Local variables:
- *  indent-tabs-mode: t
  *  c-indent-level: 4
  *  c-basic-offset: 4
+ *  indent-tabs-mode: t
  * End:
  *
  * vim: ts=4 sts=4 sw=4 noexpandtab

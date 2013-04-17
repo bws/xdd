@@ -232,8 +232,8 @@ xdd_targetpass_e2e_task_setup_src(ptds_t *qp) {
 	// Assign an IO task to this qthread
 	qp->task_request = TASK_REQ_IO;
 
-	qp->e2e_msg_sequence_number = p->e2e_msg_sequence_number;
-	p->e2e_msg_sequence_number++;
+	qp->e2ep->e2e_msg_sequence_number = p->e2ep->e2e_msg_sequence_number;
+	p->e2ep->e2e_msg_sequence_number++;
 
 	if (p->seekhdr.seeks[p->my_current_op_number].operation == SO_OP_READ) // READ Operation
 		qp->my_current_op_type = OP_TYPE_READ;

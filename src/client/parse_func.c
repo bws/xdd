@@ -737,6 +737,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int args, args_index; 
     int target_number;
     ptds_t *p;
+	xdd_e2e_t	*e2ep;
     char *hostname, *base_port, *port_count, *numa_node;
     char *cp, *sp;
     char *source_path;
@@ -899,45 +900,47 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	// Now we need to put the address and base_port and number of ports into the PTDS for this Target or all Targets
 	if (target_number >= 0) {
 	    p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	    if (p == NULL) 
-		return(-1);
+	    if (p == NULL) return(-1);
+	    e2ep = xdd_get_e2ep(target_number);
+	    if (e2ep == NULL) return(-1);
+
 	    p->target_options |= TO_ENDTOEND;
-	    strcpy(p->e2e_address_table[p->e2e_address_table_next_entry].hostname, hostname); 
-	    p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
-            p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+	    strcpy(e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].hostname, hostname); 
+	    e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+            e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].port_count = 0;
             // Set a default NUMA node value if possible
 #if defined(HAVE_CPU_SET_T)
-		CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		CPU_ZERO(&e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 		sched_getaffinity(getpid(),
-				  sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
-				  &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+				  sizeof(e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set),
+				  &e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 #endif
 
 	    if (base_port) { // Set the requested Port Number and possible Port Count
-		p->e2e_address_table[p->e2e_address_table_next_entry].base_port = atoi(base_port); 
+		e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].base_port = atoi(base_port); 
 		if (port_count) 
-		    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = atoi(port_count); 
+		    e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].port_count = atoi(port_count); 
 		else {
-		    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+		    e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].port_count = 0;
 		}
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS) && defined(HAVE_NUMA_ALLOCATE_CPUMASK) 
 		if (numa_node && -1 != numa_available()) {
 		    int i;
 		    struct bitmask* numa_mask = numa_allocate_cpumask();
 		    int numa_node_no = atoi(numa_node);
-		    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		    CPU_ZERO(&e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 		    numa_node_to_cpus(numa_node_no, numa_mask);
 		    for (i = 0; i <= CPU_SETSIZE; i++) {
 			if (numa_bitmask_isbitset(numa_mask, i))
-			    CPU_SET(i, &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+			    CPU_SET(i, &e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 		    }
 		    numa_free_cpumask(numa_mask);
 		}
 		else {
-		    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		    CPU_ZERO(&e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 		    sched_getaffinity(getpid(),
-				      sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
-				      &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+				      sizeof(e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set),
+				      &e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 		}
 #else
 		if (numa_node) {
@@ -945,9 +948,9 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		}
 #endif
 	    } 
-	    p->e2e_address_table_port_count += p->e2e_address_table[p->e2e_address_table_next_entry].port_count;
-	    p->e2e_address_table_next_entry++;
-	    p->e2e_address_table_host_count++;
+	    e2ep->e2e_address_table_port_count += e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].port_count;
+	    e2ep->e2e_address_table_next_entry++;
+	    e2ep->e2e_address_table_host_count++;
 	} 
 	else {  /* set option for all targets */
 	    if (flags & XDD_PARSE_PHASE2) {
@@ -955,41 +958,43 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		i = 0;
 		while (p) {
 		    p->target_options |= TO_ENDTOEND;
-		    strcpy(p->e2e_address_table[p->e2e_address_table_next_entry].hostname, hostname); 
-	            p->e2e_address_table[p->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
-                    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+	    	e2ep = xdd_get_e2ep(target_number);
+	    	if (e2ep == NULL) return(-1);
+		    strcpy(e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].hostname, hostname); 
+	            e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+                    e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].port_count = 0;
                     // Set a default NUMA node value if possible
 #if defined(HAVE_CPU_SET_T)
-		    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		    CPU_ZERO(&e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 		    sched_getaffinity(getpid(),
-		        		  sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
-		        		  &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+		        		  sizeof(e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set),
+		        		  &e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 #endif
 
 		    if (base_port) { // Set the requested Port Number and possible Port Count
-			p->e2e_address_table[p->e2e_address_table_next_entry].base_port = atoi(base_port); 
+			e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].base_port = atoi(base_port); 
 			if (port_count) 
-			    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = atoi(port_count); 
+			    e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].port_count = atoi(port_count); 
 			else 
-			    p->e2e_address_table[p->e2e_address_table_next_entry].port_count = 0;
+			    e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].port_count = 0;
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS) && defined(HAVE_NUMA_ALLOCATE_CPUMASK)
 			if (numa_node && -1 != numa_available()) {
 			    int i;
 			    struct bitmask* numa_mask = numa_allocate_cpumask();
 			    int numa_node_no = atoi(numa_node);
-			    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+			    CPU_ZERO(&e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 			    numa_node_to_cpus(numa_node_no, numa_mask);
 			    for (i = 0; i <= CPU_SETSIZE; i++) {
 				if (numa_bitmask_isbitset(numa_mask, i))
-				    CPU_SET(i, &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+				    CPU_SET(i, &e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 			    }
 			    numa_free_cpumask(numa_mask);
 			}
 			else {
-			    CPU_ZERO(&p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+			    CPU_ZERO(&e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 			    sched_getaffinity(getpid(),
-					      sizeof(p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set),
-					      &p->e2e_address_table[p->e2e_address_table_next_entry].cpu_set);
+					      sizeof(e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set),
+					      &e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].cpu_set);
 			}
 #else
 			if (numa_node) {
@@ -997,9 +1002,9 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			}
 #endif
 		    } // End of IF stmnt that sets the Port/NPorts
-		    p->e2e_address_table_port_count += p->e2e_address_table[p->e2e_address_table_next_entry].port_count;
-		    p->e2e_address_table_host_count++;
-		    p->e2e_address_table_next_entry++;
+		    e2ep->e2e_address_table_port_count += e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].port_count;
+		    e2ep->e2e_address_table_host_count++;
+		    e2ep->e2e_address_table_next_entry++;
 		    i++;
 		    p = planp->ptdsp[i];
 		}
@@ -1057,10 +1062,12 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) {
 	    p = xdd_get_ptdsp(planp, target_number, argv[0]);
 	    if (p == NULL) return(-1);
+	    e2ep = xdd_get_e2ep(target_number);
+	    if (e2ep == NULL) return(-1);
 	    p->target_options |= TO_ENDTOEND;
 	    base_port_number = atoi(argv[args_index]);
 	    for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
-		p->e2e_address_table[j].base_port = base_port_number;
+		e2ep->e2e_address_table[j].base_port = base_port_number;
 	    // Set the base_port number in each of the currently specified e2e_address_table entries
 	} else {  /* set option for all targets */
 	    if (flags & XDD_PARSE_PHASE2) {
@@ -1068,10 +1075,12 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		i = 0;
 		base_port_number = atoi(argv[args_index]);
 		while (p) {
+	    	e2ep = xdd_get_e2ep(target_number);
+	    	if (e2ep == NULL) return(-1);
 		    p->target_options |= TO_ENDTOEND;
 		    // Set the base_port number in each of the currently specified e2e_address_table entries
 		    for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
-			p->e2e_address_table[j].base_port = base_port_number;
+			e2ep->e2e_address_table[j].base_port = base_port_number;
 		    i++;
 		    p = planp->ptdsp[i];
 		}
@@ -1084,10 +1093,12 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) {
 	    p = xdd_get_ptdsp(planp, target_number, argv[0]);
 	    if (p == NULL) return(-1);
+	    e2ep = xdd_get_e2ep(target_number);
+	    if (e2ep == NULL) return(-1);
 	    p->target_options |= TO_ENDTOEND;
 	    number_of_ports = atoi(argv[args_index]);
 	    for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
-		p->e2e_address_table[j].port_count = number_of_ports;
+		e2ep->e2e_address_table[j].port_count = number_of_ports;
 	    // Set the base_port number in each of the currently specified e2e_address_table entries
 	} else {  /* set option for all targets */
 	    if (flags & XDD_PARSE_PHASE2) {
@@ -1095,10 +1106,12 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		i = 0;
 		number_of_ports = atoi(argv[args_index]);
 		while (p) {
+	    	e2ep = xdd_get_e2ep(target_number);
+	    	if (e2ep == NULL) return(-1);
 		    p->target_options |= TO_ENDTOEND;
 		    // Set the base_port number in each of the currently specified e2e_address_table entries
 		    for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
-			p->e2e_address_table[j].port_count = number_of_ports;
+			e2ep->e2e_address_table[j].port_count = number_of_ports;
 		    i++;
 		    p = planp->ptdsp[i];
 		}
@@ -1132,11 +1145,13 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) {
 	    p = xdd_get_ptdsp(planp, target_number, argv[0]);
 	    if (p == NULL) return(-1);
+    	e2ep = xdd_get_e2ep(target_number);
+    	if (e2ep == NULL) return(-1);
 	    p->target_options |= TO_ENDTOEND;
 	    source_path  = argv[args_index+1];
 	    source_mtime = atoll(argv[args_index+2]);
-	    p->e2e_src_file_path  = source_path;
-	    p->e2e_src_file_mtime = source_mtime;
+	    e2ep->e2e_src_file_path  = source_path;
+	    e2ep->e2e_src_file_mtime = source_mtime;
 	} else {  /* set option for all targets */
 	    if (flags & XDD_PARSE_PHASE2) {
 		p = planp->ptdsp[0];
@@ -1144,11 +1159,13 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		source_path  = argv[args_index+1];
 			    source_mtime = atoll(argv[args_index+2]);
 			    while (p) {
-				p->target_options |= TO_ENDTOEND;
-				p->e2e_src_file_path  = source_path;
-				p->e2e_src_file_mtime = source_mtime;
-				i++;
-				p = planp->ptdsp[i];
+    				e2ep = xdd_get_e2ep(target_number);
+    				if (e2ep == NULL) return(-1);
+					p->target_options |= TO_ENDTOEND;
+					e2ep->e2e_src_file_path  = source_path;
+					e2ep->e2e_src_file_mtime = source_mtime;
+					i++;
+					p = planp->ptdsp[i];
 			    }
 	    }
 	}
@@ -2926,6 +2943,7 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int 		target_number;
     ptds_t 		*p;
 	restart_t	*rp;
+	xdd_e2e_t	*e2ep;
 
 
 	args_index = 1;
@@ -3018,9 +3036,12 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			if (p == NULL) return(-1);
 			rp = xdd_get_restartp(p);
 			if (rp == NULL) return(-1);
+			e2ep = xdd_get_e2ep(target_number);
+   			if (e2ep == NULL) return(-1);
+
 			rp->byte_offset = atoll(argv[args_index+1]);
 			rp->flags |= RESTART_FLAG_RESUME_COPY;
-			p->e2e_total_bytes_written=rp->byte_offset;
+			e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 			/* Set the last committed location to avoid restart output of
 			   0 if the target does not complete any I/O during first interval 
@@ -3029,15 +3050,15 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
-				rp = xdd_get_restartp(p);
-				if (rp == NULL) return(-1);
 				i = 0;
 				while (p) {
 					rp = xdd_get_restartp(p);
 					if (rp == NULL) return(-1);
+					e2ep = xdd_get_e2ep(target_number);
+   					if (e2ep == NULL) return(-1);
 					rp->byte_offset = atoll(argv[args_index+1]);
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
-					p->e2e_total_bytes_written=rp->byte_offset;
+					e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 					/* Set the last committed location to avoid restart output 
 					   of 0 if the target does not complete any I/O during 
