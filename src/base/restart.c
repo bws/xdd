@@ -30,7 +30,7 @@
  * This file contains the subroutines necessary to manage everything to
  * do with restarting an xddcp operation.
  */
-#include "xdd.h"
+#include "xint.h"
 
 #ifdef DARWIN
 #include <libgen.h>
@@ -169,7 +169,7 @@ xdd_restart_write_restart_file(restart_t *rp) {
 // during, and after xddcp is complete. 
 // 
 void *
-xdd_restart_monitor(void *junk) {
+xdd_restart_monitor(void *data) {
 	int				target_number;			// Used as a counter
 	ptds_t			*current_ptds;			// The current Target Thread PTDS
 	int64_t 		check_counter;			// The current number of times that we have checked on the progress of a copy
@@ -179,7 +179,7 @@ xdd_restart_monitor(void *junk) {
 	tot_entry_t		*tep;					// Pointer to an entry in the Target Offset Table
 	int				te;						// TOT Entry number
 	int64_t			lowest_offset;			// Lowest Offset in bytes 
-	
+	xdd_plan_t* planp = (xdd_plan_t*)data;
 
 
 
@@ -187,8 +187,8 @@ xdd_restart_monitor(void *junk) {
 	if (xgp->global_options & GO_REALLYVERBOSE)
 		fprintf(xgp->output,"%s: xdd_restart_monitor: Initializing...\n", xgp->progname);
 
-	for (target_number=0; target_number < xgp->number_of_targets; target_number++) {
-		current_ptds = xgp->ptdsp[target_number];
+	for (target_number=0; target_number < planp->number_of_targets; target_number++) {
+		current_ptds = planp->ptdsp[target_number];
 		rp = current_ptds->restartp;
 		status = pthread_mutex_init(&rp->restart_lock, 0);
 		if (status) {
@@ -214,13 +214,13 @@ xdd_restart_monitor(void *junk) {
 
 	// Enter this barrier to release main indicating that restart has initialized
 	xdd_init_barrier_occupant(&barrier_occupant, "RESTART_MONITOR", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);
-	xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,0);
+	xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant,0);
 
 	check_counter = 0;
 	// This is the loop that periodically checks all the targets/qthreads 
 	for (;;) {
 		// Sleep for the specified period of time
-		sleep(xgp->restart_frequency);
+		sleep(planp->restart_frequency);
 
 		// If it is time to leave then leave - the qthread cleanup will take care of closing the restart files
 		if (xgp->abort | xgp->canceled) 
@@ -228,8 +228,8 @@ xdd_restart_monitor(void *junk) {
 
 		check_counter++;
 		// Check all targets
-		for (target_number=0; target_number < xgp->number_of_targets; target_number++) {
-			current_ptds = xgp->ptdsp[target_number];
+		for (target_number=0; target_number < planp->number_of_targets; target_number++) {
+			current_ptds = planp->ptdsp[target_number];
 			// If this target does not require restart monitoring then continue
 			if ( !(current_ptds->target_options & TO_RESTART_ENABLE) ) // if restart is NOT enabled for this target then continue
 				continue;

@@ -31,13 +31,13 @@
 /*
  * This file contains the subroutines that support the Target threads.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_targetpass() - This subroutine will perform a single pass
  */
 int32_t
-xdd_targetpass(ptds_t *p) {
+xdd_targetpass(xdd_plan_t* planp, ptds_t *p) {
 
 	/* Before we get started, check to see if we need to reset the 
 	 * run_status in case we are using the start trigger.
@@ -48,7 +48,7 @@ xdd_targetpass(ptds_t *p) {
 
 	// This barrier is to ensure that all TARGETS start at same time 
 
-	xdd_barrier(&xgp->results_targets_startpass_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_startpass_barrier,&p->occupant,0);
 
 	/* Check to see if any of the other threads have aborted */
 	if (xgp->abort) {
@@ -61,8 +61,8 @@ xdd_targetpass(ptds_t *p) {
 	}
 
  	// This will wait for the interactive command processor to say go if we are in interactive mode
-	if (xgp->global_options & GO_INTERACTIVE) 
-		xdd_barrier(&xgp->interactive_barrier,&p->occupant,0);
+	if (planp->plan_options & PLAN_INTERACTIVE) 
+		xdd_barrier(&planp->interactive_barrier,&p->occupant,0);
 	if (xgp->abort) 
 		return(0);
 
@@ -89,10 +89,10 @@ xdd_targetpass(ptds_t *p) {
 	p->my_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
 	if (p->target_options & TO_ENDTOEND) { // E2E operations are *different*
 		if (p->target_options & TO_E2E_SOURCE)
-			 xdd_targetpass_e2e_loop_src(p);
-		else xdd_targetpass_e2e_loop_dst(p);
+		    xdd_targetpass_e2e_loop_src(planp, p);
+		else xdd_targetpass_e2e_loop_dst(planp, p);
 	} else { // Normal operations (other than E2E)
-		xdd_targetpass_loop(p);
+	    xdd_targetpass_loop(planp, p);
 	}
 	p->my_current_state |= CURRENT_STATE_PASS_COMPLETE;
 /////////////////////////////// PSEUDO-Loop Ends  Here /////////////////////////
@@ -105,7 +105,7 @@ xdd_targetpass(ptds_t *p) {
 
 	// Release the results_manager() to process/display the 
 	// results for this pass
-	xdd_barrier(&xgp->results_targets_endpass_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_endpass_barrier,&p->occupant,0);
 
 	// At this point all the Target Threads have completed their pass and 
 	// have passed thru the previous barrier releasing the results_manager() 
@@ -113,7 +113,7 @@ xdd_targetpass(ptds_t *p) {
 
 	// Wait at this barrier for the results_manager() to process/display the 
 	// results for this last pass
-	xdd_barrier(&xgp->results_targets_display_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_display_barrier,&p->occupant,0);
 
 	// This pass is complete - return to the Target Thread
 	return(0);
@@ -126,7 +126,7 @@ xdd_targetpass(ptds_t *p) {
  * This subroutine is called by xdd_targetpass().
  */
 void
-xdd_targetpass_loop(ptds_t *p) {
+xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p) {
 	ptds_t	*qp;
 	int		q;
 	int32_t	status;	// Return status from various subroutines
@@ -184,7 +184,7 @@ xdd_targetpass_loop(ptds_t *p) {
 		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
 	}
 	if (p->my_current_io_status != 0) 
-		xgp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
+		planp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
 	return;
 } // End of xdd_targetpass_loop()
 

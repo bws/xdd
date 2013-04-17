@@ -28,81 +28,55 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xdd.h"
+#include "xint.h"
 /*----------------------------------------------------------------------------*/
-/* xdd_init_globals() - Initialize a xdd global variables  
+/* xdd_global_initialization() - Initialize the "global_data" structure
  */
-void
-xdd_init_globals(char *progname) {
+xdd_global_data_t*
+xdd_global_data_initialization(int32_t argc,char *argv[]) {
+	char				*errmsg[1024];
+
 
 	xgp = (xdd_global_data_t *)malloc(sizeof(struct xdd_global_data));
 	if (xgp == 0) {
-		fprintf(stderr,"%s: Cannot allocate %d bytes of memory for global variables!\n",progname, (int)sizeof(struct xdd_global_data));
-		perror("Reason");
-		exit(1);
+		sprintf(errmsg,"%s: Cannot allocate %d bytes of memory for global variables!\n",argv[0], (int)sizeof(struct xdd_global_data));
+		perror(errmsg);
+		return(0);
 	}
 	memset(xgp,0,sizeof(struct xdd_global_data));
 
-	xgp->progname = progname;
+	xgp->progname = argv[0];
 	// This is the default in order to avoid all the warning messages, overridden by selecting -maxall andor -proclock + -memlock
-	xgp->global_options = (GO_NOPROCLOCK|GO_NOMEMLOCK);
 	xgp->output = stdout;
-	xgp->output_filename = "stdout";
 	xgp->errout = stderr;
+	xgp->csvoutput = NULL;
+	xgp->combined_output = NULL;      
+	xgp->output_filename = "stdout";
 	xgp->errout_filename = "stderr";
 	xgp->csvoutput_filename = "";
-	xgp->csvoutput = NULL;
-	xgp->combined_output_filename = ""; /* name of the combined output file */
-	xgp->combined_output = NULL;       /* Combined output file */
-	xgp->id_firsttime = 1;
-	
-	/* Initialize the global variables */
-	// Some of these settings may seem redundant because they are set to zero after clearing the entire data structure but they
-	// are basically place holders in case their default values need to be changed.
-	xgp->passes = DEFAULT_PASSES;
-	xgp->current_pass_number = 0;
-	xgp->pass_delay = DEFAULT_PASSDELAY;
-	xgp->pass_delay_accumulated_time = 0;
-	xgp->ts_binary_filename_prefix = DEFAULT_TIMESTAMP;
-	xgp->syncio = 0;
-	xgp->target_offset = 0;
-	xgp->number_of_targets = 0;
-	xgp->ts_output_filename_prefix = 0;
+	xgp->combined_output_filename = ""; 
+
+	xgp->id = (char *)malloc(MAX_IDLEN); // Allocate a suitable buffer for the run ID ASCII string
+	if (xgp->id == NULL) {
+		sprintf(errmsg,"%s: Cannot allocate %d bytes of memory for ID string\n",xgp->progname,MAX_IDLEN);
+		perror(errmsg);
+	}
+	if (xgp->id)
+		strcpy(xgp->id,DEFAULT_ID);
+
 	xgp->max_errors = 0; /* set to total_ops later when we know what it is */
 	xgp->max_errors_to_print = DEFAULT_MAX_ERRORS_TO_PRINT;  /* max number of errors to print information about */ 
-	/* Information needed to access the Global Time Server */
-	xgp->gts_hostname = 0;
-	xgp->gts_addr = 0;
-	xgp->gts_time = 0;
-	xgp->gts_port = DEFAULT_PORT;
-	xgp->gts_bounce = DEFAULT_BOUNCE;
-	xgp->gts_delta = 0;
-	xgp->gts_seconds_before_starting = 0; /* number of seconds before starting I/O */
-	xgp->restart_frequency = 0;
-	xgp->run_error_count_exceeded = 0;       /* The alarm that goes off when the number of errors for this run has been exceeded */
+	xgp->number_of_processors = 0;   /* Number of processors */ 
+	xgp->id_firsttime = 1;
 	xgp->run_time_expired = 0;       /* The alarm that goes off when the total run time has been exceeded */
+	xgp->run_error_count_exceeded = 0;       /* The alarm that goes off when the number of errors for this run has been exceeded */
 	xgp->run_complete = 0; 
 	xgp->abort = 0;       /* abort the run due to some catastrophic failure */
-	xgp->number_of_iothreads = 0;    /* number of threads spawned for all targets */
-	xgp->run_time = 0;               /* Length of time to run all targets, all passes */
-	xgp->run_time_ticks = 0;         /* Length of time to run all targets, all passes in high-res clock ticks */
-	xgp->estimated_end_time = 0;     /* The time at which this run (all passes) should end */
-	xgp->number_of_processors = 0;   /* Number of processors */ 
+	xgp->canceled = 0;       /* abort the run due to some catastrophic failure */
 	xgp->random_initialized = 0;     /* Random number generator has not been initialized  */
-	xgp->random_init_seed = 0;       /* Random number generator seed has not been initialized  */
-	xgp->e2e_TCP_Win = DEFAULT_E2E_TCP_WINDOW_SIZE;	 /* e2e TCP Window Size */
-	xgp->ActualLocalStartTime = 0;   /* The time to start operations */
 	xgp->XDDMain_Thread = pthread_self();
-	xgp->heartbeat_holdoff = 0;  	/* used by results manager to suspend or cancel heartbeat displays */
-	xgp->format_string = DEFAULT_OUTPUT_FORMAT_STRING;
 
-	// Allocate a suitable buffer for the run ID ASCII string
-	xgp->id = (char *)malloc(MAX_IDLEN);
-	if (xgp->id == NULL) {
-		fprintf(xgp->errout,"%s: Cannot allocate %d bytes of memory for ID string\n",xgp->progname,MAX_IDLEN);
-		exit(1);
-	}
-	strcpy(xgp->id,DEFAULT_ID);
+	return(xgp);
 
 } /* end of xdd_init_globals() */
 

@@ -48,3 +48,5 @@
 #include "xdd_common.h"
 #include "xdd_prototypes.h"
 #include "global_data.h"
+#include "xdd_plan.h"
+

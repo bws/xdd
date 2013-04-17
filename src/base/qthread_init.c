@@ -28,7 +28,7 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xdd.h"
+#include "xint.h"
 
 #ifdef HAVE_SCHED_H
 #include <sched.h>
@@ -122,7 +122,7 @@ xdd_qthread_init(ptds_t *qp) {
 
 	// Init the QThread-TargetPass WAIT Barrier for this QThread
 	sprintf(tmpname,"T%04d:Q%04d>qthread_targetpass_wait_barrier",qp->my_target_number,qp->my_qthread_number);
-	status = xdd_init_barrier(&qp->qthread_targetpass_wait_for_task_barrier, 2, tmpname);
+	status = xdd_init_barrier(qp->target_ptds->my_planp, &qp->qthread_targetpass_wait_for_task_barrier, 2, tmpname);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_qthread_init: Target %d QThread %d: ERROR: Cannot initialize QThread TargetPass WAIT barrier.\n",
 			xgp->progname, 

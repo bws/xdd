@@ -28,7 +28,7 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xdd.h"
+#include "xint.h"
 
 //******************************************************************************
 // Contains subroutines that implement the lockstep option
@@ -73,7 +73,7 @@ xdd_lockstep_init(ptds_t *p) {
 			}
 			// Initialize barrier in this lockstep structure
 			sprintf(master_lsp->Lock_Step_Barrier.name,"LockStep_MASTER_M%d_S%d",p->my_target_number,master_lsp->ls_ms_target);
-			xdd_init_barrier(&master_lsp->Lock_Step_Barrier, 2, master_lsp->Lock_Step_Barrier.name);
+			xdd_init_barrier(p->my_planp, &master_lsp->Lock_Step_Barrier, 2, master_lsp->Lock_Step_Barrier.name);
 		} 
 	}
 	slave_lsp = p->slave_lsp;
@@ -93,7 +93,7 @@ xdd_lockstep_init(ptds_t *p) {
 			}
 			// Initialize barrier in this lockstep structure
 			sprintf(slave_lsp->Lock_Step_Barrier.name,"LockStep_SLAVE_S%d_M%d",p->my_target_number,slave_lsp->ls_ms_target);
-			xdd_init_barrier(&slave_lsp->Lock_Step_Barrier, 2, slave_lsp->Lock_Step_Barrier.name);
+			xdd_init_barrier(p->my_planp, &slave_lsp->Lock_Step_Barrier, 2, slave_lsp->Lock_Step_Barrier.name);
 		} 
 	}
 	return(XDD_RC_GOOD);
@@ -358,7 +358,7 @@ xdd_lockstep_after_io_op_master(ptds_t *p) {
 		// Now that the SLAVE is running, we (the MASTER) may need to wait for the SLAVE to finish
 		// If the MASTER has not yet finished its pass, then enter the MASTER's barrier 
 		// and wait for the SLAVE to release us
-		if (slave_lsp->ls_ms_state |= LS_MASTER_WAITING)
+		if ((slave_lsp->ls_ms_state |= LS_MASTER_WAITING))
 			xdd_barrier(&master_lsp->Lock_Step_Barrier,&p->occupant,0);
 	} // Done releasing the slave 
 	return(XDD_RC_GOOD);

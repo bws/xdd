@@ -31,7 +31,7 @@
 /*
  * This file contains the subroutines necessary to compose the output of a display line.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 void 
@@ -710,7 +710,7 @@ xdd_results_display(results_t *rp) {
 // This routine will add a string of format IDs or other text to the end
 // of the existing format ID string.
 void 
-xdd_results_format_id_add( char *sp ) {
+xdd_results_format_id_add( char *sp , char *format_stringp) {
 
 	char	*tmpp;
 	int		length_format_string;
@@ -718,7 +718,7 @@ xdd_results_format_id_add( char *sp ) {
 	int		new_length;
 
 
-	length_format_string = strlen(xgp->format_string);
+	length_format_string = strlen(format_stringp);
 	length_added_string = strlen(sp);
 
 	new_length = length_format_string + length_added_string + 2;
@@ -728,10 +728,10 @@ xdd_results_format_id_add( char *sp ) {
 			xgp->progname, 
 			new_length,
 			sp,
-			xgp->format_string);
+			format_stringp);
 	}
-	sprintf(tmpp, "%s%s ",xgp->format_string, sp);
-	xgp->format_string = tmpp;
+	sprintf(tmpp, "%s%s ",format_stringp, sp);
+	format_stringp = tmpp;
 	
 	return;
 }

@@ -32,7 +32,7 @@
  * This file contains the subroutines that perform various initialization 
  * functions with respect to memory such as locking and unlocking pages.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 void

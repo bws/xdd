@@ -32,7 +32,7 @@
  * This file contains the subroutines necessary to perform a read-after-write
  * operation across two different machines running xdd.
  */
-#include "xdd.h"
+#include "xint.h"
 
 #ifdef FD_SETSIZE
 #undef FD_SETSIZE
@@ -300,7 +300,7 @@ xdd_raw_read_wait(ptds_t *p) {
 			}
 			rawp->raw_msg_recv++;
 			nclk_now(&rawp->raw_msg.recvtime);
-			rawp->raw_msg.recvtime += xgp->gts_delta;
+			//rawp->raw_msg.recvtime += xgp->gts_delta;
 			if (status > 0) status = bytes_received;
 			if (status == sizeof(rawp->raw_msg)) { /* Successful receive */
 				if (rawp->raw_msg.magic != PTDS_RAW_MAGIC) {
@@ -413,7 +413,7 @@ xdd_raw_writer_send_msg(ptds_t *p) {
 
 	rawp = p->rawp;
 	nclk_now(&rawp->raw_msg.sendtime);
-	rawp->raw_msg.sendtime += xgp->gts_delta;
+	//rawp->raw_msg.sendtime += xgp->gts_delta;
 	status = send(rawp->raw_sd, (char *) &rawp->raw_msg, sizeof(rawp->raw_msg),0);
 	if (status != sizeof(rawp->raw_msg)) {
 		xdd_raw_err("could not send message from RAW writer");

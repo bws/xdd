@@ -45,6 +45,7 @@
 #include "sgio.h"
 #include "triggers.h"
 #include "extended_stats.h"
+#include "xdd_plan.h"
 
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the PTDS
@@ -85,7 +86,8 @@ struct ptds {
 	struct ptds 		*target_ptds; 		// Pointer back to the Parent Target PTDS 
 	struct ptds 		*next_qp; 			// Pointer to the next QThread PTDS in the PTDS Substructure
 	pthread_t  			target_thread;		// Handle for this Target Thread 
-	pthread_t  			qthread;			// Handle for this QThread 
+	pthread_t  			qthread;			// Handle for this QThread
+    struct xdd_plan* my_planp;
 	int32_t   			my_target_number;	// My target number 
 	int32_t   			my_qthread_number;	// My queue number within this target 
 	int32_t   			my_thread_id;  		// My system thread ID (like a process ID) 

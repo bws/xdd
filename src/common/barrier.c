@@ -127,23 +127,23 @@
 // that must enter the barrier before all the occupants are released.
 //
 
-#include "xdd.h"
+#include "xint.h"
 /*----------------------------------------------------------------------------*/
 /* xdd_init_barrier_chain() - Initialize the barrier chain
  */
 int32_t
-xdd_init_barrier_chain(void) {
+xdd_init_barrier_chain(xdd_plan_t* planp) {
 	int32_t status;
 	
-	status = pthread_mutex_init(&xgp->barrier_chain_mutex, 0);
+	status = pthread_mutex_init(&planp->barrier_chain_mutex, 0);
 	if (status) {
 		fprintf(stderr,"%s: xdd_init_barrier_chain: ERROR initializing xgp->xdd_barrier_chain_mutex, status=%d", xgp->progname, status);
 		perror("Reason");
 		return(-1);
 	}
-	xgp->barrier_chain_first = (NULL);
-	xgp->barrier_chain_last = (NULL);
-	xgp->barrier_count = 0;
+	planp->barrier_chain_first = (NULL);
+	planp->barrier_chain_last = (NULL);
+	planp->barrier_count = 0;
 	return(0);
 } /* end of xdd_init_barrier_chain() */
 /*----------------------------------------------------------------------------*/
@@ -163,16 +163,16 @@ xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, ptds_t
  * barrier chain.
  */
 void
-xdd_destroy_all_barriers(void) {
+xdd_destroy_all_barriers(xdd_plan_t* planp) {
 	int32_t i;
 	xdd_barrier_t *bp;
 
 	i = 0;
-	while (xgp->barrier_chain_first) {
+	while (planp->barrier_chain_first) {
 		i++;
 		/* Get the xdd init barrier mutex so that we can take this barrier off the barrier chain */
-		bp = xgp->barrier_chain_first;
-		xdd_destroy_barrier(bp);
+		bp = planp->barrier_chain_first;
+		xdd_destroy_barrier(planp, bp);
 	}
 } /* end of xdd_destroy_all_barriers() */
 
@@ -182,7 +182,7 @@ xdd_destroy_all_barriers(void) {
 /* xdd_init_barrier() - Will initialize the specified pthread_barrier
  */
 int32_t
-xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
+xdd_init_barrier(xdd_plan_t* planp, struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
 	int32_t 		status; 			// status of various system calls 
 
 
@@ -219,20 +219,20 @@ xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
 	bp->flags |= XDD_BARRIER_FLAG_INITIALIZED; // Initialized!!!
 
 	/* Get the xdd init barrier mutex so that we can put this barrier on the barrier chain */
-	pthread_mutex_lock(&xgp->barrier_chain_mutex);
-	if (xgp->barrier_count == 0) { // Add first one to the chain
-		xgp->barrier_chain_first = bp;
-		xgp->barrier_chain_last = bp;
+	pthread_mutex_lock(&planp->barrier_chain_mutex);
+	if (planp->barrier_count == 0) { // Add first one to the chain
+		planp->barrier_chain_first = bp;
+		planp->barrier_chain_last = bp;
 		bp->prev_barrier = bp;
 		bp->next_barrier = bp;
 	} else { // Add this barrier to the end of the chain
-		bp->next_barrier = xgp->barrier_chain_first; // The last one on the chain points back to the first barrier on the chain as its "next" 
-		bp->prev_barrier = xgp->barrier_chain_last;
-		xgp->barrier_chain_last->next_barrier = bp;
-		xgp->barrier_chain_last = bp;
+		bp->next_barrier = planp->barrier_chain_first; // The last one on the chain points back to the first barrier on the chain as its "next" 
+		bp->prev_barrier = planp->barrier_chain_last;
+		planp->barrier_chain_last->next_barrier = bp;
+		planp->barrier_chain_last = bp;
 	} // Done adding this barrier to the chain
-	xgp->barrier_count++;
-	pthread_mutex_unlock(&xgp->barrier_chain_mutex);
+	planp->barrier_count++;
+	pthread_mutex_unlock(&planp->barrier_chain_mutex);
 	return(0);
 } // End of xdd_init_barrier() POSIX
 
@@ -245,7 +245,7 @@ xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name) {
  * again. Upcon destroying this barrier, this routine will set bp->counter to -1.
  */
 void
-xdd_destroy_barrier(struct xdd_barrier *bp) {
+xdd_destroy_barrier(xdd_plan_t* planp, struct xdd_barrier *bp) {
 	int32_t		status; 			// Status of various system calls
 
 	if ((bp->flags &= XDD_BARRIER_FLAG_INITIALIZED) == 0) 
@@ -275,15 +275,15 @@ xdd_destroy_barrier(struct xdd_barrier *bp) {
 	bp->counter = -1;
 	strcpy(bp->name,"DESTROYED");
 	// Remove this barrier from the chain and relink the barrier before this one to the barrier after this one
-	pthread_mutex_lock(&xgp->barrier_chain_mutex);
-	if (xgp->barrier_count == 1) { // This is the last barrier on the chain
-		xgp->barrier_chain_first = NULL;
-		xgp->barrier_chain_last = NULL;
+	pthread_mutex_lock(&planp->barrier_chain_mutex);
+	if (planp->barrier_count == 1) { // This is the last barrier on the chain
+		planp->barrier_chain_first = NULL;
+		planp->barrier_chain_last = NULL;
 	} else { // Remove this barrier from the chain
-		if (xgp->barrier_chain_first == bp) 
-			xgp->barrier_chain_first = bp->next_barrier;
-		if (xgp->barrier_chain_last == bp) 
-			xgp->barrier_chain_last = bp->prev_barrier;
+		if (planp->barrier_chain_first == bp) 
+			planp->barrier_chain_first = bp->next_barrier;
+		if (planp->barrier_chain_last == bp) 
+			planp->barrier_chain_last = bp->prev_barrier;
 		if (bp->prev_barrier) 
 			bp->prev_barrier->next_barrier = bp->next_barrier;
 		if (bp->next_barrier) 
@@ -291,8 +291,8 @@ xdd_destroy_barrier(struct xdd_barrier *bp) {
 	}
 	bp->prev_barrier = NULL;
 	bp->next_barrier = NULL;
-	xgp->barrier_count--;
-	pthread_mutex_unlock(&xgp->barrier_chain_mutex);
+	planp->barrier_count--;
+	pthread_mutex_unlock(&planp->barrier_chain_mutex);
 	// There, I think we're done...
 } // End of xdd_destroy_barrier() POSIX
 // 							PTHREAD BARRIERS 

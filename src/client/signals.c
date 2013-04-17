@@ -32,7 +32,7 @@
  * This file contains the signal handler and the routine that initializes
  * the signal hanler call.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*
  * Boolean flag indicating whether the user wishes to enter the debugger on
@@ -126,7 +126,7 @@ xdd_signal_start_debugger() {
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_signal_start_debugger: ERROR: Could not start debugger control processor\n", xgp->progname);
 		fflush(xgp->errout);
-		xdd_destroy_all_barriers();
+		//FIXME xdd_destroy_all_barriers();
 		exit(1);
 	}
 

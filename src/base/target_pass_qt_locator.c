@@ -32,7 +32,7 @@
  * This file contains the subroutine that locates an available QThread for
  * a specific target.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_get_specific_qthread() - This subroutine will locate the specified

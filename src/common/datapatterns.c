@@ -34,7 +34,7 @@
  */
 #define XDD_DATA_PATTERN
 #include <assert.h>
-#include "xdd.h"
+#include "xint.h"
 
 
 int xdd_data_pattern_init(xdd_data_pattern_t* xdp)

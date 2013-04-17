@@ -33,7 +33,7 @@
  * arguments  set up all the global and target-specific variables.
  */
 
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 // xdd_results_manager runs as a separate thread.
@@ -52,13 +52,14 @@
 // re-enter the primary waiting barrier.
 //
 void *
-xdd_results_manager(void *n) {
+xdd_results_manager(void *data) {
 	results_t	*tmprp;				// Pointer to the results struct in each qthread PTDS
 	int32_t		status;				// Status of the initialization subroutine
 	int			tmp_errno;			// Save the errno
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 	nclk_t		pass_delay_start;	// Start of a pass delay if it is specified
 	nclk_t		pass_delay_end;		// End of a pass delay if it is specified
+	xdd_plan_t* planp = (xdd_plan_t*)data;
 
 
 
@@ -72,7 +73,7 @@ xdd_results_manager(void *n) {
 	}
 
 	// Initialize the barriers and such
-	status = xdd_results_manager_init();
+	status = xdd_results_manager_init(planp);
 	if (status < 0)  {
 		fprintf(stderr,"%s: xdd_results_manager: ERROR: Exiting due to previous initialization failure.\n",xgp->progname);
 		return(0);
@@ -80,64 +81,64 @@ xdd_results_manager(void *n) {
 	
 	// Enter this barrier to release main indicating that results manager has initialized
 	xdd_init_barrier_occupant(&barrier_occupant, "RESULTS_MANAGER", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);
-	xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,0);
+	xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant,0);
 
 	// This is the loop that runs continuously throughout the xdd run
 	while (1) {
 		// This barrier will release all the targets at the start of a pass so they all start at the same time
-		xdd_barrier(&xgp->results_targets_startpass_barrier,&barrier_occupant,1);
+		xdd_barrier(&planp->results_targets_startpass_barrier,&barrier_occupant,1);
 
 		// At this point all the targets are running 
 
 		// While the targets are running, we enter this barrier to wait for them to all complete a single pass
-		xdd_barrier(&xgp->results_targets_endpass_barrier,&barrier_occupant,1);
+		xdd_barrier(&planp->results_targets_endpass_barrier,&barrier_occupant,1);
 
 		if ( xgp->abort == 1) { // Something went wrong during thread initialization so let's just leave
-			xdd_process_run_results();
+			xdd_process_run_results(planp);
 			// Release all the Target Threads so that they can do their cleanup and exit
-			xdd_barrier(&xgp->results_targets_display_barrier,&barrier_occupant,1);
+			xdd_barrier(&planp->results_targets_display_barrier,&barrier_occupant,1);
 			return(0);
 		}
 
 		// Display the header and units line if necessary
-		if (xgp->results_header_displayed == 0) {
-			xdd_results_header_display(tmprp);
-			xgp->results_header_displayed = 1;
+		if (planp->results_header_displayed == 0) {
+			xdd_results_header_display(tmprp, planp);
+			planp->results_header_displayed = 1;
 		}
 
 		// At this point all the target qthreads should have entered the results_display_barrier
 		// or the results_display_fnial_barrier and will wait for the pass or run results to be displayed
 
 		if (xgp->run_complete) {
-			xdd_process_run_results();
+			xdd_process_run_results(planp);
 			// Release all the Target Threads so that they can do their cleanup and exit
-			xdd_barrier(&xgp->results_targets_display_barrier,&barrier_occupant,1);
+			xdd_barrier(&planp->results_targets_display_barrier,&barrier_occupant,1);
 			// Wait for all the Target Threads do their cleanup...
-			xdd_barrier(&xgp->results_targets_waitforcleanup_barrier,&barrier_occupant,1);
+			xdd_barrier(&planp->results_targets_waitforcleanup_barrier,&barrier_occupant,1);
 			// Enter the FINAL barrier to tell XDD MAIN that everything is complete
-			xdd_barrier(&xgp->main_results_final_barrier,&barrier_occupant,0);
+			xdd_barrier(&planp->main_results_final_barrier,&barrier_occupant,0);
 			return(0);
 		} else { 
-			xdd_process_pass_results();
-			xgp->current_pass_number++;
+			xdd_process_pass_results(planp);
+			planp->current_pass_number++;
 			/* Insert a delay of "pass_delay" seconds if requested */
-			if ((xgp->pass_delay_usec > 0) && (xgp->current_pass_number < xgp->passes)) {
+			if ((planp->pass_delay_usec > 0) && (planp->current_pass_number < planp->passes)) {
 				nclk_now(&pass_delay_start);
-				xgp->heartbeat_holdoff = 1;
-				fprintf(xgp->output,"\nStarting Pass Delay of %f seconds...",xgp->pass_delay);
+				planp->heartbeat_holdoff = 1;
+				fprintf(xgp->output,"\nStarting Pass Delay of %f seconds...",planp->pass_delay);
 				fflush(xgp->output);
-				usleep(xgp->pass_delay_usec);
+				usleep(planp->pass_delay_usec);
 				fprintf(xgp->output,"Done\n");
 				fflush(xgp->output);
-				xgp->heartbeat_holdoff = 0;
+				planp->heartbeat_holdoff = 0;
 				nclk_now(&pass_delay_end);
 				// Figure out the accumulated pass delay time so that it can be subtracted later
-				xgp->pass_delay_accumulated_time += (pass_delay_end - pass_delay_start);
+				planp->pass_delay_accumulated_time += (pass_delay_end - pass_delay_start);
 			}
 
 		}
 
-		xdd_barrier(&xgp->results_targets_display_barrier,&barrier_occupant,1);
+		xdd_barrier(&planp->results_targets_display_barrier,&barrier_occupant,1);
 
 	} // End of main WHILE loop for the results_manager()
 	return(0);
@@ -149,13 +150,13 @@ xdd_results_manager(void *n) {
 // Return value of 0 is good, return of something less than zero is bad
 //
 int32_t
-xdd_results_manager_init(void) {
+xdd_results_manager_init(xdd_plan_t *planp) {
 	int32_t	status;
 
-	status = xdd_init_barrier(&xgp->results_targets_display_barrier, xgp->number_of_targets+1, "results_targets_display_barrier");
-	status += xdd_init_barrier(&xgp->results_targets_startpass_barrier,xgp->number_of_targets+1, "results_targets_startpass_barrier");
-	status += xdd_init_barrier(&xgp->results_targets_endpass_barrier,xgp->number_of_targets+1, "results_targets_endpass_barrier");
-	status += xdd_init_barrier(&xgp->results_targets_waitforcleanup_barrier, xgp->number_of_targets+1, "results_targets_waitforcleanup_barrier");
+	status = xdd_init_barrier(planp, &planp->results_targets_display_barrier, planp->number_of_targets+1, "results_targets_display_barrier");
+	status += xdd_init_barrier(planp, &planp->results_targets_startpass_barrier,planp->number_of_targets+1, "results_targets_startpass_barrier");
+	status += xdd_init_barrier(planp, &planp->results_targets_endpass_barrier,planp->number_of_targets+1, "results_targets_endpass_barrier");
+	status += xdd_init_barrier(planp, &planp->results_targets_waitforcleanup_barrier, planp->number_of_targets+1, "results_targets_waitforcleanup_barrier");
 	
 	if (status < 0)  {
 		fprintf(stderr,"%s: xdd_results_manager_init: ERROR: Cannot init barriers.\n",xgp->progname);
@@ -170,9 +171,9 @@ xdd_results_manager_init(void) {
 // Called by xdd_results_manager() 
 //
 void *
-xdd_results_header_display(results_t *tmprp) {
-	xgp->heartbeat_holdoff = 1;
-	tmprp->format_string = xgp->format_string;
+xdd_results_header_display(results_t *tmprp, xdd_plan_t *planp) {
+	planp->heartbeat_holdoff = 1;
+	tmprp->format_string = planp->format_string;
 	tmprp->output = xgp->output;
 	tmprp->delimiter = ' ';
 	tmprp->flags = RESULTS_HEADER_TAG;
@@ -187,7 +188,7 @@ xdd_results_header_display(results_t *tmprp) {
 		tmprp->flags = RESULTS_UNITS_TAG;
 		xdd_results_display(tmprp);
 	}
-	xgp->heartbeat_holdoff = 0;
+	planp->heartbeat_holdoff = 0;
 	return(0);
 	
 } // End of xdd_results_header_display()
@@ -197,26 +198,26 @@ xdd_results_header_display(results_t *tmprp) {
 // Called by xdd_results_manager() 
 //
 void *
-xdd_process_pass_results(void) {
+xdd_process_pass_results(xdd_plan_t *planp) {
     int			target_number;
     ptds_t		*p;		// PTDS pointer of the Target PTDS
     results_t	*tarp;	// Pointer to the Target Average results structure
     results_t	*trp;	// Pointer to the Temporary Target Pass results
     results_t	targetpass_results = {0}; // Temporary for target pass results
 
-    xgp->heartbeat_holdoff = 1;
+    planp->heartbeat_holdoff = 1;
 
     trp = &targetpass_results;
 
     // Next, display pass results for each Target
-    for (target_number=0; target_number<xgp->number_of_targets; target_number++) {
+    for (target_number=0; target_number<planp->number_of_targets; target_number++) {
         /* Get the ptds for this target */
-        p = xgp->ptdsp[target_number]; 
+        p = planp->ptdsp[target_number]; 
         
         // Init the Target Average Results struct
-        tarp = xgp->target_average_resultsp[target_number];
+        tarp = planp->target_average_resultsp[target_number];
         memset(tarp, 0, sizeof(*tarp));
-        tarp->format_string = xgp->format_string;
+        tarp->format_string = planp->format_string;
         tarp->what = "TARGET_AVERAGE";
         if (p->my_current_pass_number == 1) {
             tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
@@ -231,15 +232,15 @@ xdd_process_pass_results(void) {
 
         // Get the results from this Target's PTDS and
         // stuff them into a results struct for display
-        xdd_extract_pass_results(trp, p);
+        xdd_extract_pass_results(trp, p, planp);
 
         // Combine the pass results from this target with its AVERAGE results
         // from all previous passes
         tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
-        xdd_combine_results(tarp, trp);
+        xdd_combine_results(tarp, trp, planp);
 
         // Display the Pass Results for this target
-        trp->format_string = xgp->format_string;
+        trp->format_string = planp->format_string;
         trp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_PASS);
         trp->what = "TARGET_PASS   ";
         trp->output = xgp->output;
@@ -255,7 +256,7 @@ xdd_process_pass_results(void) {
 	
     } /* end of FOR loop that looks at all targets */
     
-    xgp->heartbeat_holdoff = 0;
+    planp->heartbeat_holdoff = 0;
 
     return(0);
 } // End of xdd_process_pass_results() 
@@ -266,7 +267,7 @@ xdd_process_pass_results(void) {
 // Called by xdd_results_manager() with a pointer to the qthread PTDS
 //
 void *
-xdd_process_run_results(void) {
+xdd_process_run_results(xdd_plan_t *planp) {
 	int			target_number;	// Current target number
 	ptds_t		*p;		// PTDS pointer to a Target PTDS
 	results_t	*tarp;	// Pointer to the Target Average results structure
@@ -278,13 +279,13 @@ xdd_process_run_results(void) {
 	// to display the AVERAGE and COMBINED results for this run.
 
 	// Tell the heartbeat to stop
-	xgp->heartbeat_holdoff = 2; 
+	planp->heartbeat_holdoff = 2; 
 
 	// Initialize the place where the COMBINED results are accumulated
 	crp = &combined_results; 
 	memset(crp, 0, sizeof(results_t));
 	crp->flags = (RESULTS_PASS_INFO | RESULTS_COMBINED);
-	crp->format_string = xgp->format_string;
+	crp->format_string = planp->format_string;
 	crp->what = "COMBINED      ";
 	crp->earliest_start_time_this_run = (double)DOUBLE_MAX;
 	crp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
@@ -292,15 +293,15 @@ xdd_process_run_results(void) {
 	crp->shortest_read_op_time = (double)DOUBLE_MAX;
 	crp->shortest_write_op_time = (double)DOUBLE_MAX;
 
-	for (target_number=0; target_number<xgp->number_of_targets; target_number++) {
-		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
-		tarp = xgp->target_average_resultsp[target_number];
+	for (target_number=0; target_number<planp->number_of_targets; target_number++) {
+		p = planp->ptdsp[target_number]; /* Get the ptds for this target */
+		tarp = planp->target_average_resultsp[target_number];
 
 		if (p->abort) 
 			xgp->abort = 1; // Indicate that this run ended with errors of some sort
 			
 		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
-		tarp->format_string = xgp->format_string;
+		tarp->format_string = planp->format_string;
 		tarp->what = "TARGET_AVERAGE";
 		tarp->output = xgp->output;
 		tarp->delimiter = ' ';
@@ -315,7 +316,7 @@ xdd_process_run_results(void) {
 		}
 
 		// Combined this Target's results with the other Targets
-		xdd_combine_results(crp, tarp);
+		xdd_combine_results(crp, tarp, planp);
 
 	} // End of FOR loop that processes all targets for the run
 
@@ -335,8 +336,8 @@ xdd_process_run_results(void) {
 	}
 
 	// Process TimeStamp reports for the -ts option
-	for (target_number=0; target_number<xgp->number_of_targets; target_number++) { 
-		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+	for (target_number=0; target_number<planp->number_of_targets; target_number++) { 
+		p = planp->ptdsp[target_number]; /* Get the ptds for this target */
 		/* Display and write the time stamping information if requested */
 		if (p->ts_options & (TS_ON | TS_TRIGGERED)) {
 			if (p->ts_current_entry > p->ttp->tt_size) 
@@ -363,13 +364,13 @@ xdd_process_run_results(void) {
 // that pass.
 //
 void 
-xdd_combine_results(results_t *to, results_t *from) {
+xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp) {
 
 
 	// Fundamental Variables
 	to->format_string = from->format_string;		// Format String for the xdd_results_display_processor() 
 	if (to->flags & RESULTS_COMBINED) {				// For the COMBINED output...
-		to->my_target_number = xgp->number_of_targets; 	// This is the number of targets
+		to->my_target_number = planp->number_of_targets; 	// This is the number of targets
 		to->my_qthread_number = from->queue_depth; 	// This is the number of QThreads for this Target
 	} else {										// For a queue or target pass then...
 		to->my_target_number = from->my_target_number; 	// Target number of instance 
@@ -476,7 +477,7 @@ xdd_combine_results(results_t *to, results_t *from) {
 			to->earliest_start_time_this_run = from->earliest_start_time_this_run;
 		if (to->latest_end_time_this_run <= from->latest_end_time_this_run)
 			to->latest_end_time_this_run = from->latest_end_time_this_run;
-		to->pass_delay_accumulated_time = xgp->pass_delay_accumulated_time;
+		to->pass_delay_accumulated_time = planp->pass_delay_accumulated_time;
 		if (to->latest_end_time_this_run <= to->earliest_start_time_this_run) 
 			to->elapsed_pass_time = -1.0;
 		else to->elapsed_pass_time = (to->latest_end_time_this_run - to->earliest_start_time_this_run - to->pass_delay_accumulated_time)/FLOAT_BILLION;
@@ -689,7 +690,7 @@ xdd_combine_results(results_t *to, results_t *from) {
 // to fill in and a pointer to the qthread PTDS that contains the raw data.
 //
 void *
-xdd_extract_pass_results(results_t *rp, ptds_t *p) {
+xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp) {
 
 	memset(rp, 0, sizeof(results_t));
 
@@ -824,7 +825,7 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p) {
 /*----------------------------------------------------------------------------*/
 // xdd_results_dump 
 void *
-xdd_results_dump(results_t *rp, char *dumptype) {
+xdd_results_dump(results_t *rp, char *dumptype, xdd_plan_t *planp) {
 
 	fprintf(xgp->output,"\n\n------------------------ Dumping %s -------------------------------\n\n", dumptype);
 	fprintf(xgp->output,"	flags = 0x%016x\n",(unsigned int)rp->flags);				// Flags that tell the display function what to display

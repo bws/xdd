@@ -32,7 +32,7 @@
  * This file contains the subroutines that support the Target threads.
  */
 #include <inttypes.h>
-#include "xdd.h"
+#include "xint.h"
 
 
 //******************************************************************************

@@ -31,7 +31,7 @@
 /*
  * This file contains the subroutines that support the Target threads.
  */
-#include "xdd.h"
+#include "xint.h"
 #include "interactive.h"
 extern xdd_interactive_func_t xdd_interactive_func[];
 #define XDD_CMDLINE_LENGTH	512		// Length of the command line
@@ -42,7 +42,7 @@ extern xdd_interactive_func_t xdd_interactive_func[];
  *
  */
 void *
-xdd_interactive(void *debugger) {
+xdd_interactive(void *data) {
 	char			*fstatus;						// Status of fgets() 
 	FILE			*cmdin;							// Where to read commands from (stdin normally)
 	char			cmdline[XDD_CMDLINE_LENGTH];	// The command line buffer
@@ -51,23 +51,26 @@ xdd_interactive(void *debugger) {
 	int				len;							// Length of the command line
 	int				cmd_status;						// Status from execution of the last command
 	char			*identity;						// Identity is either "icp" or "debug"
+	xdd_plan_t		*planp;
 
 
+
+	planp = (xdd_plan_t *)data;
 	cmdin = stdin;
-	if (debugger) { // This means that we have been called by the signal handler 
+	if (1) { // This means that we have been called by the signal handler 
 		// In debugger mode, we do not initialize or enter barriers....
 		identity = "DEBUG";
-		xgp->heartbeat_holdoff = 1; // Turn off the heartbeat just in case it is running...
+		planp->heartbeat_holdoff = 1; // Turn off the heartbeat just in case it is running...
 	} else { // Otherwise, this is just the interactive option
 		// Init the interactive flow control barriers
 		identity = "ICP";
-		xdd_init_barrier(&xgp->interactive_barrier, xgp->number_of_targets+1, "interactive_barrier");
+		xdd_init_barrier(planp, &planp->interactive_barrier, planp->number_of_targets+1, "interactive_barrier");
 	
 		// Initialize our "occupant" structure
-		xdd_init_barrier_occupant(&xgp->interactive_occupant, "INTERACTIVE", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);
+		xdd_init_barrier_occupant(&planp->interactive_occupant, "INTERACTIVE", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);
 	
 		// Enter this barrier to tell xdd that the interactive thread is running
-		xdd_barrier(&xgp->main_general_init_barrier,&xgp->interactive_occupant,0);
+		xdd_barrier(&planp->main_general_init_barrier,&planp->interactive_occupant,0);
 	}
 
 	// The command line loop
@@ -77,7 +80,7 @@ xdd_interactive(void *debugger) {
 		fstatus = fgets(cmdline,XDD_CMDLINE_LENGTH, cmdin);
 		if (fstatus == NULL) {
 			fprintf(stdout,"\n%s exiting\n",identity);
-			xgp->global_options &= ~GO_INTERACTIVE;
+			planp->plan_options &= ~PLAN_INTERACTIVE;
 			break;
 		} 
 		len = strlen(cmdline);

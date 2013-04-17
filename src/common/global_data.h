@@ -63,45 +63,24 @@
 #define GO_INTERACTIVE_STOP		0x0000001000000000ULL  /* Stop at various points in Interactive Mode */
 
 struct xdd_global_data {
-/* Global variables relevant to all threads */
-	uint64_t		global_options;         			/* I/O Options valid for all targets */
-	time_t			current_time_for_this_run; 			/* run time for this run */
+	uint64_t		global_options;        				/* I/O Options valid for all targets */
 	char			*progname;              			/* Program name from argv[0] */
-	int32_t			argc;                   			/* The original arg count */
+    	int32_t			argc;                   			/* The original arg count */
 	char			**argv;                 			/* The original *argv[]  */
-	int32_t			passes;                 			/* number of passes to perform */
-	int32_t			current_pass_number;      			/* Current pass number at any given time */
-	double			pass_delay;             			/* number of seconds to delay between passes */
-	int32_t			pass_delay_usec;          			/* number of microseconds to delay between passes */
-	nclk_t			pass_delay_accumulated_time;		/* number of high-res clock ticks of accumulated time during all pass delays */
-	int64_t			max_errors;             			/* max number of errors to tollerate */
-	int64_t			max_errors_to_print;    			/* Maximum number of compare errors to print */
-	char			*output_filename;       			/* name of the output file */
-	char			*errout_filename;       			/* name fo the error output file */
-	char			*csvoutput_filename;    			/* name of the csv output file */
-	char			*combined_output_filename; 			/* name of the combined output file */
-	char			*ts_binary_filename_prefix; 			/* timestamp filename prefix */
-	char			*ts_output_filename_prefix; 			/* timestamp report output filename prefix */
 	FILE			*output;                			/* Output file pointer*/ 
 	FILE			*errout;                			/* Error Output file pointer*/ 
 	FILE			*csvoutput;             			/* Comma Separated Values output file */
 	FILE			*combined_output;       			/* Combined output file */
-	uint32_t		restart_frequency;      			/* seconds between restart monitor checks */
-	int32_t			syncio;                 			/* the number of I/Os to perform btw syncs */
-	uint64_t		target_offset;          			/* offset value */
-	int32_t			number_of_targets;      			/* number of targets to operate on */
-	int32_t			number_of_iothreads;    			/* number of threads spawned for all targets */
+	char			*output_filename;       			/* name of the output file */
+	char			*errout_filename;       			/* name fo the error output file */
+	char			*csvoutput_filename;    			/* name of the csv output file */
+	char			*combined_output_filename; 			/* name of the combined output file */
 	char			*id;                    			/* ID string pointer */
-	double			run_time;                			/* Length of time to run all targets, all passes */
-	nclk_t			run_time_ticks;            			/* Length of time to run all targets, all passes - in high-res clock ticks*/
-	nclk_t			base_time;     						/* The time that xdd was started - set during initialization */
-	nclk_t			run_start_time; 					/* The time that the targets will start their first pass - set after initialization */
-	nclk_t			estimated_end_time;     			/* The time at which this run (all passes) should end */
-	int32_t			number_of_processors;   			/* Number of processors */
-	char                    random_init_state[256];                         /* Random number generator state initalizer array */
-	unsigned int            random_init_seed;                               /* Random number generator state seed value */
-
+	int64_t			max_errors;             			/* max number of errors to tollerate */
+	int64_t			max_errors_to_print;    			/* Maximum number of compare errors to print */
+	int32_t			number_of_processors;   			/* Number of processors */    
 	int32_t			clock_tick;							/* Number of clock ticks per second */
+    
 // Indicators that are used to control exit conditions and the like
 	char			id_firsttime;           			/* ID first time through flag */
 	char			run_time_expired;  					/* The alarm that goes off when the total run time has been exceeded */
@@ -109,77 +88,17 @@ struct xdd_global_data {
 	char			run_complete;   					/* Set to a 1 to indicate that all passes have completed */
 	char			abort;       						/* Abort the run due to some catastrophic failure */
 	char			canceled;       					/* Program canceled by user */
-	char                    random_initialized;                             /* Random number generator has been initialized */
-	int 			e2e_TCP_Win;						/* TCP Window Size - used by e2e */
-	struct linger	e2e_SO_Linger;						/* Used by the SO_LINGER Socket Option - used by e2e */
+	char                    random_initialized;                             /* Random number generator has been initialized */    
+	char                    random_init_state[256];                         /* Random number generator state initalizer array */
+	unsigned int            random_init_seed;                               /* Random number generator state seed value */
 	struct sigaction sa;								/* Used by the signal handlers to determine what to do */
-/* information needed to access the Global Time Server */
-	in_addr_t		gts_addr;               			/* Clock Server IP address */
-	in_port_t		gts_port;               			/* Clock Server Port number */
-	nclk_t			gts_time;               			/* global time on which to sync */
-	nclk_t			gts_seconds_before_starting; 		/* number of seconds before starting I/O */
-	int32_t			gts_bounce;             			/* number of times to bounce the time off the global time server */
-	nclk_t			gts_delta;              			/* Time difference returned by the clock initializer */
-	char			*gts_hostname;          			/* name of the time server */
-	nclk_t			ActualLocalStartTime;   			/* The time to start operations */
-	struct			utsname hostname;					/* The name of the computer this instance of XDD is running on */
-
+    
 // PThread structures for the main threads
 	pthread_t 		XDDMain_Thread;						// PThread struct for the XDD main thread
 	pthread_t 		Results_Thread;						// PThread struct for results manager
 	pthread_t 		Heartbeat_Thread;					// PThread struct for heartbeat monitor
 	pthread_t 		Restart_Thread;						// PThread struct for restart monitor
 	pthread_t 		Interactive_Thread;					// PThread struct for Interactive Control processor Thread
-
-// Thread Barriers 
-	pthread_mutex_t	barrier_chain_mutex;				/* Locking mutex for the barrier chain */
-	xdd_barrier_t	*barrier_chain_first;        		/* First barrier on the chain */
-	xdd_barrier_t	*barrier_chain_last;        		/* Last barrier on the chain */
-	int32_t			barrier_count;         				/* Number of barriers on the chain */
-
-	xdd_barrier_t	main_general_init_barrier;			// Barrier for xdd_main to make sure that the various support threads have initialized 
-
-	xdd_barrier_t	main_targets_waitforstart_barrier;	// Barrier where all target threads go waiting for main to tell them to start
-
-	xdd_barrier_t	main_targets_syncio_barrier;    	// Barrier for syncio 
-
-	xdd_barrier_t	main_results_final_barrier;        	// Barrier for the Results Manager to sync with xdd_main after all Target Threads have terminated
-
-	xdd_barrier_t	results_targets_startpass_barrier;	// Barrier for synchronizing target threads - all targets gather here at the beginning of a pass 
-
-	xdd_barrier_t	results_targets_endpass_barrier;	// Barrier for synchronizing target threads - all targets gather here at the end of a pass 
-
-	xdd_barrier_t	results_targets_display_barrier;	// Barrier for all Target Thereads to sync with the Results Manager while it displays information 
-
-	xdd_barrier_t	results_targets_run_barrier;     	// Barrier for all Target Thereads to sync with the results manager at the end of the run 
-
-	xdd_barrier_t	results_targets_waitforcleanup_barrier; // Barrier for all thereads to sync with the results manager when they have completed cleanup
-
-	xdd_barrier_t	interactive_barrier;				// Barriers for interactive flow control
-	xdd_occupant_t	interactive_occupant;				// Occupant structure for the Interactive functions
-
-
-
-// Variables used by the Results Manager
-	char			*format_string;						// Pointer to the format string used by the results_display() to display results 
-	char			results_header_displayed;			// 1 means that the header has been displayed, 0 means no
-	int32_t			heartbeat_holdoff;					/* set to 1 by the results_manager when it wants to display pass results, 
-											 			 * set back to 0 after everything is displayed
-											 			 * set back to 2 to tell heartbeat to exit 
-														 */
-#ifdef WIN32
-	HANDLE			ts_serializer_mutex;        		/* needed to circumvent a Windows bug */
-	char			*ts_serializer_mutex_name;  		/* needed to circumvent a Windows bug */
-#endif
-
-	/* Target Specific variables */
-	ptds_t			*ptdsp[MAX_TARGETS];				/* Pointers to the active PTDSs - Per Target Data Structures */
-	results_t		*target_average_resultsp[MAX_TARGETS];/* Results area for the "target" which is a composite of all its qthreads */
-	int64_t			target_errno[MAX_TARGETS];			// Is set by each target to indicate its final return code
-
-#ifdef LINUX
-	rlim_t	rlimit;
-#endif
 
 }; // End of Definition of the xdd_globals data structure
 

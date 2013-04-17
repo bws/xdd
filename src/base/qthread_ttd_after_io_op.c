@@ -31,7 +31,7 @@
 /*
    xdd - a basic i/o performance test
 */
-#include "xdd.h"
+#include "xint.h"
 
 //******************************************************************************
 // After I/O Operation

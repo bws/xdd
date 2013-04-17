@@ -32,7 +32,7 @@
 /*
  * This file contains the subroutines necessary to perform data verification
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_verify_checksum() - Verify data checksum of the data buffer  

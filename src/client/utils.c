@@ -32,7 +32,7 @@
  * This file contains a variety of utility functions used by any of the other 
  * functions within xdd.
  */
-#include "xdd.h"
+#include "xint.h"
 #include <stdlib.h>
 
 /*----------------------------------------------------------------------------*/

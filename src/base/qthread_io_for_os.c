@@ -31,7 +31,7 @@
 /*
  * This file contains the subroutines that support the Target threads.
  */
-#include "xdd.h"
+#include "xint.h"
 
 #if defined LINUX
 /*----------------------------------------------------------------------------*/

@@ -32,7 +32,7 @@
  * This file contains the subroutines used by target_pass() or targetpass_loop() 
  * that are specific to an End-to-End (E2E) operation.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_targetpass_e2e_loop_dst() - This subroutine will manage assigning tasks to
@@ -42,7 +42,7 @@
  * 
  */
 void
-xdd_targetpass_e2e_loop_dst(ptds_t *p) {
+xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, ptds_t *p) {
 	ptds_t	*qp;
 	int		q;
 
@@ -143,7 +143,7 @@ xdd_targetpass_e2e_loop_dst(ptds_t *p) {
 	}
 
 	if (p->my_current_io_status != 0) 
-		xgp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
+		planp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
 
 	return;
 
@@ -159,7 +159,7 @@ xdd_targetpass_e2e_loop_dst(ptds_t *p) {
  * This subroutine is called by xdd_targetpass().
  */
 void
-xdd_targetpass_e2e_loop_src(ptds_t *p) {
+xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, ptds_t *p) {
 	ptds_t	*qp;
 	int		q;
 	int32_t	status;
@@ -216,7 +216,7 @@ xdd_targetpass_e2e_loop_src(ptds_t *p) {
 	}
 
 	if (p->my_current_io_status != 0) 
-		xgp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
+		planp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
 
 	return;
 

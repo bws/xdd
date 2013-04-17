@@ -28,7 +28,7 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xdd.h"
+#include "xint.h"
 
 //******************************************************************************
 // Things the QThread has to do before each I/O Operation is issued

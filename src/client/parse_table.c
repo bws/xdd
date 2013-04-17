@@ -33,7 +33,7 @@
  * arguments  set up all the global and target-specific variables.
  */
 
-#include "xdd.h"
+#include "xint.h"
 /* -------------------------------------------------------------------------------------------------- */
 // The xdd Function Table
 //   This table contains entries of the following structure as defined in xdd.h:

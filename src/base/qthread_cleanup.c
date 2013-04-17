@@ -28,13 +28,13 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_qthread_cleanup() - Termination cleanup routine for a QThread
  */
 void
-xdd_qthread_cleanup(ptds_t *qp) {
+xdd_qthread_cleanup(ptds_t* qp) {
     return;
 } // End of xdd_qthread_cleanup()
 

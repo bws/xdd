@@ -29,6 +29,7 @@ INSTALL_DIR := @prefix@
 XDDCP_ENABLED := @XDDCP_ENABLED@
 CC_EXE := @CC@
 DEPC_EXE := @DEPC_PATH@
+TAR_EXE := @TAR@
 
 #
 # Tools
@@ -44,6 +45,7 @@ LN = ln -sf
 MKDIR = mkdir -p
 MV = mv -f
 RM = rm -f
+TAR = $(TAR_EXE)
 
 #
 # Configuration
@@ -60,10 +62,12 @@ SRC_DIR = src
 HDR_DIR = include
 BASE_DIR = $(SRC_DIR)/base
 CLIENT_DIR = $(SRC_DIR)/client
+CLIENT_LITE_DIR = $(SRC_DIR)/client/lite
 COMMON_DIR = $(SRC_DIR)/common
 COMPAT_DIR = $(SRC_DIR)/compat
 FS_DIR = $(SRC_DIR)/fs
 NET_DIR = $(SRC_DIR)/net
+PUBLIC_DIR = $(SRC_DIR)/public
 TOOLS_DIR = $(SRC_DIR)/tools
 
 #
@@ -71,17 +75,19 @@ TOOLS_DIR = $(SRC_DIR)/tools
 #
 include $(BASE_DIR)/module.mk
 include $(CLIENT_DIR)/module.mk
+include $(CLIENT_LITE_DIR)/module.mk
 include $(COMMON_DIR)/module.mk
 include $(COMPAT_DIR)/module.mk
 include $(FS_DIR)/module.mk
 include $(NET_DIR)/module.mk
+include $(PUBLIC_DIR)/module.mk
 include $(TOOLS_DIR)/module.mk
 
 #
 # Construct information from modules
 #
 XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
-	$(FS_SRC) $(NET_SRC) $(TOOLS_SRC)
+	$(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) $(TOOLS_SRC)
 
 #
 # XDD module build targets
@@ -93,6 +99,7 @@ TOOL_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOL_SRC)))
 # Project executable objects
 #
 CLIENT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
+CLIENT_LITE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_LITE_EXE_SRC)))
 GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
 GETFILESIZE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETFILESIZE_EXE_SRC)))
 GETHOSTIP_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETHOSTIP_EXE_SRC)))
@@ -107,6 +114,7 @@ ALL_OBJS = \
 	$(XDD_OBJS) \
 	$(TOOL_OBJS) \
 	$(CLIENT_EXE_OBJS) \
+	$(CLIENT_LITE_EXE_OBJS) \
 	$(GETTIME_EXE_OBJS) \
 	$(READ_TSDUMPS_EXE_OBJS) \
 	$(TS_EXE_OBJS) 
@@ -117,13 +125,14 @@ ALL_OBJS = \
 XDD_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(XDD_SRC)))
 TOOLS_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(TOOLS_SRC)))
 CLIENT_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_EXE_SRC)))
+CLIENT_LITE_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_LITE_EXE_SRC)))
 
 #
 # Default build settings
 #
 INCLUDES = -I$(BASE_DIR) -I$(CLIENT_DIR) -I$(COMMON_DIR) \
 		-I$(COMPAT_DIR) -I$(FS_DIR) -I$(NET_DIR) \
-		-I$(TOOLS_DIR)
+		-I$(PUBLIC_DIR) -I$(TOOLS_DIR)
 
 ARFLAGS = @CONFIG_ARFLAGS@
 
@@ -147,6 +156,8 @@ all: xdd xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate libs
 
 xdd: bin/xdd
 
+xdd-lite: bin/xdd-lite
+
 xdd-tserver: bin/xdd-tserver
 
 xdd-gettime: bin/xdd-gettime
@@ -159,7 +170,7 @@ xdd-read-tsdumps: bin/xdd-read-tsdumps
 
 xdd-truncate: bin/xdd-truncate
 
-.PHONY: all xdd xdd-tserver xdd-getfilesize xdd-gethostip xdd-gettime xdd-read-tsdumps xdd-truncate
+.PHONY: all xdd xdd-lite xdd-tserver xdd-getfilesize xdd-gethostip xdd-gettime xdd-read-tsdumps xdd-truncate
 
 #
 # Build rules for libraries
@@ -175,6 +186,9 @@ $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
 # Build rules for executable targets
 #
 bin/xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+bin/xdd-lite: $(XDD_OBJS) $(CLIENT_LITE_EXE_OBJS)
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-tserver: $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(TS_EXE_OBJS) 
@@ -252,7 +266,7 @@ fulldist: clean baseversion all tarball
 TARPATH := $(shell basename ${PWD})
 TARFLAGS := --exclude \*.o --exclude \*~ --exclude .DS_STORE --exclude .git
 tarball:
-	pushd .; cd .. && tar $(TARFLAGS) -czf xdd-$(shell date +%s).tgz $(TARPATH); popd
+	pushd .; cd .. && $(TAR) $(TARFLAGS) -czf xdd-$(shell date +%s).tgz $(TARPATH); popd
 
 .PHONY: baseversion dist fulldist tarball
 
@@ -307,6 +321,7 @@ tclean:
 clean: depclean libclean oclean tclean
 	$(info Cleaning the $(OS) executable files )
 	$(RM) 	bin/xdd \
+	 	bin/xdd-lite \
 		bin/xdd-tserver\
 		bin/xdd-getfilesize \
 		bin/xdd-gethostip \

@@ -32,7 +32,7 @@
  * This file contains the subroutines that figure out how many CPUs are on a
  * system and how to assign those processors to specific Target or QThreads.
  */
-#include "xdd.h"
+#include "xint.h"
 /*----------------------------------------------------------------------------*/
 /* xdd_processor() - assign this xdd thread to a specific processor 
  * This works on most operating systems except LINUX at the moment. 

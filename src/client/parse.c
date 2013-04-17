@@ -33,9 +33,8 @@
  * arguments  set up all the global and target-specific variables.
  */
 
-#include "xdd.h"
+#include "xint.h"
 extern xdd_func_t xdd_func[];
-void xdd_build_ptds_substructure(void);
 
 /*----------------------------------------------------------------------------*/
 /* xdd_parse_args() - Parameter parsing - called by xdd_parse().
@@ -62,7 +61,7 @@ void xdd_build_ptds_substructure(void);
  * and core dump if the weird dashes are used.
  */
 void
-xdd_parse_args(int32_t argc, char *argv[], uint32_t flags) {
+xdd_parse_args(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags) {
     int funci;      // Index into xdd_func[]
     int argi;       // Index into argv
     int arg_count;  // Number of args left to look at
@@ -89,7 +88,7 @@ xdd_parse_args(int32_t argc, char *argv[], uint32_t flags) {
             if ((strcmp(xdd_func[funci].func_name, (char *)((argv[argi])+1)) == 0) || 
                 (strcmp(xdd_func[funci].func_alt, (char *)((argv[argi])+1)) == 0)) {
                 argvp = &(argv[argi]);
-                status = (int)xdd_func[funci].func_ptr(arg_count, argvp, flags);
+                status = (int)xdd_func[funci].func_ptr(planp, arg_count, argvp, flags);
                 if (status == 0) {
                     invalid = 1;
                     break;
@@ -116,7 +115,7 @@ xdd_parse_args(int32_t argc, char *argv[], uint32_t flags) {
 /* xdd_parse() - Command line parser.
  */
 void
-xdd_parse(int32_t argc, char *argv[]) {
+xdd_parse(xdd_plan_t *planp, int32_t argc, char *argv[]) {
 
 	
 	if (argc < 1) { // Ooopppsss - nothing specified...
@@ -125,17 +124,17 @@ xdd_parse(int32_t argc, char *argv[]) {
 		exit(XDD_RETURN_VALUE_INVALID_OPTION);
 	}
 	/* parse the command line arguments */
-	xdd_parse_args(argc,argv, XDD_PARSE_PHASE1);
+	xdd_parse_args(planp, argc, argv, XDD_PARSE_PHASE1);
 
-	xdd_parse_args(argc,argv, XDD_PARSE_PHASE2);
-	if (xgp->ptdsp[0] == NULL) {
+	xdd_parse_args(planp, argc, argv, XDD_PARSE_PHASE2);
+	if (planp->ptdsp[0] == NULL) {
 		fprintf(xgp->errout,"You must specify a target device or filename\n");
 		xdd_usage(0);
 		exit(XDD_RETURN_VALUE_INVALID_ARGUMENT);
 	}
 
 	// Build the PTDS substructure for all targets
-	xdd_build_ptds_substructure();
+	xdd_build_ptds_substructure(planp);
 
 } /* end of xdd_parse() */
 /*----------------------------------------------------------------------------*/
@@ -194,7 +193,7 @@ xdd_check_option(char *op) {
 /* xdd_process_paramfile() - process the parameter file. 
  */
 int32_t
-xdd_process_paramfile(char *fnp) {
+xdd_process_paramfile(xdd_plan_t *planp, char *fnp) {
 	int32_t  i;   /* working variable */
 	int32_t  fd;   /* file descriptor for paramfile */
 	int32_t  newsize;
@@ -291,8 +290,8 @@ xdd_process_paramfile(char *fnp) {
 		if (i >= newsize) break;
 	}
 	argc++;   /* add one for the 0th argument */
-	xdd_parse_args(argc,argv,XDD_PARSE_PHASE1);
-	xdd_parse_args(argc,argv,XDD_PARSE_PHASE2);
+	xdd_parse_args(planp,argc,argv,XDD_PARSE_PHASE1);
+	xdd_parse_args(planp,argc,argv,XDD_PARSE_PHASE2);
 	return(SUCCESS);
 
 } /* end of xdd_process_param() */
@@ -328,7 +327,7 @@ xdd_process_paramfile(char *fnp) {
  *
  */
 int
-xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_number) {
+xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags, int *target_number) {
 	int32_t tn; // Temporary target number 
 	ptds_t	*p; // Pointer to a ptds for the specified target number
 
@@ -350,7 +349,7 @@ xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_
 			}
 		}
 		// Make sure the PTDS for this target exists - if it does not, the xdd_get_ptds() subroutine will create one
-		p = xdd_get_ptdsp(tn, "xdd_parse_target_number, target");
+		p = xdd_get_ptdsp(planp, tn, "xdd_parse_target_number, target");
 		if (p == NULL) return(-1);
 
 		// At this point the target number is valid and a PTDS exists for this target
@@ -358,9 +357,9 @@ xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_
         return(2);
 	} else { // The user could have specified the word "previous" to indicate the current target number minus 1
 		if ((strcmp(argv[0], "previous") == 0) || (strcmp(argv[0], "prev") == 0) || (strcmp(argv[0], "p") == 0)) {
-			tn = xgp->number_of_targets - 1;
+			tn = planp->number_of_targets - 1;
 			// Make sure the PTDS for this target exists - if it does not, the xdd_get_ptds() subroutine will create one
-			p = xdd_get_ptdsp(tn, "xdd_parse_target_number, previous");
+			p = xdd_get_ptdsp(planp, tn, "xdd_parse_target_number, previous");
 			if (p == NULL) return(-1);
 
 		    // At this point the target number is valid and a PTDS exists for this target
@@ -376,10 +375,11 @@ xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_
 /*----------------------------------------------------------------------------*/
 /* xdd_get_ptdsp() - return a pointer to the PTDS for the specified target
  */
-ptds_t * xdd_get_ptdsp(int32_t target_number, char *op) {
+ptds_t * 
+xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
     ptds_t *p;
 
-    p = xgp->ptdsp[target_number];
+    p = planp->ptdsp[target_number];
     // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
     if (p == 0) { 
 	p = malloc(sizeof(struct ptds));
@@ -388,7 +388,7 @@ ptds_t * xdd_get_ptdsp(int32_t target_number, char *op) {
 		    xgp->progname, target_number, op);
 	    return(NULL);
 	}
-	xgp->ptdsp[target_number] = p;
+	planp->ptdsp[target_number] = p;
 	// Zero out the memory first
 	memset((unsigned char *)p, 0, sizeof(ptds_t));
 
@@ -406,8 +406,8 @@ ptds_t * xdd_get_ptdsp(int32_t target_number, char *op) {
 
 	// Initialize the new PTDS and lets rock and roll!
 	xdd_init_new_ptds(p, target_number);
-	xgp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
-	if (xgp->target_average_resultsp[target_number] == NULL) {
+	planp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
+	if (planp->target_average_resultsp[target_number] == NULL) {
 	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESULTS struct for target %d\n",
 		    xgp->progname, (int)sizeof(results_t), target_number);
 	    return(NULL);

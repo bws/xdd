@@ -32,7 +32,7 @@
  * This file contains the subroutines that perform various functions 
  * with respect to the PTDS and the PTDS substructure.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_init_new_ptds() - Initialize the default Per-Target-Data-Structure 
@@ -216,7 +216,7 @@ xdd_create_qthread_ptds(ptds_t *tp, int32_t q) {
 	newqp->next_qp = NULL; 
 	newqp->restartp = NULL; // Zero this because the Target PTDS is the only PTDS with a restart struct
 	newqp->my_qthread_number = q;
-	xgp->number_of_iothreads++;
+	tp->my_planp->number_of_iothreads++;
 	
 	sprintf(newqp->occupant_name,"TARGET%04d_QTHREAD%04d",newqp->my_target_number,newqp->my_qthread_number); 
 	xdd_init_barrier_occupant(&newqp->occupant, newqp->occupant_name, XDD_OCCUPANT_TYPE_QTHREAD, newqp);
@@ -265,7 +265,7 @@ xdd_create_qthread_ptds(ptds_t *tp, int32_t q) {
  *  
  */
 void
-xdd_build_ptds_substructure(void) {
+xdd_build_ptds_substructure(xdd_plan_t* planp) {
 	int32_t 	q;				// working variable 
 	int32_t 	target_number;	// working variable 
 	int32_t		entry;			// Entry number
@@ -275,14 +275,14 @@ xdd_build_ptds_substructure(void) {
 
 	
 	/* For each target check to see if we need to add ptds structures for queue-depths greater than 1 */
-	xgp->number_of_iothreads = 0;
+	planp->number_of_iothreads = 0;
 
-	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
+	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
 		// The ptdsp[] array contains pointers to the TargetThread PTDS for each Target. 
 		// The TargetThread PTDS is allocated during parsing for each target that is identified.
-		tp = xgp->ptdsp[target_number];
+		tp = planp->ptdsp[target_number];
 
-		xgp->number_of_iothreads++;
+		planp->number_of_iothreads++;
 
 		// If this is an end-to-end operation, figure out the number of QThreads 
 		// which is based on the number of addresses:ports combinations specified

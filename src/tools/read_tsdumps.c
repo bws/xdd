@@ -4,7 +4,9 @@
 #include <stddef.h>
 #include <string.h>
 #include <libgen.h>
-#include <xdd.h>
+
+#define XDDMAIN
+#include <xint.h>
 
 /* make sure MAX is defined */
 #ifndef MAX

@@ -33,7 +33,7 @@
  * interactive commands.
  */
 
-#include "xdd.h"
+#include "xint.h"
 #include "interactive.h"
 /* -------------------------------------------------------------------------------------------------- */
 // The xdd Interaction Command Function Table

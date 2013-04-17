@@ -28,46 +28,50 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-/*
- * This file contains the subroutines that implement process scheduling
- * functions that can raise or lower execution priority on a system.
- */
-#include "xint.h"
-/*----------------------------------------------------------------------------*/
-/* xdd_schedule_options() - do the appropriate scheduling operations to 
- *   maximize performance of this program.
- */
-void
-xdd_schedule_options(void) {
-#ifdef HAVE_SCHEDSCHEDULER
-    int32_t status;  /* status of a system call */
-    struct sched_param param; /* for the scheduler */
+#include "libxdd.h"
+#include "xdd-lite.h"
 
-    if (xgp->global_options & GO_NOPROCLOCK) 
-	return;
-    if (getuid() != 0)
-	fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to lock processes\n",xgp->progname);
-    /* lock ourselves into memory for the duration */
-    status = mlockall(MCL_CURRENT | MCL_FUTURE);
-    if (status < 0) {
-	fprintf(xgp->errout,"%s: xdd_schedule_options: cannot lock process into memory\n",xgp->progname);
-	perror("Reason");
-    }
-    if (xgp->global_options & GO_MAXPRI) {
-	if (getuid() != 0) 
-	    fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to max priority\n",xgp->progname);
+int print_usage() {
+    xint_lite_print_usage();
+}
 
-	/* reset the priority to max max max */
-	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
-	status = sched_setscheduler(0,SCHED_FIFO,&param);
-	if (status == -1) {
-	    fprintf(xgp->errout,"%s: xdd_schedule_options: cannot reschedule priority\n",xgp->progname);
-	    perror("Reason");
-	}
+/** Main */
+int main(int argc, char** argv) {
+
+    int rc;
+    size_t num_targets;
+    xdd_lite_options_t opts;
+    xdd_plan_t lite_plan;
+
+    /* Initialize and parse options */
+    rc = xint_lite_options_init(&opts);    
+    if (0 == rc) {
+        rc += xint_lite_options_parse(&opts, argc, argv);
+    } else {
+        goto cleanup_options;
     }
-#endif
-} /* end of xdd_schedule_options() */
- 
+    if (0 != rc || 1 == opts->help_flag) {
+        print_usage();
+        goto cleanup_options;
+    }
+
+    /* Construct a plan from the specified options */
+    rc += xdd_plan_init(&lite_plan);
+    rc += xint_lite_options_plan_create(&opts, &lite_plan);
+
+    /* Execute the plan */
+    rc += xdd_plan_start(&lite_plan);
+    rc += xdd_plan_wait(&lite_plan);
+
+    /* Perform cleanup */
+  cleanup_plan:
+    xdd_plan_destroy(&lite_plan);
+  cleanup_options:
+    xint_light_options_destroy(&opts);
+    
+    return rc;
+}
+
 /*
  * Local variables:
  *  indent-tabs-mode: t

@@ -32,7 +32,7 @@
  * This file contains the subroutines that perform various debugging functions 
  * that mainly display key data structures and things like that.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_show_ptds() - Display values in the specified Per-Target-Data-Structure 
@@ -159,39 +159,23 @@ xdd_show_ptds(ptds_t *p) {
  */
 void
 xdd_show_global_data(void) {
-	int		target_number;	
-
-
 	fprintf(stderr,"********* Start of Global Data **********\n");
 	fprintf(xgp->output,"global_options          0x%016llx - I/O Options valid for all targets \n",(long long int)xgp->global_options);
 //	fprintf(xgp->output,"current_time_for_this_run %d  - run time for this run \n",xgp->current_time_for_this_run);
 	fprintf(xgp->output,"progname                  %s - Program name from argv[0] \n",xgp->progname);
 	fprintf(xgp->output,"argc                      %d - The original arg count \n",xgp->argc);
 //	fprintf(xgp->output,"argv                    %s\n",xgp->char			**argv;         // The original *argv[]  */
-	fprintf(xgp->output,"passes                    %d - number of passes to perform \n",xgp->passes);
-	fprintf(xgp->output,"pass_delay                %f - number of seconds to delay between passes \n",xgp->pass_delay);
 	fprintf(xgp->output,"max_errors                %lld - max number of errors to tollerate \n",(long long int)xgp->max_errors);
 	fprintf(xgp->output,"max_errors_to_print       %lld - Maximum number of compare errors to print \n",(long long int)xgp->max_errors_to_print);
 	fprintf(xgp->output,"output_filename          '%s' - name of the output file \n",(xgp->output_filename != NULL)?xgp->output_filename:"NA");
 	fprintf(xgp->output,"errout_filename          '%s' - name fo the error output file \n",(xgp->errout_filename != NULL)?xgp->errout_filename:"NA");
 	fprintf(xgp->output,"csvoutput_filename       '%s' - name of the csv output file \n",(xgp->csvoutput_filename != NULL)?xgp->csvoutput_filename:"NA");
 	fprintf(xgp->output,"combined_output_filename '%s' - name of the combined output file \n",(xgp->combined_output_filename != NULL)?xgp->combined_output_filename:"NA");
-	fprintf(xgp->output,"ts_binary_filename_prefix '%s' - timestamp binary filename prefix \n",(xgp->ts_binary_filename_prefix != NULL)?xgp->ts_binary_filename_prefix:"NA");
-	fprintf(xgp->output,"ts_output_filename_prefix '%s' - timestamp report output filename prefix \n",(xgp->ts_output_filename_prefix != NULL)?xgp->ts_output_filename_prefix:"NA");
 	fprintf(xgp->output,"output                  0x%p - Output file pointer \n",xgp->output);
 	fprintf(xgp->output,"errout                  0x%p - Error Output file pointer \n",xgp->errout);
 	fprintf(xgp->output,"csvoutput               0x%p - Comma Separated Values output file \n",xgp->csvoutput);
 	fprintf(xgp->output,"combined_output         0x%p - Combined output file \n",xgp->combined_output);
-	fprintf(xgp->output,"restart_frequency         %d - seconds between restart monitor checks \n",xgp->restart_frequency);
-	fprintf(xgp->output,"syncio                    %d - the number of I/Os to perform btw syncs \n",xgp->syncio);
-	fprintf(xgp->output,"target_offset             %lld - offset value \n",(long long int)xgp->target_offset);
-	fprintf(xgp->output,"number_of_targets         %d - number of targets to operate on \n",xgp->number_of_targets);
-	fprintf(xgp->output,"number_of_iothreads       %d - number of threads spawned for all targets \n",xgp->number_of_iothreads);
 	fprintf(xgp->output,"id                       '%s' - ID string pointer \n",(xgp->id != NULL)?xgp->id:"NA");
-	fprintf(xgp->output,"run_time                  %f - Length of time to run all targets, all passes \n",xgp->run_time);
-	fprintf(xgp->output,"base_time                 %lld - The time that xdd was started - set during initialization \n",(long long int)xgp->base_time);
-	fprintf(xgp->output,"run_start_time            %lld - The time that the targets start their first pass - set after initialization \n",(long long int)xgp->run_start_time);
-	fprintf(xgp->output,"estimated_time            %lld - The time at which this run (all passes) should end \n",(long long int)xgp->estimated_end_time);
 	fprintf(xgp->output,"number_of_processors      %d - Number of processors \n",xgp->number_of_processors);
 //	fprintf(xgp->output,"random_init_state         %s\n",xgp->char			random_init_state[256]; 			/* Random number generator state initalizer array */ 
 	fprintf(xgp->output,"clock_tick                %d - Number of clock ticks per second \n",xgp->clock_tick);
@@ -220,19 +204,52 @@ xdd_show_global_data(void) {
 //
 // Thread Barriers 
 //	pthread_mutex_t	xdd_init_barrier_mutex;				/* locking mutex for the xdd_init_barrier() routine */
-	fprintf(xgp->output,"barrier_count,            %d Number of barriers on the chain \n",xgp->barrier_count);         				
 //
 // Variables used by the Results Manager
-	fprintf(xgp->output,"format_string,             '%s'\n",(xgp->format_string != NULL)?xgp->format_string:"NA");
-	fprintf(xgp->output,"results_header_displayed    %d\n",xgp->results_header_displayed);
-	fprintf(xgp->output,"heartbeat_holdoff           %d\n",xgp->heartbeat_holdoff);
-
-	/* Target Specific variables */
-	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		fprintf(xgp->output,"PTDS pointer for target %d of %d is 0x%p\n",target_number, xgp->number_of_targets, xgp->ptdsp[target_number]);
-	}
-	//results_t		*target_average_resultsp[MAX_TARGETS];/* Results area for the "target" which is a composite of all its qthreads */
 	fprintf(stderr,"********* End of Global Data **********\n");
 
 } /* end of xdd_show_global_data() */ 
+ 
+/*----------------------------------------------------------------------------*/
+/* xdd_show_plan_data() - Display values in the specified global data structure
+ */
+void
+xdd_show_plan_data(xdd_plan_t* planp) {
+	int		target_number;	
+
+
+	fprintf(stderr,"********* Start of Plan Data **********\n");
+	fprintf(xgp->output,"passes                    %d - number of passes to perform \n",planp->passes);
+	fprintf(xgp->output,"pass_delay                %f - number of seconds to delay between passes \n",planp->pass_delay);
+	fprintf(xgp->output,"max_errors                %lld - max number of errors to tollerate \n",(long long int)xgp->max_errors);
+	fprintf(xgp->output,"max_errors_to_print       %lld - Maximum number of compare errors to print \n",(long long int)xgp->max_errors_to_print);
+	fprintf(xgp->output,"ts_binary_filename_prefix '%s' - timestamp binary filename prefix \n",(planp->ts_binary_filename_prefix != NULL)?planp->ts_binary_filename_prefix:"NA");
+	fprintf(xgp->output,"ts_output_filename_prefix '%s' - timestamp report output filename prefix \n",(planp->ts_output_filename_prefix != NULL)?planp->ts_output_filename_prefix:"NA");
+	fprintf(xgp->output,"restart_frequency         %d - seconds between restart monitor checks \n",planp->restart_frequency);
+	fprintf(xgp->output,"syncio                    %d - the number of I/Os to perform btw syncs \n",planp->syncio);
+	fprintf(xgp->output,"target_offset             %lld - offset value \n",(long long int)planp->target_offset);
+	fprintf(xgp->output,"number_of_targets         %d - number of targets to operate on \n",planp->number_of_targets);
+	fprintf(xgp->output,"number_of_iothreads       %d - number of threads spawned for all targets \n",planp->number_of_iothreads);
+	fprintf(xgp->output,"run_time                  %f - Length of time to run all targets, all passes \n",planp->run_time);
+	fprintf(xgp->output,"base_time                 %lld - The time that xdd was started - set during initialization \n",(long long int)planp->base_time);
+	fprintf(xgp->output,"run_start_time            %lld - The time that the targets start their first pass - set after initialization \n",(long long int)planp->run_start_time);
+	fprintf(xgp->output,"estimated_end_time            %lld - The time at which this run (all passes) should end \n",(long long int)planp->estimated_end_time);
+	fprintf(xgp->output,"number_of_processors      %d - Number of processors \n",planp->number_of_processors);
+//	fprintf(xgp->output,"random_init_state         %s\n",xgp->char			random_init_state[256]; 			/* Random number generator state initalizer array */ 
+	fprintf(xgp->output,"clock_tick                %d - Number of clock ticks per second \n",planp->clock_tick);
+// Indicators that are used to control exit conditions and the like
+	fprintf(xgp->output,"barrier_count,            %d Number of barriers on the chain \n",planp->barrier_count);         				
+//
+// Variables used by the Results Manager
+	fprintf(xgp->output,"format_string,             '%s'\n",(planp->format_string != NULL)?planp->format_string:"NA");
+	fprintf(xgp->output,"results_header_displayed    %d\n",planp->results_header_displayed);
+	fprintf(xgp->output,"heartbeat_holdoff           %d\n",planp->heartbeat_holdoff);
+
+	/* Target Specific variables */
+	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
+		fprintf(xgp->output,"PTDS pointer for target %d of %d is 0x%p\n",target_number, planp->number_of_targets, planp->ptdsp[target_number]);
+	}
+	fprintf(stderr,"********* End of Plan Data **********\n");
+
+} /* end of xdd_show_plan_data() */ 
  

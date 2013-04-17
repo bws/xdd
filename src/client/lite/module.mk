@@ -3,4 +3,6 @@
 #
 DIR := src/client/lite
 
-XDD_SRC += 
+CLIENT_LITE_SRC := $(DIR)/xint-lite.c 
+
+CLIENT_LITE_EXE_SRC := $(DIR)/xdd-lite-main.c 

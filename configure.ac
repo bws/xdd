@@ -130,6 +130,14 @@ AC_PATH_PROG([depc_exists],
 DEPC_PATH=$depc_exists
 AC_SUBST(DEPC_PATH)
 
+dnl
+dnl Check for a GNU compatible tar program
+dnl
+tar_cmd=""
+AC_PATH_PROG([tar_cmd], [gnutar tar], AC_MSG_WARN(Unable to find a valid tar program))
+TAR=$tar_cmd
+AC_SUBST(TAR)
+
 dnl 
 dnl Check for Standard C headers
 dnl

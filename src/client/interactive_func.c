@@ -31,7 +31,7 @@
 /*
  * This file contains the subroutines that support the Target threads.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_exit()
@@ -39,6 +39,7 @@
  */
 int
 xdd_interactive_exit(int32_t tokens, char *cmdline, uint32_t flags) {
+#ifdef ndef
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
 	xdd_init_barrier_occupant(&barrier_occupant, "INTERACTIVE_EXIT", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);
@@ -47,6 +48,7 @@ xdd_interactive_exit(int32_t tokens, char *cmdline, uint32_t flags) {
 	// Enter the FINAL barrier to tell XDD MAIN that everything is complete
 	xdd_barrier(&xgp->main_results_final_barrier,&barrier_occupant,0);
 
+#endif
 	pthread_exit(0);
 
 } // End of xdd_interactive_goto()
@@ -116,10 +118,10 @@ xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags) {
 int
 xdd_interactive_run(int32_t tokens, char *cmdline, uint32_t flags) {
 
-
+#ifdef ndef
 	// Signal the target threads to start running
 	xdd_barrier(&xgp->interactive_barrier,&xgp->interactive_occupant,1);
-
+#endif
 	return(0);
 
 } // End of xdd_interactive_run()
@@ -142,7 +144,9 @@ xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags) {
 int
 xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags) {
 
+#ifdef ndef
 	xgp->global_options |= GO_INTERACTIVE_STOP;
+#endif
 
 	return(0);
 
@@ -180,7 +184,9 @@ xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags) {
 void
 xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags) {
 
+#ifdef ndef
 	xdd_show_global_data();
+#endif
 
 } // End of xdd_interactive_show_global_data()
 
@@ -190,6 +196,7 @@ xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags) 
  */
 void
 xdd_interactive_show_ptds(int32_t tokens, char *cmdline, uint32_t flags) {
+#ifdef ndef
 	int		target_number;
 
 	/* Target Specific variables */
@@ -200,6 +207,7 @@ xdd_interactive_show_ptds(int32_t tokens, char *cmdline, uint32_t flags) {
 		fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
 		}
 	}
+#endif
 
 } // End of xdd_interactive_show_ptds()
 /*----------------------------------------------------------------------------*/
@@ -240,6 +248,7 @@ xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags) {
  */
 void
 xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags) {
+#ifdef ndef
 	int		target_number;
 	ptds_t	*p;
 	ptds_t	*qp;
@@ -260,6 +269,7 @@ xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags) {
 		fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
 		}
 	}
+#endif
 } // End of xdd_interactive_show_qtstate()
 
 /*----------------------------------------------------------------------------*/
@@ -268,6 +278,7 @@ xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags) {
  */
 void
 xdd_interactive_display_state_info(ptds_t *qp) {
+#ifdef ndef
 	int64_t		tmp;
 	nclk_t		now;		// Current time
 	int32_t		tot_offset; // Offset into TOT
@@ -362,6 +373,8 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 			(long long int)(tep->tot_byte_location / p->iosize),
 			(long long int)((long long int)(qp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
 	}
+#endif
+
 } // End of xdd_interactive_display_state_info()
 
 /*----------------------------------------------------------------------------*/
@@ -370,6 +383,7 @@ xdd_interactive_display_state_info(ptds_t *qp) {
  */
 void
 xdd_interactive_show_qtptds(int32_t tokens, char *cmdline, uint32_t flags) {
+#ifdef ndef
 	int		target_number;
 	ptds_t	*p;
 	ptds_t	*qp;
@@ -389,6 +403,7 @@ xdd_interactive_show_qtptds(int32_t tokens, char *cmdline, uint32_t flags) {
 		fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
 		}
 	}
+#endif
 
 } // End of xdd_interactive_show_qtptds()
 
@@ -408,6 +423,7 @@ xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags) {
  */
 void
 xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags) {
+#ifdef ndef
 	int		target_number;
 	ptds_t	*p;
 
@@ -419,7 +435,7 @@ xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags) {
 			fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
 		}
 	}
-
+#endif
 } // End of  xdd_interactive_show_tot()
 
 /*----------------------------------------------------------------------------*/
@@ -428,6 +444,7 @@ xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags) {
  */
 void
 xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags) {
+#ifdef ndef
 	int		target_number;
 	ptds_t	*p;
 
@@ -444,6 +461,8 @@ xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags) {
 			fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
 		}
 	}
+#endif
+
 } // End of  xdd_interactive_show_print_tot()
 
 /*----------------------------------------------------------------------------*/
@@ -452,6 +471,8 @@ xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags) {
  */
 void
 xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
+
+#ifdef ndef
 	char		*tot_mutex_state;
 	int32_t		tot_offset; // Offset into TOT
 	tot_entry_t	*tep;		// Pointer to a TOT Entry
@@ -459,6 +480,7 @@ xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
 	int			status;
 	int			save_errno;
 	int64_t		tot_block;
+
 
 	fprintf(fp,"Target %d has %d TOT Entries, queue depth of %d\n",
 		p->my_target_number, 
@@ -509,7 +531,7 @@ xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
 			sem_val,
 			tot_mutex_state);
 	} // End of FOR loop that displays all the TOT entries
-
+#endif
 } // End of xdd_interactive_show_tot_display_fields()
 
 
@@ -519,6 +541,7 @@ xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
  */
 void
 xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags) {
+#ifdef ndef
 	xdd_barrier_t	*bp;			// Pointer to a barrier
 	xdd_occupant_t	*occupantp;		// Pointer to an occupant 
 	int				i,j;			// counter
@@ -572,6 +595,7 @@ xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags) {
 		bp = bp->next_barrier;
 	} // End of FOR loop that displays information about ALL the barriers
 	fprintf(xgp->output, "\n--------------- End of Barrier Information --------------\n");
+#endif
 
 } // End of xdd_interactive_show_barrier()
 
@@ -581,6 +605,7 @@ xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags) {
  */
 int
 xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags) {
+#ifdef ndef
 	int		target_number;
 	ptds_t	*p;
 
@@ -595,5 +620,6 @@ xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags) {
 			xdd_ts_reports(p);  /* generate reports if requested */
 		}
 	} // End of processing TimeStamp reports
+#endif
 	return(0);
 } // End of xdd_interactive_timestamp_report()

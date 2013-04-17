@@ -34,7 +34,7 @@
  * for the cache is is statically allocated and can contain at most
  * MAX_ADDR_CACHE_ENTRIES entries.
  */
-#include "xdd.h"
+#include "xint.h"
 #include "net_utils.h"
 
 #define MAX_ADDR_CACHE_ENTRIES (E2E_ADDRESS_TABLE_ENTRIES*16)  // The amount of space statically allocated in this process for the address cache

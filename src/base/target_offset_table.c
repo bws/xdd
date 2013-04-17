@@ -32,7 +32,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "config.h"
-#include "xdd.h"
+#include "xint.h"
 
 #define DEFAULT_TOT_MULTIPLIER 20
 

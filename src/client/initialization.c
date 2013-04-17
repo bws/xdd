@@ -32,33 +32,33 @@
  * This file contains the subroutines that perform various initialization 
  * functions when xdd is started.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* The arguments pass in are the same argc and argv from main();
  */
 int32_t
-xdd_initialization(int32_t argc,char *argv[]) {
+xdd_initialization(int32_t argc,char *argv[], xdd_plan_t *planp) {
 	nclk_t tt; 
 
 
 	// Initialize the Global Data Structure
 	// See global_data.c
-	xdd_init_globals(argv[0]);
+	xdd_global_data_initialization(argc, argv);
 
 	// Init the barrier chain before any barriers get initialized
 	// See barrier.c
-	xdd_init_barrier_chain();
+	xdd_init_barrier_chain(planp);
 
 	// Parse the input arguments 
 	// See parse.c
 	xgp->argc = argc; // remember the original arg count
 	xgp->argv = argv; // remember the original argv 
-	xdd_parse(argc,argv);
+	xdd_parse(planp,argc,argv);
 
 	// Init output format header
 	if (xgp->global_options & GO_ENDTOEND) 
-		xdd_results_format_id_add("+E2ESRTIME+E2EIOTIME+E2EPERCENTSRTIME ");
+		xdd_results_format_id_add("+E2ESRTIME+E2EIOTIME+E2EPERCENTSRTIME ", planp->format_string);
 
 	// Optimize runtime priorities and all that 
 	// See schedule.c
@@ -80,10 +80,10 @@ xdd_initialization(int32_t argc,char *argv[]) {
 	if (tt == NCLK_BAD) {
 		fprintf(xgp->errout, "%s: ERROR: Cannot initialize the nanosecond clock\n",xgp->progname);
 		fflush(xgp->errout);
-		xdd_destroy_all_barriers();
+		xdd_destroy_all_barriers(planp);
 		return(-1);
 	}
-	nclk_now(&xgp->base_time);
+	nclk_now(&planp->base_time);
 
 	// Init the Global Clock 
 	// See global_clock.c
@@ -91,7 +91,7 @@ xdd_initialization(int32_t argc,char *argv[]) {
 
 	// display configuration information about this run 
 	// See info_display.c
-	xdd_config_info();
+	xdd_config_info(planp);
 
 	return(0);
 } // End of initialization()

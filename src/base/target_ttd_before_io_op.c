@@ -28,7 +28,7 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xdd.h"
+#include "xint.h"
 
 //******************************************************************************
 // Things the Target Thread has to do before each I/O Operation is issued
@@ -46,10 +46,10 @@ void
 xdd_syncio_before_io_op(ptds_t *p) {
 
 
-	if ((xgp->syncio > 0) && 
-	    (xgp->number_of_targets > 1) && 
-	    (p->my_current_op_number % xgp->syncio == 0)) {
-		xdd_barrier(&xgp->main_targets_syncio_barrier,&p->occupant,0);
+	if ((p->my_planp->syncio > 0) && 
+	    (p->my_planp->number_of_targets > 1) && 
+	    (p->my_current_op_number % p->my_planp->syncio == 0)) {
+		xdd_barrier(&p->my_planp->main_targets_syncio_barrier,&p->occupant,0);
 	}
 
 
@@ -88,7 +88,7 @@ xdd_start_trigger_before_io_op(ptds_t *p) {
 	 * If so, tickle the appropriate semaphore for that target and get on with our business.
 	 */
 	if (trigp1->trigger_types) {
-		p2 = xgp->ptdsp[trigp1->start_trigger_target];
+		p2 = p->my_planp->ptdsp[trigp1->start_trigger_target];
 		trigp2 = p2->trigp;
 		if (trigp2->run_status == 0) {
 			if (trigp1->trigger_types & TRIGGER_STARTTIME) {
@@ -177,14 +177,14 @@ xdd_runtime_before_io_op(ptds_t *p) {
  	* set the global variable "time_limit_expired". 
     * Otherwise, return 0 and continue issuing I/Os.
  	*/
-	if (xgp->run_time_ticks) { 
+	if (p->my_planp->run_time_ticks) { 
 		nclk_now(&current_time);
-		elapsed_time = current_time - xgp->run_start_time;
-		if (elapsed_time >= xgp->run_time_ticks) {
+		elapsed_time = current_time - p->my_planp->run_start_time;
+		if (elapsed_time >= p->my_planp->run_time_ticks) {
 			xgp->run_time_expired = 1;
 			fprintf(xgp->output,"\n%s: xdd_runtime_before_io_op: Specified run time of %f seconds exceeded.\n",
 		 		xgp->progname,
-			 	xgp->run_time);
+			 	p->my_planp->run_time);
 			return(XDD_RC_BAD);
 		}
 	}
@@ -230,15 +230,15 @@ xdd_target_ttd_before_io_op(ptds_t *p, ptds_t *qp) {
 	errno = 0;
 	/* Get the location to seek to */
 	if (p->seekhdr.seek_options & SO_SEEK_NONE) /* reseek to starting offset if noseek is set */
-		p->my_current_byte_location = (uint64_t)((p->my_target_number * xgp->target_offset) + 
+		p->my_current_byte_location = (uint64_t)((p->my_target_number * p->my_planp->target_offset) + 
 											p->seekhdr.seeks[0].block_location) * 
 											p->block_size;
-	else p->my_current_byte_location = (uint64_t)((p->my_target_number * xgp->target_offset) + 
+	else p->my_current_byte_location = (uint64_t)((p->my_target_number * p->my_planp->target_offset) + 
 											p->seekhdr.seeks[p->my_current_op_number].block_location) * 
 											p->block_size;
 
 	if (xgp->global_options & GO_INTERACTIVE)	
-		xdd_barrier(&xgp->interactive_barrier,&p->occupant,0);
+		xdd_barrier(&p->my_planp->interactive_barrier,&p->occupant,0);
 
 	// Check to see if either the pass or run time limit has 
 	// expired - if so, we need to leave this loop

@@ -32,7 +32,7 @@
  * This file contains the subroutines necessary to perform initialization
  * for the end-to-end option.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_target_init() - init socket library
@@ -368,6 +368,8 @@ void
 xdd_e2e_set_socket_opts(ptds_t *qp, int skt) {
 	int status;
 	int level = SOL_SOCKET;
+	xdd_plan_t* planp = qp->target_ptds->my_planp;
+	
 #if WIN32
 	char  optionvalue;
 #else
@@ -380,21 +382,21 @@ xdd_e2e_set_socket_opts(ptds_t *qp, int skt) {
 	if (status != 0) {
 		xdd_e2e_err(qp,"xdd_e2e_set_socket_opts","Error setting TCP_NODELAY \n");
 	}
-	status = setsockopt(skt,level,SO_SNDBUF,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
+	status = setsockopt(skt,level,SO_SNDBUF,(char *)&planp->e2e_TCP_Win,sizeof(planp->e2e_TCP_Win));
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: WARNING: on setsockopt SO_SNDBUF: status %d: %s\n", 
 			xgp->progname, 
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
 	}
-	status = setsockopt(skt,level,SO_RCVBUF,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
+	status = setsockopt(skt,level,SO_RCVBUF,(char *)&planp->e2e_TCP_Win,sizeof(planp->e2e_TCP_Win));
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: WARNING: on setsockopt SO_RCVBUF: status %d: %s\n", 
 			xgp->progname, 
 			qp->my_target_number, qp->my_qthread_number, status, 
 			strerror(errno));
 	}
-	status = setsockopt(skt,level,SO_REUSEADDR,(char *)&xgp->e2e_TCP_Win,sizeof(xgp->e2e_TCP_Win));
+	status = setsockopt(skt,level,SO_REUSEADDR,(char *)&planp->e2e_TCP_Win,sizeof(planp->e2e_TCP_Win));
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: WARNING: on setsockopt SO_REUSEPORT: status %d: %s\n", 
 			xgp->progname, 

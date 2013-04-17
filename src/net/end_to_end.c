@@ -32,7 +32,7 @@
  * This file contains the subroutines necessary the end-to-end
  * Send and Receive functions. 
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_src_send() - send the data from source to destination 
@@ -56,8 +56,6 @@ xdd_e2e_src_send(ptds_t *qp) {
 
 	p = qp->target_ptds;
 	qp->e2e_header.sendqnum = qp->my_qthread_number;
-	nclk_now(&qp->e2e_header.sendtime);
-	qp->e2e_header.sendtime += xgp->gts_delta;
 	qp->e2e_header.sequence = qp->target_op_number;
 	qp->e2e_header.location = qp->my_current_byte_location;
 	qp->e2e_header.length = qp->my_current_io_size;
@@ -291,16 +289,6 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 				else p->ttp->tte[qp->ts_current_entry].op_type = SO_OP_WRITE;
 			}
 
-			// Check the send/receive times for sanity
-			if ((qp->e2e_header.recvtime < qp->e2e_header.sendtime) && (xgp->gts_time > 0) ) { // Send and recv times look strange!!!
-				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: WARNING: Possible msg %lld recv time before send time by %llu nanoseconds\n",
-					xgp->progname,
-					qp->my_target_number,
-					qp->my_qthread_number,
-					(long long)qp->e2e_header.sequence,
-					qp->e2e_header.sendtime-qp->e2e_header.recvtime);
-			}
-
 			return(0);
 
 		} // End of IF stmnt that processes a CSD 
@@ -329,9 +317,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 	p = qp->target_ptds;
 
 	nclk_now(&qp->my_current_net_start_time);
-	qp->e2e_header.sendtime = qp->my_current_net_start_time;
 	qp->e2e_header.sendqnum = qp->my_qthread_number;
-	qp->e2e_header.sendtime += xgp->gts_delta;
 	qp->e2e_header.sequence = (p->target_op_number + qp->my_qthread_number); // This is an EOF packet header
 	qp->e2e_header.location = -1; // NA
 	qp->e2e_header.length = 0;	// NA - no data being sent other than the header

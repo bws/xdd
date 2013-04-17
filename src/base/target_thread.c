@@ -31,7 +31,7 @@
 /*
  * This file contains the subroutines that support the Target threads.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_target_thread() - This thread represents a single target device or file.
@@ -49,9 +49,10 @@ void *
 xdd_target_thread(void *pin) {
 	int32_t  	status;		// Status of various function calls
 	ptds_t		*p;			// Pointer to this Target's PTDS
+	xdd_plan_t* planp;
 
-
-	p = (ptds_t *)pin; 
+	p = (ptds_t *)pin;
+	planp = p->my_planp;
 
 	// Call xdd_target_thread_init() to create all the QThreads for this target
 	status = xdd_target_init(p);
@@ -65,13 +66,13 @@ xdd_target_thread(void *pin) {
 	}
 
 	// Enter this barrier to release xdd_start_targets() 
-	xdd_barrier(&xgp->main_general_init_barrier,&p->occupant,0);
+	xdd_barrier(&planp->main_general_init_barrier,&p->occupant,0);
 	if ( xgp->abort == 1) // Something went wrong during thread initialization so let's just leave
 		return(0);
 
 	// Enter the "wait for start"  barrier and wait here until all other Target Threads have started
 	// After all other Target Threads have started, xdd_main() will enter this barrier thus releasing all Target Threads
-	xdd_barrier(&xgp->main_targets_waitforstart_barrier,&p->occupant,0);
+	xdd_barrier(&planp->main_targets_waitforstart_barrier,&p->occupant,0);
 
 	// If this is a dry run then just exit at this point
 	if (xgp->global_options & GO_DRYRUN) {
@@ -81,7 +82,7 @@ xdd_target_thread(void *pin) {
 	/* Start the main pass loop */
 	while (1) {
 		// Perform a single pass
-		xdd_targetpass(p);
+	    xdd_targetpass(planp, p);
 
 		// Check to see if we got canceled or if we need to abort for some reason
 		if ((xgp->canceled) || (xgp->abort) || (p->abort)) {
@@ -92,11 +93,11 @@ xdd_target_thread(void *pin) {
 		 * Otherwise, if there was a run time specified and we have not reached that run time
 		 * and this is the last pass, then add one to the pass count so that we keep going.
 		 */
-		if (xgp->run_time_ticks > 0) {
+		if (planp->run_time_ticks > 0) {
 			if (xgp->run_time_expired) /* This is the alarm that goes off when the total run time specified has been exceeded */
 				break; /* Time to leave */
-			else if (p->my_current_pass_number == xgp->passes) /* Otherwise if we just finished the last pass, we need to keep going */
-				xgp->passes++;
+			else if (p->my_current_pass_number == planp->passes) /* Otherwise if we just finished the last pass, we need to keep going */
+				planp->passes++;
 		}
 
 		// If this is the Destination side of an E2E then set the RESTART SUCCESSFUL COMPLETION
@@ -128,7 +129,7 @@ xdd_target_thread(void *pin) {
 		} // End of IF clause that deals with a restart file if there is one
 
 		// Check to see if we completed all passes in this run
- 		if (p->my_current_pass_number >= xgp->passes)
+ 		if (p->my_current_pass_number >= planp->passes)
 			break; 
 
         /* Increment pass number and start work for next pass */
@@ -160,13 +161,13 @@ xdd_target_thread(void *pin) {
 	// will be released and immediately notice that the "xgp->run_complete"
 	// flag is set and therefore display results for this last pass
 	// and then go on to displaying results for the run.
-	xdd_barrier(&xgp->results_targets_startpass_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_startpass_barrier,&p->occupant,0);
 
 	// All Target Threads wait here until the results_manager displays the pass results.
-	xdd_barrier(&xgp->results_targets_endpass_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_endpass_barrier,&p->occupant,0);
 
 	// All Target Threads wait here until the results_manager displays the run results.
-	xdd_barrier(&xgp->results_targets_display_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_display_barrier,&p->occupant,0);
 
 	// At this point all the Target Threads have completed the run and have
 	// passed thru the previous barriers and the results_manager() 
@@ -177,7 +178,7 @@ xdd_target_thread(void *pin) {
 	xdd_target_thread_cleanup(p);
 
 	// Wait for all the other threads to complete their cleanup
-	xdd_barrier(&xgp->results_targets_waitforcleanup_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_waitforcleanup_barrier,&p->occupant,0);
 
     return(0);
 } /* end of xdd_target_thread() */

@@ -32,7 +32,7 @@
  * This file contains the subroutines necessary to generate the seeklist 
  * which has the implied access pattern.
  */
-#include "xdd.h"
+#include "xint.h"
 /*----------------------------------------------------------------------------*/
 /* xdd_init_seek_list() - Generate the list of seek operations to perform
  * This routine will generate a list of locations to access within the

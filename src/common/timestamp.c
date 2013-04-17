@@ -32,7 +32,7 @@
  * This file contains the subroutines necessary to perform the time stamping
  * operations during an xdd run.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_ts_overhead() - determine time stamp overhead
@@ -81,18 +81,18 @@ xdd_ts_setup(ptds_t *p) {
 	/* If DESKEW is TRUE but the TS option was not requested, then do a DESKEW ts setup */
 	if ((xgp->global_options & GO_DESKEW) && !(p->ts_options & TS_ON)) {
 		p->ts_options |= (TS_ON | TS_ALL | TS_ONESHOT | TS_SUPPRESS_OUTPUT);
-		p->ts_size = (xgp->passes + 1) * p->queue_depth;
-	} else p->ts_size = (xgp->passes * p->target_ops) + p->queue_depth;
+		p->ts_size = (p->my_planp->passes + 1) * p->queue_depth;
+	} else p->ts_size = (p->my_planp->passes * p->target_ops) + p->queue_depth;
 	if (p->ts_options & (TS_TRIGTIME | TS_TRIGOP)) 
 		p->ts_options &= ~TS_ALL; /* turn off the "time stamp all operations" flag if a trigger was requested */
 	if (p->ts_options & TS_TRIGTIME) { /* adjust the trigger time to an actual local time */
 		p->ts_trigtime *= BILLION;
-		p->ts_trigtime += xgp->ActualLocalStartTime;
+		p->ts_trigtime += p->my_planp->ActualLocalStartTime;
 	}
 
 	/* Calculate size of the time stamp table and malloc it */
 	tt_entries = p->ts_size; 
-	if (tt_entries < ((xgp->passes * p->target_ops) + p->queue_depth)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
+	if (tt_entries < ((p->my_planp->passes * p->target_ops) + p->queue_depth)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
 		if (((p->ts_options & TS_WRAP) == 0) &&
 			((p->ts_options & TS_ONESHOT) == 0) &&
 			(!(xgp->global_options & GO_DESKEW))) {
@@ -142,7 +142,7 @@ xdd_ts_setup(ptds_t *p) {
 	strcpy(p->ttp->id, xgp->id); 
 	p->ttp->range = p->seekhdr.seek_range;
 	p->ttp->start_offset = p->start_offset;
-	p->ttp->target_offset = xgp->target_offset;
+	p->ttp->target_offset = p->my_planp->target_offset;
 	p->ttp->global_options = xgp->global_options;
 	p->ttp->target_options = p->target_options;
 	t = time(NULL);
@@ -152,13 +152,13 @@ xdd_ts_setup(ptds_t *p) {
 	p->ttp->trigop = p->ts_trigop;
 	p->ttp->tt_bytes = tt_bytes;
 	p->ttp->tte_indx = 0;
-	p->ttp->delta = xgp->gts_delta;
+	p->ttp->delta = p->my_planp->gts_delta;
 	p->ts_current_entry = 0;
 
 	// Generate the name(s) of the ASCII and/or binary output files
 
 	// First we do the binary output file name
-	ts_filename_size = strlen(xgp->ts_binary_filename_prefix) + 32;
+	ts_filename_size = strlen(p->my_planp->ts_binary_filename_prefix) + 32;
     p->ts_binary_filename = malloc(ts_filename_size);
 	if (p->ts_binary_filename == NULL) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp binary output filename\n",
@@ -168,12 +168,12 @@ xdd_ts_setup(ptds_t *p) {
 		p->ts_options &= ~TS_ON;
 		return;
 	}
-	snprintf(p->ts_binary_filename,ts_filename_size,"%s.target.%04d.bin",xgp->ts_binary_filename_prefix,p->my_target_number);
+	snprintf(p->ts_binary_filename,ts_filename_size,"%s.target.%04d.bin",p->my_planp->ts_binary_filename_prefix,p->my_target_number);
 
 	// Now do the ASCII output file name
 	// If -ts output filename option not used, then dont set it.
-    if ( xgp->ts_output_filename_prefix != NULL ) {
-      ts_filename_size = strlen(xgp->ts_output_filename_prefix) + 32;
+    if ( p->my_planp->ts_output_filename_prefix != NULL ) {
+      ts_filename_size = strlen(p->my_planp->ts_output_filename_prefix) + 32;
       p->ts_output_filename = malloc(ts_filename_size);
   	  if (p->ts_output_filename == NULL) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp output filename\n",
@@ -183,7 +183,7 @@ xdd_ts_setup(ptds_t *p) {
 		p->ts_options &= ~TS_ON;
 		return;
 	  }
-	  snprintf(p->ts_output_filename,ts_filename_size,"%s.target.%04d.csv",xgp->ts_output_filename_prefix,p->my_target_number);
+	  snprintf(p->ts_output_filename,ts_filename_size,"%s.target.%04d.csv",p->my_planp->ts_output_filename_prefix,p->my_target_number);
     }
 	return;
 } /* end of xdd_ts_setup() */
@@ -283,7 +283,7 @@ xdd_ts_reports(ptds_t *p) {
     }
     ttp = p->ttp;
     /* Open the correct output file */
-    if (xgp->ts_output_filename_prefix != 0) {
+    if (p->my_planp->ts_output_filename_prefix != 0) {
 	if (p->ts_options & TS_APPEND)
 	    p->tsfp = fopen(p->ts_output_filename, "a");
 	else
@@ -297,9 +297,9 @@ xdd_ts_reports(ptds_t *p) {
     /* Print the information in the TS header if this is not STDOUT */
     if (p->tsfp != stdout ) {
 	fprintf(p->tsfp,"Target number for this report, %d\n",p->my_target_number);
-	xdd_options_info(p->tsfp);
+	xdd_options_info(p->my_planp, p->tsfp);
 	fflush(p->tsfp);
-	xdd_system_info(p->tsfp);
+	xdd_system_info(p->my_planp, p->tsfp);
 	fflush(p->tsfp);
 	xdd_target_info(p->tsfp,p);
 	fflush(p->tsfp);

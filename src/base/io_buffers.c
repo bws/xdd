@@ -32,7 +32,7 @@
  * This file contains the subroutines that allocate and initialize the io buffers
  * used by the QThreads.
  */
-#include "xdd.h"
+#include "xint.h"
 #ifdef DARWIN
 #include <sys/shm.h>
 #endif

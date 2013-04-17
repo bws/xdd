@@ -36,7 +36,7 @@
 /*
  * This file contains the subroutines necessary to support SCSI Generic I/O under LINUX.
  */
-#include "xdd.h"
+#include "xint.h"
 #if LINUX
 #include "sg.h"
 // #define SG_DEBUG

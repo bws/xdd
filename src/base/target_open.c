@@ -32,7 +32,7 @@
  * This file contains the subroutines that perform an "open" operation 
  * on the target device/file.
  */
-#include "xdd.h"
+#include "xint.h"
 #include <errno.h>
 
 /*----------------------------------------------------------------------------*/

@@ -29,6 +29,8 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
+#include "xdd_plan.h"
+
 #define XDD_PARSE_PHASE1			0x00000001 // Preprocess phase - phase 1 
 #define XDD_PARSE_PHASE2			0x00000002 // Parse Phase 2 occurs after we know how many targets there really are
 #define XDD_PARSE_TARGET_IN			0x00000004 // Target In
@@ -37,13 +39,13 @@
 #define XDD_PARSE_TARGET_NETWORK	0x00000020 // Target_inout I/O Type of "NETWORK"
 
 /* The format of the entries in the xdd function table */
-typedef int (*func_ptr)(int32_t argc, char *argv[], uint32_t flags);
+typedef int (*func_ptr)(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 
 #define XDD_EXT_HELP_LINES 5
 struct xdd_func {
 	char    *func_name;     /* name of the function */
 	char    *func_alt;      /* Alternate name of the function */
-    int     (*func_ptr)(int32_t argc, char *argv[], uint32_t flags);      /* pointer to the function */
+    int     (*func_ptr)(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);      /* pointer to the function */
     int     argc;           /* number of arguments */
     char    *help;          /* help string */
     char    *ext_help[XDD_EXT_HELP_LINES];   /* Extented help strings */
@@ -54,101 +56,101 @@ typedef struct xdd_func xdd_func_t;
 #define	XDD_FUNC_INVISIBLE	0x00000001	// When this flag is present then this command will not be displayed with "usage"
 
 // Prototypes required by the parse_table() compilation
-int xddfunc_blocksize(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_bytes(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_combinedout(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_createnewfiles(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_csvout(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_datapattern(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_debug(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_deletefile(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_devicefile(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_dio(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_dryrun(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_endtoend(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_errout(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_extended_stats(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_flushwrite(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_fullhelp(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_heartbeat(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_help(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_id(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_interactive(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_kbytes(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_lockstep(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_looseordering(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_maxall(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_maxerrors(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_max_errors_to_print(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_maxpri(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_mbytes(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_memalign(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_memory_usage(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_minall(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_multipath(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_nobarrier(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_nomemlock(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_noordering(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_noproclock(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_numreqs(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_operationdelay(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_operation(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_ordering(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_output(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_output_format(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_passdelay(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_passes(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_passoffset(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_percentcpu(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_preallocate(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_processlock(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_processor(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_queuedepth(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_randomize(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_readafterwrite(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_reallyverbose(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_recreatefiles(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_reopen(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_report_threshold(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_reqsize(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_restart(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_retry(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_roundrobin(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_runtime(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_rwratio(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_seek(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_setup(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_sgio(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_sharedmemory(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_singleproc(int32_t argc, char *argv[], uint32_t flags); 
-int xddfunc_startdelay(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_startoffset(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_starttime(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_starttrigger(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_stoponerror(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_stoptrigger(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_serialordering(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_syncio(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_syncwrite(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_target(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_target_inout(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_target_inout_file(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_target_inout_network(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_targetdir(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_targetin(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_targetoffset(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_targets(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_targetstartdelay(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_targetout(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_throttle(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_timelimit(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_timerinfo(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_timeserver(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_timestamp(int32_t argc, char *argv[], uint32_t flags); 
-int xddfunc_verify(int32_t argc, char *argv[], uint32_t flags); 
-int xddfunc_unverbose(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_verbose(int32_t argc, char *argv[], uint32_t flags);
-int xddfunc_version(int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_blocksize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_bytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_combinedout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_createnewfiles(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_csvout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_debug(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_deletefile(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_devicefile(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_dio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_dryrun(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_errout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_extended_stats(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_flushwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_fullhelp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_heartbeat(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_help(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_id(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_interactive(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_kbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_looseordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_maxall(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_maxerrors(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_max_errors_to_print(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_maxpri(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_mbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_memalign(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_memory_usage(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_minall(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_multipath(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_nobarrier(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_nomemlock(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_noordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_noproclock(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_numreqs(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_operationdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_operation(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_ordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_output(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_output_format(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_passdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_passes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_passoffset(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_percentcpu(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_preallocate(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_processlock(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_processor(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_queuedepth(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_randomize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_readafterwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_reallyverbose(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_recreatefiles(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_reopen(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_report_threshold(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_reqsize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_retry(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_roundrobin(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_runtime(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_rwratio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_seek(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_setup(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_sgio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_sharedmemory(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_singleproc(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags); 
+int xddfunc_startdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_startoffset(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_starttime(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_starttrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_stoponerror(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_stoptrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_serialordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_syncio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_syncwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_target(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_target_inout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_target_inout_file(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_target_inout_network(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_targetdir(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_targetin(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_targetoffset(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_targets(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_targetstartdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_targetout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_timelimit(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_timerinfo(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_timeserver(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags); 
+int xddfunc_verify(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags); 
+int xddfunc_unverbose(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_verbose(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_version(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags);
 void xddfunc_currently_undefined_option(char *sp);
  

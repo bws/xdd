@@ -28,46 +28,58 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-/*
- * This file contains the subroutines that implement process scheduling
- * functions that can raise or lower execution priority on a system.
- */
-#include "xint.h"
-/*----------------------------------------------------------------------------*/
-/* xdd_schedule_options() - do the appropriate scheduling operations to 
- *   maximize performance of this program.
- */
-void
-xdd_schedule_options(void) {
-#ifdef HAVE_SCHEDSCHEDULER
-    int32_t status;  /* status of a system call */
-    struct sched_param param; /* for the scheduler */
+#ifndef XINT_LITE_H
+#define XINT_LITE_H
 
-    if (xgp->global_options & GO_NOPROCLOCK) 
-	return;
-    if (getuid() != 0)
-	fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to lock processes\n",xgp->progname);
-    /* lock ourselves into memory for the duration */
-    status = mlockall(MCL_CURRENT | MCL_FUTURE);
-    if (status < 0) {
-	fprintf(xgp->errout,"%s: xdd_schedule_options: cannot lock process into memory\n",xgp->progname);
-	perror("Reason");
-    }
-    if (xgp->global_options & GO_MAXPRI) {
-	if (getuid() != 0) 
-	    fprintf(xgp->errout,"%s: xdd_schedule_options: You must be super user to max priority\n",xgp->progname);
+#include <stdint.h>
+#include <stdlib.h>
 
-	/* reset the priority to max max max */
-	param.sched_priority = sched_get_priority_max(SCHED_FIFO);
-	status = sched_setscheduler(0,SCHED_FIFO,&param);
-	if (status == -1) {
-	    fprintf(xgp->errout,"%s: xdd_schedule_options: cannot reschedule priority\n",xgp->progname);
-	    perror("Reason");
-	}
-    }
+struct xdd_plan;
+typedef struct xdd_plan xdd_plan_t;
+
+
+typedef enum xint_op {NULL_OP_TYPE = 0, READ, WRITE} xint_op_t;
+
+typedef struct xint_lite_e2e {
+    char* host;
+    int port;
+    int thread_count;
+    int numa;
+} xint_lite_e2e_t;
+    
+typedef struct xint_lite_options {
+    int help_flag;
+    xint_op_t ot;
+    char* fname;
+    size_t offset;
+    size_t length;
+    int dio_flag;
+    char* out_filename;
+    char* err_filename;
+    int verbose_flag;
+    size_t preallocate;
+    int stop_on_error_flag;
+    char* restart_fname;
+    size_t heartbeat_freq;
+
+    /* List of e2e connection information */
+    int num_e2e_specs;
+    xint_lite_e2e_t* e2e_specs;
+
+} xint_lite_options_t;
+
+int xint_lite_options_init(xint_lite_options_t* opts);
+
+int xint_lite_options_destroy(xint_lite_options_t* opts);
+
+int xint_lite_options_parse(xint_lite_options_t* opts, int argc, char** argv);
+
+int xint_lite_options_plan_create(xint_lite_options_t* opts, xdd_plan_t* plan);
+
+int xint_lite_print_usage();
+
 #endif
-} /* end of xdd_schedule_options() */
- 
+
 /*
  * Local variables:
  *  indent-tabs-mode: t

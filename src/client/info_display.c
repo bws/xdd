@@ -37,7 +37,7 @@
  *    - Environment
  */
 #include <inttypes.h>
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_display_kmgt() - Display the given quantity in either KBytes, MBytes, GBytes, or TBytes.
@@ -63,7 +63,7 @@ xdd_display_kmgt(FILE *out, long long int n, int block_size) {
  * is being run on. This includes hardware, software, and environmental info.
  */
 void
-xdd_system_info(FILE *out) {
+xdd_system_info(xdd_plan_t* planp, FILE *out) {
 #if (SOLARIS || IRIX || LINUX || AIX || FREEBSD)
 	int32_t page_size;
 	int32_t physical_pages;
@@ -74,13 +74,13 @@ xdd_system_info(FILE *out) {
 	inventory_t *inventp;
 	int64_t mem_size;
 #endif // IRIX inventory
-	uname(&xgp->hostname);
+	uname(&planp->hostname);
 	userlogin = getlogin();
 	if (!userlogin)
 		userlogin = "***unknown user login***";
-	fprintf(out, "Computer Name, %s, User Name, %s\n",xgp->hostname.nodename, userlogin);
-	fprintf(out, "OS release and version, %s %s %s\n",xgp->hostname.sysname, xgp->hostname.release, xgp->hostname.version);
-	fprintf(out, "Machine hardware type, %s\n",xgp->hostname.machine);
+	fprintf(out, "Computer Name, %s, User Name, %s\n",planp->hostname.nodename, userlogin);
+	fprintf(out, "OS release and version, %s %s %s\n",planp->hostname.sysname, planp->hostname.release, planp->hostname.version);
+	fprintf(out, "Machine hardware type, %s\n",planp->hostname.machine);
 #if (SOLARIS)
 	xgp->number_of_processors = sysconf(_SC_NPROCESSORS_ONLN);
 	physical_pages = sysconf(_SC_PHYS_PAGES);
@@ -179,7 +179,7 @@ xdd_system_info(FILE *out) {
 	fprintf(out, "Megabytes of physical memory, %d\n", memorystatus.dwTotalPhys/(1024*1024));
 #endif // WIN32
 
-	fprintf(out,"Seconds before starting, %lld\n",(long long)xgp->gts_seconds_before_starting);
+	fprintf(out,"Seconds before starting, %lld\n",(long long)planp->gts_seconds_before_starting);
 
 } /* end of xdd_system_info() */
 
@@ -187,7 +187,7 @@ xdd_system_info(FILE *out) {
 /* xdd_options_info() - Display command-line options information about this run.
  */
 void
-xdd_options_info(FILE *out) {
+xdd_options_info(xdd_plan_t* planp, FILE *out) {
 	char *c; 
 
 
@@ -195,17 +195,17 @@ xdd_options_info(FILE *out) {
                 PACKAGE_STRING, PACKAGE_VERSION);
 	fprintf(out,"%s\n",XDD_COPYRIGHT);
 	fprintf(out,"%s\n",XDD_DISCLAIMER);
-	xgp->current_time_for_this_run = time(NULL);
-	c = ctime(&xgp->current_time_for_this_run);
+	planp->current_time_for_this_run = time(NULL);
+	c = ctime(&planp->current_time_for_this_run);
 	fprintf(out,"Starting time for this run, %s\n",c);
 	fprintf(out,"ID for this run, '%s'\n", xgp->id);
 	fprintf(out,"Maximum Process Priority, %s", (xgp->global_options & GO_MAXPRI)?"enabled\n":"disabled\n");
-	fprintf(out, "Passes, %d\n", xgp->passes);
-	fprintf(out, "Pass Delay in seconds, %f\n", xgp->pass_delay); 
+	fprintf(out, "Passes, %d\n", planp->passes);
+	fprintf(out, "Pass Delay in seconds, %f\n", planp->pass_delay); 
 	fprintf(out, "Maximum Error Threshold, %lld\n", (long long)xgp->max_errors);
-	fprintf(out, "Target Offset, %lld\n",(long long)xgp->target_offset);
-	fprintf(out, "I/O Synchronization, %d\n", xgp->syncio);
-	fprintf(out, "Total run-time limit in seconds, %f\n", xgp->run_time);
+	fprintf(out, "Target Offset, %lld\n",(long long)planp->target_offset);
+	fprintf(out, "I/O Synchronization, %d\n", planp->syncio);
+	fprintf(out, "Total run-time limit in seconds, %f\n", planp->run_time);
 
 	fprintf(out, "Output file name, %s\n",xgp->output_filename);
 	fprintf(out, "CSV output file name, %s\n",xgp->csvoutput_filename);
@@ -213,16 +213,16 @@ xdd_options_info(FILE *out) {
 	if (xgp->global_options & GO_COMBINED)
 		fprintf(out,"Combined output file name, %s\n",xgp->combined_output_filename);
 	fprintf(out,"Pass synchronization barriers, %s", (xgp->global_options & GO_NOBARRIER)?"disabled\n":"enabled\n");
-	if (xgp->gts_hostname) {
-			fprintf(out,"Timeserver hostname, %s\n", xgp->gts_hostname);
-			fprintf(out,"Timeserver port number, %d\n", xgp->gts_port);
-			fprintf(out,"Global start time, %lld\n", (long long)xgp->gts_time/BILLION);
+	if (planp->gts_hostname) {
+			fprintf(out,"Timeserver hostname, %s\n", planp->gts_hostname);
+			fprintf(out,"Timeserver port number, %d\n", planp->gts_port);
+			fprintf(out,"Global start time, %lld\n", (long long)planp->gts_time/BILLION);
 	}
-	fprintf(out,"Number of Targets, %d\n",xgp->number_of_targets);
-	fprintf(out,"Number of I/O Threads, %d\n",xgp->number_of_iothreads);
+	fprintf(out,"Number of Targets, %d\n",planp->number_of_targets);
+	fprintf(out,"Number of I/O Threads, %d\n",planp->number_of_iothreads);
 	if (xgp->global_options & GO_REALLYVERBOSE) {
-		fprintf(out, "Size of PTDS is %d bytes, %d Aggregate\n",(int)sizeof(ptds_t), (int)sizeof(ptds_t)*xgp->number_of_iothreads);
-		fprintf(out, "Size of RESULTS is %d bytes, %d Aggregate\n",(int)sizeof(results_t), (int)sizeof(results_t)*(xgp->number_of_iothreads*2+xgp->number_of_targets));
+		fprintf(out, "Size of PTDS is %d bytes, %d Aggregate\n",(int)sizeof(ptds_t), (int)sizeof(ptds_t)*planp->number_of_iothreads);
+		fprintf(out, "Size of RESULTS is %d bytes, %d Aggregate\n",(int)sizeof(results_t), (int)sizeof(results_t)*(planp->number_of_iothreads*2+planp->number_of_targets));
 	}
 	fprintf(out, "\n");
 	fflush(out);
@@ -478,7 +478,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
  * is being run on. This includes hardware, software, and environmental info.
  */
 void
-xdd_memory_usage_info(FILE *out) {
+xdd_memory_usage_info(xdd_plan_t* planp, FILE *out) {
 	return;
 
 } /* end of xdd_memory_usage_info() */
@@ -487,13 +487,23 @@ xdd_memory_usage_info(FILE *out) {
 /* xdd_config_info() - Display configuration information about this run.
  */
 void
-xdd_config_info(void) {
-	xdd_options_info(xgp->output);
-	xdd_system_info(xgp->output);
-	xdd_memory_usage_info(xgp->output);
+xdd_config_info(xdd_plan_t* planp) {
+	xdd_options_info(planp, xgp->output);
+	xdd_system_info(planp, xgp->output);
+	xdd_memory_usage_info(planp, xgp->output);
 	if (xgp->global_options & GO_CSV) {
-		xdd_options_info(xgp->csvoutput);
-		xdd_system_info(xgp->csvoutput);
+		xdd_options_info(planp, xgp->csvoutput);
+		xdd_system_info(planp, xgp->csvoutput);
 	}
 	fflush(xgp->output);
 } /* end of xdd_config_info() */
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

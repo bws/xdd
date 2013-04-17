@@ -4,8 +4,6 @@
 DIR := src/base
 
 BASE_SRC := $(DIR)/heartbeat.c \
-	$(DIR)/info_display.c \
-	$(DIR)/initialization.c \
 	$(DIR)/io_buffers.c \
 	$(DIR)/lockstep.c \
 	$(DIR)/qthread.c \

@@ -32,7 +32,7 @@
  * This file contains the subroutines that perform various initialization 
  * functions when xdd is started.
  */
-#include "xdd.h"
+#include "xint.h"
 #include <stdint.h>
 /*----------------------------------------------------------------------------*/
 /* xdd_heartbeat() 
@@ -49,7 +49,7 @@
  */
 static	char	activity_indicators[8] = {'|','/','-','\\','*'};
 void *
-xdd_heartbeat(void *junk) {
+xdd_heartbeat(void *data) {
 	int32_t 	i;						// If it is not obvious what "i" is then you should not be reading this
 	nclk_t 		now;					// Current time
 	nclk_t 		earliest_start_time;	// The earliest start time of the qthreads for a target
@@ -62,7 +62,7 @@ xdd_heartbeat(void *junk) {
 	int			scattered_output;		// When set to something other than 0 it means that the output is directed to mutliple files
 	uint32_t	interval;				// The shortest heartbeat interval that is greater than 0
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
-
+	xdd_plan_t* planp = (xdd_plan_t*)data;
 
 	// Init indices to 0
 	activity_index = 0; 
@@ -72,8 +72,8 @@ xdd_heartbeat(void *junk) {
 	// Open all the Heartbeat output Files if they are not the default (stderr)
 	scattered_output = 0;
 	interval = 31536000; // a year's worth of seconds
-	for (i = 0; i < xgp->number_of_targets; i++) {
-		p = xgp->ptdsp[i];
+	for (i = 0; i < planp->number_of_targets; i++) {
+		p = planp->ptdsp[i];
 		if (p->hb.hb_filename) {
 			p->hb.hb_file_pointer = fopen(p->hb.hb_filename,"a");
 			scattered_output++;
@@ -88,7 +88,7 @@ xdd_heartbeat(void *junk) {
 		}
 	}
 	// Enter this barrier and wait for the heartbeat monitor to initialize
-	xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant, 0);
+	xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant, 0);
 
 	while (1) {
 		sleep(interval);
@@ -100,14 +100,14 @@ xdd_heartbeat(void *junk) {
 			fprintf(xgp->errout,"\nHEARTBEAT: Abort\n");
 			return(0);
 		}
-		if (xgp->heartbeat_holdoff == 1) 
+		if (planp->heartbeat_holdoff == 1) 
 			continue;
-		if (xgp->heartbeat_holdoff == 2) 
+		if (planp->heartbeat_holdoff == 2) 
 			return(0);
 
 		// Display all the requested items for each target
-		for (i = 0; i < xgp->number_of_targets; i++) {
-			p = xgp->ptdsp[i];
+		for (i = 0; i < planp->number_of_targets; i++) {
+			p = planp->ptdsp[i];
 
 			// Check to see if this Target wants a heartbeat display, if not, just continue
 			if (p->hb.hb_interval == 0) 
@@ -117,7 +117,7 @@ xdd_heartbeat(void *junk) {
 			// If the "scattered_output" is greater than 0 then display the legend for each target
 			// Otherwise just display it for target 0
 			if ((scattered_output)  || (i == 0))
-				xdd_heartbeat_legend(p);
+			    xdd_heartbeat_legend(planp, p);
 			total_bytes_xferred = 0;
 			earliest_start_time = NCLK_MAX;
 			total_ops_issued = 0;
@@ -136,7 +136,7 @@ xdd_heartbeat(void *junk) {
 			// as well as the time the first qthread started and the most recent op number issued.
 			// From that we can calculate the estimated BW for the target as a whole 
 
-			p = xgp->ptdsp[i];
+			p = planp->ptdsp[i];
 			if (p->my_current_state & CURRENT_STATE_PASS_COMPLETE) {
 				now = p->my_pass_end_time;
 				prior_activity_index = activity_index;
@@ -171,7 +171,7 @@ DFLOW("\n----------------------heartbeat: Exit-------------------------\n");
  * the pass number followed by the names of the values being displayed.
  */
 void
-xdd_heartbeat_legend(ptds_t *p) {
+xdd_heartbeat_legend(xdd_plan_t* planp, ptds_t *p) {
 	nclk_t 		now;					// Current time
 	double		elapsed_seconds;		// Elapsed time in seconds
 	time_t		current_time;			// For the Time of Day option
@@ -183,9 +183,9 @@ xdd_heartbeat_legend(ptds_t *p) {
 		 fprintf(p->hb.hb_file_pointer,"\n"); // Put a LineFeed character at the end of this line
 	else fprintf(p->hb.hb_file_pointer,"\r"); // Otherwise just a carriage return
 
-	fprintf(p->hb.hb_file_pointer,"Pass,%04d,",xgp->ptdsp[0]->my_current_pass_number);
+	fprintf(p->hb.hb_file_pointer,"Pass,%04d,",p->my_current_pass_number);
 	if (p->hb.hb_options & HB_HOST)  // Display Current number of OPS performed 
-		fprintf(p->hb.hb_file_pointer,"/HOST,%s,",xgp->hostname.nodename);
+		fprintf(p->hb.hb_file_pointer,"/HOST,%s,",planp->hostname.nodename);
 
 	if (p->hb.hb_options & HB_TOD) {  // Display the current Time of Day
 		current_time = time(NULL);
@@ -199,7 +199,7 @@ xdd_heartbeat_legend(ptds_t *p) {
 
 	if (p->hb.hb_options & HB_ELAPSED) {  // Display the elapsed number of seconds this has been running
 		nclk_now(&now);
-		elapsed_seconds = ((double)((double)now - (double)xgp->run_start_time)) / FLOAT_BILLION;
+		elapsed_seconds = ((double)((double)now - (double)planp->run_start_time)) / FLOAT_BILLION;
 		fprintf(p->hb.hb_file_pointer,"/ELAPSED,%.0f,",elapsed_seconds);
 	}
 

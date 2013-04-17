@@ -32,6 +32,8 @@
 #define XDD_PROTOTYPES_H
 
 #include <restart.h>
+#include <xdd_plan.h>
+#include "global_data.h"
 
 /* XDD function prototypes */
 // access_pattern.c
@@ -40,11 +42,11 @@ void	xdd_save_seek_list(ptds_t *p);
 int32_t	xdd_load_seek_list(ptds_t *p);
 
 // barrier.c
-int32_t	xdd_init_barrier_chain(void);
+int32_t	xdd_init_barrier_chain(xdd_plan_t* planp);
 void	xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, ptds_t *p);
-void	xdd_destroy_all_barriers(void);
-int32_t	xdd_init_barrier(struct xdd_barrier *bp, int32_t threads, char *barrier_name);
-void	xdd_destroy_barrier(struct xdd_barrier *bp);
+void	xdd_destroy_all_barriers(xdd_plan_t* planp);
+int32_t	xdd_init_barrier(xdd_plan_t* planp, struct xdd_barrier *bp, int32_t threads, char *barrier_name);
+void	xdd_destroy_barrier(xdd_plan_t* planp, struct xdd_barrier *bp);
 int32_t	xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner);
 
 // datapatterns.c
@@ -52,6 +54,7 @@ void	xdd_datapattern_buffer_init(ptds_t *p);
 void	xdd_datapattern_fill(ptds_t *qp);
 
 // debug.c
+void	xdd_show_plan(xdd_plan_t *planp);
 void	xdd_show_ptds(ptds_t *p);
 void	xdd_show_global_data(void);
 
@@ -78,7 +81,7 @@ in_addr_t xdd_init_global_clock_network(char *hostname);
 void	xdd_init_global_clock(nclk_t *nclkp);
 
 // global_data.c
-void	xdd_init_globals(char *progname);
+xdd_global_data_t* xdd_global_data_initialization(int32_t argc,char *argv[]);
 
 // global_time.c
 void	globtim_err(char const *fmt, ...);
@@ -86,20 +89,20 @@ void	clk_initialize(in_addr_t addr, in_port_t port, int32_t bounce, nclk_t *nclk
 void	clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, nclk_t *nclkp);
 
 // heartbeat.c
-void *xdd_heartbeat(void *junk);
-void	xdd_heartbeat_legend(ptds_t *p);
+void *xdd_heartbeat(void *data);
+void	xdd_heartbeat_legend(xdd_plan_t* planp, ptds_t *p);
 void	xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed);
 
 // info_display.c
 void	xdd_display_kmgt(FILE *out, long long int n, int block_size);
-void	xdd_system_info(FILE *out);
-void	xdd_options_info(FILE *out);
+void	xdd_system_info(xdd_plan_t* planp, FILE *out);
+void	xdd_options_info(xdd_plan_t* planp, FILE *out);
 void	xdd_target_info(FILE *out, ptds_t *p);
-void	xdd_memory_usage_info(FILE *out);
-void	xdd_config_info(void);
+void	xdd_memory_usage_info(xdd_plan_t* planp, FILE *out);
+void	xdd_config_info(xdd_plan_t* planp);
 
 // initialization.c
-int32_t	xdd_initialization(int32_t argc,char *argv[]);
+int32_t	xdd_initialization(int32_t argc,char *argv[], xdd_plan_t* planp);
 
 // interactive.c
 void 	*xdd_interactive(void *debugger);
@@ -151,13 +154,13 @@ void	xdd_unlock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 int32_t	xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result);
 
 // parse.c
-void		xdd_parse_args(int32_t argc, char *argv[], uint32_t flags);
-void		xdd_parse(int32_t argc, char *argv[]);
+void		xdd_parse_args(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags);
+void		xdd_parse(xdd_plan_t* planp, int32_t argc, char *argv[]);
 void		xdd_usage(int32_t fullhelp);
 int 		xdd_check_option(char *op);
-int32_t		xdd_process_paramfile(char *fnp);
-int 		xdd_parse_target_number(int32_t argc, char *argv[], uint32_t flags, int *target_number);
-ptds_t 		*xdd_get_ptdsp(int32_t target_number, char *op);
+int32_t		xdd_process_paramfile(xdd_plan_t* planp, char *fnp);
+int 		xdd_parse_target_number(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags, int *target_number);
+ptds_t 		*xdd_get_ptdsp(xdd_plan_t* planp, int32_t target_number, char *op);
 restart_t 	*xdd_get_restartp(ptds_t *p);
 xdd_raw_t	*xdd_get_rawp(ptds_t *p);
 xdd_sgio_t 	*xdd_get_sgiop(ptds_t *p);
@@ -190,7 +193,7 @@ int		xdd_get_processor(void);
 void	xdd_init_new_ptds(ptds_t *p, int32_t n);
 void	xdd_calculate_xfer_info(ptds_t *tp);
 ptds_t 	*xdd_create_qthread_ptds(ptds_t *tp, int32_t q);
-void	xdd_build_ptds_substructure(void);
+void	xdd_build_ptds_substructure(xdd_plan_t* planp);
 
 // qthread.c
 void 	*xdd_qthread(void *pin);
@@ -288,17 +291,17 @@ void	xdd_results_fmt_e2e_first_read_time(results_t *rp);
 void	xdd_results_fmt_e2e_last_write_time(results_t *rp);
 void	xdd_results_fmt_delimiter(results_t *rp);
 void 	*xdd_results_display(results_t *rp);
-void	xdd_results_format_id_add( char *sp );
+void	xdd_results_format_id_add( char *sp, char *format_stringp  );
 
 // results_manager.c
-void 	*xdd_results_manager(void *n);
-int32_t	xdd_results_manager_init(void);
-void 	*xdd_results_header_display(results_t *tmprp);
-void 	*xdd_process_pass_results(void);
-void 	*xdd_process_run_results(void);
-void	xdd_combine_results(results_t *to, results_t *from);
-void 	*xdd_extract_pass_results(results_t *rp, ptds_t *p);
-void 	*xdd_results_dump(results_t *rp, char *dumptype);
+void    *xdd_results_manager(void *data);
+int32_t xdd_results_manager_init(xdd_plan_t *planp);
+void    *xdd_results_header_display(results_t *tmprp, xdd_plan_t *planp);
+void    *xdd_process_pass_results(xdd_plan_t *planp);
+void    *xdd_process_run_results(xdd_plan_t *planp);
+void    xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp);
+void    *xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp);
+void    *xdd_results_dump(results_t *rp, char *dumptype, xdd_plan_t *planp);
 
 // schedule.c
 void	xdd_schedule_options(void);
@@ -331,16 +334,16 @@ int32_t	xdd_target_existence_check(ptds_t *p);
 int32_t	xdd_target_open_for_os(ptds_t *p);
 
 // target_pass.c
-int32_t	xdd_targetpass(ptds_t *p);
-void	xdd_targetpass_loop(ptds_t *p);
+int32_t	xdd_targetpass(xdd_plan_t* planp, ptds_t *p);
+void	xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p);
 void	xdd_targetpass_e2e_monitor(ptds_t *p);
 void	xdd_targetpass_task_setup(ptds_t *qp);
 void 	xdd_targetpass_end_of_pass(ptds_t *p);
 int32_t xdd_targetpass_count_active_qthreads(ptds_t *p);
 
 // target_pass_e2e_specific.c
-void	xdd_targetpass_e2e_loop_dst(ptds_t *p);
-void	xdd_targetpass_e2e_loop_src(ptds_t *p);
+void	xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, ptds_t *p);
+void	xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, ptds_t *p);
 void	xdd_targetpass_e2e_task_setup_src(ptds_t *qp);
 void	xdd_targetpass_e2e_eof_src(ptds_t *p);
 void	xdd_targetpass_e2e_monitor(ptds_t *p);

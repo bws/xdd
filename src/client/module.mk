@@ -3,7 +3,9 @@
 #
 DIR := src/client
 
-CLIENT_SRC := $(DIR)/interactive.c \
+CLIENT_SRC := $(DIR)/info_display.c \
+	$(DIR)/initialization.c \
+	$(DIR)/interactive.c \
 	$(DIR)/interactive_func.c \
 	$(DIR)/interactive_table.c \
 	$(DIR)/parse.c \

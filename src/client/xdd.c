@@ -32,35 +32,56 @@
 /*
    xdd - A sophisticated I/O performance measurement and analysis tool/utility
 */
-#define XDDMAIN /* This is needed to make the xdd_globals pointer a static variable here and an extern everywhere else as defined in xdd.h */
-#include "xdd.h"
+#define XDDMAIN
+#include "xint.h"
+
 /*----------------------------------------------------------------------------*/
 /* This is the main entry point for xdd. This is where it all begins and ends.
  */
 int32_t
 main(int32_t argc,char *argv[]) {
-	int32_t status;
-	int32_t i;
-	char *c;
-	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
-	int32_t	return_value;
+	int32_t 			status;
+	int32_t				i;
+	char 				*c;
+	xdd_occupant_t		barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
+	int32_t				return_value;
+    xdd_plan_t 			*planp;
+	xdd_global_data_t	*xgp;
 
 	
-	status = xdd_initialization(argc, argv);
+	// Initialize the global_data structure
+	// See global_data.c
+	xgp = xdd_global_data_initialization(argc, argv);
+	if (0 == xgp) {
+		fprintf(stderr,"%s: Error allocating memory for global_data struct\n",argv[0]);
+		exit(XDD_RETURN_VALUE_INIT_FAILURE);
+	}
+	
+	// Initialize the plan structure
+	// See xdd_plan.c
+	planp = xdd_plan_data_initialization();
+	if (0 == planp) {
+		fprintf(stderr,"%s: Error allocating memory for xdd_plan struct\n",xgp->progname);
+		exit(XDD_RETURN_VALUE_INIT_FAILURE);
+	}
+
+	// Initialize everything else
+	// See initialization.c
+	status = xdd_initialization(argc, argv, planp);
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: Error during initialization\n",xgp->progname);
-		xdd_destroy_all_barriers();
+		xdd_destroy_all_barriers(planp);
 		exit(XDD_RETURN_VALUE_INIT_FAILURE);
 	}
 
 	// Initialize the barrier used to synchronize all the initialization routines
-	status =  xdd_init_barrier(&xgp->main_general_init_barrier, 2, "main_general_init_barrier");
-	status += xdd_init_barrier(&xgp->main_targets_waitforstart_barrier, xgp->number_of_targets+1, "main_targets_waitforstart_barrier");
-	status += xdd_init_barrier(&xgp->main_targets_syncio_barrier, xgp->number_of_targets, "main_targets_syncio_barrier");
-	status += xdd_init_barrier(&xgp->main_results_final_barrier, 2, "main_results_final_barrier");
+	status =  xdd_init_barrier(planp, &planp->main_general_init_barrier, 2, "main_general_init_barrier");
+	status += xdd_init_barrier(planp, &planp->main_targets_waitforstart_barrier, planp->number_of_targets+1, "main_targets_waitforstart_barrier");
+	status += xdd_init_barrier(planp, &planp->main_targets_syncio_barrier, planp->number_of_targets, "main_targets_syncio_barrier");
+	status += xdd_init_barrier(planp, &planp->main_results_final_barrier, 2, "main_results_final_barrier");
 	if (status < 0)  {
 		fprintf(stderr,"%s: xdd_main: ERROR: Cannot initialize the main barriers - exiting now.\n",xgp->progname);
-		xdd_destroy_all_barriers();
+		xdd_destroy_all_barriers(planp);
 		exit(XDD_RETURN_VALUE_INIT_FAILURE);
 	}
 	xdd_init_barrier_occupant(&barrier_occupant, "XDD_MAIN", XDD_OCCUPANT_TYPE_MAIN, NULL);
@@ -68,10 +89,10 @@ main(int32_t argc,char *argv[]) {
 	// Start up all the necessary threads 
 	// Start the Target Threads 
 	// The Target Threads will start their QThreads as part of their initialization process
-	status = xdd_start_targets();
+	status = xdd_start_targets(planp);
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_main: ERROR: Could not start target threads\n", xgp->progname);
-		xdd_destroy_all_barriers();
+		xdd_destroy_all_barriers(planp);
 		exit(XDD_RETURN_VALUE_TARGET_START_FAILURE);
 	}
 
@@ -80,42 +101,42 @@ main(int32_t argc,char *argv[]) {
 	// heartbeat and/or restart threads.
 
 	/* Start the Results Manager */
-	xdd_start_results_manager();
+	xdd_start_results_manager(planp);
 
 	/* start a heartbeat monitor if necessary */
-	xdd_start_heartbeat();
+	xdd_start_heartbeat(planp);
 
 	/* start a restart monitor if necessary */
-	xdd_start_restart_monitor();
+	xdd_start_restart_monitor(planp);
 
 	/* start a restart monitor if necessary */
-	xdd_start_interactive();
+	xdd_start_interactive(planp);
 
 	/* Record the approximate time that the targets will actually start running */
-	nclk_now(&xgp->run_start_time);
+	nclk_now(&planp->run_start_time);
 
 	// Entering this barrier will tell all the Target threads to begin now that all the monitor threads have started
-	xdd_barrier(&xgp->main_targets_waitforstart_barrier,&barrier_occupant,1);
+	xdd_barrier(&planp->main_targets_waitforstart_barrier,&barrier_occupant,1);
 DFLOW("\n----------------------All targets should start now-------------------------\n");
 
 	// At this point all the Target threads are running and we will enter the final_barrier 
 	// waiting for them to finish or exit if this is just a dry run
 	if (xgp->global_options & GO_DRYRUN) {
 		// Cleanup the semaphores and barriers 
-		xdd_destroy_all_barriers();
+		xdd_destroy_all_barriers(planp);
 		return(XDD_RETURN_VALUE_SUCCESS);
 	}
 
 	// Wait for the Results Manager to get here at which time all targets have finished
-	xdd_barrier(&xgp->main_results_final_barrier,&barrier_occupant,1);
+	xdd_barrier(&planp->main_results_final_barrier,&barrier_occupant,1);
 
 	// Display the Ending Time for this run
-	xgp->current_time_for_this_run = time(NULL);
-	c = ctime(&xgp->current_time_for_this_run);
+	planp->current_time_for_this_run = time(NULL);
+	c = ctime(&planp->current_time_for_this_run);
 
 	status = 0;
 	for (i=0; i<MAX_TARGETS; i++) 
-			status += xgp->target_errno[i];
+			status += planp->target_errno[i];
 	if (xgp->canceled) {
 		fprintf(xgp->output,"Ending time for this run, %s This run was canceled\n",c);
 		return_value = XDD_RETURN_VALUE_CANCELED;
@@ -140,7 +161,7 @@ DFLOW("\n----------------------All targets should start now---------------------
 	}
 
 	// Cleanup the semaphores and barriers 
-	xdd_destroy_all_barriers();
+	xdd_destroy_all_barriers(planp);
 
 	/* Time to leave... sigh */
 	return(return_value);
@@ -162,7 +183,7 @@ DFLOW("\n----------------------All targets should start now---------------------
  * before they are all released. Make sense? I didn't think so.
  */
 int32_t
-xdd_start_targets() {
+xdd_start_targets(xdd_plan_t *planp) {
 	int32_t		target_number;	// Target number to work on
 	int32_t		status;			// Status of a subroutine call
 	ptds_t		*p;				// pointer to the PTS for this QThread
@@ -170,10 +191,11 @@ xdd_start_targets() {
 
 
 	xdd_init_barrier_occupant(&barrier_occupant, "XDDMAIN_START_TARGETS", XDD_OCCUPANT_TYPE_MAIN, NULL);
-	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
+		p = planp->ptdsp[target_number]; /* Get the ptds for this target */
 		/* Create the new thread */
 		p->my_target_number = target_number;
+		p->my_planp = planp;
 		status = pthread_create(&p->target_thread, NULL, xdd_target_thread, p);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_start_targets: ERROR: Cannot create thread for target %d",
@@ -183,7 +205,7 @@ xdd_start_targets() {
 			return(-1);
 		}
 		// Wait for the Target Thread to complete initialization and then create the next one
-		xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,1);
+		xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant,1);
 
 		// If anything in the previous target *initialization* fails, then everything needs to stop right now.
 		if (xgp->abort == 1) { 
@@ -204,20 +226,20 @@ xdd_start_targets() {
  * destroy all barriers and exit to the OS.
  */
 void
-xdd_start_results_manager() {
+xdd_start_results_manager(xdd_plan_t *planp) {
 	int32_t		status;			// Status of a subroutine call
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
 
 	xdd_init_barrier_occupant(&barrier_occupant, "XDDMAIN_START_RESULTS_MANAGER", XDD_OCCUPANT_TYPE_MAIN, NULL);
-	status = pthread_create(&xgp->Results_Thread, NULL, xdd_results_manager, (void *)(unsigned long)0);
+	status = pthread_create(&planp->Results_Thread, NULL, xdd_results_manager, planp);
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_start_results_manager: ERROR: Could not start results manager\n", xgp->progname);
-		xdd_destroy_all_barriers();
+		xdd_destroy_all_barriers(planp);
 		exit(XDD_RETURN_VALUE_INIT_FAILURE);
 	}
 	// Enter this barrier and wait for the results monitor to initialize
-	xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,1);
+	xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant,1);
 
 
 } // End of xdd_start_results_manager()
@@ -227,19 +249,19 @@ xdd_start_results_manager() {
  * display a WARNING message and continue on its merry way.
  */
 void
-xdd_start_heartbeat() {
+xdd_start_heartbeat(xdd_plan_t *planp) {
 	int32_t		status;			// Status of a subroutine call
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
 	xdd_init_barrier_occupant(&barrier_occupant, "XDDMAIN_START_HEARTBEAT", XDD_OCCUPANT_TYPE_MAIN, NULL);
 	if (xgp->global_options & GO_HEARTBEAT) {
-		status = pthread_create(&xgp->Heartbeat_Thread, NULL, xdd_heartbeat, (void *)(unsigned long)0);
+		status = pthread_create(&planp->Heartbeat_Thread, NULL, xdd_heartbeat, planp);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_start_heartbeat: ERROR: Could not start heartbeat\n", xgp->progname);
 			fflush(xgp->errout);
 		}
 		// Enter this barrier and wait for the heartbeat monitor to initialize
-		xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,1);
+		xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant,1);
 	}
 
 } // End of xdd_start_heartbeat()
@@ -249,21 +271,21 @@ xdd_start_heartbeat() {
  * destroy all barriers and exit to the OS.
  */
 void
-xdd_start_restart_monitor() {
+xdd_start_restart_monitor(xdd_plan_t *planp) {
 	int32_t		status;			// Status of a subroutine call
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
 	xdd_init_barrier_occupant(&barrier_occupant, "XDDMAIN_START_RESTART_MONITOR", XDD_OCCUPANT_TYPE_MAIN, NULL);
-	if (xgp->restart_frequency) {
-		status = pthread_create(&xgp->Restart_Thread, NULL, xdd_restart_monitor, (void *)(unsigned long)0);
+	if (planp->restart_frequency) {
+		status = pthread_create(&planp->Restart_Thread, NULL, xdd_restart_monitor, (void *)(unsigned long)0);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_start_restart_monitor: ERROR: Could not start restart monitor\n", xgp->progname);
 			fflush(xgp->errout);
-			xdd_destroy_all_barriers();
+			xdd_destroy_all_barriers(planp);
 			exit(XDD_RETURN_VALUE_INIT_FAILURE);
 		}
 		// Enter this barrier and wait for the restart monitor to initialize
-		xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,1);
+		xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant,1);
 	}
 
 } // End of xdd_start_restart_monitor()
@@ -271,21 +293,21 @@ xdd_start_restart_monitor() {
 /* xdd_start_interactive() - Will start the Interactive Command Processor Thread
  */
 void
-xdd_start_interactive() {
+xdd_start_interactive(xdd_plan_t *planp) {
 	int32_t		status;			// Status of a subroutine call
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
 	xdd_init_barrier_occupant(&barrier_occupant, "XDDMAIN_START_INTERACTIVE", XDD_OCCUPANT_TYPE_MAIN, NULL);
 	if (xgp->global_options & GO_INTERACTIVE) {
-		status = pthread_create(&xgp->Interactive_Thread, NULL, xdd_interactive, (void *)(unsigned long)0);
+		status = pthread_create(&planp->Interactive_Thread, NULL, xdd_interactive, (void *)planp);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_start_interactive: ERROR: Could not start interactive control processor\n", xgp->progname);
 			fflush(xgp->errout);
-			xdd_destroy_all_barriers();
+			xdd_destroy_all_barriers(planp);
 			exit(XDD_RETURN_VALUE_INIT_FAILURE);
 		}
 		// Enter this barrier and wait for the restart monitor to initialize
-		xdd_barrier(&xgp->main_general_init_barrier,&barrier_occupant,1);
+		xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant,1);
 	}
 
 } // End of xdd_start_interactive()

@@ -31,7 +31,7 @@
 /*
  * This file contains the subroutines that support the Target threads.
  */
-#include "xdd.h"
+#include "xint.h"
 
 /*----------------------------------------------------------------------------*/
 /* xdd_target_init() - Initialize a Target Thread
@@ -109,17 +109,18 @@ xdd_target_init(ptds_t *p) {
 	/* If we are synchronizing to a Global Clock, let's synchronize
 	 * here so that we all start at *roughly* the same time
 	 */
-	if (xgp->gts_addr) {
-		nclk_now(&CurrentLocalTime);
-		while (CurrentLocalTime < xgp->ActualLocalStartTime) {
-		    TimeDelta = ((xgp->ActualLocalStartTime - CurrentLocalTime)/BILLION);
-	    	    if (TimeDelta > 2) {
-			sleepseconds = TimeDelta - 2;
-			sleep(sleepseconds);
-		    }
-		    nclk_now(&CurrentLocalTime);
-		}
-	}
+	// FIXME - TOM review to see if this can go in plan_init
+//	if (xgp->gts_addr) {
+//		nclk_now(&CurrentLocalTime);
+//		while (CurrentLocalTime < xgp->ActualLocalStartTime) {
+//		    TimeDelta = ((xgp->ActualLocalStartTime - CurrentLocalTime)/BILLION);
+//	    	    if (TimeDelta > 2) {
+//			sleepseconds = TimeDelta - 2;
+//			sleep(sleepseconds);
+//		    }
+//		    nclk_now(&CurrentLocalTime);
+//		}
+//	}
 	if (xgp->global_options & GO_TIMER_INFO) {
 		fprintf(xgp->errout,"Starting now...\n");
 		fflush(xgp->errout);
@@ -191,22 +192,22 @@ xdd_target_init_barriers(ptds_t *p) {
 
 	// The Target_QThread Initialization barrier
 	sprintf(tmpname,"T%04d:target_qthread_init_barrier",p->my_target_number);
-	status += xdd_init_barrier(&p->target_qthread_init_barrier,2, tmpname);
+	status += xdd_init_barrier(p->my_planp, &p->target_qthread_init_barrier,2, tmpname);
 
 	// The Target Pass barrier
 	sprintf(tmpname,"T%04d>targetpass_qthread_passcomplete_barrier",p->my_target_number);
-	status += xdd_init_barrier(&p->targetpass_qthread_passcomplete_barrier,p->queue_depth+1,tmpname);
+	status += xdd_init_barrier(p->my_planp, &p->targetpass_qthread_passcomplete_barrier,p->queue_depth+1,tmpname);
 
 	// The Target Pass E2E EOF Complete barrier - only initialized when an End-to-End operation is running
 	if (p->target_options & TO_ENDTOEND) {
 		sprintf(tmpname,"T%04d>targetpass_qthread_eofcomplete_barrier",p->my_target_number);
-		status += xdd_init_barrier(&p->targetpass_qthread_eofcomplete_barrier,2,tmpname);
+		status += xdd_init_barrier(p->my_planp, &p->targetpass_qthread_eofcomplete_barrier,2,tmpname);
 	}
 
 	// The Target Start Trigger barrier 
 	if (p->target_options & TO_WAITFORSTART) { // If we are expecting a Start Trigger then we need to init the starttrigger barrier
 		sprintf(tmpname,"T%04d>target_target_starttrigger_barrier",p->my_target_number);
-		status += xdd_init_barrier(&p->trigp->target_target_starttrigger_barrier,2,tmpname);
+		status += xdd_init_barrier(p->my_planp, &p->trigp->target_target_starttrigger_barrier,2,tmpname);
 	}
 
 	// The "counter_mutex" is used by the QThreads when updating the counter information in the Target Thread PTDS
