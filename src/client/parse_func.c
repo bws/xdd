@@ -958,7 +958,9 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		i = 0;
 		while (p) {
 		    p->target_options |= TO_ENDTOEND;
-	    	e2ep = xdd_get_e2ep(p);
+	    	// FIXME e2ep = xdd_get_e2ep(p);
+			xdd_get_e2ep(p);
+			e2ep = p->e2ep;
 	    	if (e2ep == NULL) return(-1);
 		    strcpy(e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].hostname, hostname); 
 	            e2ep->e2e_address_table[e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
