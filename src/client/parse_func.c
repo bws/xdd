@@ -143,6 +143,8 @@ xddfunc_bytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	ptds_t *p;
 	int64_t bytes;
 
+
+fprintf(stderr,"XDDFUNC_BYTES: Enter: planp=%p\n",planp);
 	args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
 	if (args < 0)
 		return(-1);
@@ -151,6 +153,7 @@ xddfunc_bytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		return(0);
 
 	bytes = atoll(argv[args+1]);
+fprintf(stderr,"XDDFUNC_BYTES: ..... bytes=%lld\n",(long long int)bytes);
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(planp, target_number, argv[0]);
 		if (p == NULL)
@@ -164,6 +167,7 @@ xddfunc_bytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			p = planp->ptdsp[0];
 			i = 0;
 			while (p) {
+fprintf(stderr,"XDDFUNC_BYTES: ..... p=%p, i=%d, bytes=%lld\n",p, i, (long long int)bytes);
 				p->bytes = bytes;
 				p->numreqs = 0;
 				i++;

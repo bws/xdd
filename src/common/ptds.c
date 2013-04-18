@@ -34,101 +34,6 @@
  */
 #include "xint.h"
 
-/*----------------------------------------------------------------------------*/
-/* xdd_init_target_state() - Initialize the default target state struct
- */
-void
-xdd_init_target_state(xdd_target_state_t *tgtstp) {
-	
-	// Time stamps and timing information - RESET AT THE START OF EACH PASS (or Operation on some)
-	////nclk_t				my_pass_start_time; 		// The time stamp that this pass started but before the first operation is issued
-	tgtstp->my_pass_start_time=0; 		// The time stamp that this pass started but before the first operation is issued
-	////nclk_t				my_pass_end_time; 			// The time stamp that this pass ended 
-	tgtstp->my_pass_end_time=0; 			// The time stamp that this pass ended 
-	////struct	tms			my_starting_cpu_times_this_run;	// CPU times from times() at the start of this run
-	////struct	tms			my_starting_cpu_times_this_pass;// CPU times from times() at the start of this pass
-	////struct	tms			my_current_cpu_times;		// CPU times from times()
-	//
-	// Updated by xdd_issue() at at the start of a Task IO request to a QThread
-	////int32_t				my_current_pass_number; 	// Current pass number 
-	tgtstp->my_current_pass_number=0; 	// Current pass number 
-	////int64_t				my_current_byte_location; 	// Current byte location for this I/O operation 
-	tgtstp->my_current_byte_location=0; 	// Current byte location for this I/O operation 
-	////int32_t				my_current_io_size; 		// Size of the I/O to be performed
-	tgtstp->my_current_io_size=0; 		// Size of the I/O to be performed
-	////char				*my_current_op_str; 		// Pointer to an ASCII string of the I/O operation type - "READ", "WRITE", or "NOOP"
-	tgtstp->my_current_op_str="\0"; 		// Pointer to an ASCII string of the I/O operation type - "READ", "WRITE", or "NOOP"
-	////int32_t				my_current_op_type; 		// Current I/O operation type - OP_TYPE_READ or OP_TYPE_WRITE
-	tgtstp->my_current_op_type=0;; 		// Current I/O operation type - OP_TYPE_READ or OP_TYPE_WRITE
-	// Updated by the QThread upon completion of an I/O operation
-	////int64_t				target_op_number;			// The operation number for the target that this I/O represents
-	tgtstp->target_op_number=0;			// The operation number for the target that this I/O represents
-	////int64_t				my_current_op_number;		// Current I/O operation number 
-	tgtstp->my_current_op_number=0;		// Current I/O operation number 
-	////int64_t				my_current_op_count; 		// The number of read+write operations that have completed so far
-	tgtstp->my_current_op_count=0; 		// The number of read+write operations that have completed so far
-	////int64_t				my_current_read_op_count;	// The number of read operations that have completed so far 
-	tgtstp->my_current_read_op_count=0;	// The number of read operations that have completed so far 
-	////int64_t				my_current_write_op_count;	// The number of write operations that have completed so far 
-	tgtstp->my_current_write_op_count=0;	// The number of write operations that have completed so far 
-	////int64_t				my_current_noop_op_count;	// The number of noops that have completed so far 
-	tgtstp->my_current_noop_op_count=0;	// The number of noops that have completed so far 
-	////int64_t				my_current_bytes_xfered_this_op; // Total number of bytes transferred for the most recent completed I/O operation
-	tgtstp->my_current_bytes_xfered_this_op=0; // Total number of bytes transferred for the most recent completed I/O operation
-	////int64_t				my_current_bytes_xfered;	// Total number of bytes transferred so far (to storage device, not network)
-	tgtstp->my_current_bytes_xfered=0;	// Total number of bytes transferred so far (to storage device, not network)
-	////int64_t				my_current_bytes_read;		// Total number of bytes read so far (from storage device, not network)
-	tgtstp->my_current_bytes_read=0;		// Total number of bytes read so far (from storage device, not network)
-	////int64_t				my_current_bytes_written;	// Total number of bytes written so far (to storage device, not network)
-	tgtstp->my_current_bytes_written=0;	// Total number of bytes written so far (to storage device, not network)
-	////int64_t				my_current_bytes_noop;		// Total number of bytes processed by noops so far
-	tgtstp->my_current_bytes_noop=0;		// Total number of bytes processed by noops so far
-	////int32_t				my_current_io_status; 		// I/O Status of the last I/O operation for this qthread
-	tgtstp->my_current_io_status=0; 		// I/O Status of the last I/O operation for this qthread
-	////int32_t				my_current_io_errno; 		// The errno associated with the status of this I/O for this thread
-	tgtstp->my_current_io_errno=0; 		// The errno associated with the status of this I/O for this thread
-	////int64_t				my_current_error_count;		// The number of I/O errors for this qthread
-	tgtstp->my_current_error_count=0;		// The number of I/O errors for this qthread
-	////nclk_t				my_elapsed_pass_time; 		// Rime between the start and end of this pass
-	tgtstp->my_elapsed_pass_time=0; 		// Rime between the start and end of this pass
-	////nclk_t				my_first_op_start_time;		// Time this qthread was able to issue its first operation for this pass
-	tgtstp->my_first_op_start_time=0;		// Time this qthread was able to issue its first operation for this pass
-	////nclk_t				my_current_op_start_time; 	// Start time of the current op
-	tgtstp->my_current_op_start_time=0; 	// Start time of the current op
-	////nclk_t				my_current_op_end_time; 	// End time of the current op
-	tgtstp->my_current_op_end_time=0; 	// End time of the current op
-	////nclk_t				my_current_op_elapsed_time;	// Elapsed time of the current op
-	tgtstp->my_current_op_elapsed_time=0;	// Elapsed time of the current op
-	////nclk_t				my_current_net_start_time; 	// Start time of the current network op (e2e only)
-	tgtstp->my_current_net_start_time=0; 	// Start time of the current network op (e2e only)
-	////nclk_t				my_current_net_end_time; 	// End time of the current network op (e2e only)
-	tgtstp->my_current_net_end_time=0; 	// End time of the current network op (e2e only)
-	////nclk_t				my_current_net_elapsed_time;// Elapsed time of the current network op (e2e only)
-	tgtstp->my_current_net_elapsed_time=0;// Elapsed time of the current network op (e2e only)
-	////nclk_t				my_accumulated_op_time; 	// Accumulated time spent in I/O 
-	tgtstp->my_accumulated_op_time=0; 	// Accumulated time spent in I/O 
-	////nclk_t				my_accumulated_read_op_time; // Accumulated time spent in read 
-	tgtstp->my_accumulated_read_op_time=0; // Accumulated time spent in read 
-	////nclk_t				my_accumulated_write_op_time;// Accumulated time spent in write 
-	tgtstp->my_accumulated_write_op_time=0;// Accumulated time spent in write 
-	////nclk_t				my_accumulated_noop_op_time;// Accumulated time spent in noops 
-	tgtstp->my_accumulated_noop_op_time=0;// Accumulated time spent in noops 
-	////nclk_t				my_accumulated_pattern_fill_time; // Accumulated time spent in data pattern fill before all I/O operations 
-	tgtstp->my_accumulated_pattern_fill_time=0; // Accumulated time spent in data pattern fill before all I/O operations 
-	////nclk_t				my_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
-	tgtstp->my_accumulated_flush_time=0; 	// Accumulated time spent doing flush (fsync) operations
-	// Updated by the QThread at different times
-	////char				my_time_limit_expired;		// Time limit expired indicator
-	tgtstp->my_time_limit_expired=0;		// Time limit expired indicator
-	////char				abort;						// Abort this operation (either a QThread or a Target Thread)
-	tgtstp->abort=0;						// Abort this operation (either a QThread or a Target Thread)
-	////char				run_complete;				// Indicates that the entire RUN of all PASSES has completed
-	tgtstp->run_complete=0;				// Indicates that the entire RUN of all PASSES has completed
-	////pthread_mutex_t 	my_current_state_mutex; 	// Mutex for locking when checking or updating the state info
-	////int32_t				my_current_state;			// State of this thread at any given time (see Current State definitions below)
-	tgtstp->my_current_state=0;			// State of this thread at any given time (see Current State definitions below)
-
-} // End of xdd_init_target_state()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_init_new_ptds() - Initialize the default Per-Target-Data-Structure 
@@ -226,7 +131,8 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 		p->e2ep->e2e_address_table_next_entry=0;
 	}
 
-	xdd_init_target_state(p->tgtstp);
+	if (p->tgtstp) 
+		memset((unsigned char *)p->tgtstp, 0, sizeof(struct xdd_target_state));
 
 	sprintf(p->occupant_name,"TARGET%04d",p->my_target_number);
 	xdd_init_barrier_occupant(&p->occupant, p->occupant_name, XDD_OCCUPANT_TYPE_TARGET, p);
@@ -317,6 +223,15 @@ xdd_create_qthread_ptds(ptds_t *tp, int32_t q) {
 	newqp->next_qp = NULL; 
 	newqp->restartp = NULL; // Zero this because the Target PTDS is the only PTDS with a restart struct
 	newqp->my_qthread_number = q;
+	// Allocate and initialize the target state structure
+	newqp->tgtstp = xdd_get_tgtstp();
+	if (newqp->tgtstp == NULL) {
+	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for qthread %d\n",
+		    xgp->progname, (int)sizeof(struct xdd_target_state), q);
+	    return(NULL);
+	}
+
+	// Allocate and initialize the data pattern structure
 	
 	sprintf(newqp->occupant_name,"TARGET%04d_QTHREAD%04d",newqp->my_target_number,newqp->my_qthread_number); 
 	xdd_init_barrier_occupant(&newqp->occupant, newqp->occupant_name, XDD_OCCUPANT_TYPE_QTHREAD, newqp);

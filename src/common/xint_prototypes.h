@@ -160,6 +160,7 @@ void		xdd_usage(int32_t fullhelp);
 int 		xdd_check_option(char *op);
 int32_t		xdd_process_paramfile(xdd_plan_t* planp, char *fnp);
 int 		xdd_parse_target_number(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags, int *target_number);
+xdd_target_state_t *xdd_get_tgtstp(void);
 ptds_t 		*xdd_get_ptdsp(xdd_plan_t* planp, int32_t target_number, char *op);
 restart_t 	*xdd_get_restartp(ptds_t *p);
 xdd_raw_t	*xdd_get_rawp(ptds_t *p);

@@ -375,6 +375,24 @@ xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t 
 /*----------------------------------------------------------------------------*/
 /* xdd_get_ptdsp() - return a pointer to the PTDS for the specified target
  */
+xdd_target_state_t * 
+xdd_get_tgtstp(void) {
+	xdd_target_state_t *tgtstp;
+	// Allocate and initialize the target state structure
+	tgtstp = (struct xdd_target_state *)malloc(sizeof(struct xdd_target_state));
+	if (tgtstp == NULL) {
+	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure\n",
+		    xgp->progname, (int)sizeof(struct xdd_target_state));
+	    return(NULL);
+	}
+	memset((unsigned char *)tgtstp, 0, sizeof(struct xdd_target_state));
+	return(tgtstp);
+
+} // Endo f xdd_get_tgtstp()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_get_ptdsp() - return a pointer to the PTDS for the specified target
+ */
 ptds_t * 
 xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
     ptds_t *p;
@@ -392,6 +410,14 @@ xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
 	// Zero out the memory first
 	memset((unsigned char *)p, 0, sizeof(ptds_t));
 
+	// Allocate and initialize the target state structure
+	p->tgtstp = xdd_get_tgtstp();
+	if (p->tgtstp == NULL) {
+	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for target %d\n",
+		    xgp->progname, (int)sizeof(struct xdd_target_state), target_number);
+	    return(NULL);
+	}
+
 	// Allocate and initialize the data pattern structure
 	p->dpp = (struct xdd_data_pattern *)malloc(sizeof(struct xdd_data_pattern));
 	if (p->dpp == NULL) {
@@ -400,14 +426,6 @@ xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
 	    return(NULL);
 	}
 	xdd_data_pattern_init(p->dpp);
-
-	// Allocate and initialize the target state structure
-	p->tgtstp = (struct xdd_target_state *)malloc(sizeof(struct xdd_target_state));
-	if (p->tgtstp == NULL) {
-	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for target %d\n",
-		    xgp->progname, (int)sizeof(struct xdd_target_state), target_number);
-	    return(NULL);
-	}
 
 	if (xgp->global_options & GO_EXTENDED_STATS) 
 	    xdd_get_esp(p);
