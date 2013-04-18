@@ -134,7 +134,7 @@ dnl
 dnl Check for a GNU compatible tar program
 dnl
 tar_cmd=""
-AC_PATH_PROG([tar_cmd], [gnutar tar], AC_MSG_WARN(Unable to find a valid tar program))
+AC_PATH_PROGS([tar_cmd], [gnutar tar], AC_MSG_WARN(Unable to find a valid tar program))
 TAR=$tar_cmd
 AC_SUBST(TAR)
 
