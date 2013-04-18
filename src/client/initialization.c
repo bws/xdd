@@ -44,7 +44,7 @@ xdd_initialization(int32_t argc,char *argv[], xdd_plan_t *planp) {
 
 	// Initialize the Global Data Structure
 	// See global_data.c
-	xdd_global_data_initialization(argc, argv);
+	//xdd_global_data_initialization(argc, argv);
 
 	// Init the barrier chain before any barriers get initialized
 	// See barrier.c

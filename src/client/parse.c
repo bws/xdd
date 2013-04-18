@@ -438,6 +438,7 @@ xdd_get_restartp(ptds_t *p) {
 			xgp->progname, (int)sizeof(struct restart), p->my_target_number);
 			return(NULL);
 		}
+		memset(p->restartp, 0, sizeof(*p->restartp));
 	}
 	return(p->restartp);
 } /* End of xdd_get_restartp() */
@@ -528,6 +529,7 @@ xdd_get_e2ep(ptds_t *p) {
 			xgp->progname, (int)sizeof(struct xdd_e2e), p->my_target_number);
 			return(NULL);
 		}
+		memset(p->e2ep, 0, sizeof(*p->e2ep));
 	}
 	return(p->e2ep);
 } /* End of xdd_get_esp() */

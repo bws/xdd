@@ -46,12 +46,11 @@ main(int32_t argc,char *argv[]) {
 	xdd_occupant_t		barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 	int32_t				return_value;
     xdd_plan_t 			*planp;
-	xdd_global_data_t	*xgp;
 
 	
 	// Initialize the global_data structure
 	// See global_data.c
-	xgp = xdd_global_data_initialization(argc, argv);
+	xdd_global_data_initialization(argc, argv);
 	if (0 == xgp) {
 		fprintf(stderr,"%s: Error allocating memory for global_data struct\n",argv[0]);
 		exit(XDD_RETURN_VALUE_INIT_FAILURE);
@@ -277,7 +276,7 @@ xdd_start_restart_monitor(xdd_plan_t *planp) {
 
 	xdd_init_barrier_occupant(&barrier_occupant, "XDDMAIN_START_RESTART_MONITOR", XDD_OCCUPANT_TYPE_MAIN, NULL);
 	if (planp->restart_frequency) {
-		status = pthread_create(&planp->Restart_Thread, NULL, xdd_restart_monitor, (void *)(unsigned long)0);
+		status = pthread_create(&planp->Restart_Thread, NULL, xdd_restart_monitor, planp);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_start_restart_monitor: ERROR: Could not start restart monitor\n", xgp->progname);
 			fflush(xgp->errout);
