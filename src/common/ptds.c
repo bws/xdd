@@ -230,6 +230,16 @@ xdd_create_qthread_ptds(ptds_t *tp, int32_t q) {
 		    xgp->progname, (int)sizeof(struct xdd_target_state), q);
 	    return(NULL);
 	}
+	if (tp->target_options & TO_ENDTOEND) {
+	   	newqp->e2ep = xdd_get_e2ep();
+		if (NULL == newqp->e2ep) {
+	   		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for qthread %d\n",
+	    		xgp->progname, (int)sizeof(struct xdd_data_pattern), q);
+	   		return(NULL);
+		}
+		if (tp->e2ep)
+			memcpy(newqp->e2ep, tp->e2ep, sizeof(struct xdd_e2e));
+	}
 
 	// Allocate and initialize the data pattern structure
 	
@@ -332,6 +342,7 @@ xdd_build_ptds_substructure(xdd_plan_t* planp) {
 		// 
 		if (tp->target_options & TO_ENDTOEND) { 
 			// Sanity checking....
+fprintf(stderr,"PTDS: p=%p, e2e_address_table_host_count=%d",tp,tp->e2ep->e2e_address_table_host_count);
 			if (tp->e2ep->e2e_address_table_host_count == 0) { // This is an error...
 				fprintf(xgp->errout,"%s: xdd_build_ptds_substructure: ERROR: No E2E Destination Hosts defined!\n",
 					xgp->progname);

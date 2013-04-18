@@ -165,7 +165,7 @@ ptds_t 		*xdd_get_ptdsp(xdd_plan_t* planp, int32_t target_number, char *op);
 restart_t 	*xdd_get_restartp(ptds_t *p);
 xdd_raw_t	*xdd_get_rawp(ptds_t *p);
 xdd_sgio_t 	*xdd_get_sgiop(ptds_t *p);
-xdd_e2e_t 	*xdd_get_e2ep(ptds_t *p);
+xdd_e2e_t 	*xdd_get_e2ep(void);
 xdd_timestamp_t	*xdd_get_tsp(ptds_t *p);
 xdd_triggers_t 	*xdd_get_trigp(ptds_t *p);
 xdd_extended_stats_t 	*xdd_get_esp(ptds_t *p);

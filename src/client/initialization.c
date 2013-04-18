@@ -57,7 +57,7 @@ xdd_initialization(int32_t argc,char *argv[], xdd_plan_t *planp) {
 	xdd_parse(planp,argc,argv);
 
 	// Init output format header
-	if (xgp->global_options & GO_ENDTOEND) 
+	if (planp->plan_options & PLAN_ENDTOEND) 
 		xdd_results_format_id_add("+E2ESRTIME+E2EIOTIME+E2EPERCENTSRTIME ", planp->format_string);
 
 	// Optimize runtime priorities and all that 

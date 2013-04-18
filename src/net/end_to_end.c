@@ -76,6 +76,7 @@ xdd_e2e_src_send(ptds_t *qp) {
 		qp->e2ep->e2e_send_status = sendto(qp->e2ep->e2e_sd,(char *)qp->rwbuf+sent, sendsize, 0, (struct sockaddr *)&qp->e2ep->e2e_sname, sizeof(struct sockaddr_in));
 		sent += qp->e2ep->e2e_send_status;
                 sentcalls++;
+fprintf(stderr,"E2E_SOURCE_SIDE_SEND: Sent %d bytes\n",qp->e2ep->e2e_send_status);
 	}
 	nclk_now(&qp->tgtstp->my_current_net_end_time);
 	// Time stamp if requested
@@ -175,6 +176,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 				recvsize = (qp->e2ep->e2e_iosize-rcvd_so_far) > maxmit ? maxmit : (qp->e2ep->e2e_iosize-rcvd_so_far);
 				qp->e2ep->e2e_recv_status = recvfrom(qp->e2ep->e2e_csd[qp->e2ep->e2e_current_csd], (char *) qp->rwbuf+rcvd_so_far, recvsize, 0, NULL,NULL);
 				// Check for other conditions that will get us out of this loop
+fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: Recv %d bytes\n",qp->e2ep->e2e_recv_status);
 				if (qp->e2ep->e2e_recv_status <= 0)
 					break;
 				// Otherwise, figure out how much data we got and go back for more if necessary
@@ -187,6 +189,7 @@ xdd_e2e_dest_recv(ptds_t *qp) {
 			if (rcvd_so_far == qp->e2ep->e2e_iosize && 
 				((struct xdd_e2e_header*)(qp->rwbuf+qp->iosize))->magic == PTDS_E2E_MAGIQ) {
 				memmove(qp->rwbuf, qp->rwbuf+qp->iosize, sizeof(struct xdd_e2e_header));
+fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n",qp->e2ep->e2e_recv_status);
 				qp->e2ep->e2e_recv_status = headersize;
 			} else if (qp->e2ep->e2e_recv_status > 0) {
 				qp->e2ep->e2e_recv_status = rcvd_so_far;
@@ -341,6 +344,7 @@ xdd_e2e_eof_source_side(ptds_t *qp) {
 			xdd_e2e_err(qp,"xdd_e2e_eof_source_side","ERROR: error sending EOF to destination\n");
 			return(-1);
 		}
+fprintf(stderr,"E2E_EOF_SOURCE_SIDE: Sent %d bytes\n",qp->e2ep->e2e_send_status);
 		sent += qp->e2ep->e2e_send_status;
 		sentcalls++;
 	}
