@@ -70,8 +70,8 @@
 #if (SNFS)
 #include <client/cvdrfile.h>
 #endif
-#include "nclk.h" /* nclk_t, prototype compatibility */
-#include "misc.h"
+#include "xint_nclk.h" /* nclk_t, prototype compatibility */
+#include "xint_misc.h"
 
 #define MP_MUSTRUN 1 /* Assign this thread to a specific processor */
 #define MP_NPROCS 2 /* return the number of processors on the system */
