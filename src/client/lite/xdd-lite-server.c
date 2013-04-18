@@ -28,55 +28,51 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#ifndef XINT_LITE_H
-#define XINT_LITE_H
+#include <stdio.h>
+#include <string.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/wait.h>
+#include <netdb.h>
+#include "libxdd.h"
 
-#include <stdint.h>
-#include <stdlib.h>
-#include <xdd_plan.h>
+int xdd_lite_start_destination(int sd) {
+	int rc = 0;
+	union {
+		struct { char buf[16]; };
+		struct { uint64_t magic, msize; };
+	} header;
+	size_t sz;
+	char* mbuf;
 
-typedef enum xint_op {NULL_OP_TYPE = 0, READ, WRITE} xint_op_t;
+	/* Peek the message header */
+	sz = 0;
+	while (sz < 16)
+		sz = recv(sd, header.buf + sz, 16 - sz, MSG_PEEK);
 
-typedef struct xint_lite_e2e {
-    char* host;
-    int port;
-    int thread_count;
-    int numa;
-} xint_lite_e2e_t;
-    
-typedef struct xint_lite_options {
-    int help_flag;
-    xint_op_t ot;
-    char* fname;
-    size_t offset;
-    size_t length;
-    int dio_flag;
-    char* out_filename;
-    char* err_filename;
-    int verbose_flag;
-    size_t preallocate;
-    int stop_on_error_flag;
-    char* restart_fname;
-	int server_flag;
-    size_t heartbeat_freq;
+	/* Check the magic number and size */
+	printf("Header magic: %lld", (long long) header.magic);
+	printf("Header size: %lld", (long long) header.msize);
+	
+	/* Receive the full plan description */
+	mbuf = malloc(header.msize);
+	sz = 0;
+	while (sz < header.msize)
+		recv(sd, mbuf + sz, header.msize - sz, MSG_WAITALL);
 
-    /* List of e2e connection information */
-    int num_e2e_specs;
-    xint_lite_e2e_t* e2e_specs;
+	/* Setup the plan */
 
-} xint_lite_options_t;
+	/* Start the plan */
+	
+	/* Send the acknowledgement */
 
-int xint_lite_options_init(xint_lite_options_t* opts);
-
-int xint_lite_options_destroy(xint_lite_options_t* opts);
-
-int xint_lite_options_parse(xint_lite_options_t* opts, int argc, char** argv);
-
-int xint_lite_options_plan_create(xint_lite_options_t* opts, xdd_plan_pub_t* plan);
-
-int xint_lite_print_usage();
-
-#endif
+	
+	close(sd);
+	return rc;
+}
 
 /*
  * Local variables:
@@ -84,6 +80,7 @@ int xint_lite_print_usage();
  *  default-tab-width: 4
  *  c-indent-level: 4
  *  c-basic-offset: 4
+ *  tab-width: 4
  * End:
  *
  * vim: ts=4 sts=4 sw=4 noexpandtab

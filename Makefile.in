@@ -82,12 +82,13 @@ include $(FS_DIR)/module.mk
 include $(NET_DIR)/module.mk
 include $(PUBLIC_DIR)/module.mk
 include $(TOOLS_DIR)/module.mk
+include $(XNI_DIR)/module.mk
 
 #
 # Construct information from modules
 #
 XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(CLIENT_LITE_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
-	$(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) $(TOOLS_SRC)
+	$(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) $(TOOLS_SRC) $(XNI_SRC)
 
 #
 # XDD module build targets

@@ -28,48 +28,85 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#include <string.h>
 #include "libxdd.h"
-#include "xint-lite.h"
+#include "xdd-lite.h"
+#include "xdd-lite-forking-server.h"
 
-int print_usage() {
-    xint_lite_print_usage();
+/** Print out the CLI usage information */
+int print_usage()
+{
+    xdd_lite_print_usage();
     return 0;
 }
 
-/** Main */
-int main(int argc, char** argv) {
+/* Start a forking server */
+int start_server(char* iface, char* port, int backlog)
+{
+	int rc = 0;
 
+	/* Start the forking server */
+	rc = xdd_lite_start_forking_server(iface, port, backlog);
+	return rc;
+}
+
+/* Start a client capable of interacting with the forking server */
+int start_client(xdd_plan_pub_t* plan)
+{
+	int rc = 0;
+	
+	/* Execute the plan */
+	rc += xdd_plan_start(plan);
+	rc += xdd_plan_wait(plan);	
+	return rc;
+}
+
+/** Main */
+int main(int argc, char** argv)
+{
     int rc;
-    size_t num_targets;
-    xint_lite_options_t opts;
-    xdd_plan_pub_t lite_plan;
+    xdd_lite_options_t opts;
 
     /* Initialize and parse options */
-    rc = xint_lite_options_init(&opts);    
+    rc = xdd_lite_options_init(&opts);    
     if (0 == rc) {
-        rc += xint_lite_options_parse(&opts, argc, argv);
+        rc += xdd_lite_options_parse(&opts, argc, argv);
     } else {
-        goto cleanup_options;
+		xdd_lite_options_destroy(&opts);
+		return rc;
     }
+
+	/* Print help */
     if (0 != rc || 1 == opts.help_flag) {
         print_usage();
-        goto cleanup_options;
+		xdd_lite_options_destroy(&opts);
+		return 1;
     }
 
-    /* Construct a plan from the specified options */
-    rc += xdd_plan_init(&lite_plan);
-    rc += xint_lite_options_plan_create(&opts, &lite_plan);
+	/* Start XDD-Lite in server mode or client mode */
+	if (0 != opts.server_flag) {
+		/* Extract the relevant server options */
+		char iface[256];
+		char port[256];
+		int backlog = opts.s.backlog;
+		strncpy(iface, opts.s.iface, 255);
+		strncpy(port, opts.s.port, 255);
+		iface[255] = port[255] = '\0';
+		xdd_lite_options_destroy(&opts);
 
-    /* Execute the plan */
-    rc += xdd_plan_start(&lite_plan);
-    rc += xdd_plan_wait(&lite_plan);
+		/* Start the server */
+		rc = start_server(iface, port, backlog);
+	} else {
+		/* Construct a plan from the specified options */
+		xdd_plan_pub_t lite_plan;		
+		rc += xdd_plan_init(&lite_plan);
+		rc += xdd_lite_options_plan_create(&opts, &lite_plan);
+		rc += xdd_lite_options_destroy(&opts);
 
-    /* Perform cleanup */
-  cleanup_plan:
-    xdd_plan_destroy(&lite_plan);
-  cleanup_options:
-    xint_lite_options_destroy(&opts);
-    
+		/* Start the client */
+		rc = start_client(&lite_plan);
+		xdd_plan_destroy(&lite_plan);
+	}
     return rc;
 }
 

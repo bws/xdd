@@ -28,7 +28,7 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xint-lite.h"
+#include "xdd-lite.h"
 #include <assert.h>
 #include <getopt.h>
 #include <stdio.h>
@@ -37,32 +37,36 @@
 #include "libxdd.h"
 
 /* Forward declarations */
-static int parse_heartbeat(xint_lite_options_t* opts, char* val);
-static int parse_verbosity(xint_lite_options_t* opts, char* val);
-static int parse_help(xint_lite_options_t* opts, char* val);
-static int parse_file(xint_lite_options_t* opts, char* val);
-static int parse_offset(xint_lite_options_t* opts, char* val);
-static int parse_length(xint_lite_options_t* opts, char* val);
-static int parse_e2e_spec(xint_lite_options_t* opts, char* val);
+static int parse_heartbeat(xdd_lite_options_t* opts, char* val);
+static int parse_verbosity(xdd_lite_options_t* opts, char* val);
+static int parse_help(xdd_lite_options_t* opts, char* val);
+static int parse_file(xdd_lite_options_t* opts, char* val);
+static int parse_offset(xdd_lite_options_t* opts, char* val);
+static int parse_length(xdd_lite_options_t* opts, char* val);
+static int parse_e2e_spec(xdd_lite_options_t* opts, char* val);
 
 /** Initialize the options structure */
-int xint_lite_options_init(xint_lite_options_t* opts) {
+int xdd_lite_options_init(xdd_lite_options_t* opts) {
     assert(0 != opts);
-    memset(opts, 0, sizeof(xint_lite_options_t));
-    opts->stop_on_error_flag = 1;
+    memset(opts, 0, sizeof(xdd_lite_options_t));
+
+	
+	opts->s.iface = XDD_LITE_DEFAULT_LISTEN_IFACE;
+	opts->s.port = XDD_LITE_DEFAULT_LISTEN_PORT;
+	opts->s.backlog = XDD_LITE_DEFAULT_LISTEN_BACKLOG;
     return 0;
 }
 
 /** Deallocate any resources associated with the options structure */
-int xint_lite_options_destroy(xint_lite_options_t* opts) {
+int xdd_lite_options_destroy(xdd_lite_options_t* opts) {
     assert(0 != opts);
-    free(opts->e2e_specs);
-    memset(opts, 0, sizeof(xint_lite_options_t));
+    free(opts->c.e2e_specs);
+    memset(opts, 0, sizeof(xdd_lite_options_t));
     return 0;
 }
 
 /** Parse a cli string into an options structure */
-int xint_lite_options_parse(xint_lite_options_t* opts, int argc, char** argv) {
+int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv) {
     int rc = 0;
     int option_idx = 0;
 
@@ -99,7 +103,7 @@ int xint_lite_options_parse(xint_lite_options_t* opts, int argc, char** argv) {
 				rc = parse_heartbeat(opts, argv[option_idx]);
 				break;
             case 'd':
-				opts->dio_flag = 1;
+				opts->c.dio_flag = 1;
 				break;
             case 'e':
 				rc = parse_e2e_spec(opts, argv[option_idx]);
@@ -130,16 +134,16 @@ int xint_lite_options_parse(xint_lite_options_t* opts, int argc, char** argv) {
 
     /* The only non-option argument is the file name */
     if ((option_idx + 1) == argc) {
-	opts->fname = argv[option_idx];
+		opts->c.fname = argv[option_idx];
     }
     else {
-	rc = 1;
+		rc = 1;
     }
     return rc;
 }
 
 /** Convert the options into a valid plan */
-int xint_lite_options_plan_create(xint_lite_options_t* opts, xdd_plan_pub_t* plan) {
+int xdd_lite_options_plan_create(xdd_lite_options_t* opts, xdd_plan_pub_t* plan) {
     int rc;
     int i = 0;
 
@@ -156,57 +160,57 @@ int xint_lite_options_plan_create(xint_lite_options_t* opts, xdd_plan_pub_t* pla
 }
 
 /** Print usage information to stdout */
-int xint_lite_print_usage() {
+int xdd_lite_print_usage() {
     printf("usage: xdd-lite [options] file\n");
     return 0;
 }
 
 /** Parse the heartbeat string into the option structure */
-int parse_heartbeat(xint_lite_options_t* opts, char* val) {
+int parse_heartbeat(xdd_lite_options_t* opts, char* val) {
     return 0;
 }
 
 /** Parse the offset string into the option structure */
-int parse_offset(xint_lite_options_t* opts, char* val) {
+int parse_offset(xdd_lite_options_t* opts, char* val) {
     int rc = 0;
     char** p = 0;
     unsigned long num = strtoul(val, p, 10);
     if (NULL == p) {
-	rc = 1;
+		rc = 1;
     }
     else {
-	opts->offset = num;
+		opts->c.offset = num;
     }
     return rc;
 }
 
 /** Parse the file legth string into the option structure */
-int parse_length(xint_lite_options_t* opts, char* val) {
+int parse_length(xdd_lite_options_t* opts, char* val) {
     int rc = 0;
     char** p = 0;
     unsigned long num = strtoul(val, p, 10);
     if (NULL == p) {
-	rc = 1;
+		rc = 1;
     }
     else {
-	opts->length = num;
+		opts->c.length = num;
     }
     return rc;
 }
 
 /** Parse the verbosity string into the option structure */
-int parse_verbosity(xint_lite_options_t* opts, char* val) {
+int parse_verbosity(xdd_lite_options_t* opts, char* val) {
     opts->verbose_flag = 1;
     return 0;
 }
 
 /** Parse the e2e spec string into the option structure */
-int parse_e2e_spec(xint_lite_options_t* opts, char* spec) {
+int parse_e2e_spec(xdd_lite_options_t* opts, char* spec) {
     int rc = 0;
-    int new_count = opts->num_e2e_specs + 1;
-    xint_lite_e2e_t* new_e2e_list;
+    int new_count = opts->c.num_e2e_specs + 1;
+    xdd_lite_e2e_t* new_e2e_list;
 
-    new_e2e_list = realloc(opts->e2e_specs, new_count * sizeof(*new_e2e_list));
+    new_e2e_list = realloc(opts->c.e2e_specs, new_count * sizeof(*new_e2e_list));
     if ( 0 != new_e2e_list ) {
 	/* Parse string of the form host:port,count%numa */
 	new_e2e_list[new_count - 1].host = "none";
@@ -215,12 +219,12 @@ int parse_e2e_spec(xint_lite_options_t* opts, char* spec) {
 	new_e2e_list[new_count - 1].numa = -1;
 
 	/* Swap the old and new values */
-	free(opts->e2e_specs);
-	opts->num_e2e_specs = new_count;
-	opts->e2e_specs = new_e2e_list;
+	free(opts->c.e2e_specs);
+	opts->c.num_e2e_specs = new_count;
+	opts->c.e2e_specs = new_e2e_list;
     }
     else {
-	rc = 1;
+		rc = 1;
     }
     return rc;
 }
