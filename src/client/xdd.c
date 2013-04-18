@@ -276,7 +276,7 @@ xdd_start_restart_monitor(xdd_plan_t *planp) {
 
 	xdd_init_barrier_occupant(&barrier_occupant, "XDDMAIN_START_RESTART_MONITOR", XDD_OCCUPANT_TYPE_MAIN, NULL);
 	if (planp->restart_frequency) {
-		status = pthread_create(&planp->Restart_Thread, NULL, xdd_restart_monitor, (void *)(unsigned long)0);
+		status = pthread_create(&planp->Restart_Thread, NULL, xdd_restart_monitor, planp);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_start_restart_monitor: ERROR: Could not start restart monitor\n", xgp->progname);
 			fflush(xgp->errout);
