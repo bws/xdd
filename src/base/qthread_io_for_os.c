@@ -64,12 +64,14 @@ xdd_io_for_os(ptds_t *qp) {
 		} else { // Issue the actual operation
 			if ((qp->target_options & TO_SGIO)) 
 			 	qp->tgtstp->my_current_io_status = xdd_sg_io(qp,'w'); // Issue the SGIO operation 
-			else if (!(qp->target_options & TO_NULL_TARGET))
-                            qp->tgtstp->my_current_io_status = pwrite(qp->fd,
-                                                               qp->rwbuf,
-                                                               qp->tgtstp->my_current_io_size,
-                                                               (off_t)qp->tgtstp->my_current_byte_location); // Issue a positioned write operation
-                        else qp->tgtstp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->tgtstp->my_current_io_size); // Issue a normal write() op
+			else if (!(qp->target_options & TO_NULL_TARGET)) {
+                qp->tgtstp->my_current_io_status = pwrite(qp->fd,
+                                                          qp->rwbuf,
+                                                          qp->tgtstp->my_current_io_size,
+                                                   (off_t)qp->tgtstp->my_current_byte_location); // Issue a positioned write operation
+			} else { 
+				qp->tgtstp->my_current_io_status = write(qp->fd, qp->rwbuf, qp->tgtstp->my_current_io_size); // Issue a normal write() op
+			}
 
 		}
 	} else if (qp->tgtstp->my_current_op_type == OP_TYPE_READ) {  // READ Operation

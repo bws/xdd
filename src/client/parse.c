@@ -89,6 +89,7 @@ xdd_parse_args(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags) {
                 (strcmp(xdd_func[funci].func_alt, (char *)((argv[argi])+1)) == 0)) {
                 argvp = &(argv[argi]);
                 status = (int)xdd_func[funci].func_ptr(planp, arg_count, argvp, flags);
+
                 if (status == 0) {
                     invalid = 1;
                     break;
@@ -373,24 +374,49 @@ xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t 
 }/* end of xdd_parse_target_number() */
 
 /*----------------------------------------------------------------------------*/
+/* xdd_get_tgtstp() - return a pointer to the State Info Struct 
+ */
+xdd_target_state_t * 
+xdd_get_tgtstp(void) {
+	xdd_target_state_t *tgtstp;
+	// Allocate and initialize the target state structure
+	tgtstp = (struct xdd_target_state *)malloc(sizeof(struct xdd_target_state));
+	if (tgtstp == NULL) {
+	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure\n",
+		    xgp->progname, (int)sizeof(struct xdd_target_state));
+	    return(NULL);
+	}
+	memset((unsigned char *)tgtstp, 0, sizeof(struct xdd_target_state));
+	return(tgtstp);
+
+} // Endo f xdd_get_tgtstp()
+
+/*----------------------------------------------------------------------------*/
 /* xdd_get_ptdsp() - return a pointer to the PTDS for the specified target
  */
 ptds_t * 
 xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
     ptds_t *p;
 
-    p = planp->ptdsp[target_number];
-    // Since there is no existing PTDS, allocate a new one for this target, initialize it, and move on...
-    if (p == 0) { 
-	p = malloc(sizeof(struct ptds));
-	if (p == NULL) {
-	    fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
-		    xgp->progname, target_number, op);
+    if (0 == planp->ptdsp[target_number]) {
+		planp->ptdsp[target_number] = malloc(sizeof(struct ptds));
+		if (planp->ptdsp[target_number] == NULL) {
+	    	fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
+		    	xgp->progname, target_number, op);
+	    	return(NULL);
+		}
+		// Zero out the memory first
+		memset((unsigned char *)planp->ptdsp[target_number], 0, sizeof(ptds_t));
+	}
+	p = planp->ptdsp[target_number];
+
+	// Allocate and initialize the target state structure
+	p->tgtstp = xdd_get_tgtstp();
+	if (p->tgtstp == NULL) {
+	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for target %d\n",
+		    xgp->progname, (int)sizeof(struct xdd_target_state), target_number);
 	    return(NULL);
 	}
-	planp->ptdsp[target_number] = p;
-	// Zero out the memory first
-	memset((unsigned char *)p, 0, sizeof(ptds_t));
 
 	// Allocate and initialize the data pattern structure
 	p->dpp = (struct xdd_data_pattern *)malloc(sizeof(struct xdd_data_pattern));
@@ -401,16 +427,19 @@ xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
 	}
 	xdd_data_pattern_init(p->dpp);
 
-	// Allocate and initialize the target state structure
-	p->tgtstp = (struct xdd_target_state *)malloc(sizeof(struct xdd_target_state));
-	if (p->tgtstp == NULL) {
-	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for target %d\n",
-		    xgp->progname, (int)sizeof(struct xdd_target_state), target_number);
-	    return(NULL);
-	}
-
 	if (xgp->global_options & GO_EXTENDED_STATS) 
 	    xdd_get_esp(p);
+
+	if (planp->plan_options & PLAN_ENDTOEND) {
+		if (NULL == p->e2ep) { // If there is no e2e struct then allocate one.
+	    	p->e2ep = xdd_get_e2ep();
+			if (NULL == p->e2ep) {
+	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
+		    		xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
+	    		return(NULL);
+			}
+		}
+	}
 
 	// Initialize the new PTDS and lets rock and roll!
 	xdd_init_new_ptds(p, target_number);
@@ -420,7 +449,6 @@ xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
 		    xgp->progname, (int)sizeof(results_t), target_number);
 	    return(NULL);
 	}
-    }
     return(p);
 } /* End of xdd_get_ptdsp() */
 
@@ -517,21 +545,20 @@ xdd_get_esp(ptds_t *p) {
 
 /*----------------------------------------------------------------------------*/
 /* xdd_get_e2ep() - return a pointer to the xdd_e2e Data Structure 
- * for the specified target
  */
 xdd_e2e_t *
-xdd_get_e2ep(ptds_t *p) {
+xdd_get_e2ep(void) {
+	xdd_e2e_t	*e2ep;
 	
-	if (p->e2ep == 0) { // Since there is no existing Extended Stats structure, allocate a new one for this target, initialize it, and move on...
-		p->e2ep = malloc(sizeof(struct xdd_e2e));
-		if (p->e2ep == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for xdd_e2e data structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_e2e), p->my_target_number);
-			return(NULL);
-		}
-		memset(p->e2ep, 0, sizeof(*p->e2ep));
+	e2ep = malloc(sizeof(struct xdd_e2e));
+	if (e2ep == NULL) {
+		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for xdd_e2e data structure \n",
+		xgp->progname, (int)sizeof(struct xdd_e2e));
+		return(NULL);
 	}
-	return(p->e2ep);
+	memset(e2ep, 0, sizeof(struct xdd_e2e));
+
+	return(e2ep);
 } /* End of xdd_get_esp() */
 
 /*----------------------------------------------------------------------------*/
