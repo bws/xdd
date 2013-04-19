@@ -72,6 +72,8 @@ test_local_dir=${source_mnt}/local-test-data
 # Setup the scratch space
 #  (this needs better checking)
 #
+rm -rf $source_mnt
+rm -rf $dest_mnt
 mkdir -p $build_dir
 mkdir -p $install_dir
 mkdir -p $output_dir
