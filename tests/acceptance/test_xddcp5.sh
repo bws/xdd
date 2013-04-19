@@ -2,8 +2,15 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the retry flag with xddcp with the -a resume flag
+# Validate the retry flag with xddcp with the -a resume flag in single threaded
+# mode
 #
+
+#
+# Test identity
+#
+test_name=$(basename $0)
+echo "Beginning $test_name . . ."
 
 #
 # Source the test configuration environment
@@ -21,26 +28,24 @@ if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then
 fi
 
 # Perform pre-test 
-echo "Beginning XDDCP Retry Test 1 . . ."
-test_dir=$XDDTEST_SOURCE_MOUNT/retry1
-rm -rf $test_dir
-mkdir -p $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry1"
-ssh $XDDTEST_E2E_DEST "mkdir -p $XDDTEST_DEST_MOUNT/retry1"
+test_sdir=$XDDTEST_SOURCE_MOUNT/$test_name
+test_ddir=$XDDTEST_DEST_MOUNT/$test_name
+rm -rf $test_sdir $test_ddir
+mkdir -p $test_sdir $test_ddir
 
 source_file=$test_dir/file1
-dest_file=$XDDTEST_DEST_MOUNT/retry1/file1
 
 #
 # Create the source file
 #
+source_file=$test_sdir/source1
 $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern random >/dev/null
 
 #
 # Start a long copy
 #
-export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-bash $XDDTEST_XDDCP_EXE $xddcp_opts -a -t 1 -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
+dest_file=$test_ddir/file1
+$XDDTEST_XDDCP_EXE $xddcp_opts -a -t 1 -n 1 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
 #
@@ -80,9 +85,9 @@ fi
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-    echo "Acceptance XDDCP1: Retry Test - Check: PASSED."
+    echo "Acceptance $test_name - Check: PASSED."
     exit 0
 else
-    echo "Acceptance XDDCP1: Retry Test - Check: FAILED."
+    echo "Acceptance $test_name - Check: FAILED."
     exit 1
 fi
