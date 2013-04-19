@@ -802,9 +802,6 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     if ((strcmp(argv[args_index], "destination") == 0) ||
 		(strcmp(argv[args_index], "dest") == 0) ||
 		(strcmp(argv[args_index], "host") == 0)) {
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'destination' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		/* Record the name of the "destination" host name for the -e2e option */
 		// Address can be in one of several forms based on:
 		//     IP:base_port,#ports,numa_node 
@@ -933,7 +930,6 @@ else fprintf(stderr,"\n");
 	
 		///////////// Done parsing the address:base_port,port_count,numa_node
 		
-fprintf(stderr,"XDDFUNC_E2E: 'destination' hostname=%s, base_port=%s, port_count=%s, target_number=%d ",hostname,base_port, port_count,target_number);
 
 		// Now we need to put the address and base_port and number of ports into the PTDS for this Target or all Targets
 		if (target_number >= 0) {
@@ -987,10 +983,8 @@ fprintf(stderr,"XDDFUNC_E2E: 'destination' hostname=%s, base_port=%s, port_count
 	    	p->e2ep->e2e_address_table_port_count += p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count;
 	    	p->e2ep->e2e_address_table_next_entry++;
 	    	p->e2ep->e2e_address_table_host_count++;
-fprintf(stderr,"FUNC_E2E: p=%p, e2e_address_table_host_count=%d",p,p->e2ep->e2e_address_table_host_count);
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
-fprintf(stderr,"XDDFUNC_E2E: target_number=%d, planp->ptdsp[0]=%p ",target_number,planp->ptdsp[0]);
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
@@ -1048,9 +1042,6 @@ fprintf(stderr,"XDDFUNC_E2E: target_number=%d, planp->ptdsp[0]=%p ",target_numbe
 		return(args_index+1);
     } else if ((strcmp(argv[args_index], "issource") == 0) ||
 	       (strcmp(argv[args_index], "issrc") == 0)) {
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'issource' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		// Set the target option flags that indicates this is the 
 		// "source" host name for the -e2e option
 		args_index++;
@@ -1072,9 +1063,6 @@ else fprintf(stderr,"\n");
 		return(args_index);
     } else if ((strcmp(argv[args_index], "isdestination") == 0) ||
 	       (strcmp(argv[args_index], "isdest") == 0)) { 
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'isdestination' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		// Set the target option flags that indicates this is the 
 		// "destination" host name for the -e2e option
 		args_index++;
@@ -1096,9 +1084,6 @@ else fprintf(stderr,"\n");
 		return(args_index);
     } else if ((strcmp(argv[args_index], "port") == 0) ||  /* set the base port number to use for -e2e */
 	       (strcmp(argv[args_index], "baseport") == 0)) { 
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'port' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		args_index++;
 		if (target_number >= 0) {
 	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
@@ -1127,9 +1112,6 @@ else fprintf(stderr,"\n");
 		}
 		return(args_index+1);
     } else if (strcmp(argv[args_index], "portcount") == 0) {  /* set the port count in each address table entry  */
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'portcount' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		args_index++;
 		if (target_number >= 0) {
 	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
@@ -1157,9 +1139,6 @@ else fprintf(stderr,"\n");
 		return(args_index+1);
     } else if ((strcmp(argv[args_index], "sourcemonitor") == 0) ||
 	       (strcmp(argv[args_index], "srcmon") == 0)) { 
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'sourcemonitor' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		// Monitor the Source Side in target_pass_loop()
 		args_index++;
 		if (target_number >= 0) {
@@ -1180,9 +1159,6 @@ else fprintf(stderr,"\n");
 		return(args_index);
     } else if ((strcmp(argv[args_index], "sourcepath") == 0) ||  /* complete source file path for restart option */
 	       (strcmp(argv[args_index], "srcpath") == 0)) { 
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'sourcepath' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		if (target_number >= 0) {
 	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
 	    	if (p == NULL) return(-1);
@@ -1209,9 +1185,6 @@ else fprintf(stderr,"\n");
 		return(args_index+3);
     } else {
 		fprintf(stderr,"%s: Invalid End-to-End option %s\n",xgp->progname, argv[args_index]);
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'INVALID' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		return(0);
     }/* End of the -endtoend (e2e or war) sub options */
 }
@@ -2982,7 +2955,6 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int 		target_number;
     ptds_t 		*p;
 	restart_t	*rp;
-	xdd_e2e_t	*e2ep;
 
 
 	args_index = 1;
@@ -3075,14 +3047,15 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			if (p == NULL) return(-1);
 			rp = xdd_get_restartp(p);
 			if (rp == NULL) return(-1);
-			e2ep = xdd_get_e2ep();
-	    	if (e2ep == NULL) 
+			
+	    	if (NULL == p->e2ep) // If there is no e2e struct, then allocate one
+				p->e2ep = xdd_get_e2ep();
+	    	if (p->e2ep == NULL) // If there is still no e2e struct then return -1
 				return(-1);
-			else p->e2ep = e2ep;
 
 			rp->byte_offset = atoll(argv[args_index+1]);
 			rp->flags |= RESTART_FLAG_RESUME_COPY;
-			e2ep->e2e_total_bytes_written=rp->byte_offset;
+			p->e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 			/* Set the last committed location to avoid restart output of
 			   0 if the target does not complete any I/O during first interval 
@@ -3095,13 +3068,15 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 				while (p) {
 					rp = xdd_get_restartp(p);
 					if (rp == NULL) return(-1);
-					e2ep = xdd_get_e2ep();
-	    			if (e2ep == NULL) 
+			
+	    			if (NULL == p->e2ep) // If there is no e2e struct, then allocate one
+						p->e2ep = xdd_get_e2ep();
+	    			if (p->e2ep == NULL) // If there is still no e2e struct then return -1
 						return(-1);
-					else p->e2ep = e2ep;
+
 					rp->byte_offset = atoll(argv[args_index+1]);
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
-					e2ep->e2e_total_bytes_written=rp->byte_offset;
+					p->e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 					/* Set the last committed location to avoid restart output 
 					   of 0 if the target does not complete any I/O during 

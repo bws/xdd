@@ -214,7 +214,6 @@ void
 xdd_e2e_after_io_op(ptds_t *qp) {
 
 
-fprintf(stderr,"E2E_AFTER_IO_OP: qp=%p, my_current_status=%lld, E2E?=%lld\n",qp, (long long int)qp->tgtstp->my_current_io_status, (long long int)(qp->target_options & TO_ENDTOEND));
 	if ( (qp->tgtstp->my_current_io_status > 0) && (qp->target_options & TO_ENDTOEND) ) {
 		if (qp->target_options & TO_E2E_SOURCE) {
 			// For Serial Ordering, wait for the Previous I/O to complete before the associated QThread releases this QThread. 

@@ -342,7 +342,6 @@ xdd_build_ptds_substructure(xdd_plan_t* planp) {
 		// 
 		if (tp->target_options & TO_ENDTOEND) { 
 			// Sanity checking....
-fprintf(stderr,"PTDS: p=%p, e2e_address_table_host_count=%d",tp,tp->e2ep->e2e_address_table_host_count);
 			if (tp->e2ep->e2e_address_table_host_count == 0) { // This is an error...
 				fprintf(xgp->errout,"%s: xdd_build_ptds_substructure: ERROR: No E2E Destination Hosts defined!\n",
 					xgp->progname);

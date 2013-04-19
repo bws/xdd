@@ -195,7 +195,6 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 	int32_t	status;			// Status of subroutine calls
 
 
-fprintf(stderr,"E2E_BEFORE_IO_OP: qp=%p, E2E?=%d\n",qp, (qp->target_options & TO_ENDTOEND));
 	// If there is no end-to-end operation then just skip all this...
 	if (!(qp->target_options & TO_ENDTOEND)) 
 		return(0); 
@@ -217,9 +216,7 @@ fprintf(stderr,"E2E_BEFORE_IO_OP: qp=%p, E2E?=%d\n",qp, (qp->target_options & TO
 	// xdd_e2e_dest_recv() will block until there is data to read 
 	qp->tgtstp->my_current_state |= CURRENT_STATE_DEST_RECEIVE;
 
-fprintf(stderr,"E2E_BEFORE_IO_OP: qp=%p, calling xdd_e2e_dest_recv...\n",qp);
 	status = xdd_e2e_dest_recv(qp);
-fprintf(stderr,"E2E_BEFORE_IO_OP: qp=%p, returned from xdd_e2e_dest_recv...\n",qp);
 
 	qp->tgtstp->my_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
 
