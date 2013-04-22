@@ -13,6 +13,7 @@
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 
+#ifdef HAVE_INFINIBAND_VERBS_H
 #include <infiniband/verbs.h>
 
 #include "xni.h"
@@ -1029,5 +1030,10 @@ static struct xni_protocol protocol_ib = {
   .receive_target_buffer = ib_receive_target_buffer,
   .release_target_buffer = ib_release_target_buffer,
 };
+#endif
 
+#ifdef HAVE_ENABLE_IB
 struct xni_protocol *xni_protocol_ib = &protocol_ib;
+#else
+struct xni_protocol *xni_protocol_ib = NULL;
+#endif
