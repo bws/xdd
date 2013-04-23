@@ -69,6 +69,7 @@ FS_DIR = $(SRC_DIR)/fs
 NET_DIR = $(SRC_DIR)/net
 PUBLIC_DIR = $(SRC_DIR)/public
 TOOLS_DIR = $(SRC_DIR)/tools
+XNI_DIR = $(SRC_DIR)/xni
 
 #
 # Include module makefiles

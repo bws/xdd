@@ -42,8 +42,8 @@
 int xdd_lite_start_destination(int sd) {
 	int rc = 0;
 	union {
-		struct { char buf[16]; };
-		struct { uint64_t magic, msize; };
+		struct { char buf[16]; } raw;
+		struct { uint64_t magic, msize; } data;
 	} header;
 	size_t sz;
 	char* mbuf;
@@ -51,17 +51,17 @@ int xdd_lite_start_destination(int sd) {
 	/* Peek the message header */
 	sz = 0;
 	while (sz < 16)
-		sz = recv(sd, header.buf + sz, 16 - sz, MSG_PEEK);
+		sz = recv(sd, header.raw.buf + sz, 16 - sz, MSG_PEEK);
 
 	/* Check the magic number and size */
-	printf("Header magic: %lld", (long long) header.magic);
-	printf("Header size: %lld", (long long) header.msize);
+	printf("Header magic: %lld", (long long) header.data.magic);
+	printf("Header size: %lld", (long long) header.data.msize);
 	
 	/* Receive the full plan description */
-	mbuf = malloc(header.msize);
+	mbuf = malloc(header.data.msize);
 	sz = 0;
-	while (sz < header.msize)
-		recv(sd, mbuf + sz, header.msize - sz, MSG_WAITALL);
+	while (sz < header.data.msize)
+		recv(sd, mbuf + sz, header.data.msize - sz, MSG_WAITALL);
 
 	/* Setup the plan */
 
