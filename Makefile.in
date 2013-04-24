@@ -180,7 +180,8 @@ xdd-truncate: bin/xdd-truncate
 libs: $(LIB_DIR)/libxdd.a
 
 $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
-	$(AR) $(ARFLAGS) $@ $^
+	@echo "[AR] $@"
+	@$(AR) $(ARFLAGS) $@ $^
 
 .PHONY: libs
 
@@ -188,28 +189,36 @@ $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
 # Build rules for executable targets
 #
 bin/xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-lite: $(XDD_OBJS) $(CLIENT_LITE_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-tserver: $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(TS_EXE_OBJS) 
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-gettime: $(COMMON_DIR)/global_time.o $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(GETTIME_EXE_OBJS) 
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-read-tsdumps: $(READ_TSDUMPS_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-getfilesize: $(GETFILESIZE_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-gethostip: $(GETHOSTIP_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-truncate: $(TRUNCATE_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 #
 # Build rules for installation
@@ -266,9 +275,11 @@ fulldist: clean baseversion all tarball
 	echo "Base Version $(XDDVERSION) built"
 
 TARPATH := $(shell basename ${PWD})
+TARFILE := xdd-$(shell date +%s).tgz
 TARFLAGS := --exclude \*.o --exclude \*~ --exclude .DS_STORE --exclude .git
 tarball:
-	pushd .; cd .. && $(TAR) $(TARFLAGS) -czf xdd-$(shell date +%s).tgz $(TARPATH); popd
+	@echo "[TAR] $(TARFILE)"
+	@pushd .; cd .. && $(TAR) $(TARFLAGS) -czf $(TARFILE) $(TARPATH); popd
 
 .PHONY: baseversion dist fulldist tarball
 
@@ -322,7 +333,7 @@ tclean:
 
 clean: depclean libclean oclean tclean
 	$(info Cleaning the $(OS) executable files )
-	$(RM) 	bin/xdd \
+	@$(RM) 	bin/xdd \
 	 	bin/xdd-lite \
 		bin/xdd-tserver\
 		bin/xdd-getfilesize \
@@ -335,9 +346,9 @@ clean: depclean libclean oclean tclean
 
 distclean: clean
 	$(info Cleaning the distribution.)
-	$(RM) GNUMakefile
-	$(RM) Makefile
-	$(RM) config.log config.status
+	@$(RM) GNUMakefile
+	@$(RM) Makefile
+	@$(RM) config.log config.status
 
 .PHONY: testclean depclean docclean libclean oclean clean distclean
 
@@ -351,10 +362,16 @@ ifeq ($(strip $(DEPFILTER_MAKECMDGOALS)),)
 endif
 
 #
+# Overload default rules so that compilation is prettier
+#
+%.o: %.c
+	@echo "[CC] $< . . ."
+	@$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
+#
 # Additional rule for building dependencies
 #
 %.d: %.c
-	@echo "Generating dependencies for $< . . ."
+	@echo "[DEPC] $< . . ."
 	@mkdir -p $(shell dirname $@)
 	@$(DEPGEN) $(shell dirname $<) $(DEPC) -MM $(INCLUDES) $< > $@
 
