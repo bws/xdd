@@ -195,7 +195,6 @@ xdd_e2e_before_io_op(ptds_t *qp) {
 	int32_t	status;			// Status of subroutine calls
 
 
-fprintf(stderr,"E2E_BEFORE_IO_OP: qp=%p, E2E?=%d\n",qp, (qp->target_options & TO_ENDTOEND));
 	// If there is no end-to-end operation then just skip all this...
 	if (!(qp->target_options & TO_ENDTOEND)) 
 		return(0); 
@@ -257,7 +256,7 @@ xdd_throttle_before_io_op(ptds_t *qp) {
 	nclk_t	now;
 
 
-	if (qp->throttle <= 0.0)
+	if (qp->throtp->throttle <= 0.0)
 		return;
 
 	/* If this is a 'throttled' operation, check to see what time it is relative to the start
@@ -265,10 +264,10 @@ xdd_throttle_before_io_op(ptds_t *qp) {
 	 * go to sleep for how ever many milliseconds is necessary until the next I/O needs to be
 	 * issued. If we are past the issue time for this operation, just issue the operation.
 	 */
-	if (qp->throttle > 0.0) {
+	if (qp->throtp->throttle > 0.0) {
 		nclk_now(&now);
-		if (qp->throttle_type & PTDS_THROTTLE_DELAY) {
-			sleep_time = qp->throttle*1000000;
+		if (qp->throtp->throttle_type & XINT_THROTTLE_DELAY) {
+			sleep_time = qp->throtp->throttle*1000000;
 		} else { // Process the throttle for IOPS or BW
 			now -= qp->tgtstp->my_pass_start_time;
 			if (now < qp->seekhdr.seeks[qp->tgtstp->my_current_op_number].time1) { /* Then we may need to sleep */

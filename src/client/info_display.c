@@ -261,7 +261,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		fprintf(out,"loose\n");
 	else fprintf(out,"none\n");
 	fprintf(out,"\t\tThrottle in %s is, %6.2f\n",
-		(p->throttle_type & PTDS_THROTTLE_OPS)?"ops/sec":((p->throttle_type & PTDS_THROTTLE_BW)?"MB/sec":"Delay"), p->throttle);
+		(p->throtp->throttle_type & XINT_THROTTLE_OPS)?"ops/sec":((p->throtp->throttle_type & XINT_THROTTLE_BW)?"MB/sec":"Delay"), p->throtp->throttle);
 	fprintf(out,"\t\tPer-pass time limit in seconds, %f\n",p->time_limit);
 	fprintf(out,"\t\tPass seek randomization, %s", (p->target_options & TO_PASS_RANDOMIZE)?"enabled\n":"disabled\n");
 	fprintf(out,"\t\tFile write synchronization, %s", (p->target_options & TO_SYNCWRITE)?"enabled\n":"disabled\n");
