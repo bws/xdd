@@ -140,7 +140,7 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 } /* end of xdd_init_new_ptds() */
 
 /*----------------------------------------------------------------------------*/
-/* xdd_build_ptds_substructure_calculate_xfer_info() - Will calculate the number of data
+/* xdd_calculate_xfer_info() - Will calculate the number of data
  * transfers to perform as well as the total number of bytes for the specified
  * target. 
  * This subroutine is only called by xdd_build_ptds_substructure() and is
@@ -197,7 +197,7 @@ xdd_calculate_xfer_info(ptds_t *tp) {
 } // End of xdd_calculate_xfer_info()
 	
 /*----------------------------------------------------------------------------*/
-/* xdd_build_ptds_create_qthread_ptds() - will allocate and initialize a new
+/* xdd_create_qthread_ptds() - will allocate and initialize a new
  * PTDS for a qthread based on the Target PTDS that is passed in. 
  * This subroutine is also passed the queue number which is a number from 0 to
  * queue depth minus 1.
@@ -307,6 +307,8 @@ xdd_build_ptds_substructure(xdd_plan_t* planp) {
 		// The TargetThread PTDS is allocated during parsing for each target that is identified.
 		tp = planp->ptdsp[target_number];
 
+fprintf(stderr,"build_ptds_substructure: target_number=%d, tp=%p \n",target_number,tp);
+if(tp) fprintf(stderr,"build_ptds_substructure: bytes=%lld \n",(long long int)tp->bytes);
 		planp->number_of_iothreads++;
 
 		// If this is an end-to-end operation, figure out the number of QThreads 

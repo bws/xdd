@@ -1637,6 +1637,7 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     lockstep_t	*master_lsp;			// Pointer to the Master Lock Step Struct
     lockstep_t	*slave_lsp;				// Pointer to the Slave Lock Step Struct
 
+fprintf(stderr,"xddfunc_lockstep: ENTER, planp=%p \n",planp);
 
     if ((strcmp(argv[0], "-lockstep") == 0) || (strcmp(argv[0], "-ls") == 0))
 		lsmode = TO_LOCKSTEP;
@@ -1646,8 +1647,11 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     st = atoi(argv[2]); /* T2 is the slave target */
     /* Sanity checks on the target numbers */
     masterp = xdd_get_ptdsp(planp, mt, argv[0]);
+fprintf(stderr,"xddfunc_lockstep: masterp=%p, master target = %d\n",masterp,mt);
+
     if (masterp == NULL) return(-1);
     slavep = xdd_get_ptdsp(planp, st, argv[0]);
+fprintf(stderr,"xddfunc_lockstep: slavep=%p, slave target = %d\n",slavep,st);
     if (slavep == NULL) return(-1);
  
     // Make sure there is a Lockstep Structure for the MASTER
@@ -1678,14 +1682,12 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	master_lsp->ls_ms_state |= LS_I_AM_A_MASTER;
 	masterp->target_options |= lsmode;
 	master_lsp->ls_ms_target = st; // The master has to know the target number of its SLAVE
-	master_lsp->ls_slavep = slavep;
-	master_lsp->ls_slave_lsp = slave_lsp;
+	master_lsp->ls_slave_ptdsp = slavep;
 
 	slave_lsp->ls_ms_state |= LS_I_AM_A_SLAVE;
 	slavep->target_options |= lsmode; 
 	slave_lsp->ls_ms_target = mt; // The slave has to know the target number of its MASTER
-	slave_lsp->ls_masterp = masterp;
-	slave_lsp->ls_master_lsp = master_lsp;
+	slave_lsp->ls_master_ptdsp = masterp;
 
 	// Lockstep sub-options
 	when = argv[3];
@@ -1946,15 +1948,19 @@ xddfunc_mbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     ptds_t *p;
 	int64_t mbytes;
 
+fprintf(stderr,"xddfunc_mbytes: ENTER: planp=%p\n",planp);
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
+fprintf(stderr,"xddfunc_mbytes: target_number=%d, args=%d\n",target_number,args);
 
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
 
 	mbytes = atoll(argv[args+1]);
+fprintf(stderr,"xddfunc_mbytes: mbytes=%lld\n",(long long int)mbytes);
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(planp, target_number, argv[0]);
+fprintf(stderr,"xddfunc_mbytes: <1> p=%p\n",p);
 		if (p == NULL) return(-1);
 
 		p->bytes = mbytes * 1024 * 1024;
@@ -1963,8 +1969,10 @@ xddfunc_mbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
+fprintf(stderr,"xddfunc_mbytes: <2> p=%p\n",p);
 				i = 0;
 				while (p) {
+fprintf(stderr,"xddfunc_mbytes: <2a> p=%p, i=%d\n",p,i);
 					p->bytes = mbytes * 1024 * 1024;
 					p->numreqs = 0;
 					i++;

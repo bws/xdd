@@ -75,13 +75,9 @@ struct lockstep	{
 									 		// so that it can continue. This is checked by the master so that it will enter only
 									 		// if the slave is there waiting. This prevents the master from being blocked when
 									 		// doing overlapped-lock-step operations.
-	int32_t			ls_slave_loop_counter;	// Keeps track of the number of times through the I/O loop *
-
 	int32_t			ls_ms_target;	 		// The target number of the SLAVE or MASTER
-	ptds_t			*ls_masterp;  			// My MASTER's PTDS 
-	ptds_t			*ls_slavep;  			// My SLAVE's PTDS
-	struct lockstep	*ls_master_lsp;  		// My MASTER's Lockstep structure
-	struct lockstep	*ls_slave_lsp;  		// My SLAVE's Lockstep structure
+	ptds_t			*ls_master_ptdsp;  		// My MASTER's PTDS 
+	ptds_t			*ls_slave_ptdsp;		// My SLAVE's PTDS
 	xdd_barrier_t 	Lock_Step_Barrier;	 	// The Lock Step Barrier for synchronous lockstep
 };
 typedef struct lockstep lockstep_t;

@@ -52,7 +52,7 @@ xdd_lockstep_init(ptds_t *p) {
 	char 		errmsg[256];
 
 
-
+fprintf(stderr,"lockstep_init: ENTER - p=%p\n",p);
 	if ((p->master_lsp == 0) && (p->slave_lsp == 0))
 		return(XDD_RC_GOOD); // No Lockstep Operation Requested
 
@@ -109,13 +109,13 @@ xdd_lockstep_before_pass(ptds_t *p) {
 	lockstep_t *slave_lsp;			// Pointer to the lock step struct
 
 
+fprintf(stderr,"lockstep_before_pass: ENTER - p=%p\n",p);
 	if ((p->master_lsp == 0) && (p->slave_lsp == 0))
 		return;
 
 	master_lsp = p->master_lsp;
 	if (master_lsp) {
 		if (master_lsp->ls_ms_state & LS_I_AM_A_MASTER) {
-			master_lsp->ls_slave_loop_counter = 0;
 			master_lsp->ls_interval_base_value = 0;
 			if (master_lsp->ls_interval_type & LS_INTERVAL_TIME) {
 				master_lsp->ls_interval_base_value = p->tgtstp->my_pass_start_time;
@@ -134,7 +134,6 @@ xdd_lockstep_before_pass(ptds_t *p) {
 	slave_lsp = p->slave_lsp;
 	if (slave_lsp) {
 		if (slave_lsp->ls_ms_state & LS_I_AM_A_SLAVE) {
-			slave_lsp->ls_slave_loop_counter = 0;
 			slave_lsp->ls_task_base_value = 0;
 			slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_WAIT;
 			if (slave_lsp->ls_task_type & LS_TASK_TIME) {
@@ -168,6 +167,7 @@ xdd_lockstep_after_pass(ptds_t *p) {
 	 * and that it ought to abort or finish (depending on the command-line option) but in either case it
 	 * should no longer wait for the master to tell it to do something.
 	 */
+fprintf(stderr,"lockstep_after_pass: ENTER - p=%p\n",p);
 	if ((p->master_lsp == 0) && (p->slave_lsp == 0)) 
 		return(XDD_RC_GOOD);
 
@@ -206,18 +206,17 @@ xdd_lockstep_before_io_op(ptds_t *p) {
 	// If so, then if we are a master, then do the master thing.
 	// Then check to see if we are also a slave and do the slave thing.
 	//
+fprintf(stderr,"lockstep_before_io_op: ENTER - p=%p\n",p);
 	if ((p->master_lsp == 0) && (p->slave_lsp == 0))
 		return(XDD_RC_GOOD);
 
 	status = XDD_RC_GOOD; // Default status
 	// At this point we know that this target is part of a lockstep operation.
-	// Therefore this process is either a MASTER or a SLAVE target or both and
-	// "lsp" points to our lockstep structure. 
-	// If we are a MASTER, then "ls_slave" will be the target number of our SLAVE.
-	// Likewise, if we are a SLAVE, then "ls_master" will be the target number 
-	// of our MASTER. 
-	// It is possible that we are a MASTER to one target an a SLAVE to another 
-	// target. We cannot be a MASTER or SLAVE to ourself.
+	// Therefore this process is either a MASTER or a SLAVE target or both.
+	// If we are a SLAVE, then "p->slave_lsp" should be a valid pointer to 
+	// our lockstep structure. 
+	//
+	// In general, the MASTER does not have to do anything before an I/O op.
 	//
 
 	if (p->slave_lsp) {
@@ -240,17 +239,21 @@ xdd_lockstep_before_io_op_slave(ptds_t *p) {
 	lockstep_t 	*slave_lsp;			// Pointer to the SLAVE's lock step struct
 
 
+fprintf(stderr,"lockstep_before_io_op_slave: ENTER - p=%p\n",p);
 	// The "slave_lsp" variable always points to our lockstep structure.
 	slave_lsp = p->slave_lsp;
 
-	// As a slave, we need to check to see if we should stop running at this point. If not, keep on truckin'.
-	// Look at the type of task that we need to perform and the quantity. If we have exhausted
-	// the quantity of operations for this interval then enter the lockstep barrier.
+	// As a slave, we need to check to see if we should stop running at this point. 
+	// If not, keep on truckin'.
+	// Look at the type of task that we need to perform and the quantity. 
+	// If we have exhausted the quantity of operations for this interval then 
+	// enter the lockstep barrier.
 	pthread_mutex_lock(&slave_lsp->ls_mutex);
 	if (slave_lsp->ls_ms_state & LS_SLAVE_STARTUP_WAIT) {
 		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_WAIT;
 	}
 	pthread_mutex_unlock(&slave_lsp->ls_mutex);
+
 	xdd_barrier(&slave_lsp->Lock_Step_Barrier,&p->occupant,0);
 	return(XDD_RC_GOOD);
 
@@ -270,6 +273,7 @@ xdd_lockstep_after_io_op(ptds_t *p) {
 	// Check to see if we are in lockstep with another target.
 	// If so, then if we are a master, then do the master thing.
 	// Then check to see if we are also a slave and do the slave thing.
+fprintf(stderr,"lockstep_after_io_op: ENTER - p=%p\n",p);
 	//
 	if ((p->master_lsp == 0) && (p->slave_lsp == 0))
 		return(XDD_RC_GOOD);
@@ -302,7 +306,8 @@ xdd_lockstep_after_io_op_slave(ptds_t *p) {
 
 	slave_lsp = p->slave_lsp;
 	// My lockstep structure has a pointer to my MASTER's lockstep structure.
-	master_lsp = slave_lsp->ls_master_lsp;
+	master_lsp = slave_lsp->ls_master_ptdsp->master_lsp;
+fprintf(stderr,"lockstep_after_io_op_slave: ENTER - p=%p, slave_lsp=%p, master_lsp=%p\n",p,slave_lsp,master_lsp);
 	pthread_mutex_lock(&slave_lsp->ls_mutex);
 	// Check to see if we have reached a point where we need to release the SLAVE
 	wakeup_master = xdd_lockstep_check_triggers(p, slave_lsp);
@@ -330,8 +335,9 @@ xdd_lockstep_after_io_op_master(ptds_t *p) {
 
 
 	master_lsp = p->master_lsp;
-	slave_lsp = master_lsp->ls_slave_lsp;
+	slave_lsp = master_lsp->ls_slave_ptdsp->slave_lsp;
 
+fprintf(stderr,"lockstep_after_io_op_master: ENTER - p=%p, slave_lsp=%p, master_lsp=%p\n",p,slave_lsp,master_lsp);
 	// Check to see if we have reached a point where we need to release the SLAVE
 	release_slave = xdd_lockstep_check_triggers(p, master_lsp);
 	
@@ -366,7 +372,7 @@ xdd_lockstep_after_io_op_master(ptds_t *p) {
 } // xdd_lockstep_after_io_op_master()
 
 /*----------------------------------------------------------------------------*/
-// xdd_lockstep_after_io_op_master(ptds_t *p)
+// xdd_lockstep_check_triggers()
 //  This subroutine is called by either the MASTER or SLAVE to check whether
 //  or not it has reached a trigger point.
 //  A return of FALSE means that no trigger has been met.
@@ -378,6 +384,7 @@ xdd_lockstep_check_triggers(ptds_t *p, lockstep_t *lsp) {
 	nclk_t   	time_now;		// Used by the lock step functions 
 
 
+fprintf(stderr,"lockstep_check_triggers: ENTER - p=%p, lsp=%p ls_interval_type=0x%x, ls_interval_value=%lld, ls_interval_base_value=%lld\n",p,lsp,lsp->ls_interval_type,(long long int)lsp->ls_interval_value, (long long int)lsp->ls_interval_base_value);
 	status = FALSE;
 	/* Check to see if it is time to ping the slave to do something */
 	if (lsp->ls_interval_type & LS_INTERVAL_TIME) {
@@ -409,6 +416,7 @@ xdd_lockstep_check_triggers(ptds_t *p, lockstep_t *lsp) {
 			lsp->ls_interval_base_value = p->tgtstp->my_current_bytes_xfered;
 		}
 	}
+fprintf(stderr,"lockstep_check_triggers: returning status %d\n", status);
 	return(status);
 
 } // xdd_lockstep_check_triggers() 

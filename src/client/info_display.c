@@ -389,7 +389,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	if (p->my_qthread_number == 0) {
 		if (p->slave_lsp) {
 			if (p->slave_lsp->ls_ms_state & LS_I_AM_A_SLAVE) {
-				masterp = p->slave_lsp->ls_masterp;
+				masterp = p->slave_lsp->ls_master_ptdsp;
 				master_lsp = masterp->master_lsp;
 				fprintf(out,"\t\tMaster Target, %d\n", masterp->my_target_number);
 				fprintf(out,"\t\tMaster Interval value and type, %lld,%s\n", (long long)master_lsp->ls_interval_value, master_lsp->ls_interval_units);
@@ -397,7 +397,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 		}
 		if (p->master_lsp) {
 			if (p->master_lsp->ls_ms_state & LS_I_AM_A_MASTER) {
-				slavep = p->master_lsp->ls_slavep;
+				slavep = p->master_lsp->ls_slave_ptdsp;
 				slave_lsp = slavep->slave_lsp;
 				fprintf(out,"\t\tSlave Target, %d\n", slavep->my_target_number);
 				fprintf(out,"\t\tSlave Task value and type, %lld,%s\n", (long long)slave_lsp->ls_task_value,slave_lsp->ls_task_units);
