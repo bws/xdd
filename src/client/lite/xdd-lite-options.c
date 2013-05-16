@@ -75,14 +75,14 @@ int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv) {
         {"hb", no_argument, 0, 'b'},
         /* Enable direct I/O */
         {"dio", no_argument, 0, 'd'},
-        /* Specify an e2e spec */
-        {"e2e", required_argument, 0, 'e'},
         /* Display usage */
         {"help", no_argument, 0, 'h'},
         /* File offset */
         {"offset", required_argument, 0, 'o'},
         /* File size */
         {"length", required_argument, 0, 'l'},
+        /* Specify a network spec */
+        {"net", required_argument, 0, 'n'},
         /* Select ordering mode */
         {"ordering", required_argument, 0, 'r'},
         /* Select ordering mode */
@@ -94,7 +94,7 @@ int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv) {
 
     int c = 0;
     while (0 == rc && -1 != c) {
-        c = getopt_long(argc, argv, "bdeholrv", long_options, &option_idx);
+        c = getopt_long(argc, argv, "bdhlnorv", long_options, &option_idx);
         switch (c) {
             case 0:
                 printf("0 encountered");
@@ -105,7 +105,7 @@ int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv) {
             case 'd':
 				opts->c.dio_flag = 1;
 				break;
-            case 'e':
+            case 'n':
 				rc = parse_e2e_spec(opts, argv[option_idx]);
 				break;
             case 'h':

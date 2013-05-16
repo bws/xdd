@@ -29,6 +29,7 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
