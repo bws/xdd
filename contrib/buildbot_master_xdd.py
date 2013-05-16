@@ -70,6 +70,10 @@ def loadConfig(config):
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd3.sh'], name="test_xdd3.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd4.sh'], name="test_xdd4.sh"))
 
+    # Test XDD lockstep
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_lockstep1.sh'], name="test_xdd_lockstep1.sh"))
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_lockstep2.sh'], name="test_xdd_lockstep2.sh"))
+
     # Test the XDD utilitites
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd-gethostip1.sh'], name="test_gethostip1.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd-truncate1.sh'], name="test_truncate1.sh"))
@@ -123,7 +127,7 @@ def loadConfig(config):
                               branch = "master",
                               properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
                               builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", 
-                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64"],
+                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64", "xdd-osx-10-8"],
                               hour = 2,
                               minute = 3)
     config['schedulers'].append(build_nightly_xdd)

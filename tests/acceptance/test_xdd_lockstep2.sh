@@ -17,7 +17,7 @@ mkdir -p $test_dir
 
 # A super simple lockstep
 xdd -targets 2 $test_dir/foo $test_dir/foo -op target 0 write -op target 1 read \
-  -reqsize 1024 -numreqs 10 -lockstep  0 1 op 1 op 1 wait complete
+  -reqsize 1024 -numreqs 10 -lockstep  0 1 op 5 op 5 wait complete
 
 # Validate output
 test_passes=0
