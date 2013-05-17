@@ -400,7 +400,7 @@ xdd_target_info(FILE *out, ptds_t *p) {
 				slavep = p->master_lsp->ls_slave_ptdsp;
 				slave_lsp = slavep->slave_lsp;
 				fprintf(out,"\t\tSlave Target, %d\n", slavep->my_target_number);
-				fprintf(out,"\t\tSlave Task value and type, %lld,%s\n", (long long)slave_lsp->ls_task_value,slave_lsp->ls_task_units);
+				fprintf(out,"\t\tSlave Interval value and type, %lld,%s\n", (long long)slave_lsp->ls_interval_value,slave_lsp->ls_interval_units);
 				fprintf(out,"\t\tSlave initial condition, %s\n",(slave_lsp->ls_ms_state & LS_SLAVE_STARTUP_RUN)?"Run":"Wait");
 				fprintf(out,"\t\tSlave termination, %s\n",(slave_lsp->ls_ms_state & LS_SLAVE_COMPLETION_COMPLETE)?"Complete":"Stop");
 			}

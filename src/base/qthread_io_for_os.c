@@ -65,6 +65,7 @@ xdd_io_for_os(ptds_t *qp) {
 			if ((qp->target_options & TO_SGIO)) 
 			 	qp->tgtstp->my_current_io_status = xdd_sg_io(qp,'w'); // Issue the SGIO operation 
 			else if (!(qp->target_options & TO_NULL_TARGET)) {
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"io_for_os: WRITE - p=%p, qp=%p, target_number %d, offset %lld\n",p,qp,p->my_target_number,(long long int)qp->tgtstp->my_current_byte_location);
                 qp->tgtstp->my_current_io_status = pwrite(qp->fd,
                                                           qp->rwbuf,
                                                           qp->tgtstp->my_current_io_size,
@@ -82,12 +83,13 @@ xdd_io_for_os(ptds_t *qp) {
 		} else { // Issue the actual operation
 			if ((qp->target_options & TO_SGIO)) 
 			 	qp->tgtstp->my_current_io_status = xdd_sg_io(qp,'r'); // Issue the SGIO operation 
-			else if (!(qp->target_options & TO_NULL_TARGET))
+			else if (!(qp->target_options & TO_NULL_TARGET)) {
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"io_for_os: READ - p=%p, qp=%p, target_number %d, offset %lld\n",p,qp,p->my_target_number,(long long int)qp->tgtstp->my_current_byte_location);
                             qp->tgtstp->my_current_io_status = pread(qp->fd,
                                                                qp->rwbuf,
                                                                qp->tgtstp->my_current_io_size,
                                                                (off_t)qp->tgtstp->my_current_byte_location);// Issue a positioned read operation
-			else qp->tgtstp->my_current_io_status = read(qp->fd,
+			} else qp->tgtstp->my_current_io_status = read(qp->fd,
                                                               qp->rwbuf,
                                                               qp->tgtstp->my_current_io_size);// Issue a normal read() operation
 		}
