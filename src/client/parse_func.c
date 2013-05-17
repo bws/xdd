@@ -1626,8 +1626,8 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int 		mt;						// Master Target number
     int			st;						// Slave Target number
     double 		tmpf;
-    ptds_t 		*masterp;				// Pointer to the Master PTDS
-    ptds_t		*slavep;				// Pointer to the Slave PTDS
+    ptds_t 		*master_ptdsp;				// Pointer to the Master PTDS
+    ptds_t		*slave_ptdsp;				// Pointer to the Slave PTDS
     int 		retval;					// Return value at any give time
     int 		lsmode;					// Lockstep mode
     char 		*when;					// Indicates WHEN to do something
@@ -1637,6 +1637,7 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     lockstep_t	*master_lsp;			// Pointer to the Master Lock Step Struct
     lockstep_t	*slave_lsp;				// Pointer to the Slave Lock Step Struct
 
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: ENTER, planp=%p \n",planp);
 
     if ((strcmp(argv[0], "-lockstep") == 0) || (strcmp(argv[0], "-ls") == 0))
 		lsmode = TO_LOCKSTEP;
@@ -1645,47 +1646,55 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     mt = atoi(argv[1]); /* T1 is the master target */
     st = atoi(argv[2]); /* T2 is the slave target */
     /* Sanity checks on the target numbers */
-    masterp = xdd_get_ptdsp(planp, mt, argv[0]);
-    if (masterp == NULL) return(-1);
-    slavep = xdd_get_ptdsp(planp, st, argv[0]);
-    if (slavep == NULL) return(-1);
+    master_ptdsp = xdd_get_ptdsp(planp, mt, argv[0]);
+
+    if (master_ptdsp == NULL) return(-1);
+    slave_ptdsp = xdd_get_ptdsp(planp, st, argv[0]);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: slave_ptdsp=%p, slave target = %d\n",slave_ptdsp,st);
+    if (slave_ptdsp == NULL) return(-1);
  
     // Make sure there is a Lockstep Structure for the MASTER
-    if (masterp->master_lsp == 0) {
-		masterp->master_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (masterp->master_lsp == 0) {
+    if (master_ptdsp->lsp == 0) {
+		master_ptdsp->lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (master_ptdsp->lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Master lockstep structure\n",
 			xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
+		memset(master_ptdsp->lsp, 0, sizeof(lockstep_t ));
     } 
+	master_lsp = master_ptdsp->lsp;
+
     // Make sure there is a Lockstep Structure for the SLAVE
-    if (slavep->slave_lsp == 0) {
-		slavep->slave_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (slavep->slave_lsp == 0) {
+    if (slave_ptdsp->lsp == 0) {
+		slave_ptdsp->lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (slave_ptdsp->lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Slave lockstep structure\n",
-		    	xgp->progname, (int)sizeof(lockstep_t));
+			xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
+		memset(slave_ptdsp->lsp, 0, sizeof(lockstep_t));
     } 
+	slave_lsp = slave_ptdsp->lsp;
 
-	// Clear the Lockstep Structures and initialize the MASTER/SLAVE variables
-	master_lsp = masterp->master_lsp;
-	memset(master_lsp, 0, sizeof(*master_lsp));
-	slave_lsp = slavep->slave_lsp;
-	memset(slave_lsp, 0, sizeof(*slave_lsp));
+	if (flags & XDD_PARSE_PHASE1) {
+		if (!(xgp->global_options & GO_LOCKSTEP)) {
+			xgp->global_options |= GO_LOCKSTEP;
+			master_lsp->ls_ms_state |= LS_I_AM_THE_MASTER;
+		} 
+	
+		if (master_lsp->ls_next_ptdsp) {
+			slave_lsp->ls_next_ptdsp = master_lsp->ls_next_ptdsp;
+		} else { 
+			slave_lsp->ls_next_ptdsp = master_ptdsp;
+		}
+		master_lsp->ls_next_ptdsp = slave_ptdsp;
+		master_ptdsp->target_options |= lsmode;
+		slave_lsp->ls_ms_state |= LS_I_AM_A_SLAVE;
+		slave_ptdsp->target_options |= lsmode; 
+	}
 
-	master_lsp->ls_ms_state |= LS_I_AM_A_MASTER;
-	masterp->target_options |= lsmode;
-	master_lsp->ls_ms_target = st; // The master has to know the target number of its SLAVE
-	master_lsp->ls_slavep = slavep;
-	master_lsp->ls_slave_lsp = slave_lsp;
-
-	slave_lsp->ls_ms_state |= LS_I_AM_A_SLAVE;
-	slavep->target_options |= lsmode; 
-	slave_lsp->ls_ms_target = mt; // The slave has to know the target number of its MASTER
-	slave_lsp->ls_masterp = masterp;
-	slave_lsp->ls_master_lsp = master_lsp;
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep PHASE %d: master/slave targets %d/%d, master_ptds=%p, master_lsp=%p, slave_ptds=%p, slave_lsp=%p, master_lsp->ls_next_ptdsp=%p, slave_lsp->ls_next_ptdsp=%p \n",(flags & XDD_PARSE_PHASE1)?1:2,mt,st,master_ptdsp,master_lsp,slave_ptdsp,slave_lsp,master_lsp->ls_next_ptdsp, slave_lsp->ls_next_ptdsp);
 
 	// Lockstep sub-options
 	when = argv[3];
@@ -1711,6 +1720,7 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 				(long long)master_lsp->ls_interval_value);
             return(0);
 		}
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: OP: master_lsp=%p, interval_value=%lld, interval_type=%d, interval_units=%s\n",master_lsp, (long long int)master_lsp->ls_interval_value, master_lsp->ls_interval_type, master_lsp->ls_interval_units);
 		retval = 5;  
 	} else if (strcmp(when,"percent") == 0){ /* get the percentage of operations to wait before triggering the other target */
 		master_lsp->ls_interval_value = (uint64_t)(atof(argv[4]) / 100.0);
@@ -1753,31 +1763,32 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	what = argv[5];
 	if (strcmp(what,"time") == 0){ /* get the number of seconds to run a task */
 		tmpf = atof(argv[6]);
-		slave_lsp->ls_task_type = LS_TASK_TIME;
-		slave_lsp->ls_task_units = "SECONDS";
-		slave_lsp->ls_task_value = (nclk_t)(tmpf * BILLION);
-		if (slave_lsp->ls_task_value <= 0.0) {
+		slave_lsp->ls_interval_type = LS_INTERVAL_TIME;
+		slave_lsp->ls_interval_units = "SECONDS";
+		slave_lsp->ls_interval_value = (nclk_t)(tmpf * BILLION);
+		if (slave_lsp->ls_interval_value <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
             return(0);
 		};
 		retval += 2;
 	} else if (strcmp(what,"op") == 0){ /* get the number of operations to execute per task */
-		slave_lsp->ls_task_value = atoll(argv[6]);
-		slave_lsp->ls_task_type = LS_TASK_OP;
-		slave_lsp->ls_task_units = "OPERATIONS";
-		if (slave_lsp->ls_task_value <= 0) {
+		slave_lsp->ls_interval_value = atoll(argv[6]);
+		slave_lsp->ls_interval_type = LS_INTERVAL_OP;
+		slave_lsp->ls_interval_units = "OPERATIONS";
+		if (slave_lsp->ls_interval_value <= 0) {
 			fprintf(stderr,"%s: Invalid lockstep task op: %lld. This value must be greater than 0\n",
 				xgp->progname, 
-				(long long)slave_lsp->ls_task_value);
+				(long long)slave_lsp->ls_interval_value);
             return(0);
 		}
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: OP: slave_lsp=%p, interval_value=%lld, interval_type=%d, interval_units=%s\n",slave_lsp, (long long int)slave_lsp->ls_interval_value, slave_lsp->ls_interval_type, slave_lsp->ls_interval_units);
 		retval += 2;       
 	} else if (strcmp(what,"mbytes") == 0){ /* get the number of megabytes to transfer per task */
 		tmpf = atof(argv[6]);
-		slave_lsp->ls_task_value = (uint64_t)(tmpf * 1024*1024);
-		slave_lsp->ls_task_type = LS_TASK_BYTES;
-		slave_lsp->ls_task_units = "BYTES";
+		slave_lsp->ls_interval_value = (uint64_t)(tmpf * 1024*1024);
+		slave_lsp->ls_interval_type = LS_INTERVAL_BYTES;
+		slave_lsp->ls_interval_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task mbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1786,9 +1797,9 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		retval += 2;     
 	} else if (strcmp(what,"kbytes") == 0){ /* get the number of kilobytes to transfer per task */
 		tmpf = atof(argv[6]);
-		slave_lsp->ls_task_value = (uint64_t)(tmpf * 1024);
-		slave_lsp->ls_task_type = LS_TASK_BYTES;
-		slave_lsp->ls_task_units = "BYTES";
+		slave_lsp->ls_interval_value = (uint64_t)(tmpf * 1024);
+		slave_lsp->ls_interval_type = LS_INTERVAL_BYTES;
+		slave_lsp->ls_interval_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task kbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1802,23 +1813,17 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	}
 	lockstep_startup = argv[7];  
 	if (strcmp(lockstep_startup,"run") == 0) { /* have the slave start running immediately */
-		slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_RUN;
-		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_WAIT;
-		slave_lsp->ls_task_counter = 1;
+		slave_lsp->ls_ms_state |= LS_STARTUP_WAIT;
 	} else { /* Have the slave wait for the master to tell it to run */
-		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_RUN;
-		slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_WAIT;
-		slave_lsp->ls_task_counter = 0;
+		slave_lsp->ls_ms_state |= LS_STARTUP_WAIT;
 	}
     retval++;
 	lockstep_completion = argv[8];
 	if (strcmp(lockstep_completion,"complete") == 0) { /* Have slave complete all operations if master finishes first */
-		slave_lsp->ls_ms_state |= LS_SLAVE_COMPLETION_COMPLETE;
+		fprintf(stderr,"%s: lockstep '%s' option depricated\n", xgp->progname,argv[8]);
 	} else if (strcmp(lockstep_completion,"stop") == 0){ /* Have slave stop when master stops */
-		slave_lsp->ls_ms_state |= LS_SLAVE_COMPLETION_STOP;
+		fprintf(stderr,"%s: lockstep '%s' option depricated\n", xgp->progname,argv[8]);
 	} else {
-		fprintf(stderr,"%s: Invalid lockstep slave completion directive: %s. This value must be either 'complete' or 'stop'\n",
-				xgp->progname,lockstep_completion);
         return(0);
     }
     retval++;
@@ -1946,15 +1951,19 @@ xddfunc_mbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     ptds_t *p;
 	int64_t mbytes;
 
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_mbytes: ENTER: planp=%p\n",planp);
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_mbytes: target_number=%d, args=%d\n",target_number,args);
 
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
 
 	mbytes = atoll(argv[args+1]);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_mbytes: mbytes=%lld\n",(long long int)mbytes);
 	if (target_number >= 0) { /* Set this option value for a specific target */
 		p = xdd_get_ptdsp(planp, target_number, argv[0]);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_mbytes: <1> p=%p\n",p);
 		if (p == NULL) return(-1);
 
 		p->bytes = mbytes * 1024 * 1024;
@@ -1963,8 +1972,10 @@ xddfunc_mbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
 				p = planp->ptdsp[0];
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_mbytes: <2> p=%p\n",p);
 				i = 0;
 				while (p) {
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_mbytes: <2a> p=%p, i=%d\n",p,i);
 					p->bytes = mbytes * 1024 * 1024;
 					p->numreqs = 0;
 					i++;
@@ -4167,7 +4178,7 @@ xddfunc_targetstartdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t
 			while (p) {
 				p->start_delay = (double)(start_delay * p->my_target_number);
 				p->start_delay_psec = start_delay_psec * p->my_target_number;
-fprintf(xgp->errout,"%s: Set Target %d Start Delay time to %f seconds, %lld ps.\n", xgp->progname,p->my_target_number, p->start_delay,(long long int)p->start_delay_psec);
+if (xgp->global_options & GO_DEBUG) fprintf(xgp->errout,"%s: Set Target %d Start Delay time to %f seconds, %lld ps.\n", xgp->progname,p->my_target_number, p->start_delay,(long long int)p->start_delay_psec);
 				i++;
 				p = planp->ptdsp[i];
 			}

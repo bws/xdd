@@ -88,6 +88,7 @@ xdd_parse_args(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags) {
             if ((strcmp(xdd_func[funci].func_name, (char *)((argv[argi])+1)) == 0) || 
                 (strcmp(xdd_func[funci].func_alt, (char *)((argv[argi])+1)) == 0)) {
                 argvp = &(argv[argi]);
+fprintf(stderr,"xdd_parse_args<%d>: calling xddfunc for option %s\n",flags,((argv[argi])+1));
                 status = (int)xdd_func[funci].func_ptr(planp, arg_count, argvp, flags);
 
                 if (status == 0) {
@@ -118,6 +119,7 @@ xdd_parse_args(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags) {
 void
 xdd_parse(xdd_plan_t *planp, int32_t argc, char *argv[]) {
 
+		int i;
 	
 	if (argc < 1) { // Ooopppsss - nothing specified...
 		fprintf(stderr,"Error: No command line options specified\n");
@@ -128,6 +130,13 @@ xdd_parse(xdd_plan_t *planp, int32_t argc, char *argv[]) {
 	xdd_parse_args(planp, argc, argv, XDD_PARSE_PHASE1);
 
 	xdd_parse_args(planp, argc, argv, XDD_PARSE_PHASE2);
+for (i=0; i<8; i++) {
+		if (planp->ptdsp[i]) {
+			fprintf(stderr,"xdd_parse: ptds %d is %p ", i,planp->ptdsp[i]);
+			fprintf(stderr, "bytes=%lld", (long long int)planp->ptdsp[i]->bytes);
+			fprintf(stderr,"\n");
+		}
+}
 	if (planp->ptdsp[0] == NULL) {
 		fprintf(xgp->errout,"You must specify a target device or filename\n");
 		xdd_usage(0);
@@ -398,16 +407,20 @@ ptds_t *
 xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
     ptds_t *p;
 
-    if (0 == planp->ptdsp[target_number]) {
-		planp->ptdsp[target_number] = malloc(sizeof(struct ptds));
-		if (planp->ptdsp[target_number] == NULL) {
-	    	fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
-		    	xgp->progname, target_number, op);
-	    	return(NULL);
-		}
-		// Zero out the memory first
-		memset((unsigned char *)planp->ptdsp[target_number], 0, sizeof(ptds_t));
+
+	// If there is an existing PTDS then just return the pointer 
+    if (planp->ptdsp[target_number]) 
+		 return(planp->ptdsp[target_number]);
+
+	// ...otherwise, allocate and initialize a new PTDS
+	planp->ptdsp[target_number] = malloc(sizeof(struct ptds));
+	if (planp->ptdsp[target_number] == NULL) {
+    	fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
+	    	xgp->progname, target_number, op);
+    	return(NULL);
 	}
+	// Zero out the memory first
+	memset((unsigned char *)planp->ptdsp[target_number], 0, sizeof(ptds_t));
 	p = planp->ptdsp[target_number];
 
 	// Allocate and initialize the target state structure
