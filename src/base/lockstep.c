@@ -206,6 +206,8 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"lockstep_after_io_op: ENTER 
 		next_lsp = next_ptdsp->lsp;
 	else next_lsp = NULL;
 
+	pthread_mutex_lock(&lsp->ls_mutex);
+
 if (xgp->global_options & GO_DEBUG) fprintf(stderr,"lockstep_after_io_op: ENTER - p=%p, lsp=%p, next_ptdsp=%p, next_lsp=%p\n",p,lsp,next_ptdsp,next_lsp);
 	// Check to see if we have reached a point where we need to release the SLAVE
 	status = xdd_lockstep_check_triggers(qp, lsp);
@@ -227,6 +229,8 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"lockstep_after_io_op: status
 			next_lsp->ls_ms_state |= LS_PASS_COMPLETE;
 		}
 	}
+
+	pthread_mutex_unlock(&lsp->ls_mutex);
 
 	if (release_next_target) { 
 if (xgp->global_options & GO_DEBUG) fprintf(stderr,"lockstep_after_io_op_master: RELEASING NEXT TARGET - p=%p, lsp=%p, next_lsp=%p\n",p,lsp,next_lsp);
