@@ -61,6 +61,7 @@
 #define GO_INTERACTIVE			0x0000000400000000ULL  /* Enter Interactive Mode - oh what FUN! */
 #define GO_INTERACTIVE_EXIT		0x0000000800000000ULL  /* Exit Interactive Mode */
 #define GO_INTERACTIVE_STOP		0x0000001000000000ULL  /* Stop at various points in Interactive Mode */
+#define GO_LOCKSTEP				0x0000002000000000ULL  /* Indicates that the lockstep MASTER has been defined */
 
 struct xdd_global_data {
 	uint64_t		global_options;        				/* I/O Options valid for all targets */

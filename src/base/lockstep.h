@@ -48,19 +48,12 @@ struct lockstep	{
 	uint64_t		ls_op_counter;			// This is the number of ops that the master/slave has completed during an interval
 	uint64_t		ls_byte_counter;		// This is the number of bytes that the master/slave has xferred during an interval
 #define LS_I_AM_A_SLAVE				0x00000001 		// This target is a SLAVE to the MASTER target specified in ls_master
-#define LS_I_AM_A_MASTER			0x00000002 		// This target is a MASTER to the SLAVE target specified in ls_slave
+#define LS_I_AM_THE_MASTER			0x00000002 		// This target is a MASTER to the SLAVE target specified in ls_slave
 //
-#define LS_SLAVE_STARTUP_WAIT		0x00000004 		// The slave is waiting for the master to enter the ls_barrier 
-#define LS_SLAVE_STARTUP_RUN 		0x00000008		// The slave should start running immediately 
+#define LS_STARTUP_WAIT		0x00000004 		// The slave is waiting for the master to enter the ls_barrier 
+#define LS_I_NEED_TO_WAIT	0x00000008 		// This target needs to wait before doing any I/O
 //
-#define LS_SLAVE_COMPLETION_COMPLETE 0x00000010 		// The slave should complete all operations after this I/O 
-#define LS_SLAVE_COMPLETION_STOP	0x00000020 		// The slave should abort after this I/O 
-//
-#define LS_SLAVE_FINISHED			0x00000040 		// The slave is finished 
-#define LS_MASTER_PASS_COMPLETED	0x00000080 		// The master has completed its pass 
-#define LS_SLAVE_WAITING			0x00000100 		// The slave is waiting at the barrier 
-#define LS_MASTER_WAITING			0x00000200 		// The master is waiting at the barrier 
-#define LS_SLAVE_TIME_TO_WAKEUP_MASTER			0x00000400 		// The master is waiting at the barrier 
+#define LS_PASS_COMPLETE	0x00000080 		// The target has completed its pass 
 	uint32_t		ls_ms_state;			// This is the state of the master and slave at any given time. 
 											// If this is set to SLAVE_WAITING
 									 		// then the slave has entered the ls_barrier and is waiting for the master to enter
@@ -68,8 +61,7 @@ struct lockstep	{
 									 		// if the slave is there waiting. This prevents the master from being blocked when
 									 		// doing overlapped-lock-step operations.
 	int32_t			ls_ms_target;	 		// The target number of the SLAVE or MASTER
-	ptds_t			*ls_master_ptdsp;  		// My MASTER's PTDS 
-	ptds_t			*ls_slave_ptdsp;		// My SLAVE's PTDS
+	ptds_t			*ls_next_ptdsp;			// The next target to start (as a slave)
 	xdd_barrier_t 	Lock_Step_Barrier;	 	// The Lock Step Barrier for synchronous lockstep
 };
 typedef struct lockstep lockstep_t;

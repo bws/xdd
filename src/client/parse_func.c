@@ -1654,41 +1654,47 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: slave_ptds
     if (slave_ptdsp == NULL) return(-1);
  
     // Make sure there is a Lockstep Structure for the MASTER
-    if (master_ptdsp->master_lsp == 0) {
-		master_ptdsp->master_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (master_ptdsp->master_lsp == 0) {
+    if (master_ptdsp->lsp == 0) {
+		master_ptdsp->lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (master_ptdsp->lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Master lockstep structure\n",
 			xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
+		memset(master_ptdsp->lsp, 0, sizeof(lockstep_t ));
     } 
+	master_lsp = master_ptdsp->lsp;
+
     // Make sure there is a Lockstep Structure for the SLAVE
-    if (slave_ptdsp->slave_lsp == 0) {
-		slave_ptdsp->slave_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (slave_ptdsp->slave_lsp == 0) {
+    if (slave_ptdsp->lsp == 0) {
+		slave_ptdsp->lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (slave_ptdsp->lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Slave lockstep structure\n",
-		    	xgp->progname, (int)sizeof(lockstep_t));
+			xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
+		memset(slave_ptdsp->lsp, 0, sizeof(lockstep_t));
     } 
+	slave_lsp = slave_ptdsp->lsp;
 
-	// Clear the Lockstep Structures and initialize the MASTER/SLAVE variables
-	master_lsp = master_ptdsp->master_lsp;
-	memset(master_lsp, 0, sizeof(lockstep_t ));
-	slave_lsp = slave_ptdsp->slave_lsp;
-	memset(slave_lsp, 0, sizeof(lockstep_t));
+	if (flags & XDD_PARSE_PHASE1) {
+		if (!(xgp->global_options & GO_LOCKSTEP)) {
+			xgp->global_options |= GO_LOCKSTEP;
+			master_lsp->ls_ms_state |= LS_I_AM_THE_MASTER;
+		} 
+	
+		if (master_lsp->ls_next_ptdsp) {
+			slave_lsp->ls_next_ptdsp = master_lsp->ls_next_ptdsp;
+		} else { 
+			slave_lsp->ls_next_ptdsp = master_ptdsp;
+		}
+		master_lsp->ls_next_ptdsp = slave_ptdsp;
+		master_ptdsp->target_options |= lsmode;
+		slave_lsp->ls_ms_state |= LS_I_AM_A_SLAVE;
+		slave_ptdsp->target_options |= lsmode; 
+	}
 
-	master_lsp->ls_ms_state |= LS_I_AM_A_MASTER;
-	master_ptdsp->target_options |= lsmode;
-	master_lsp->ls_ms_target = st; // The master has to know the target number of its SLAVE
-	master_lsp->ls_slave_ptdsp = slave_ptdsp;
-
-	slave_lsp->ls_ms_state |= LS_I_AM_A_SLAVE;
-	slave_ptdsp->target_options |= lsmode; 
-	slave_lsp->ls_ms_target = mt; // The slave has to know the target number of its MASTER
-	slave_lsp->ls_master_ptdsp = master_ptdsp;
-
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: master/slave targets %d/%d, master_ptds=%p, master_lsp=%p, slave_ptds=%p, slave_lsp=%p \n",mt,st,master_ptdsp,master_lsp,slave_ptdsp,slave_lsp);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep PHASE %d: master/slave targets %d/%d, master_ptds=%p, master_lsp=%p, slave_ptds=%p, slave_lsp=%p, master_lsp->ls_next_ptdsp=%p, slave_lsp->ls_next_ptdsp=%p \n",(flags & XDD_PARSE_PHASE1)?1:2,mt,st,master_ptdsp,master_lsp,slave_ptdsp,slave_lsp,master_lsp->ls_next_ptdsp, slave_lsp->ls_next_ptdsp);
 
 	// Lockstep sub-options
 	when = argv[3];
@@ -1807,21 +1813,17 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: OP: slave_
 	}
 	lockstep_startup = argv[7];  
 	if (strcmp(lockstep_startup,"run") == 0) { /* have the slave start running immediately */
-		slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_RUN;
-		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_WAIT;
+		slave_lsp->ls_ms_state |= LS_STARTUP_WAIT;
 	} else { /* Have the slave wait for the master to tell it to run */
-		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_RUN;
-		slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_WAIT;
+		slave_lsp->ls_ms_state |= LS_STARTUP_WAIT;
 	}
     retval++;
 	lockstep_completion = argv[8];
 	if (strcmp(lockstep_completion,"complete") == 0) { /* Have slave complete all operations if master finishes first */
-		slave_lsp->ls_ms_state |= LS_SLAVE_COMPLETION_COMPLETE;
+		fprintf(stderr,"%s: lockstep '%s' option depricated\n", xgp->progname,argv[8]);
 	} else if (strcmp(lockstep_completion,"stop") == 0){ /* Have slave stop when master stops */
-		slave_lsp->ls_ms_state |= LS_SLAVE_COMPLETION_STOP;
+		fprintf(stderr,"%s: lockstep '%s' option depricated\n", xgp->progname,argv[8]);
 	} else {
-		fprintf(stderr,"%s: Invalid lockstep slave completion directive: %s. This value must be either 'complete' or 'stop'\n",
-				xgp->progname,lockstep_completion);
         return(0);
     }
     retval++;
