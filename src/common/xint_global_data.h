@@ -81,6 +81,7 @@ struct xdd_global_data {
 	int64_t			max_errors_to_print;    			/* Maximum number of compare errors to print */
 	int32_t			number_of_processors;   			/* Number of processors */    
 	int32_t			clock_tick;							/* Number of clock ticks per second */
+	nclk_t			debug_base_time;					/* The "t=0" time used by DEBUG operation time stamps */
     
 // Indicators that are used to control exit conditions and the like
 	char			id_firsttime;           			/* ID first time through flag */

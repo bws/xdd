@@ -119,6 +119,12 @@ nclk_now(nclk_t *nclkp) {
 #endif
     return;
 }
+int64_t
+pclk_now(void) {
+		nclk_t	now;
+		nclk_now(&now);
+		return(now);
+}
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 #elif (SOLARIS || AIX || DARWIN || FREEBSD )
 void

@@ -234,8 +234,8 @@ xdd_options_info(xdd_plan_t* planp, FILE *out) {
 void
 xdd_target_info(FILE *out, ptds_t *p) {
 	int 				i;
-	ptds_t 				*masterp, *slavep;
-	lockstep_t			*master_lsp, *slave_lsp;
+	//ptds_t 				*masterp, *slavep;
+	//lockstep_t			*master_lsp, *slave_lsp;
 	xdd_data_pattern_t	*dpp;
 
 

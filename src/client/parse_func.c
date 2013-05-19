@@ -1680,7 +1680,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: slave_ptds
 	if (flags & XDD_PARSE_PHASE1) {
 		if (!(xgp->global_options & GO_LOCKSTEP)) {
 			xgp->global_options |= GO_LOCKSTEP;
-			master_lsp->ls_ms_state |= LS_I_AM_THE_MASTER;
+			master_lsp->ls_state |= LS_STATE_I_AM_THE_FIRST;
 		} 
 	
 		if (master_lsp->ls_next_ptdsp) {
@@ -1690,7 +1690,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: slave_ptds
 		}
 		master_lsp->ls_next_ptdsp = slave_ptdsp;
 		master_ptdsp->target_options |= lsmode;
-		slave_lsp->ls_ms_state |= LS_I_AM_A_SLAVE;
+		slave_lsp->ls_state &= ~LS_STATE_I_AM_THE_FIRST;
 		slave_ptdsp->target_options |= lsmode; 
 	}
 
@@ -1813,9 +1813,9 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"xddfunc_lockstep: OP: slave_
 	}
 	lockstep_startup = argv[7];  
 	if (strcmp(lockstep_startup,"run") == 0) { /* have the slave start running immediately */
-		slave_lsp->ls_ms_state |= LS_STARTUP_WAIT;
+		slave_lsp->ls_state |= LS_STATE_WAIT;
 	} else { /* Have the slave wait for the master to tell it to run */
-		slave_lsp->ls_ms_state |= LS_STARTUP_WAIT;
+		slave_lsp->ls_state |= LS_STATE_WAIT;
 	}
     retval++;
 	lockstep_completion = argv[8];

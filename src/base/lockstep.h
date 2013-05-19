@@ -30,58 +30,31 @@
  */
 // -------------------------------------------------------------------
 // The following variables are used to implement the lockstep options 
+// Access to this structure is protected by the ls_mutex. 
 struct lockstep	{
-	pthread_mutex_t ls_mutex;  				// This is the lock-step mutex used by this target 
-	int32_t       ls_task_counter; 			// This is the number of times that the master has requested this 
-					  						// slave to perform a task. 
-					  						// Each time the master needs this slave to perform a task this counter is
-					  						// incremented by 1.
-					  						// Each time this slave completes a task, this counter is decremented by 1.
-					  						// Access to this counter is protected by the ls_mutex. 
-#define LS_INTERVAL_TIME  	0x00000001 		// Task type of "time" 
-#define LS_INTERVAL_OP		0x00000002 		// Task type of "op" 
-#define LS_INTERVAL_PERCENT	0x00000004 		// Task type of "percent" 
-#define LS_INTERVAL_BYTES	0x00000008 		// Task type of "bytes" 
-	uint32_t		ls_interval_type; 		// Flags used by the lock-step master 
-	char			*ls_interval_units; 	// ASCII readable units for the interval value 
-	int64_t			ls_interval_value; 		// This is the value of the interval on which the lock step occurs 
-	uint64_t		ls_op_counter;			// This is the number of ops that the master/slave has completed during an interval
-	uint64_t		ls_byte_counter;		// This is the number of bytes that the master/slave has xferred during an interval
-#define LS_I_AM_A_SLAVE				0x00000001 		// This target is a SLAVE to the MASTER target specified in ls_master
-#define LS_I_AM_THE_MASTER			0x00000002 		// This target is a MASTER to the SLAVE target specified in ls_slave
-//
-#define LS_STARTUP_WAIT		0x00000004 		// The slave is waiting for the master to enter the ls_barrier 
-#define LS_I_NEED_TO_WAIT	0x00000008 		// This target needs to wait before doing any I/O
-//
-#define LS_PASS_COMPLETE	0x00000080 		// The target has completed its pass 
-	uint32_t		ls_ms_state;			// This is the state of the master and slave at any given time. 
-											// If this is set to SLAVE_WAITING
-									 		// then the slave has entered the ls_barrier and is waiting for the master to enter
-									 		// so that it can continue. This is checked by the master so that it will enter only
-									 		// if the slave is there waiting. This prevents the master from being blocked when
-									 		// doing overlapped-lock-step operations.
-	int32_t			ls_ms_target;	 		// The target number of the SLAVE or MASTER
-	ptds_t			*ls_next_ptdsp;			// The next target to start (as a slave)
-	xdd_barrier_t 	Lock_Step_Barrier;	 	// The Lock Step Barrier for synchronous lockstep
+	pthread_mutex_t ls_mutex;  					// This is the lock-step mutex used by this target 
+#define LS_INTERVAL_TIME  		0x00000001 		// Task type of "time" 
+#define LS_INTERVAL_OP			0x00000002 		// Task type of "op" 
+#define LS_INTERVAL_PERCENT		0x00000004 		// Task type of "percent" 
+#define LS_INTERVAL_BYTES		0x00000008 		// Task type of "bytes" 
+	uint32_t		ls_interval_type; 			// Flags used by the lock-step targets 
+	char			*ls_interval_units; 		// ASCII readable units for the interval value 
+	uint64_t		ls_interval_value; 			// This is the value of the interval on which the lock step occurs 
+	uint64_t		ls_ops_scheduled;			// This is the number of ops that the target has scheduled but not completed
+	uint64_t		ls_ops_completed;			// This is the number of ops that the target has completed
+	uint64_t		ls_bytes_scheduled;			// This is the number of bytes that the target has scheduled but not xferred
+	uint64_t		ls_bytes_completed;			// This is the number of bytes that the target has xferred during an interval
+	uint64_t  	    ls_task_counter; 			// This is the number of times that a target has performed a task
+#define LS_STATE_INITIALIZED	0x00000001 		// This target has been lockstep-initialized
+#define LS_STATE_I_AM_THE_FIRST	0x00000020 		// This target is the FIRST target to start I/O Operations
+#define LS_STATE_WAIT			0x00000400 		// This target is waiting to be released
+#define LS_STATE_RELEASE_TARGET	0x00008000 		// The next target needs to be released
+#define LS_STATE_PASS_COMPLETE	0x00010000 		// The target has completed its pass 
+	uint32_t		ls_state;					// This is the state of this target at any given time. 
+	ptds_t			*ls_next_ptdsp;				// The PTDS of the next target to start when this target is finished
+	xdd_barrier_t 	Lock_Step_Barrier;	 		// The Lock Step Barrier where targets wait 
 };
 typedef struct lockstep lockstep_t;
-
-// Lockstep function prototypes
-//int32_t xdd_lockstep_init(ptds_t *p);
-//int32_t xdd_lockstep_before_io_operation(ptds_t *p);
-//void	xdd_lockstep_before_io_loop(ptds_t *p);
-//int32_t xdd_lockstep_slave_before_io_op(ptds_t *p);
-//int32_t xdd_lockstep_after_io_loop(ptds_t *p);
-//int32_t xdd_lockstep_after_io_op(ptds_t *p);
-//int32_t xdd_lockstep_master_after_io_op(ptds_t *p);
-//int32_t xdd_lockstep_master_before_io_op(ptds_t *p);
-//int32_t xdd_lockstep_after_pass(ptds_t *p);
-//
-//void    xdd_lockstep_before_pass(ptds_t *p);
-
-
-
-
 
 /*
  * Local variables:

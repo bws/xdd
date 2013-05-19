@@ -145,6 +145,7 @@ int32_t xdd_lockstep_after_io_op(ptds_t *qp);
 int32_t xdd_lockstep_after_io_op_master(ptds_t *qp);
 int32_t xdd_lockstep_after_io_op_slave(ptds_t *qp);
 int32_t xdd_lockstep_check_triggers(ptds_t *qp, lockstep_t *lsp);
+void 	xdd_lockstep_update_triggers(ptds_t *qp, lockstep_t *lsp);
 
 // memory.c
 void	xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);
@@ -180,7 +181,7 @@ int32_t	xdd_parse_arg_count_check(int32_t args, int32_t argc, char *option);
 void	nclk_initialize(nclk_t *nclkp);
 void	nclk_shutdown(void);
 void	nclk_now(nclk_t *nclkp);
-void	nclk_now(nclk_t *nclkp);
+int64_t	pclk_now(void);
 
 // preallocate.c
 int32_t	xdd_target_preallocate_for_os(ptds_t *p);
