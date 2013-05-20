@@ -50,6 +50,7 @@ struct lockstep	{
 #define LS_STATE_WAIT			0x00000400 		// This target is waiting to be released
 #define LS_STATE_RELEASE_TARGET	0x00008000 		// The next target needs to be released
 #define LS_STATE_PASS_COMPLETE	0x00010000 		// The target has completed its pass 
+#define LS_STATE_SUSPEND		0x00200000 		// Suspend Lockstep operations 
 	uint32_t		ls_state;					// This is the state of this target at any given time. 
 	ptds_t			*ls_next_ptdsp;				// The PTDS of the next target to start when this target is finished
 	xdd_barrier_t 	Lock_Step_Barrier;	 		// The Lock Step Barrier where targets wait 

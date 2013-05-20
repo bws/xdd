@@ -146,6 +146,7 @@ int32_t xdd_lockstep_after_io_op_master(ptds_t *qp);
 int32_t xdd_lockstep_after_io_op_slave(ptds_t *qp);
 int32_t xdd_lockstep_check_triggers(ptds_t *qp, lockstep_t *lsp);
 void 	xdd_lockstep_update_triggers(ptds_t *qp, lockstep_t *lsp);
+lockstep_t *xdd_lockstep_get_next_target_to_release(ptds_t *p, lockstep_t *lsp);
 
 // memory.c
 void	xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);

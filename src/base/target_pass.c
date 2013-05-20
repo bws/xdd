@@ -71,9 +71,9 @@ xdd_targetpass(xdd_plan_t* planp, ptds_t *p) {
 		return(0);
 
 	// Things to do before this pass is started
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: CALLING xdd_target_ttd_before_pass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::CALLING xdd_target_ttd_before_pass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 	xdd_target_ttd_before_pass(p);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: RETURNING FROM xdd_target_ttd_before_pass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::RETURNING FROM xdd_target_ttd_before_pass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 
 	// Get the next available qthread and give it a task to perform
 	// We stay in the following loop for a single PASS
@@ -88,7 +88,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: R
 // the xdd_targetpass_loop() subroutine (or the e2e equivalent).
 	// The pass loops are handled by one of two subroutines depending on 
 	// whether this is the Destination Side of an E2E operation or not. 
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: ENTERING xdd_targetpass_loop...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::ENTERING xdd_targetpass_loop...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 	p->tgtstp->my_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
 	if (p->target_options & TO_ENDTOEND) { // E2E operations are *different*
 		if (p->target_options & TO_E2E_SOURCE)
@@ -98,22 +98,22 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: E
 	    xdd_targetpass_loop(planp, p);
 	}
 	p->tgtstp->my_current_state |= CURRENT_STATE_PASS_COMPLETE;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: RETURNED FROM xdd_targetpass_loop...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::RETURNED FROM xdd_targetpass_loop...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 /////////////////////////////// PSEUDO-Loop Ends  Here /////////////////////////
 	// If this is an E2E operation and we had gotten canceled - just return
 	if ((p->target_options & TO_ENDTOEND) && (xgp->canceled))
 		return(-1); 
 
 	// Things that the Target Thread needs to do after a pass has completed
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: CALLING xdd_target_ttd_after_pass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::CALLING xdd_target_ttd_after_pass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 	xdd_target_ttd_after_pass(p);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: RETURNED FROM xdd_target_ttd_after_pass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::RETURNED FROM xdd_target_ttd_after_pass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 
 	// Release the results_manager() to process/display the 
 	// results for this pass
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: ENTERING BARRIER results_target_endpass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::ENTERING BARRIER results_target_endpass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 	xdd_barrier(&planp->results_targets_endpass_barrier,&p->occupant,0);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: RETURNING FROM BARRIER results_target_endpass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::RETURNING FROM BARRIER results_target_endpass...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 
 	// At this point all the Target Threads have completed their pass and 
 	// have passed thru the previous barrier releasing the results_manager() 
@@ -121,9 +121,9 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: R
 
 	// Wait at this barrier for the results_manager() to process/display the 
 	// results for this last pass
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: ENTERING BARRIER results_target_display...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::ENTERING BARRIER results_target_display...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 	xdd_barrier(&planp->results_targets_display_barrier,&p->occupant,0);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass: p:%p: RETURNING FROM BARRIER results_target_display...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass:p:%p:::RETURNING FROM BARRIER results_target_display...\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 
 	// This pass is complete - return to the Target Thread
 	return(0);
@@ -154,12 +154,12 @@ xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p) {
 //
 	while (p->bytes_remaining) {
 		// Get pointer to next QThread to issue a task to
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop: p:%p: GET_ANY_AVAILABLE_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,(long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:::GET_ANY_AVAILABLE_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,(long long int)p->bytes_remaining);
 		qp = xdd_get_any_available_qthread(p);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop: p:%p: qp:%p: GOT_A_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:qp:%p:GOT_A_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
 
 		// Things to do before an I/O is issued
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop: p:%p: qp:%p: THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:qp:%p:THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
 		status = xdd_target_ttd_before_io_op(p, qp);
 		if (status != XDD_RC_GOOD) {
 			// Mark this qthread NOT BUSY and break out of this loop
@@ -169,15 +169,15 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop: p:
 			break;
 		}
 
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop: p:%p: qp:%p: DONE_WITH_THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:qp:%p:DONE_WITH_THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
 		// Set up the task for the QThread
 		xdd_targetpass_task_setup(qp);
 
 		// Release the QThread to let it start working on this task.
 		// This effectively causes the I/O operation to be issued.
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop: p:%p: qp:%p: RELEASING_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:qp:%p:RELEASING_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
 		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop: p:%p: qp:%p: QTHREAD_RELEASED bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:qp:%p:QTHREAD_RELEASED bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
 
 	} // End of WHILE loop that transfers data for a single pass
 //
@@ -193,11 +193,11 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop: p:
 	// Wait for all QThreads to complete their most recent task
 	// The easiest way to do this is to get the QThread pointer for each
 	// QThread specifically and then reset it's "busy" bit to 0.
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:  p:%p: WAITING FOR ALL QTHREADS TO COMPLETE\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:::WAITING FOR ALL QTHREADS TO COMPLETE\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 	for (q = 0; q < p->queue_depth; q++) {
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:  p:%p: Requesting QThread %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,q);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:::Requesting QThread %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,q);
 		qp = xdd_get_specific_qthread(p,q);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:  p:%p: qp:%p: Got  QThread %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,q);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:qp:%p:Got  QThread %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,q);
 		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
 		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
 		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
@@ -205,7 +205,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:  p
 	if (p->tgtstp->my_current_io_status != 0) 
 		planp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
 
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:  p:%p: DONE - Returing\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_loop:p:%p:::DONE - Returing\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 	return;
 } // End of xdd_targetpass_loop()
 
@@ -217,7 +217,7 @@ xdd_targetpass_task_setup(ptds_t *qp) {
 	ptds_t	*p;
 
 	p = qp->target_ptds;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_task_setup: p:%p: qp:%p: ENTER bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:xdd_targetpass_task_setup:p:%p:qp:%p:ENTER bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
 	// Assign an IO task to this qthread
 	qp->task_request = TASK_REQ_IO;
 
