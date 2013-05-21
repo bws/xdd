@@ -94,18 +94,12 @@ nclk_shutdown(void) {
  *        * Note that Epoch seconds x 1e9 + nanoseconds will consume 18 decimal digits
  *         * This should fit into unsigned 64-bit integer.
  *          */
-#ifdef WIN32
-void
-nclk_now(nclk_t *nclkp) {
-
-		QueryPerformanceCounter((LARGE_INTEGER *)nclkp);
-}
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-#elif (LINUX)
-void
-nclk_now(nclk_t *nclkp) {
+void nclk_now(nclk_t *nclkp) {
 
-#ifdef _POSIX_TIMERS
+#if defined WIN32
+		QueryPerformanceCounter((LARGE_INTEGER *)nclkp);
+#elif defined HAVE_CLOCK_GETTIME && defined_POSIX_TIMERS 
         struct timespec current_time;
         clock_gettime(CLOCK_REALTIME, &current_time);
         *nclkp =  (nclk_t)(((nclk_t)current_time.tv_sec * BILLION) +
@@ -119,26 +113,12 @@ nclk_now(nclk_t *nclkp) {
 #endif
     return;
 }
-int64_t
-pclk_now(void) {
+
+int64_t pclk_now(void) {
 		nclk_t	now;
 		nclk_now(&now);
 		return(now);
 }
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-#elif (SOLARIS || AIX || DARWIN || FREEBSD )
-void
-nclk_now(nclk_t *nclkp) {
-    struct timeval current_time;
-    struct timezone tz;
-
-        gettimeofday(&current_time, &tz);
-    	*nclkp =  (nclk_t)(((nclk_t)current_time.tv_sec  * BILLION) +
-                           ((nclk_t)current_time.tv_usec * THOUSAND));
-    return;
-}
-#endif
-
 
 /*
  * Local variables:
