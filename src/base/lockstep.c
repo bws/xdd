@@ -97,18 +97,11 @@ xdd_lockstep_before_pass(ptds_t *p) {
 	lsp = p->lsp;
 if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_pass:p:%p:lsp:%p:state:0x%x:ENTER \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state);
 	if (lsp) {
-		if ((lsp->ls_state & LS_STATE_I_AM_THE_FIRST) == 0) {
-			lsp->ls_state |= LS_STATE_WAIT;
-		} else {
-			lsp->ls_state &= ~LS_STATE_WAIT;
-		}
-		lsp->ls_ops_scheduled = 0;
 		lsp->ls_ops_completed_this_interval = 0;
 		lsp->ls_ops_completed_this_pass = 0;
 		lsp->ls_bytes_scheduled = 0;
 		lsp->ls_bytes_completed = 0;
 		lsp->ls_state &= ~LS_STATE_PASS_COMPLETE;
-		lsp->ls_state &= ~LS_STATE_IGNORE_LOCKSTEP;
 	}
 
 } // End of xdd_lockstep_before_pass()
