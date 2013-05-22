@@ -1816,8 +1816,10 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	lockstep_completion = argv[8];
 	if (strcmp(lockstep_completion,"complete") == 0) { /* Have slave complete all operations if master finishes first */
 		slave_lsp->ls_state |= LS_STATE_END_COMPLETE;
+		master_lsp->ls_state |= LS_STATE_END_COMPLETE;
 	} else if (strcmp(lockstep_completion,"stop") == 0){ /* Have slave stop when master stops */
 		slave_lsp->ls_state |= LS_STATE_END_STOP;
+		master_lsp->ls_state |= LS_STATE_END_STOP;
 	} else {
         return(0);
     }

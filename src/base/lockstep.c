@@ -142,9 +142,9 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p
 
 		for (i = 0; i < ops_this_interval; i++) {
 			// Get pointer to next QThread to issue a task to
-	if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::::GET_ANY_AVAILABLE_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,(long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::::GET_ANY_AVAILABLE_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,(long long int)p->bytes_remaining);
 			qp = xdd_get_any_available_qthread(p);
-	if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::qp:%p:GOT_A_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::qp:%p:GOT_A_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
 	
 			// Things to do before an I/O is issued
 if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::qp:%p:THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
@@ -184,10 +184,11 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p
 		if (ops_remaining <= 0) 
 			lsp->ls_state |= LS_STATE_PASS_COMPLETE;
 
-
 		// Figure out what the next target is and release it so that it can run.
+		status = 0;
 		next_lsp = lsp->ls_next_ptdsp->lsp;
 		while (next_lsp->ls_state & LS_STATE_PASS_COMPLETE) {
+			status = 1; // Indicates that some target has completed their pass
 if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:TARGET %d NEXT_LSP IS AT END_OF_PASS - next_lsp=%p, next_lsp->ls_state=0x%x\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number, next_lsp,next_lsp->ls_state);
 			next_lsp = next_lsp->ls_next_ptdsp->lsp;
 			if (next_lsp == lsp)
@@ -197,6 +198,13 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p
 			//    The next target that needs to be released
 			//    or
 			//    The lsp of this target (no targets get released)
+		}
+
+		// If some other target has completed their pass and the "END_STOP"
+		// flag is set then we need to pretend we are done too.
+		if ((status == 1) && (lsp->ls_state & LS_STATE_END_STOP)) {
+			ops_remaining = 0; // This means that we stop here
+			lsp->ls_state |= LS_STATE_PASS_COMPLETE;
 		}
 
 		// If the next target is simply this target, then we do not release anything and do not wait for anything
