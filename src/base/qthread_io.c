@@ -342,6 +342,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	if (qp->tgtstp->my_current_io_status == qp->tgtstp->my_current_io_size) { // Only update counters if I/O succeeded
 		p->tgtstp->my_current_bytes_xfered_this_op = qp->tgtstp->my_current_bytes_xfered_this_op;
 		p->bytes_completed += qp->tgtstp->my_current_bytes_xfered_this_op;
+		p->ops_completed++;
 		p->tgtstp->my_current_bytes_xfered += qp->tgtstp->my_current_bytes_xfered_this_op;
 		p->tgtstp->my_current_op_count++;
 		if (p->e2ep && qp->e2ep)
