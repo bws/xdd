@@ -58,7 +58,7 @@ xdd_lockstep_init(ptds_t *p) {
 	if (lsp->ls_state & LS_STATE_INITIALIZED)
 		return(XDD_RC_GOOD); 
 
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_init:p:%p:lsp:%p:state:0x%x:ENTER my taget number is %d, the next target number is %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number,lsp->ls_next_ptdsp->my_target_number);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_init:p:%p:lsp:%p:state:0x%x:ENTER my taget number is %d, the next target number is %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number,lsp->ls_next_ptdsp->my_target_number);
 	// Init the task-counter mutex and the lockstep barrier 
 	status = pthread_mutex_init(&lsp->ls_mutex, 0);
 	if (status) {
@@ -78,7 +78,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_init:p:%p:lsp:
 
 	lsp->ls_state |= LS_STATE_INITIALIZED;
 
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_init:p:%p:lsp:%p:state:0x%x:EXIT \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_init:p:%p:lsp:%p:state:0x%x:EXIT \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state);
 	return(XDD_RC_GOOD);
 } // End of xdd_lockstep_init()
 
@@ -95,7 +95,7 @@ xdd_lockstep_before_pass(ptds_t *p) {
 		return;
 
 	lsp = p->lsp;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_pass:p:%p:lsp:%p:state:0x%x:ENTER \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_pass:p:%p:lsp:%p:state:0x%x:ENTER \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state);
 	if (lsp) {
 		if ((lsp->ls_state & LS_STATE_I_AM_THE_FIRST) == 0) {
 			lsp->ls_state |= LS_STATE_WAIT;
@@ -114,33 +114,10 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_pass:p:
 } // End of xdd_lockstep_before_pass()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_lockstep_after_pass() - This subroutine will do all the stuff needed to 
- * be done for lockstep operations after an entire pass is complete.
+/* xdd_lockstep(ptds_t *p) 
  */
 int32_t
-xdd_lockstep_after_pass(ptds_t *p) {
-	//lockstep_t *lsp;			// Pointer to the lock step struct
-
-	/* This ought to return something other than 0 but this is it for now... */
-	/* If there is a slave to this target then we need to tell the slave that we (the master) are finished
-	 * and that it ought to abort or finish (depending on the command-line option) but in either case it
-	 * should no longer wait for the master to tell it to do something.
-	 */
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_after_pass:p:%p:lsp:%p:state:0x%x:ENTER \n",(long long int)pclk_now()-xgp->debug_base_time,p,p->lsp,p->lsp->ls_state);
-	if (p->lsp == 0) 
-		return(XDD_RC_GOOD);
-
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_after_pass:p:%p:lsp:%p:state:0x%x:EXIT \n",(long long int)pclk_now()-xgp->debug_base_time,p,p->lsp,p->lsp->ls_state);
-
-	return(XDD_RC_GOOD);
-	
-} /* End of xdd_lockstep_after_pass() */
-
-/*----------------------------------------------------------------------------*/
-/* xdd_lockstep_before_io_op(ptds_t *p) 
- */
-int32_t
-xdd_lockstep_before_io_op(ptds_t *p) {
+xdd_lockstep(ptds_t *p) {
 	lockstep_t *lsp;			// Pointer to the lock step struct
 	lockstep_t	*next_lsp;
 	int32_t		status;
@@ -156,9 +133,9 @@ xdd_lockstep_before_io_op(ptds_t *p) {
 	// If we are not the first target to run then we need to wait
 	if (!(lsp->ls_state & LS_STATE_I_AM_THE_FIRST)) {
 	// This is where we wait for the other target to wake us up
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:::TARGET %d ENTERING BARRIER TO WAIT FOR SOMETHING TO DO \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:::TARGET %d ENTERING BARRIER TO WAIT FOR SOMETHING TO DO \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number);
 		xdd_barrier(&lsp->Lock_Step_Barrier,&p->occupant,0);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x::::TARGET %d GOT SOMETHING TO DO!!!\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x::::TARGET %d GOT SOMETHING TO DO!!!\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number);
 	}
 
 	ops_remaining = p->target_ops;
@@ -172,12 +149,12 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p
 
 		for (i = 0; i < ops_this_interval; i++) {
 			// Get pointer to next QThread to issue a task to
-	if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:::::GET_ANY_AVAILABLE_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,(long long int)p->bytes_remaining);
+	if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::::GET_ANY_AVAILABLE_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,(long long int)p->bytes_remaining);
 			qp = xdd_get_any_available_qthread(p);
-	if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:::qp:%p:GOT_A_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
+	if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::qp:%p:GOT_A_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
 	
 			// Things to do before an I/O is issued
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:::qp:%p:THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::qp:%p:THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
 			status = xdd_target_ttd_before_io_op(p, qp);
 			if (status != XDD_RC_GOOD) {
 				// Mark this qthread NOT BUSY and break out of this loop
@@ -187,26 +164,26 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p
 				break;
 			}
 
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:::qp:%p:DONE_WITH_THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::qp:%p:DONE_WITH_THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp, (long long int)p->bytes_remaining);
 			// Set up the task for the QThread
 			xdd_targetpass_task_setup(qp);
 	
 			// Release the QThread to let it start working on this task.
 			// This effectively causes the I/O operation to be issued.
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:::qp:%p:RELEASING_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::qp:%p:RELEASING_QTHREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
 			xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:::qp:%p:QTHREAD_RELEASED bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::qp:%p:QTHREAD_RELEASED bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,(long long int)p->bytes_remaining);
 			ops_remaining--;
 		}
 
 		// Wait for all QThreads to complete their most recent task
 		// The easiest way to do this is to get the QThread pointer for each
 		// QThread specifically and then reset it's "busy" bit to 0.
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:::::WAITING FOR ALL QTHREADS TO COMPLETE\n",(long long int)pclk_now()-xgp->debug_base_time,p);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::::WAITING FOR ALL QTHREADS TO COMPLETE\n",(long long int)pclk_now()-xgp->debug_base_time,p);
 		for (q = 0; q < p->queue_depth; q++) {
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:::::Requesting QThread %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,q);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::::Requesting QThread %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,q);
 			qp = xdd_get_specific_qthread(p,q);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:::qp:%p:Got  QThread %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,q);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::qp:%p:Got  QThread %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,q);
 			pthread_mutex_lock(&qp->qthread_target_sync_mutex);
 			qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
 			pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
@@ -218,11 +195,11 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p
 		// Figure out what the next target is and release it so that it can run.
 		next_lsp = lsp->ls_next_ptdsp->lsp;
 		while (next_lsp->ls_state & LS_STATE_PASS_COMPLETE) {
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:TARGET %d NEXT_LSP IS AT END_OF_PASS - next_lsp=%p, next_lsp->ls_state=0x%x\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number, next_lsp,next_lsp->ls_state);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:TARGET %d NEXT_LSP IS AT END_OF_PASS - next_lsp=%p, next_lsp->ls_state=0x%x\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number, next_lsp,next_lsp->ls_state);
 			next_lsp = next_lsp->ls_next_ptdsp->lsp;
 			if (next_lsp == lsp)
 				break;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:TARGET %d WHAT IS NEXT NEXT LSP - next_lsp=%p, next_lsp->ls_state=0x%x\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number, next_lsp,next_lsp->ls_state);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:TARGET %d WHAT IS NEXT NEXT LSP - next_lsp=%p, next_lsp->ls_state=0x%x\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number, next_lsp,next_lsp->ls_state);
 			// At this point next_lsp points to:
 			//    The next target that needs to be released
 			//    or
@@ -232,149 +209,24 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p
 		// If the next target is simply this target, then we do not release anything and do not wait for anything
 		if (next_lsp == lsp) // This is us
 			continue;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:qp:%p:TARGET %d ENTERING BARRIER TO WAKE UP NEXT TARGET %d - next_lsp=%p\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,p->my_target_number, lsp->ls_next_ptdsp->my_target_number,next_lsp);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:::TARGET %d ENTERING BARRIER TO WAKE UP NEXT TARGET %d - next_lsp=%p\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number, lsp->ls_next_ptdsp->my_target_number,next_lsp);
 		xdd_barrier(&next_lsp->Lock_Step_Barrier,&p->occupant,0);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:qp:%p:TARGET %d RETURNED FROM BARRIER AFTER WAKING UP NEXT TARGET %d - next_lsp=%p\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,p->my_target_number, lsp->ls_next_ptdsp->my_target_number,next_lsp);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:::TARGET %d RETURNED FROM BARRIER AFTER WAKING UP NEXT TARGET %d - next_lsp=%p\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number, lsp->ls_next_ptdsp->my_target_number,next_lsp);
 
 		// If we are done with this pass then dont bother to wait...
 		if (lsp->ls_state & LS_STATE_PASS_COMPLETE)
 			continue;
 		// This is where we wait for the other target to wake us up
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:::TARGET %d ENTERING BARRIER <2> TO WAIT FOR SOMETHING TO DO \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x:::TARGET %d ENTERING BARRIER <2> TO WAIT FOR SOMETHING TO DO \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number);
 		xdd_barrier(&lsp->Lock_Step_Barrier,&p->occupant,0);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x::::TARGET %d GOT SOMETHING TO DO <2> !!!\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:lsp:%p:state:0x%x::::TARGET %d GOT SOMETHING TO DO <2> !!!\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number);
 
 	} // End of WHILE loop
 
 	return(status);
 
-} // End of xdd_lockstep_before_io_op()
+} // End of xdd_lockstep()
 
-/*----------------------------------------------------------------------------*/
-/* xdd_lockstep_after_io_op(ptds_t *qp) 
- * This subroutine runs in the context of a QThread (not a Target Thread)
- *
- */
-int32_t
-xdd_lockstep_after_io_op(ptds_t *qp) {
-	lockstep_t *lsp;			// Pointer to the lock step struct
-	lockstep_t *next_lsp;			// Pointer to the lock step struct
-	int32_t		status; 		// Returned from the master/slave berfore iop routines
-	ptds_t		*p;				// Pointer to the PTDS of the TARGET
-	ptds_t		*next_ptdsp;				// Pointer to the PTDS of the next slave TARGET
-
-
-	p = qp->target_ptds;
-	// Check to see if we are in lockstep with another target.
-	// If so, then if we are a master, then do the master thing.
-	// Then check to see if we are also a slave and do the slave thing.
-	//
-	if (p->lsp)
-		return(XDD_RC_GOOD);
-
-	lsp = p->lsp;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_after_io_op:p:%p:lsp:%p:state:0x%x:qp:%p:ENTER\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp);
-	next_ptdsp = lsp->ls_next_ptdsp;
-	next_lsp = next_ptdsp->lsp;
-//	if (next_ptdsp) 
-//		next_lsp = next_ptdsp->lsp;
-//	else next_lsp = NULL;
-
-	pthread_mutex_lock(&lsp->ls_mutex);
-
-	// Check to see if we have reached a point where we need to release the SLAVE
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_after_io_op:p:%p:lsp:%p:state:0x%x:qp:%p:CALLING CHECK_TRIGGERS - next_ptdsp=%p, next_lsp=%p\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,next_ptdsp,next_lsp);
-	status = xdd_lockstep_check_triggers(qp, lsp);
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_after_io_op:p:%p:lsp:%p:state:0x%x:qp:%p:REUTNRED FROM CHECK_TRIGGERS - status=%d from check_triggers, bytes_completed=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,status,(long long int)p->bytes_completed);
-	
-	if (status == TRUE) {
-		lsp->ls_state |= LS_STATE_RELEASE_TARGET;
-		next_lsp = xdd_lockstep_get_next_target_to_release(p, lsp);
-		if (next_lsp == lsp) { // The "next_lsp" is actually me so...
-			lsp->ls_state |= LS_STATE_IGNORE_LOCKSTEP; // This tells the target thread to NOT to WAIT in lockstep_before_io_op()
-			if (lsp->ls_state & LS_STATE_PASS_COMPLETE) {
-				lsp->ls_state &= ~LS_STATE_RELEASE_TARGET;
-			}
-		} else lsp->ls_state |= LS_STATE_WAIT; // This tells the target thread to WAIT in lockstep_before_io_op()
-	}
-
-
-	if (lsp->ls_state & LS_STATE_RELEASE_TARGET) {
-
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_after_io_op:p:%p:lsp:%p:state:0x%x:qp:%p:TARGET %d is RELEASING NEXT TARGET %d - next_lsp=%p, next_lsp->ls_state=0x%x\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,p->my_target_number, lsp->ls_next_ptdsp->my_target_number,next_lsp,next_lsp->ls_state);
-
-		// Enter the next target's barrier which will release it
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_after_io_op:p:%p:lsp:%p:state:0x%x:qp:%p:TARGET %d ENTERING BARRIER TO WAKE UP NEXT TARGET %d - next_lsp=%p\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,p->my_target_number, lsp->ls_next_ptdsp->my_target_number,next_lsp);
-		xdd_barrier(&next_lsp->Lock_Step_Barrier,&p->occupant,0);
-		lsp->ls_state &= ~LS_STATE_RELEASE_TARGET;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_after_io_op:p:%p:lsp:%p:state:0x%x:qp:%p:TARGET %d RETURNED FROM BARRIER AFTER WAKING UP NEXT TARGET %d - next_lsp=%p\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,p->my_target_number, lsp->ls_next_ptdsp->my_target_number,next_lsp);
-	}
-
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_after_io_op:p:%p:lsp:%p:state:0x%x:qp:%p:EXIT - next_lsp=%p, next_lsp->ls_state=0x%x\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,next_lsp,next_lsp->ls_state);
-	pthread_mutex_unlock(&lsp->ls_mutex);
-	return(XDD_RC_GOOD);
-
-} // End of xdd_lockstep_after_io_op()
-
-/*----------------------------------------------------------------------------*/
-// xdd_lockstep_get_next_target_to_release()
-//
-lockstep_t * 
-xdd_lockstep_get_next_target_to_release(ptds_t *p, lockstep_t *lsp) {
-	lockstep_t	*next_lsp;
-
-
-	next_lsp = lsp->ls_next_ptdsp->lsp;
-	while (next_lsp->ls_state & LS_STATE_PASS_COMPLETE) {
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_get_next_target_to_release:p:%p:lsp:%p:state:0x%x:TARGET %d NEXT_LSP IS AT END_OF_PASS - next_lsp=%p, next_lsp->ls_state=0x%x\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number, next_lsp,next_lsp->ls_state);
-		next_lsp = next_lsp->ls_next_ptdsp->lsp;
-		if (next_lsp == lsp)
-			break;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_get_next_target_to_release:p:%p:lsp:%p:state:0x%x:TARGET %d WHAT IS NEXT NEXT LSP - next_lsp=%p, next_lsp->ls_state=0x%x\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,p->my_target_number, next_lsp,next_lsp->ls_state);
-		// At this point next_lsp points to:
-		//    The next target that needs to be released
-		//    or
-		//    The lsp of this target (no targets get released)
-	}
-	return(next_lsp);
-} // End of xdd_lockstep_get_next_target_to_release()
-
-
-/*----------------------------------------------------------------------------*/
-// xdd_lockstep_update_triggers()
-//  It is assumed that the lock for the lockstep data structure pointed to
-//  by lsp is held by the caller.
-//
-void 
-xdd_lockstep_update_triggers(ptds_t *qp, lockstep_t *lsp) {
-	ptds_t		*p;				// Pointer to the PTDS of the TARGET
-
-
-	p = qp->target_ptds;
-
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_update_triggers:p:%p:lsp:%p:state:0x%x:ENTER - ls_interval_type=0x%x, ls_interval_value=%lld \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,lsp->ls_interval_type,(long long int)lsp->ls_interval_value);
-	/* Check to see if it is time to ping the slave to do something */
-	if (lsp->ls_interval_type & LS_INTERVAL_TIME) {
-		// If we are past the start time then signal the SLAVE to start.
-			lsp->ls_task_counter++;
-	}
-	if (lsp->ls_interval_type & LS_INTERVAL_OP) {
-		// If we are past the specified operation, then signal the SLAVE to start.
-		lsp->ls_ops_completed_this_interval++;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_update_triggers:p:%p:lsp:%p:state:0x%x:INTERVAL_OP - ls_interval_value=%lld, ls_ops_completed_this_interval=%lld, p->tgtstp->my_current_op_number=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,(long long int)lsp->ls_interval_value, (long long int)lsp->ls_ops_completed_this_interval, (long long int)p->tgtstp->my_current_op_number);
-	}
-	if (lsp->ls_interval_type & LS_INTERVAL_PERCENT) {
-		// If we have completed percentage of operations then signal the SLAVE to start.
-		lsp->ls_task_counter++;
-	}
-	if (lsp->ls_interval_type & LS_INTERVAL_BYTES) {
-		// If we have completed transferring the specified number of bytes, then signal the SLAVE to start.
-		lsp->ls_bytes_completed += qp->tgtstp->my_current_io_status;
-	}
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_update_triggers:p:%p:lsp:%p:state:0x%x:EXIT \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state);
-	return;
-
-} // End of xdd_lockstep_update_triggers() 
 /*----------------------------------------------------------------------------*/
 // xdd_lockstep_check_triggers()
 //  This subroutine is called by either the MASTER or SLAVE to check whether
@@ -394,7 +246,7 @@ xdd_lockstep_check_triggers(ptds_t *qp, lockstep_t *lsp) {
 
 	p = qp->target_ptds;
 
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:ENTER - ls_interval_type=0x%x, ls_interval_value=%lld \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,lsp->ls_interval_type,(long long int)lsp->ls_interval_value);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:ENTER - ls_interval_type=0x%x, ls_interval_value=%lld \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,lsp->ls_interval_type,(long long int)lsp->ls_interval_value);
 	status = FALSE;
 	/* Check to see if it is time to ping the slave to do something */
 	if (lsp->ls_interval_type & LS_INTERVAL_TIME) {
@@ -409,7 +261,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_check_triggers
 		lsp->ls_ops_completed_this_interval++;
 		lsp->ls_ops_completed_this_pass++;
 		// If we are past the specified operation, then signal the SLAVE to start.
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:INTERVAL_OP - ls_interval_value=%lld, ls_ops_completed_this_interval=%lld, p->tgtstp->my_current_op_number=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,(long long int)lsp->ls_interval_value, (long long int)lsp->ls_ops_completed_this_interval, (long long int)p->tgtstp->my_current_op_number);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:INTERVAL_OP - ls_interval_value=%lld, ls_ops_completed_this_interval=%lld, p->tgtstp->my_current_op_number=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,(long long int)lsp->ls_interval_value, (long long int)lsp->ls_ops_completed_this_interval, (long long int)p->tgtstp->my_current_op_number);
 		if (lsp->ls_ops_completed_this_interval >= lsp->ls_interval_value) {
 			status=TRUE;
 			lsp->ls_ops_completed_this_interval= 0;
@@ -431,13 +283,13 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_check_triggers
 			lsp->ls_bytes_completed= 0;
 		}
 	}
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:qp:%p:TARGET %d ls_ops_completed=%lld, target_ops=%lld \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,p->my_target_number, (long long int)lsp->ls_ops_completed_this_pass,(long long int)p->target_ops);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:qp:%p:TARGET %d ls_ops_completed=%lld, target_ops=%lld \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,p->my_target_number, (long long int)lsp->ls_ops_completed_this_pass,(long long int)p->target_ops);
 	if (lsp->ls_ops_completed_this_pass >= p->target_ops) {
 		lsp->ls_state |= LS_STATE_PASS_COMPLETE;
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:qp:%p:TARGET %d END OF PASS - lsp->ls_state=0x%x \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,p->my_target_number, lsp->ls_state);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:qp:%p:TARGET %d END OF PASS - lsp->ls_state=0x%x \n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,qp,p->my_target_number, lsp->ls_state);
 		status = TRUE;
 	}
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:returning status %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,status);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:returning status %d\n",(long long int)pclk_now()-xgp->debug_base_time,p,lsp,lsp->ls_state,status);
 	return(status);
 
 } // End of xdd_lockstep_check_triggers() 

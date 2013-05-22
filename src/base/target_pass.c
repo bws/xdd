@@ -156,7 +156,7 @@ xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p) {
 	while (p->bytes_remaining) {
 		// Lock Step Processing (located in lockstep.c)
 		if (p->lsp) {
-			status = xdd_lockstep_before_io_op(p);
+			status = xdd_lockstep(p);
 			p->bytes_remaining = 0;
 			if (status != XDD_RC_GOOD) 
 				break;
