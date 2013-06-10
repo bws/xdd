@@ -88,7 +88,6 @@ xdd_parse_args(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags) {
             if ((strcmp(xdd_func[funci].func_name, (char *)((argv[argi])+1)) == 0) || 
                 (strcmp(xdd_func[funci].func_alt, (char *)((argv[argi])+1)) == 0)) {
                 argvp = &(argv[argi]);
-fprintf(stderr,"xdd_parse_args<%d>: calling xddfunc for option %s\n",flags,((argv[argi])+1));
                 status = (int)xdd_func[funci].func_ptr(planp, arg_count, argvp, flags);
 
                 if (status == 0) {
@@ -119,7 +118,6 @@ fprintf(stderr,"xdd_parse_args<%d>: calling xddfunc for option %s\n",flags,((arg
 void
 xdd_parse(xdd_plan_t *planp, int32_t argc, char *argv[]) {
 
-		int i;
 	
 	if (argc < 1) { // Ooopppsss - nothing specified...
 		fprintf(stderr,"Error: No command line options specified\n");
@@ -130,13 +128,6 @@ xdd_parse(xdd_plan_t *planp, int32_t argc, char *argv[]) {
 	xdd_parse_args(planp, argc, argv, XDD_PARSE_PHASE1);
 
 	xdd_parse_args(planp, argc, argv, XDD_PARSE_PHASE2);
-for (i=0; i<8; i++) {
-		if (planp->ptdsp[i]) {
-			fprintf(stderr,"xdd_parse: ptds %d is %p ", i,planp->ptdsp[i]);
-			fprintf(stderr, "bytes=%lld", (long long int)planp->ptdsp[i]->bytes);
-			fprintf(stderr,"\n");
-		}
-}
 	if (planp->ptdsp[0] == NULL) {
 		fprintf(xgp->errout,"You must specify a target device or filename\n");
 		xdd_usage(0);

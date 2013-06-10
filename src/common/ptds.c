@@ -306,9 +306,6 @@ xdd_build_ptds_substructure(xdd_plan_t* planp) {
 		// The ptdsp[] array contains pointers to the TargetThread PTDS for each Target. 
 		// The TargetThread PTDS is allocated during parsing for each target that is identified.
 		tp = planp->ptdsp[target_number];
-
-fprintf(stderr,"build_ptds_substructure: target_number=%d, tp=%p \n",target_number,tp);
-if(tp) fprintf(stderr,"build_ptds_substructure: bytes=%lld \n",(long long int)tp->bytes);
 		planp->number_of_iothreads++;
 
 		// If this is an end-to-end operation, figure out the number of QThreads 
@@ -354,19 +351,16 @@ if(tp) fprintf(stderr,"build_ptds_substructure: bytes=%lld \n",(long long int)tp
 			if (tp->e2ep->e2e_address_table_port_count > 0) { 
 				// When the port_count > 0 then this determines the queue depth.
 				tp->queue_depth = tp->e2ep->e2e_address_table_port_count;
-//TMR fprintf(stderr,"build_ptds_substructure: CASE 1: number of host entries %d, total port count %d, queue depth %d\n",tp->e2ep->e2e_address_table_host_count,tp->e2ep->e2e_address_table_port_count,tp->queue_depth);
 			} else { // At this point the port_count == 0
 				// Since no ports were specified, then if the queue depth is less than
 				// or equal to the number of destination host addresses in the e2e_address_table
 				// then we make the queue depth equal to the number of host address entries
 				// and set the port count for each entry equal to 1. 
 				if (tp->queue_depth <= tp->e2ep->e2e_address_table_host_count) {
-//TMR fprintf(stderr,"build_ptds_substructure: CASE 2:");
 					tp->queue_depth = tp->e2ep->e2e_address_table_host_count;
 					tp->e2ep->e2e_address_table_port_count = tp->e2ep->e2e_address_table_host_count;
 					for (entry = 0; entry < tp->e2ep->e2e_address_table_host_count; entry++) 
 						tp->e2ep->e2e_address_table[entry].port_count = 1;
-//TMR fprintf(stderr," number of host entries %d, total port count %d, queue depth %d\n",tp->e2ep->e2e_address_table_host_count,tp->e2ep->e2e_address_table_port_count,tp->queue_depth);
 				} else {
 				// Otherwise, at this point no ports were specified and the queue 
 				// depth is greater than the number of destination host addresses specified.
@@ -375,14 +369,12 @@ if(tp) fprintf(stderr,"build_ptds_substructure: bytes=%lld \n",(long long int)tp
 				// queue depth is 16 and the number of host entries is 2 then each host entry
 				// port count will be set to 8.
 					// Make sure all the port counts are initialized to 0
-//TMR fprintf(stderr,"build_ptds_substructure: CASE 3 enter: number of host entries %d, total port count %d, queue depth %d\n",tp->e2ep->e2e_address_table_host_count,tp->e2ep->e2e_address_table_port_count,tp->queue_depth);
 					for (entry = 0; entry < tp->e2ep->e2e_address_table_host_count; entry++) 
 						tp->e2ep->e2e_address_table[entry].port_count = 0;
 					// Increment all the port counts until we run out of ports
 					tp->e2ep->e2e_address_table_port_count = tp->queue_depth;
 					number_of_ports = tp->e2ep->e2e_address_table_port_count;
 					entry = 0;
-//TMR fprintf(stderr,"build_ptds_substructure: CASE 3 starting to fill ports...: number of host entries %d, total port count %d, queue depth %d\n",tp->e2ep->e2e_address_table_host_count,tp->e2ep->e2e_address_table_port_count,tp->queue_depth);
 					while (number_of_ports) {
 						tp->e2ep->e2e_address_table[entry].port_count++;
 						entry++;
@@ -393,9 +385,6 @@ if(tp) fprintf(stderr,"build_ptds_substructure: bytes=%lld \n",(long long int)tp
 				} // End of ELSE clause with port_count == 0 and queue_depth > host addresses
 			} // End of ELSE clause with port_count == 0
 		} // End of IF stmnt for TO_ENDTOEND
-//TMR fprintf(stderr,"build_ptds_substructure: number of host entries %d, total port count %d, queue depth %d\n",tp->e2ep->e2e_address_table_host_count,tp->e2ep->e2e_address_table_port_count,tp->queue_depth);
-//TMR for (entry = 0; entry < tp->e2ep->e2e_address_table_host_count; entry++) 
-//TMR 	fprintf(stderr,"build_ptds_substructure: entry %d, hostname %s, base port %d, port count %d\n",entry,tp->e2ep->e2e_address_table[entry].hostname,tp->e2ep->e2e_address_table[entry].base_port,tp->e2ep->e2e_address_table[entry].port_count);
 		// Calcualte the data transfer information - number of ops, bytes, starting offset, ...etc.
 		xdd_calculate_xfer_info(tp);
 

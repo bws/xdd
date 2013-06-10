@@ -135,18 +135,11 @@ void	xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags)
 unsigned char *xdd_init_io_buffers(ptds_t *p);
 
 // lockstep.c
+int32_t	xdd_lockstep(ptds_t *p);
 int32_t	xdd_lockstep_init(ptds_t *p);
 void	xdd_lockstep_before_pass(ptds_t *p);
-int32_t	xdd_lockstep_before_io_op(ptds_t *p);
-int32_t xdd_lockstep_before_io_op_master(ptds_t *p);
-int32_t xdd_lockstep_before_io_op_slave(ptds_t *p);
 int32_t	xdd_lockstep_after_pass(ptds_t *p);
-int32_t xdd_lockstep_after_io_op(ptds_t *qp);
-int32_t xdd_lockstep_after_io_op_master(ptds_t *qp);
-int32_t xdd_lockstep_after_io_op_slave(ptds_t *qp);
 int32_t xdd_lockstep_check_triggers(ptds_t *qp, lockstep_t *lsp);
-void 	xdd_lockstep_update_triggers(ptds_t *qp, lockstep_t *lsp);
-lockstep_t *xdd_lockstep_get_next_target_to_release(ptds_t *p, lockstep_t *lsp);
 
 // memory.c
 void	xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);

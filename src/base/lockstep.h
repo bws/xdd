@@ -40,17 +40,18 @@ struct lockstep	{
 	uint32_t		ls_interval_type; 			// Flags used by the lock-step targets 
 	char			*ls_interval_units; 		// ASCII readable units for the interval value 
 	uint64_t		ls_interval_value; 			// This is the value of the interval on which the lock step occurs 
-	uint64_t		ls_ops_scheduled;			// This is the number of ops that the target has scheduled but not completed
-	uint64_t		ls_ops_completed;			// This is the number of ops that the target has completed
+	uint64_t		ls_ops_completed_this_interval;			// This is the number of ops that the target has completed in this interval
+	uint64_t		ls_ops_completed_this_pass;			// This is the number of ops that the target has completed in this pass
 	uint64_t		ls_bytes_scheduled;			// This is the number of bytes that the target has scheduled but not xferred
 	uint64_t		ls_bytes_completed;			// This is the number of bytes that the target has xferred during an interval
 	uint64_t  	    ls_task_counter; 			// This is the number of times that a target has performed a task
-#define LS_STATE_INITIALIZED	0x00000001 		// This target has been lockstep-initialized
+#define LS_STATE_INITIALIZED	0x00000001 		// This target is the FIRST target to start I/O Operations
 #define LS_STATE_I_AM_THE_FIRST	0x00000020 		// This target is the FIRST target to start I/O Operations
-#define LS_STATE_WAIT			0x00000400 		// This target is waiting to be released
-#define LS_STATE_RELEASE_TARGET	0x00008000 		// The next target needs to be released
-#define LS_STATE_PASS_COMPLETE	0x00010000 		// The target has completed its pass 
-#define LS_STATE_SUSPEND		0x00200000 		// Suspend Lockstep operations 
+#define LS_STATE_PASS_COMPLETE	0x00000400		// The target has completed its pass 
+#define LS_STATE_START_RUN		0x00008000		// The target will start running immediately
+#define LS_STATE_START_WAIT		0x00010000		// The target will wait to be released before running
+#define LS_STATE_END_COMPLETE	0x00200000		// The target will complete all I/O operations regardless of when the other targets end
+#define LS_STATE_END_STOP		0x04000000		// The target will stop immediately when any other start stops
 	uint32_t		ls_state;					// This is the state of this target at any given time. 
 	ptds_t			*ls_next_ptdsp;				// The PTDS of the next target to start when this target is finished
 	xdd_barrier_t 	Lock_Step_Barrier;	 		// The Lock Step Barrier where targets wait 

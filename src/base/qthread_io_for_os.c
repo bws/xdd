@@ -65,7 +65,7 @@ xdd_io_for_os(ptds_t *qp) {
 			if ((qp->target_options & TO_SGIO)) 
 			 	qp->tgtstp->my_current_io_status = xdd_sg_io(qp,'w'); // Issue the SGIO operation 
 			else if (!(qp->target_options & TO_NULL_TARGET)) {
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:io_for_os:p:%p:qp:%p: WRITE target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,p->my_target_number,(long long int)qp->tgtstp->my_current_byte_location);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:p:%p:qp:%p: WRITE target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,p->my_target_number,(long long int)qp->tgtstp->my_current_byte_location);
                 qp->tgtstp->my_current_io_status = pwrite(qp->fd,
                                                           qp->rwbuf,
                                                           qp->tgtstp->my_current_io_size,
@@ -84,7 +84,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:io_for_os:p:%p:qp:%p: W
 			if ((qp->target_options & TO_SGIO)) 
 			 	qp->tgtstp->my_current_io_status = xdd_sg_io(qp,'r'); // Issue the SGIO operation 
 			else if (!(qp->target_options & TO_NULL_TARGET)) {
-if (xgp->global_options & GO_DEBUG) fprintf(stderr,"%lld:io_for_os:p:%p:qp:%p: READ target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,p->my_target_number,(long long int)qp->tgtstp->my_current_byte_location);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:p:%p:qp:%p: READ target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,p,qp,p->my_target_number,(long long int)qp->tgtstp->my_current_byte_location);
                             qp->tgtstp->my_current_io_status = pread(qp->fd,
                                                                qp->rwbuf,
                                                                qp->tgtstp->my_current_io_size,

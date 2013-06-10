@@ -134,6 +134,7 @@ struct ptds {
 	uint64_t			bytes_issued;						// The amount of data for all transfer requests that has been issued so far 
 	uint64_t			bytes_completed;					// The amount of data for all transfer requests that has been completed so far
 	uint64_t			bytes_remaining;					// Bytes remaining to be transferred 
+	uint64_t			ops_completed;						// The number of I/O ops for all transfer requests that has been completed so far 
 
     // Target-specific semaphores and associated pointers
     tot_t				*totp;								// Pointer to the target_offset_table for this target
