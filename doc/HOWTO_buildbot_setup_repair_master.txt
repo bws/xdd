@@ -1,0 +1,94 @@
+NOTE: buildbot 0.8.5 will not work with git 1.7.7+.  New version of buildbot should fix this problem.
+
+Create the buildbot master on pod9
+----------------------------------
+
+1.  Become the buildbot user
+	sudo /opt/eas/bin/eash
+	su - buildbot
+
+2.  Setup your environment to include the correct Python environment
+	OS=$(${HOME}/bin/get-os)
+
+	For SUSE based Linux systems (SLES) use:
+	mkdir -p $HOME/sw/$OS/lib64/python2.6/site-packages/
+	export PYTHONPATH=${HOME}/sw/$OS/lib64/python2.6/site-packages/
+	export PATH=${PATH}:${HOME}/sw/$OS/bin
+
+        For RedHat (RHEL) based systems use:
+	mkdir -p $HOME/sw/$OS/lib/python2.6/site-packages/
+	export PYTHONPATH=${HOME}/sw/$OS/lib/python2.6/site-packages/
+	export PATH=${PATH}:${HOME}/sw/$OS/bin
+
+3.  Download the latest buildbot source from http://trac.buildbot.net/
+
+4.  Build and install the software
+	tar xvfz buildbot-x.x.x-tar-gz
+	cd buildbot-x.x.x
+	python setup.py install  --prefix ${HOME}/sw/rhel6-x86_64/
+
+5.  Additional updates for your environment
+	# Edit the .bash_profile to include the following lines
+	if [ -e ~/.bashrc ]; then
+	        source ~/.bashrc
+	fi
+
+	# Edit the .bashrc to contain the following
+	export OS=$(${HOME}/bin/get-os)
+	if [ $OS ] ; then
+	  if [ $(uname -p) = "i686" ] ; then
+	    PATH="${HOME}/sw/${OS}-i686/bin:${HOME}/sw/${OS}-i686/sbin:${PATH}"
+	  else 
+	    PATH="${HOME}/sw/${OS}/bin:${HOME}/sw/${OS}/sbin:${PATH}"
+	  fi
+	fi
+
+	if [ "$BASH" ]; then
+	        PS1="[\u@\h:\W:\!]\$ "
+	fi
+
+6.  Create the master configuration
+	cd $HOME
+	mkdir buildbot
+	buildbot create-master buildbot/pod9-master
+
+7.  Edit the config
+
+	#Add the following lines to the end of the master.cfg
+	import buildbot_master_xdd
+	reload(buildbot_master_xdd)
+	from buildbot_master_xdd import *
+	buildbot_master_xdd.loadConfig(config=c)
+
+	vi buildbot/pod9-master/master.cfg
+
+8.  Add the XDD buildbot configuration to master
+	git archive --format=tar --prefix=xdd/ --remote=/ccs/proj/csc040/var/git/xdd.git master |tar xf - --strip=2 xdd/contrib/buildbot_master_xdd.py
+	mv buildbot_master_xdd.py buildbot/pod9-master
+
+9.  Start the master
+	bin/run-buildmaster
+
+Repairing the problem where future builds don't schedule due to a corrupt string
+in the simplejson package infecting the database
+----------------------------------
+1) Install a newer simplejson
+  * Note the pypi site is frequently down.  Here we demonstrate installing an updated
+    simplejson packacge from a mirror
+	bin/stop-buildmaster
+	easy_install -i http://g.pypi.python.org/simple/simplejson/ -U -d sw/${OS}/lib/python2.6/site-packages/ simplejson
+
+2) Examine the database
+	sqlite3 state.sqlite
+	sqlite> select * from object_state; 
+
+3)  If any of the values have a non-zero mantissa, fix them
+	sqlite> .schema object_state
+	sqlite> update object_state set value_json=1369233630.0 where objectid=11;
+	sqlite> update object_state set value_json=1369233630.0 where objectid=6;
+	sqlite> update object_state set value_json=1369233630.0 where objectid=13;
+        ^d
+
+4) Re-start the master
+	bin/run-buildmaster
+
