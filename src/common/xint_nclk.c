@@ -133,6 +133,11 @@ nclk_now(nclk_t *nclkp) {
 }
 #endif
 
+int64_t pclk_now(void) {
+		nclk_t	now;
+		nclk_now(&now);
+		return(now);
+}
 
 /*
  * Local variables:

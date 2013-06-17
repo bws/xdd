@@ -37,43 +37,43 @@
 
 /* XDD function prototypes */
 // access_pattern.c
-void	xdd_init_seek_list(ptds_t *p);
-void	xdd_save_seek_list(ptds_t *p);
-int32_t	xdd_load_seek_list(ptds_t *p);
+void	xdd_init_seek_list(target_data_t *p);
+void	xdd_save_seek_list(target_data_t *p);
+int32_t	xdd_load_seek_list(target_data_t *p);
 
 // barrier.c
 int32_t	xdd_init_barrier_chain(xdd_plan_t* planp);
-void	xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, ptds_t *p);
+void	xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, target_data_t *p);
 void	xdd_destroy_all_barriers(xdd_plan_t* planp);
 int32_t	xdd_init_barrier(xdd_plan_t* planp, struct xdd_barrier *bp, int32_t threads, char *barrier_name);
 void	xdd_destroy_barrier(xdd_plan_t* planp, struct xdd_barrier *bp);
 int32_t	xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner);
 
 // datapatterns.c
-void	xdd_datapattern_buffer_init(ptds_t *p);
-void	xdd_datapattern_fill(ptds_t *qp);
+void	xdd_datapattern_buffer_init(target_data_t *tdp);
+void	xdd_datapattern_fill(worker_data_t *wdp);
 
 // debug.c
 void	xdd_show_plan(xdd_plan_t *planp);
-void	xdd_show_ptds(ptds_t *p);
+void	xdd_show_ptds(target_data_t *tdp);
 void	xdd_show_global_data(void);
 
 // end_to_end.c
-int32_t	xdd_e2e_src_send(ptds_t *qp);
-int32_t	xdd_e2e_dest_recv(ptds_t *qp);
-int32_t xdd_e2e_eof_source_side(ptds_t *qp);
-int32_t xdd_e2e_eof_destination_side(ptds_t *qp);
+int32_t	xdd_e2e_src_send(worker_data_t *wdp);
+int32_t	xdd_e2e_dest_recv(worker_data_t *wdp);
+int32_t xdd_e2e_eof_source_side(worker_data_t *wdp);
+int32_t xdd_e2e_eof_destination_side(worker_data_t *wdp);
 
 // end_to_end_init.c
-int32_t	xdd_e2e_target_init(ptds_t *p);
-int32_t	xdd_e2e_qthread_init(ptds_t *qp);
-int32_t	xdd_e2e_src_init(ptds_t *qp);
-int32_t	xdd_e2e_setup_src_socket(ptds_t *qp);
-int32_t	xdd_e2e_dest_init(ptds_t *qp);
-int32_t	xdd_e2e_setup_dest_socket(ptds_t *qp);
-void	xdd_e2e_set_socket_opts(ptds_t *qp, int skt);
+int32_t	xdd_e2e_target_init(target_data_t *tdp);
+int32_t	xdd_e2e_worker_thread_init(worker_data_t *wdp);
+int32_t	xdd_e2e_src_init(worker_data_t *wdp);
+int32_t	xdd_e2e_setup_src_socket(worker_data_t *wdp);
+int32_t	xdd_e2e_dest_init(worker_data_t *wdp);
+int32_t	xdd_e2e_setup_dest_socket(worker_data_t *wdp);
+void	xdd_e2e_set_socket_opts(worker_data_t *wdp, int skt);
 void	xdd_e2e_prt_socket_opts(int skt);
-void	xdd_e2e_err(ptds_t *qp, char const *whence, char const *fmt, ...);
+void	xdd_e2e_err(worker_data_t *wdp, char const *whence, char const *fmt, ...);
 int32_t	xdd_sockets_init(void);
 
 // global_clock.c
@@ -90,14 +90,14 @@ void	clk_delta(in_addr_t addr, in_port_t port, int32_t bounce, nclk_t *nclkp);
 
 // heartbeat.c
 void *xdd_heartbeat(void *data);
-void	xdd_heartbeat_legend(xdd_plan_t* planp, ptds_t *p);
-void	xdd_heartbeat_values(ptds_t *p, int64_t bytes, int64_t ops, double elapsed);
+void	xdd_heartbeat_legend(xdd_plan_t* planp, target_data_t *p);
+void	xdd_heartbeat_values(target_data_t *p, int64_t bytes, int64_t ops, double elapsed);
 
 // info_display.c
 void	xdd_display_kmgt(FILE *out, long long int n, int block_size);
 void	xdd_system_info(xdd_plan_t* planp, FILE *out);
 void	xdd_options_info(xdd_plan_t* planp, FILE *out);
-void	xdd_target_info(FILE *out, ptds_t *p);
+void	xdd_target_info(FILE *out, target_data_t *p);
 void	xdd_memory_usage_info(xdd_plan_t* planp, FILE *out);
 void	xdd_config_info(xdd_plan_t* planp);
 
@@ -123,28 +123,23 @@ void	xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t fl
 void	xdd_interactive_show_ptds(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_display_state_info(ptds_t *qp);
+void	xdd_interactive_display_state_info(target_data_t *qp);
 void	xdd_interactive_show_qtptds(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_tot_display_fields(ptds_t *p, FILE *fp);
+void	xdd_interactive_show_tot_display_fields(target_data_t *p, FILE *fp);
 void	xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags);
 
 // io_buffers.c
-unsigned char *xdd_init_io_buffers(ptds_t *p);
+unsigned char *xdd_init_io_buffers(target_data_t *p);
 
 // lockstep.c
-int32_t	xdd_lockstep_init(ptds_t *p);
-void	xdd_lockstep_before_pass(ptds_t *p);
-int32_t	xdd_lockstep_before_io_op(ptds_t *p);
-int32_t xdd_lockstep_before_io_op_master(ptds_t *p);
-int32_t xdd_lockstep_before_io_op_slave(ptds_t *p);
-int32_t	xdd_lockstep_after_pass(ptds_t *p);
-int32_t xdd_lockstep_after_io_op(ptds_t *p);
-int32_t xdd_lockstep_after_io_op_master(ptds_t *p);
-int32_t xdd_lockstep_after_io_op_slave(ptds_t *p);
-int32_t xdd_lockstep_check_triggers(ptds_t *p, lockstep_t *lsp);
+int32_t	xdd_lockstep(target_data_t *p);
+int32_t	xdd_lockstep_init(target_data_t *p);
+void	xdd_lockstep_before_pass(target_data_t *p);
+int32_t	xdd_lockstep_after_pass(target_data_t *p);
+int32_t xdd_lockstep_check_triggers(worker_data_t *wdp, lockstep_t *lsp);
 
 // memory.c
 void	xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);
@@ -161,14 +156,14 @@ int 		xdd_check_option(char *op);
 int32_t		xdd_process_paramfile(xdd_plan_t* planp, char *fnp);
 int 		xdd_parse_target_number(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags, int *target_number);
 xdd_target_state_t *xdd_get_tgtstp(void);
-ptds_t 		*xdd_get_ptdsp(xdd_plan_t* planp, int32_t target_number, char *op);
-restart_t 	*xdd_get_restartp(ptds_t *p);
-xdd_raw_t	*xdd_get_rawp(ptds_t *p);
-xdd_sgio_t 	*xdd_get_sgiop(ptds_t *p);
+target_data_t 		*xdd_get_ptdsp(xdd_plan_t* planp, int32_t target_number, char *op);
+restart_t 	*xdd_get_restartp(target_data_t *p);
+xdd_raw_t	*xdd_get_rawp(target_data_t *p);
+xdd_sgio_t 	*xdd_get_sgiop(target_data_t *p);
 xdd_e2e_t 	*xdd_get_e2ep(void);
-xdd_timestamp_t	*xdd_get_tsp(ptds_t *p);
-xdd_triggers_t 	*xdd_get_trigp(ptds_t *p);
-xdd_extended_stats_t 	*xdd_get_esp(ptds_t *p);
+xdd_timestamp_t	*xdd_get_tsp(target_data_t *p);
+xdd_triggers_t 	*xdd_get_trigp(target_data_t *p);
+xdd_extended_stats_t 	*xdd_get_esp(target_data_t *p);
 int32_t		xdd_linux_cpu_count(void);
 int32_t		xdd_cpu_count(void);
 int32_t		xdd_atohex(unsigned char *destp, char *sourcep);
@@ -180,71 +175,69 @@ int32_t	xdd_parse_arg_count_check(int32_t args, int32_t argc, char *option);
 void	nclk_initialize(nclk_t *nclkp);
 void	nclk_shutdown(void);
 void	nclk_now(nclk_t *nclkp);
-void	nclk_now(nclk_t *nclkp);
+int64_t	pclk_now(void);
 
 // preallocate.c
-int32_t	xdd_target_preallocate_for_os(ptds_t *p);
-int32_t	xdd_target_preallocate_for_os(ptds_t *p);
-int32_t	xdd_target_preallocate_for_os(ptds_t *p);
-int32_t	xdd_target_preallocate(ptds_t *p);
+int32_t	xdd_target_preallocate_for_os(target_data_t *p);
+int32_t	xdd_target_preallocate_for_os(target_data_t *p);
+int32_t	xdd_target_preallocate_for_os(target_data_t *p);
+int32_t	xdd_target_preallocate(target_data_t *p);
 
 // processor.c
-void	xdd_processor(ptds_t *p);
+void	xdd_processor(target_data_t *p);
 int		xdd_get_processor(void);
 
 // ptds.c
-void	xdd_init_new_ptds(ptds_t *p, int32_t n);
-void	xdd_calculate_xfer_info(ptds_t *tp);
-ptds_t 	*xdd_create_qthread_ptds(ptds_t *tp, int32_t q);
+void	xdd_init_new_ptds(target_data_t *p, int32_t n);
+void	xdd_calculate_xfer_info(target_data_t *tp);
+target_data_t 	*xdd_create_worker_thread_ptds(target_data_t *tp, int32_t q);
 void	xdd_build_ptds_substructure(xdd_plan_t* planp);
 
-// qthread.c
-void 	*xdd_qthread(void *pin);
+// worker_thread.c
+void 	*xdd_worker_thread(void *pin);
 
-// qthread_cleanup.c
-void	xdd_qthread_cleanup(ptds_t *qp);
+// worker_thread_cleanup.c
+void	xdd_worker_thread_cleanup(worker_data_t *wdp);
 
-// qthread_init.c
-int32_t	xdd_qthread_init(ptds_t *qp);
+// worker_thread_init.c
+int32_t	xdd_worker_thread_init(worker_data_t *wdp);
 
-// qthread_io.c
-void	xdd_qthread_io(ptds_t *qp);
-int32_t	xdd_qthread_wait_for_previous_io(ptds_t *qp);
-int32_t	xdd_qthread_release_next_io(ptds_t *qp);
-void	xdd_qthread_update_local_counters(ptds_t *qp);
-void	xdd_qthread_update_target_counters(ptds_t *qp);
-void	xdd_qthread_check_io_status(ptds_t *qp);
+// worker_thread_io.c
+void	xdd_worker_thread_io(worker_data_t *wdp);
+int32_t	xdd_worker_thread_wait_for_previous_io(target_data_t *qp);
+int32_t	xdd_worker_thread_release_next_io(target_data_t *qp);
+void	xdd_worker_thread_update_local_counters(target_data_t *qp);
+void	xdd_worker_thread_update_target_counters(target_data_t *qp);
+void	xdd_worker_thread_check_io_status(target_data_t *qp);
 
-// qthread_io_for_os.c
-void	xdd_io_for_os(ptds_t *qp);
-void	xdd_io_for_os(ptds_t *qp);
-void	xdd_io_for_os(ptds_t *p);
+// worker_thread_io_for_os.c
+void	xdd_io_for_os(worker_data_t *wdp);
 
-// qthread_ttd_after_io_op.c
-void	xdd_threshold_after_io_op(ptds_t *qp);
-void	xdd_status_after_io_op(ptds_t *qp);
-void	xdd_dio_after_io_op(ptds_t *qp);
-void	xdd_raw_after_io_op(ptds_t *qp);
-void	xdd_e2e_after_io_op(ptds_t *qp);
-void	xdd_extended_stats(ptds_t *qp);
-void	xdd_qthread_ttd_after_io_op(ptds_t *qp);
+// worker_thread_ttd_after_io_op.c
+void	xdd_threshold_after_io_op(target_data_t *qp);
+void	xdd_status_after_io_op(target_data_t *qp);
+void	xdd_dio_after_io_op(target_data_t *qp);
+void	xdd_raw_after_io_op(target_data_t *qp);
+void	xdd_e2e_after_io_op(target_data_t *qp);
+void	xdd_extended_stats(target_data_t *qp);
+void	xdd_worker_thread_ttd_after_io_op(target_data_t *qp);
 
-// qthread_ttd_before_io_op.c
-void	xdd_dio_before_io_op(ptds_t *qp);
-void	xdd_raw_before_io_op(ptds_t *qp);
-int32_t	xdd_e2e_before_io_op(ptds_t *qp);
-void	xdd_throttle_before_io_op(ptds_t *qp);
-int32_t	xdd_qthread_ttd_before_io_op(ptds_t *qp);
+// worker_thread_ttd_before_io_op.c
+void	xdd_dio_before_io_op(target_data_t *qp);
+void	xdd_raw_before_io_op(target_data_t *qp);
+int32_t	xdd_e2e_before_io_op(target_data_t *qp);
+void	xdd_throttle_before_io_op(target_data_t *qp);
+int32_t	xdd_worker_thread_ttd_before_io_op(target_data_t *qp);
 
 // read_after_write.c
 void	xdd_raw_err(char const *fmt, ...);
-int32_t	xdd_raw_setup_reader_socket(ptds_t *p);
-int32_t	xdd_raw_sockets_init(ptds_t *p);
-int32_t	xdd_raw_reader_init(ptds_t *p);
-int32_t	xdd_raw_read_wait(ptds_t *p);
-int32_t	xdd_raw_setup_writer_socket(ptds_t *p);
-int32_t	xdd_raw_writer_init(ptds_t *p);
-int32_t	xdd_raw_writer_send_msg(ptds_t *p);
+int32_t	xdd_raw_setup_reader_socket(target_data_t *p);
+int32_t	xdd_raw_sockets_init(target_data_t *p);
+int32_t	xdd_raw_reader_init(target_data_t *p);
+int32_t	xdd_raw_read_wait(target_data_t *p);
+int32_t	xdd_raw_setup_writer_socket(target_data_t *p);
+int32_t	xdd_raw_writer_init(target_data_t *p);
+int32_t	xdd_raw_writer_send_msg(target_data_t *p);
 
 // restart.c
 int	xdd_restart_create_restart_file(restart_t *rp);
@@ -303,17 +296,17 @@ void    *xdd_results_header_display(results_t *tmprp, xdd_plan_t *planp);
 void    *xdd_process_pass_results(xdd_plan_t *planp);
 void    *xdd_process_run_results(xdd_plan_t *planp);
 void    xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp);
-void    *xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp);
+void    *xdd_extract_pass_results(results_t *rp, target_data_t *p, xdd_plan_t *planp);
 void    *xdd_results_dump(results_t *rp, char *dumptype, xdd_plan_t *planp);
 
 // schedule.c
 void	xdd_schedule_options(void);
 
 // sg.c
-int32_t	xdd_sg_io(ptds_t *p, char rw);
-int32_t	xdd_sg_read_capacity(ptds_t *p);
-void	xdd_sg_set_reserved_size(ptds_t *p, int fd);
-void	xdd_sg_get_version(ptds_t *p, int fd);
+int32_t	xdd_sg_io(target_data_t *p, char rw);
+int32_t	xdd_sg_read_capacity(target_data_t *p);
+void	xdd_sg_set_reserved_size(target_data_t *p, int fd);
+void	xdd_sg_get_version(target_data_t *p, int fd);
 
 // signals.c
 void	xdd_signal_handler(int signum, siginfo_t *sip, void *ucp);
@@ -321,68 +314,68 @@ int32_t	xdd_signal_init(void);
 void	xdd_signal_start_debugger();
 
 // target_cleanup.c
-void	xdd_target_thread_cleanup(ptds_t *p);
+void	xdd_target_thread_cleanup(target_data_t *p);
 
 // target_init.c
-int32_t	xdd_target_init(ptds_t *p);
-int32_t	xdd_target_init_barriers(ptds_t *p);
-int32_t	xdd_target_init_start_qthreads(ptds_t *p);
+int32_t	xdd_target_init(target_data_t *p);
+int32_t	xdd_target_init_barriers(target_data_t *p);
+int32_t	xdd_target_init_start_worker_threads(target_data_t *p);
 
 // target_open.c
-int32_t	xdd_target_open(ptds_t *p);
-void	xdd_target_reopen(ptds_t *p);
-int32_t	xdd_target_shallow_open(ptds_t *p);
-void	xdd_target_name(ptds_t *p);
-int32_t	xdd_target_existence_check(ptds_t *p);
-int32_t	xdd_target_open_for_os(ptds_t *p);
+int32_t	xdd_target_open(target_data_t *p);
+void	xdd_target_reopen(target_data_t *p);
+int32_t	xdd_target_shallow_open(worker_data_t *wdp);
+void	xdd_target_name(target_data_t *p);
+int32_t	xdd_target_existence_check(target_data_t *p);
+int32_t	xdd_target_open_for_os(target_data_t *p);
 
 // target_pass.c
-int32_t	xdd_targetpass(xdd_plan_t* planp, ptds_t *p);
-void	xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p);
-void	xdd_targetpass_e2e_monitor(ptds_t *p);
-void	xdd_targetpass_task_setup(ptds_t *qp);
-void 	xdd_targetpass_end_of_pass(ptds_t *p);
-int32_t xdd_targetpass_count_active_qthreads(ptds_t *p);
+int32_t	xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp);
+void	xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp);
+void	xdd_targetpass_e2e_monitor(target_data_t *tdp);
+void	xdd_targetpass_task_setup(worker_data_t *wdp);
+void 	xdd_targetpass_end_of_pass(target_data_t *tdp);
+int32_t xdd_targetpass_count_active_worker_threads(target_data_t *tdp);
 
 // target_pass_e2e_specific.c
-void	xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, ptds_t *p);
-void	xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, ptds_t *p);
-void	xdd_targetpass_e2e_task_setup_src(ptds_t *qp);
-void	xdd_targetpass_e2e_eof_src(ptds_t *p);
-void	xdd_targetpass_e2e_monitor(ptds_t *p);
+void	xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp);
+void	xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, target_data_t *tdp);
+void	xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp);
+void	xdd_targetpass_e2e_eof_src(target_data_t *tdp);
+void	xdd_targetpass_e2e_monitor(target_data_t *tdp);
 
 // target_pass_qt_locator.c
-ptds_t	*xdd_get_specific_qthread(ptds_t *p, int32_t q);
-ptds_t	*xdd_get_any_available_qthread(ptds_t *p);
+worker_data_t	*xdd_get_specific_worker_thread(target_data_t *tdp, int32_t q);
+worker_data_t	*xdd_get_any_available_worker_thread(target_data_t *tdp);
 
 // target_thread.c
 void 	*xdd_target_thread(void *pin);
 
 // target_ttd_after_pass.c
-int32_t	xdd_target_ttd_after_pass(ptds_t *p);
+int32_t	xdd_target_ttd_after_pass(target_data_t *p);
 
 // target_ttd_before_io_op.c
-void	xdd_syncio_before_io_op(ptds_t *p);
-int32_t	xdd_start_trigger_before_io_op(ptds_t *p);
-int32_t	xdd_timelimit_before_io_op(ptds_t *p);
-int32_t	xdd_runtime_before_io_op(ptds_t *p);
-int32_t	xdd_target_ttd_before_io_op(ptds_t *p, ptds_t *qp);
-int32_t	xdd_target_ttd_after_io_op(ptds_t *p, ptds_t *qp);
+void	xdd_syncio_before_io_op(target_data_t *p);
+int32_t	xdd_start_trigger_before_io_op(target_data_t *p);
+int32_t	xdd_timelimit_before_io_op(target_data_t *p);
+int32_t	xdd_runtime_before_io_op(target_data_t *p);
+int32_t	xdd_target_ttd_before_io_op(target_data_t *tdp, worker_data_t *wdp);
+int32_t	xdd_target_ttd_after_io_op(target_data_t *tdp, worker_data_t *wdp);
 
 // target_ttd_before_pass.c
 void	xdd_timer_calibration_before_pass(void);
-void	xdd_start_delay_before_pass(ptds_t *p);
-void	xdd_raw_before_pass(ptds_t *p);
-void	xdd_e2e_before_pass(ptds_t *p);
-void	xdd_init_ptds_before_pass(ptds_t *p);
-int32_t	xdd_target_ttd_before_pass(ptds_t *p);
+void	xdd_start_delay_before_pass(target_data_t *p);
+void	xdd_raw_before_pass(target_data_t *p);
+void	xdd_e2e_before_pass(target_data_t *p);
+void	xdd_init_ptds_before_pass(target_data_t *p);
+int32_t	xdd_target_ttd_before_pass(target_data_t *p);
 
 // timestamp.c
-void	xdd_ts_overhead(struct tthdr *ttp); 
-void	xdd_ts_setup(ptds_t *p);
-void	xdd_ts_write(ptds_t *p);
-void	xdd_ts_cleanup(struct tthdr *ttp);
-void	xdd_ts_reports(ptds_t *p);
+void	xdd_ts_overhead(struct xdd_tthdr *ttp); 
+void	xdd_ts_setup(target_data_t *p);
+void	xdd_ts_write(target_data_t *p);
+void	xdd_ts_cleanup(struct xdd_tthdr *ttp);
+void	xdd_ts_reports(target_data_t *p);
 
 // utils.c
 char 	*xdd_getnexttoken(char *tp);
@@ -391,13 +384,13 @@ int	xdd_random_int(void);
 double 	xdd_random_float(void);
 
 // verify.c
-int32_t	xdd_verify_checksum(ptds_t *p, int64_t current_op);
-int32_t	xdd_verify_hex(ptds_t *p, int64_t current_op);
-int32_t	xdd_verify_sequence(ptds_t *p, int64_t current_op);
-int32_t	xdd_verify_singlechar(ptds_t *p, int64_t current_op);
-int32_t	xdd_verify_contents(ptds_t *p, int64_t current_op);
-int32_t	xdd_verify_location(ptds_t *p, int64_t current_op);
-int32_t	xdd_verify(ptds_t *p, int64_t current_op);
+int32_t	xdd_verify_checksum(target_data_t *p, int64_t current_op);
+int32_t	xdd_verify_hex(target_data_t *p, int64_t current_op);
+int32_t	xdd_verify_sequence(target_data_t *p, int64_t current_op);
+int32_t	xdd_verify_singlechar(target_data_t *p, int64_t current_op);
+int32_t	xdd_verify_contents(target_data_t *p, int64_t current_op);
+int32_t	xdd_verify_location(target_data_t *p, int64_t current_op);
+int32_t	xdd_verify(target_data_t *p, int64_t current_op);
 
 // xdd.c
 int32_t	xdd_start_targets();

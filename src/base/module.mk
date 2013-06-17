@@ -6,13 +6,6 @@ DIR := src/base
 BASE_SRC := $(DIR)/heartbeat.c \
 	$(DIR)/io_buffers.c \
 	$(DIR)/lockstep.c \
-	$(DIR)/qthread.c \
-	$(DIR)/qthread_cleanup.c \
-	$(DIR)/qthread_init.c \
-	$(DIR)/qthread_io.c \
-	$(DIR)/qthread_io_for_os.c \
-	$(DIR)/qthread_ttd_after_io_op.c \
-	$(DIR)/qthread_ttd_before_io_op.c \
 	$(DIR)/restart.c \
 	$(DIR)/schedule.c \
 	$(DIR)/target_cleanup.c \
@@ -27,4 +20,11 @@ BASE_SRC := $(DIR)/heartbeat.c \
 	$(DIR)/target_ttd_before_io_op.c \
 	$(DIR)/target_ttd_before_pass.c \
 	$(DIR)/verify.c \
+	$(DIR)/worker_thread.c \
+	$(DIR)/worker_thread_cleanup.c \
+	$(DIR)/worker_thread_init.c \
+	$(DIR)/worker_thread_io.c \
+	$(DIR)/worker_thread_io_for_os.c \
+	$(DIR)/worker_thread_ttd_after_io_op.c \
+	$(DIR)/worker_thread_ttd_before_io_op.c \
 	$(DIR)/xint_plan.c

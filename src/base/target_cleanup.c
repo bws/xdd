@@ -40,18 +40,18 @@
  * 
  */
 void
-xdd_target_thread_cleanup(ptds_t *p) {
-	ptds_t	*qp;		// Pointer to a QThread PTDS
+xdd_target_thread_cleanup(target_data_t *tdp) {
+	worker_data_t	*wdp;		// Pointer to a QThread PTDS
 	
-	qp = p->next_qp;
-	while (qp) {
-		qp->task_request = TASK_REQ_STOP;
-		p->occupant.occupant_type |= XDD_OCCUPANT_TYPE_CLEANUP;
+	wdp = tdp->td_next_wdp;
+	while (wdp) {
+		wdp->wd_task_request = TASK_REQ_STOP;
+		tdp->td_occupant.occupant_type |= XDD_OCCUPANT_TYPE_CLEANUP;
 		// Release this QThread
-		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
+		xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&tdp->td_occupant,0);
 
 		// get the next PTDS in this chain
-		qp = qp->next_qp;
+		wdp = wdp->wd_next_wdp;
 	}
 
 } // End of xdd_target_thread_cleanup()

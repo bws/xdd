@@ -234,8 +234,8 @@ xdd_options_info(xdd_plan_t* planp, FILE *out) {
 void
 xdd_target_info(FILE *out, ptds_t *p) {
 	int 				i;
-	ptds_t 				*masterp, *slavep;
-	lockstep_t			*master_lsp, *slave_lsp;
+	//ptds_t 				*masterp, *slavep;
+	//lockstep_t			*master_lsp, *slave_lsp;
 	xdd_data_pattern_t	*dpp;
 
 
@@ -386,26 +386,26 @@ xdd_target_info(FILE *out, ptds_t *p) {
 	fprintf(out,"\t\tDelete file, %s", (p->target_options & TO_DELETEFILE)?"enabled\n":"disabled\n");
 
 	// Display Lockstep Info
-	if (p->my_qthread_number == 0) {
-		if (p->slave_lsp) {
-			if (p->slave_lsp->ls_ms_state & LS_I_AM_A_SLAVE) {
-				masterp = p->slave_lsp->ls_masterp;
-				master_lsp = masterp->master_lsp;
-				fprintf(out,"\t\tMaster Target, %d\n", masterp->my_target_number);
-				fprintf(out,"\t\tMaster Interval value and type, %lld,%s\n", (long long)master_lsp->ls_interval_value, master_lsp->ls_interval_units);
-			}
-		}
-		if (p->master_lsp) {
-			if (p->master_lsp->ls_ms_state & LS_I_AM_A_MASTER) {
-				slavep = p->master_lsp->ls_slavep;
-				slave_lsp = slavep->slave_lsp;
-				fprintf(out,"\t\tSlave Target, %d\n", slavep->my_target_number);
-				fprintf(out,"\t\tSlave Task value and type, %lld,%s\n", (long long)slave_lsp->ls_task_value,slave_lsp->ls_task_units);
-				fprintf(out,"\t\tSlave initial condition, %s\n",(slave_lsp->ls_ms_state & LS_SLAVE_STARTUP_RUN)?"Run":"Wait");
-				fprintf(out,"\t\tSlave termination, %s\n",(slave_lsp->ls_ms_state & LS_SLAVE_COMPLETION_COMPLETE)?"Complete":"Stop");
-			}
-		}
-	}
+//	if (p->my_qthread_number == 0) {
+//		if (p->slave_lsp) {
+//			if (p->slave_lsp->ls_ms_state & LS_I_AM_A_SLAVE) {
+//				masterp = p->slave_lsp->ls_master_ptdsp;
+//				master_lsp = masterp->master_lsp;
+//				fprintf(out,"\t\tMaster Target, %d\n", masterp->my_target_number);
+//				fprintf(out,"\t\tMaster Interval value and type, %lld,%s\n", (long long)master_lsp->ls_interval_value, master_lsp->ls_interval_units);
+//			}
+//		}
+//		if (p->master_lsp) {
+//			if (p->master_lsp->ls_ms_state & LS_I_AM_A_MASTER) {
+//				slavep = p->master_lsp->ls_slave_ptdsp;
+//				slave_lsp = slavep->slave_lsp;
+//				fprintf(out,"\t\tSlave Target, %d\n", slavep->my_target_number);
+//				fprintf(out,"\t\tSlave Interval value and type, %lld,%s\n", (long long)slave_lsp->ls_interval_value,slave_lsp->ls_interval_units);
+//				fprintf(out,"\t\tSlave initial condition, %s\n",(slave_lsp->ls_ms_state & LS_SLAVE_STARTUP_RUN)?"Run":"Wait");
+//				fprintf(out,"\t\tSlave termination, %s\n",(slave_lsp->ls_ms_state & LS_SLAVE_COMPLETION_COMPLETE)?"Complete":"Stop");
+//			}
+//		}
+//	}
 
 	// Display information about any End-to-End operations for this target 
 	// Only qthread 0 displays the inforamtion

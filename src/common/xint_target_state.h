@@ -38,7 +38,7 @@ struct xdd_target_state {
 	struct	tms			my_starting_cpu_times_this_pass;// CPU times from times() at the start of this pass
 	struct	tms			my_current_cpu_times;		// CPU times from times()
 	//
-	// Updated by xdd_issue() at at the start of a Task IO request to a QThread
+	// Updated by xdd_issue() at at the start of a Task IO request to a Worker Thread
 	int32_t				my_current_pass_number; 	// Current pass number 
 	int64_t				my_current_byte_location; 	// Current byte location for this I/O operation 
 	int32_t				my_current_io_size; 		// Size of the I/O to be performed
@@ -48,7 +48,7 @@ struct xdd_target_state {
 #define OP_TYPE_WRITE	0x02						// used with my_current_op_type
 #define OP_TYPE_NOOP	0x03						// used with my_current_op_type
 #define OP_TYPE_EOF		0x04						// used with my_current_op_type - indicates End-of-File processing when present in the Time Stamp Table
-	// Updated by the QThread upon completion of an I/O operation
+	// Updated by the Worker Thread upon completion of an I/O operation
 	int64_t				target_op_number;			// The operation number for the target that this I/O represents
 	int64_t				my_current_op_number;		// Current I/O operation number 
 	int64_t				my_current_op_count; 		// The number of read+write operations that have completed so far
@@ -60,11 +60,11 @@ struct xdd_target_state {
 	int64_t				my_current_bytes_read;		// Total number of bytes read so far (from storage device, not network)
 	int64_t				my_current_bytes_written;	// Total number of bytes written so far (to storage device, not network)
 	int64_t				my_current_bytes_noop;		// Total number of bytes processed by noops so far
-	int32_t				my_current_io_status; 		// I/O Status of the last I/O operation for this qthread
+	int32_t				my_current_io_status; 		// I/O Status of the last I/O operation for this Worker Thread
 	int32_t				my_current_io_errno; 		// The errno associated with the status of this I/O for this thread
-	int64_t				my_current_error_count;		// The number of I/O errors for this qthread
+	int64_t				my_current_error_count;		// The number of I/O errors for this Worker Thread
 	nclk_t				my_elapsed_pass_time; 		// Rime between the start and end of this pass
-	nclk_t				my_first_op_start_time;		// Time this qthread was able to issue its first operation for this pass
+	nclk_t				my_first_op_start_time;		// Time this Worker Thread was able to issue its first operation for this pass
 	nclk_t				my_current_op_start_time; 	// Start time of the current op
 	nclk_t				my_current_op_end_time; 	// End time of the current op
 	nclk_t				my_current_op_elapsed_time;	// Elapsed time of the current op
@@ -77,9 +77,9 @@ struct xdd_target_state {
 	nclk_t				my_accumulated_noop_op_time;// Accumulated time spent in noops 
 	nclk_t				my_accumulated_pattern_fill_time; // Accumulated time spent in data pattern fill before all I/O operations 
 	nclk_t				my_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
-	// Updated by the QThread at different times
+	// Updated by the Worker Thread at different times
 	char				my_time_limit_expired;		// Time limit expired indicator
-	char				abort;						// Abort this operation (either a QThread or a Target Thread)
+	char				abort;						// Abort this operation (either a Worker Thread or a Target Thread)
 	char				run_complete;				// Indicates that the entire RUN of all PASSES has completed
 	pthread_mutex_t 	my_current_state_mutex; 	// Mutex for locking when checking or updating the state info
 	int32_t				my_current_state;			// State of this thread at any given time (see Current State definitions below)
@@ -89,13 +89,13 @@ struct xdd_target_state {
 #define	CURRENT_STATE_DEST_RECEIVE						0x0000000000000004	// Waiting to receive data - Destination side of an E2E operation
 #define	CURRENT_STATE_SRC_SEND							0x0000000000000008	// Waiting for "send" to send data - Source side of an E2E operation
 #define	CURRENT_STATE_BARRIER							0x0000000000000010	// Waiting inside a barrier
-#define	CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE		0x0000000000000020	// Waiting on the "any qthread available" semaphore
-#define	CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE	0x0000000000000040	// Waiting on the "This QThread Available" semaphore
+#define	CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE	0x0000000000000020	// Waiting on the "any Worker Thread available" semaphore
+#define	CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE	0x0000000000000040	// Waiting on the "This Worker Thread Available" semaphore
 #define	CURRENT_STATE_PASS_COMPLETE						0x0000000000000080	// Indicates that this Target Thread has completed a pass
-#define	CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE	0x0000000000000100	// QThread is waiting for the TOT lock in order to update the block number
-#define	CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE	0x0000000000000200	// QThread is waiting for the TOT lock in order to release the next I/O
-#define	CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS		0x0000000000000400	// QThread is waiting for the TOT lock to set the "wait" time stamp
-#define	CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO		0x0000000000000800	// Waiting on the previous I/O op semaphore
+#define	CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE	0x0000000000000100	// Worker Thread is waiting for the TOT lock in order to update the block number
+#define	CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE	0x0000000000000200	// Worker Thread is waiting for the TOT lock in order to release the next I/O
+#define	CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS		0x0000000000000400	// Worker Thread is waiting for the TOT lock to set the "wait" time stamp
+#define	CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO		0x0000000000000800	// Waiting on the previous I/O op semaphore
 
 };
 typedef struct xdd_target_state xdd_target_state_t;

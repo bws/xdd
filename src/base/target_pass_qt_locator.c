@@ -29,128 +29,128 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 /*
- * This file contains the subroutine that locates an available QThread for
+ * This file contains the subroutine that locates an available Worker Thread for
  * a specific target.
  */
 #include "xint.h"
 
 /*----------------------------------------------------------------------------*/
-/* xdd_get_specific_qthread() - This subroutine will locate the specified
- * QThread and wait for it to become available then return its pointer.
+/* xdd_get_specific_worker_thread() - This subroutine will locate the specified
+ * Worker Thread and wait for it to become available then return its pointer.
  * This subroutine is called by xdd_target_pass()
  */
-ptds_t *
-xdd_get_specific_qthread(ptds_t *p, int32_t q) {
-	ptds_t *qp;					// Pointer to a QThread PTDS
+worker_data_t *
+xdd_get_specific_worker_thread(target_data_t *tdp, int32_t q) {
+	worker_data_t *wdp;					// Pointer to a Worker Thread PTDS
 	int i;
 	nclk_t checktime;
 
 	nclk_now(&checktime);
 
 	// Sanity Check
-	if (q >= p->queue_depth) { // This should *NEVER* happen - famous last words...
-		fprintf(xgp->errout,"%s: xdd_get_specified_qthread: Target %d: INTERNAL ERROR: Specified QThread is out of range: q=%d\n",
+	if (q >= tdp->td_queue_depth) { // This should *NEVER* happen - famous last words...
+		fprintf(xgp->errout,"%s: xdd_get_specified_worker_thread: Target %d: INTERNAL ERROR: Specified Worker Thread is out of range: q=%d\n",
 			xgp->progname,
-			p->my_target_number,
+			tdp->td_target_number,
 			q);
 		exit(1);
 	}
 	
-	// Locate the pointer to the requested QThread PTDS
-	// The QThreads are on an ordered linked list anchored on the Target Thread PTDS with QThread being the first one on the list
-	qp = p->next_qp;
+	// Locate the pointer to the requested Worker Thread PTDS
+	// The Worker Threads are on an ordered linked list anchored on the Target Thread PTDS with Worker Thread being the first one on the list
+	wdp = tdp->td_next_wdp;
 	for (i=0; i<q; i++) 
-		qp = qp->next_qp;
-	// qp should now point to the desired QThread
+		wdp = wdp->wd_next_wdp;
+	// wdp should now point to the desired Worker Thread
 
-	// Wait for this specific QThread to become available
-	pthread_mutex_lock(&qp->qthread_target_sync_mutex);
-	if (qp->qthread_target_sync & QTSYNC_BUSY) { 
+	// Wait for this specific Worker Thread to become available
+	pthread_mutex_lock(&wdp->wd_thread_target_sync_mutex);
+	if (wdp->wd_thread_target_sync & WTSYNC_BUSY) { 
             // Set the "target waiting" bit, unlock the mutex,
-            // and lets wait for this QThread to become available - i.e. not busy
-            p->tgtstp->my_current_state |= CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
-            qp->qthread_target_sync |= QTSYNC_TARGET_WAITING;
+            // and lets wait for this Worker Thread to become available - i.e. not busy
+            tdp->td_tgtstp->my_current_state |= CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE;
+            wdp->wd_thread_target_sync |= WTSYNC_TARGET_WAITING;
             nclk_now(&checktime);
 
-            while (qp->qthread_target_sync & QTSYNC_BUSY) {
-                pthread_cond_wait(&qp->this_qthread_is_available_condition,
-                                  &qp->qthread_target_sync_mutex);            
+            while (wdp->wd_thread_target_sync & WTSYNC_BUSY) {
+                pthread_cond_wait(&wdp->wd_this_worker_thread_is_available_condition,
+                                  &wdp->wd_thread_target_sync_mutex);            
             }
-            p->tgtstp->my_current_state &= ~CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE;
+            tdp->td_tgtstp->my_current_state &= ~CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE;
         }
         
-        // Indicate that this QThread is now busy, and unlock
-        qp->qthread_target_sync |= QTSYNC_BUSY; 
-        pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+        // Indicate that this Worker Thread is now busy, and unlock
+        wdp->wd_thread_target_sync |= WTSYNC_BUSY; 
+        pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
 
-	// At this point we have a pointer to the specified QThread
-	return(qp);
+	// At this point we have a pointer to the specified Worker Thread
+	return(wdp);
 
-} // End of  xdd_get_specific_qthread()
+} // End of  xdd_get_specific_worker_thread()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_get_any_available_qthread() - This subroutine will scan the list of
- * QThreads and return a pointer to a QThread that is available to be assigned a task.
+/* xdd_get_any_available_worker_thread() - This subroutine will scan the list of
+ * Worker Threads and return a pointer to a Worker Thread that is available to be assigned a task.
  * This subroutine is called by xdd_target_pass()
  */
-ptds_t *
-xdd_get_any_available_qthread(ptds_t *p) {
-    ptds_t		*qp; // Pointer to a QThread PTDS
-    int eof;	// Number of QThreads that have reached End-of-File on the destination side of an E2E operation        
+worker_data_t *
+xdd_get_any_available_worker_thread(target_data_t *tdp) {
+    worker_data_t		*wdp; // Pointer to a Worker Thread PTDS
+    int eof;	// Number of Worker Threads that have reached End-of-File on the destination side of an E2E operation        
 
-    // Use a polling strategy to find available qthreads -- this might be a good
+    // Use a polling strategy to find available worker_threads -- this might be a good
     // candidate for asynchronous messages in the future    
-    qp = 0;
+    wdp = 0;
     eof = 0;
-    while (0 == qp && eof != p->queue_depth) {
+    while (0 == wdp && eof != tdp->td_queue_depth) {
 	
-	pthread_mutex_lock(&p->any_qthread_available_mutex);
-	while (p->any_qthread_available <= 0) {
-	    p->tgtstp->my_current_state |= CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
-	    pthread_cond_wait(&p->any_qthread_available_condition, &p->any_qthread_available_mutex);
-	    p->tgtstp->my_current_state &= ~CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE;
+	pthread_mutex_lock(&tdp->td_any_worker_thread_available_mutex);
+	while (tdp->td_any_worker_thread_available <= 0) {
+	    tdp->td_tgtstp->my_current_state |= CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
+	    pthread_cond_wait(&tdp->td_any_worker_thread_available_condition, &tdp->td_any_worker_thread_available_mutex);
+	    tdp->td_tgtstp->my_current_state &= ~CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
 	}
-	p->any_qthread_available--;
+	tdp->td_any_worker_thread_available--;
         
-	// Locate an idle qthread
-	qp = p->next_qp;
+	// Locate an idle worker_thread
+	wdp = tdp->td_next_wdp;
     eof = 0;
-	while (qp) {
-	    pthread_mutex_lock(&qp->qthread_target_sync_mutex);
-	    // Ignore busy qthreads
-	    if (qp->qthread_target_sync & QTSYNC_BUSY) {
-		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-		qp = qp->next_qp;
+	while (wdp) {
+	    pthread_mutex_lock(&wdp->wd_thread_target_sync_mutex);
+	    // Ignore busy worker threads
+	    if (wdp->wd_thread_target_sync & WTSYNC_BUSY) {
+		pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
+		wdp = wdp->wd_next_wdp;
 		continue;
 	    }
 
 	    // Ignore e2e threads that have received their eof
-	    if ((qp->target_options & TO_E2E_DESTINATION) && 
-		(qp->qthread_target_sync & QTSYNC_EOF_RECEIVED)) {
+	    if ((tdp->td_target_options & TO_E2E_DESTINATION) && 
+		(wdp->wd_thread_target_sync & WTSYNC_EOF_RECEIVED)) {
 		eof++;
 		// Multi-level short circuit hack for when all threads
 		// have recieved an EOF
-		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
-		if (eof == p->queue_depth) {
-		    qp = 0;
+		pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
+		if (eof == tdp->td_queue_depth) {
+		    wdp = 0;
 		    break;
 		}
-		qp = qp->next_qp;            
+		wdp = wdp->wd_next_wdp;            
 	    }
 	    else {
-		// Got a QThread - mark it BUSY
-		// Indicate that this QThread is now busy
-		qp->qthread_target_sync |= QTSYNC_BUSY; 
-		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+		// Got a Worker Thread - mark it BUSY
+		// Indicate that this Worker Thread is now busy
+		wdp->wd_thread_target_sync |= WTSYNC_BUSY; 
+		pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
 		break;
 	    }
 	}
 	//unlock_and_return:	    
-	pthread_mutex_unlock(&p->any_qthread_available_mutex);
+	pthread_mutex_unlock(&tdp->td_any_worker_thread_available_mutex);
     }
 
-    return qp;        
-} // End of xdd_get_any_available_qthread()
+    return wdp;        
+} // End of xdd_get_any_available_worker_thread()
 
 /*
  * Local variables:

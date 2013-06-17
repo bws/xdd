@@ -46,6 +46,7 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 	ptds_t	*qp;
 
 
+	status = 0;
 	// Issue an fdatasync() to flush all the write buffers to disk for this file if the -syncwrite option was specified
 	if (p->target_options & TO_SYNCWRITE) {
 #if (LINUX || AIX)
@@ -60,8 +61,6 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 
 	/* Get the current CPU user and system times and the effective current wall clock time using nclk_now() */
 	times(&p->tgtstp->my_current_cpu_times);
-
-	status = xdd_lockstep_after_pass(p);
 
 	// Loop through all the QThreads to put the Earliest Start Time and Latest End Time into this Target PTDS
 	qp = p->next_qp;

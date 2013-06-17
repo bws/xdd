@@ -61,6 +61,7 @@
 #define GO_INTERACTIVE			0x0000000400000000ULL  /* Enter Interactive Mode - oh what FUN! */
 #define GO_INTERACTIVE_EXIT		0x0000000800000000ULL  /* Exit Interactive Mode */
 #define GO_INTERACTIVE_STOP		0x0000001000000000ULL  /* Stop at various points in Interactive Mode */
+#define GO_LOCKSTEP				0x0000002000000000ULL  /* Indicates that the lockstep MASTER has been defined */
 
 struct xdd_global_data {
 	uint64_t		global_options;        				/* I/O Options valid for all targets */
@@ -80,6 +81,7 @@ struct xdd_global_data {
 	int64_t			max_errors_to_print;    			/* Maximum number of compare errors to print */
 	int32_t			number_of_processors;   			/* Number of processors */    
 	int32_t			clock_tick;							/* Number of clock ticks per second */
+	nclk_t			debug_base_time;					/* The "t=0" time used by DEBUG operation time stamps */
     
 // Indicators that are used to control exit conditions and the like
 	char			id_firsttime;           			/* ID first time through flag */

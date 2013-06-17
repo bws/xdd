@@ -802,9 +802,6 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     if ((strcmp(argv[args_index], "destination") == 0) ||
 		(strcmp(argv[args_index], "dest") == 0) ||
 		(strcmp(argv[args_index], "host") == 0)) {
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'destination' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		/* Record the name of the "destination" host name for the -e2e option */
 		// Address can be in one of several forms based on:
 		//     IP:base_port,#ports,numa_node 
@@ -933,7 +930,6 @@ else fprintf(stderr,"\n");
 	
 		///////////// Done parsing the address:base_port,port_count,numa_node
 		
-fprintf(stderr,"XDDFUNC_E2E: 'destination' hostname=%s, base_port=%s, port_count=%s, target_number=%d ",hostname,base_port, port_count,target_number);
 
 		// Now we need to put the address and base_port and number of ports into the PTDS for this Target or all Targets
 		if (target_number >= 0) {
@@ -987,10 +983,8 @@ fprintf(stderr,"XDDFUNC_E2E: 'destination' hostname=%s, base_port=%s, port_count
 	    	p->e2ep->e2e_address_table_port_count += p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count;
 	    	p->e2ep->e2e_address_table_next_entry++;
 	    	p->e2ep->e2e_address_table_host_count++;
-fprintf(stderr,"FUNC_E2E: p=%p, e2e_address_table_host_count=%d",p,p->e2ep->e2e_address_table_host_count);
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
-fprintf(stderr,"XDDFUNC_E2E: target_number=%d, planp->ptdsp[0]=%p ",target_number,planp->ptdsp[0]);
 				p = planp->ptdsp[0];
 				i = 0;
 				while (p) {
@@ -1048,9 +1042,6 @@ fprintf(stderr,"XDDFUNC_E2E: target_number=%d, planp->ptdsp[0]=%p ",target_numbe
 		return(args_index+1);
     } else if ((strcmp(argv[args_index], "issource") == 0) ||
 	       (strcmp(argv[args_index], "issrc") == 0)) {
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'issource' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		// Set the target option flags that indicates this is the 
 		// "source" host name for the -e2e option
 		args_index++;
@@ -1072,9 +1063,6 @@ else fprintf(stderr,"\n");
 		return(args_index);
     } else if ((strcmp(argv[args_index], "isdestination") == 0) ||
 	       (strcmp(argv[args_index], "isdest") == 0)) { 
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'isdestination' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		// Set the target option flags that indicates this is the 
 		// "destination" host name for the -e2e option
 		args_index++;
@@ -1096,9 +1084,6 @@ else fprintf(stderr,"\n");
 		return(args_index);
     } else if ((strcmp(argv[args_index], "port") == 0) ||  /* set the base port number to use for -e2e */
 	       (strcmp(argv[args_index], "baseport") == 0)) { 
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'port' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		args_index++;
 		if (target_number >= 0) {
 	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
@@ -1127,9 +1112,6 @@ else fprintf(stderr,"\n");
 		}
 		return(args_index+1);
     } else if (strcmp(argv[args_index], "portcount") == 0) {  /* set the port count in each address table entry  */
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'portcount' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		args_index++;
 		if (target_number >= 0) {
 	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
@@ -1157,9 +1139,6 @@ else fprintf(stderr,"\n");
 		return(args_index+1);
     } else if ((strcmp(argv[args_index], "sourcemonitor") == 0) ||
 	       (strcmp(argv[args_index], "srcmon") == 0)) { 
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'sourcemonitor' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		// Monitor the Source Side in target_pass_loop()
 		args_index++;
 		if (target_number >= 0) {
@@ -1180,9 +1159,6 @@ else fprintf(stderr,"\n");
 		return(args_index);
     } else if ((strcmp(argv[args_index], "sourcepath") == 0) ||  /* complete source file path for restart option */
 	       (strcmp(argv[args_index], "srcpath") == 0)) { 
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'sourcepath' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		if (target_number >= 0) {
 	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
 	    	if (p == NULL) return(-1);
@@ -1209,9 +1185,6 @@ else fprintf(stderr,"\n");
 		return(args_index+3);
     } else {
 		fprintf(stderr,"%s: Invalid End-to-End option %s\n",xgp->progname, argv[args_index]);
-fprintf(stderr,"XDDFUNC_E2E: planp=%p, p=%p, 'INVALID' suboption ",planp,p);
-if (p) fprintf(stderr,"p->e2ep=%p\n",p->e2ep);
-else fprintf(stderr,"\n");
 		return(0);
     }/* End of the -endtoend (e2e or war) sub options */
 }
@@ -1653,8 +1626,8 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int 		mt;						// Master Target number
     int			st;						// Slave Target number
     double 		tmpf;
-    ptds_t 		*masterp;				// Pointer to the Master PTDS
-    ptds_t		*slavep;				// Pointer to the Slave PTDS
+    ptds_t 		*master_ptdsp;				// Pointer to the Master PTDS
+    ptds_t		*slave_ptdsp;				// Pointer to the Slave PTDS
     int 		retval;					// Return value at any give time
     int 		lsmode;					// Lockstep mode
     char 		*when;					// Indicates WHEN to do something
@@ -1672,47 +1645,53 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     mt = atoi(argv[1]); /* T1 is the master target */
     st = atoi(argv[2]); /* T2 is the slave target */
     /* Sanity checks on the target numbers */
-    masterp = xdd_get_ptdsp(planp, mt, argv[0]);
-    if (masterp == NULL) return(-1);
-    slavep = xdd_get_ptdsp(planp, st, argv[0]);
-    if (slavep == NULL) return(-1);
+    master_ptdsp = xdd_get_ptdsp(planp, mt, argv[0]);
+
+    if (master_ptdsp == NULL) return(-1);
+    slave_ptdsp = xdd_get_ptdsp(planp, st, argv[0]);
+    if (slave_ptdsp == NULL) return(-1);
  
     // Make sure there is a Lockstep Structure for the MASTER
-    if (masterp->master_lsp == 0) {
-		masterp->master_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (masterp->master_lsp == 0) {
+    if (master_ptdsp->lsp == 0) {
+		master_ptdsp->lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (master_ptdsp->lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Master lockstep structure\n",
 			xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
+		memset(master_ptdsp->lsp, 0, sizeof(lockstep_t ));
     } 
+	master_lsp = master_ptdsp->lsp;
+
     // Make sure there is a Lockstep Structure for the SLAVE
-    if (slavep->slave_lsp == 0) {
-		slavep->slave_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (slavep->slave_lsp == 0) {
+    if (slave_ptdsp->lsp == 0) {
+		slave_ptdsp->lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (slave_ptdsp->lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Slave lockstep structure\n",
-		    	xgp->progname, (int)sizeof(lockstep_t));
+			xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
+		memset(slave_ptdsp->lsp, 0, sizeof(lockstep_t));
     } 
+	slave_lsp = slave_ptdsp->lsp;
 
-	// Clear the Lockstep Structures and initialize the MASTER/SLAVE variables
-	master_lsp = masterp->master_lsp;
-	memset(master_lsp, 0, sizeof(*master_lsp));
-	slave_lsp = slavep->slave_lsp;
-	memset(slave_lsp, 0, sizeof(*slave_lsp));
+	if (flags & XDD_PARSE_PHASE1) {
+		if (!(xgp->global_options & GO_LOCKSTEP)) {
+			xgp->global_options |= GO_LOCKSTEP;
+			master_lsp->ls_state |= LS_STATE_I_AM_THE_FIRST;
+		} 
+	
+		if (master_lsp->ls_next_ptdsp) {
+			slave_lsp->ls_next_ptdsp = master_lsp->ls_next_ptdsp;
+		} else { 
+			slave_lsp->ls_next_ptdsp = master_ptdsp;
+		}
+		master_lsp->ls_next_ptdsp = slave_ptdsp;
+		master_ptdsp->target_options |= lsmode;
+		slave_lsp->ls_state &= ~LS_STATE_I_AM_THE_FIRST;
+		slave_ptdsp->target_options |= lsmode; 
+	}
 
-	master_lsp->ls_ms_state |= LS_I_AM_A_MASTER;
-	masterp->target_options |= lsmode;
-	master_lsp->ls_ms_target = st; // The master has to know the target number of its SLAVE
-	master_lsp->ls_slavep = slavep;
-	master_lsp->ls_slave_lsp = slave_lsp;
-
-	slave_lsp->ls_ms_state |= LS_I_AM_A_SLAVE;
-	slavep->target_options |= lsmode; 
-	slave_lsp->ls_ms_target = mt; // The slave has to know the target number of its MASTER
-	slave_lsp->ls_masterp = masterp;
-	slave_lsp->ls_master_lsp = master_lsp;
 
 	// Lockstep sub-options
 	when = argv[3];
@@ -1780,31 +1759,31 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	what = argv[5];
 	if (strcmp(what,"time") == 0){ /* get the number of seconds to run a task */
 		tmpf = atof(argv[6]);
-		slave_lsp->ls_task_type = LS_TASK_TIME;
-		slave_lsp->ls_task_units = "SECONDS";
-		slave_lsp->ls_task_value = (nclk_t)(tmpf * BILLION);
-		if (slave_lsp->ls_task_value <= 0.0) {
+		slave_lsp->ls_interval_type = LS_INTERVAL_TIME;
+		slave_lsp->ls_interval_units = "SECONDS";
+		slave_lsp->ls_interval_value = (nclk_t)(tmpf * BILLION);
+		if (slave_lsp->ls_interval_value <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task time: %f. This value must be greater than 0.0\n",
 				xgp->progname, tmpf);
             return(0);
 		};
 		retval += 2;
 	} else if (strcmp(what,"op") == 0){ /* get the number of operations to execute per task */
-		slave_lsp->ls_task_value = atoll(argv[6]);
-		slave_lsp->ls_task_type = LS_TASK_OP;
-		slave_lsp->ls_task_units = "OPERATIONS";
-		if (slave_lsp->ls_task_value <= 0) {
+		slave_lsp->ls_interval_value = atoll(argv[6]);
+		slave_lsp->ls_interval_type = LS_INTERVAL_OP;
+		slave_lsp->ls_interval_units = "OPERATIONS";
+		if (slave_lsp->ls_interval_value <= 0) {
 			fprintf(stderr,"%s: Invalid lockstep task op: %lld. This value must be greater than 0\n",
 				xgp->progname, 
-				(long long)slave_lsp->ls_task_value);
+				(long long)slave_lsp->ls_interval_value);
             return(0);
 		}
 		retval += 2;       
 	} else if (strcmp(what,"mbytes") == 0){ /* get the number of megabytes to transfer per task */
 		tmpf = atof(argv[6]);
-		slave_lsp->ls_task_value = (uint64_t)(tmpf * 1024*1024);
-		slave_lsp->ls_task_type = LS_TASK_BYTES;
-		slave_lsp->ls_task_units = "BYTES";
+		slave_lsp->ls_interval_value = (uint64_t)(tmpf * 1024*1024);
+		slave_lsp->ls_interval_type = LS_INTERVAL_BYTES;
+		slave_lsp->ls_interval_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task mbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1813,9 +1792,9 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		retval += 2;     
 	} else if (strcmp(what,"kbytes") == 0){ /* get the number of kilobytes to transfer per task */
 		tmpf = atof(argv[6]);
-		slave_lsp->ls_task_value = (uint64_t)(tmpf * 1024);
-		slave_lsp->ls_task_type = LS_TASK_BYTES;
-		slave_lsp->ls_task_units = "BYTES";
+		slave_lsp->ls_interval_value = (uint64_t)(tmpf * 1024);
+		slave_lsp->ls_interval_type = LS_INTERVAL_BYTES;
+		slave_lsp->ls_interval_units = "BYTES";
 		if (tmpf <= 0.0) {
 			fprintf(stderr,"%s: Invalid lockstep task kbytes: %f. This value must be greater than 0\n",
 				xgp->progname,tmpf);
@@ -1829,23 +1808,19 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	}
 	lockstep_startup = argv[7];  
 	if (strcmp(lockstep_startup,"run") == 0) { /* have the slave start running immediately */
-		slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_RUN;
-		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_WAIT;
-		slave_lsp->ls_task_counter = 1;
+		slave_lsp->ls_state |= LS_STATE_START_RUN;
 	} else { /* Have the slave wait for the master to tell it to run */
-		slave_lsp->ls_ms_state &= ~LS_SLAVE_STARTUP_RUN;
-		slave_lsp->ls_ms_state |= LS_SLAVE_STARTUP_WAIT;
-		slave_lsp->ls_task_counter = 0;
+		slave_lsp->ls_state |= LS_STATE_START_WAIT;
 	}
     retval++;
 	lockstep_completion = argv[8];
 	if (strcmp(lockstep_completion,"complete") == 0) { /* Have slave complete all operations if master finishes first */
-		slave_lsp->ls_ms_state |= LS_SLAVE_COMPLETION_COMPLETE;
+		slave_lsp->ls_state |= LS_STATE_END_COMPLETE;
+		master_lsp->ls_state |= LS_STATE_END_COMPLETE;
 	} else if (strcmp(lockstep_completion,"stop") == 0){ /* Have slave stop when master stops */
-		slave_lsp->ls_ms_state |= LS_SLAVE_COMPLETION_STOP;
+		slave_lsp->ls_state |= LS_STATE_END_STOP;
+		master_lsp->ls_state |= LS_STATE_END_STOP;
 	} else {
-		fprintf(stderr,"%s: Invalid lockstep slave completion directive: %s. This value must be either 'complete' or 'stop'\n",
-				xgp->progname,lockstep_completion);
         return(0);
     }
     retval++;
@@ -2982,7 +2957,6 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int 		target_number;
     ptds_t 		*p;
 	restart_t	*rp;
-	xdd_e2e_t	*e2ep;
 
 
 	args_index = 1;
@@ -3075,14 +3049,15 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			if (p == NULL) return(-1);
 			rp = xdd_get_restartp(p);
 			if (rp == NULL) return(-1);
-			e2ep = xdd_get_e2ep();
-	    	if (e2ep == NULL) 
+			
+	    	if (NULL == p->e2ep) // If there is no e2e struct, then allocate one
+				p->e2ep = xdd_get_e2ep();
+	    	if (p->e2ep == NULL) // If there is still no e2e struct then return -1
 				return(-1);
-			else p->e2ep = e2ep;
 
 			rp->byte_offset = atoll(argv[args_index+1]);
 			rp->flags |= RESTART_FLAG_RESUME_COPY;
-			e2ep->e2e_total_bytes_written=rp->byte_offset;
+			p->e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 			/* Set the last committed location to avoid restart output of
 			   0 if the target does not complete any I/O during first interval 
@@ -3095,13 +3070,15 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 				while (p) {
 					rp = xdd_get_restartp(p);
 					if (rp == NULL) return(-1);
-					e2ep = xdd_get_e2ep();
-	    			if (e2ep == NULL) 
+			
+	    			if (NULL == p->e2ep) // If there is no e2e struct, then allocate one
+						p->e2ep = xdd_get_e2ep();
+	    			if (p->e2ep == NULL) // If there is still no e2e struct then return -1
 						return(-1);
-					else p->e2ep = e2ep;
+
 					rp->byte_offset = atoll(argv[args_index+1]);
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
-					e2ep->e2e_total_bytes_written=rp->byte_offset;
+					p->e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 					/* Set the last committed location to avoid restart output 
 					   of 0 if the target does not complete any I/O during 
@@ -4192,7 +4169,6 @@ xddfunc_targetstartdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t
 			while (p) {
 				p->start_delay = (double)(start_delay * p->my_target_number);
 				p->start_delay_psec = start_delay_psec * p->my_target_number;
-fprintf(xgp->errout,"%s: Set Target %d Start Delay time to %f seconds, %lld ps.\n", xgp->progname,p->my_target_number, p->start_delay,(long long int)p->start_delay_psec);
 				i++;
 				p = planp->ptdsp[i];
 			}
@@ -4245,15 +4221,6 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		value = atof(argv[2]);
         retval = 3;
     }
-
-	if (NULL == p->throtp) {
-			p->throtp = (xdd_throttle_t *)malloc(sizeof(xdd_throttle_t));
-		if (NULL == p->throtp) {
-			fprintf(xgp->errout,"%s: ERROR: not enough arguments specified for the option '-throttle'\n",xgp->progname);
-			return(0);
-		}
-	}
-
 
     if (strcmp(what, "ops") == 0) {/* Throttle the ops/sec */
         if (value <= 0.0) {

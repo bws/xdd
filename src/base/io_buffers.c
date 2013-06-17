@@ -45,7 +45,7 @@
  * command line option.
  */
 unsigned char *
-xdd_init_io_buffers(ptds_t *p) {
+xdd_init_io_buffers(target_data_t *tdp) {
 	unsigned char *rwbuf; /* the read/write buffer for this op */
 	void *shmat_status;
 	int	buffer_size;
@@ -55,46 +55,46 @@ xdd_init_io_buffers(ptds_t *p) {
 
 
 
-	buffer_size = p->iosize;
+	buffer_size = tdp->td_iosize;
 	/* allocate slightly larger buffer for meta data for end-to-end ops */
-	if (p->e2ep) {
-		if ((p->target_options & TO_ENDTOEND)) 
-			buffer_size += sizeof(p->e2ep->e2e_header);
-		 p->e2ep->e2e_iosize = buffer_size;
+	if (tdp->td_e2ep) {
+		if ((tdp->td_target_options & TO_ENDTOEND)) 
+			buffer_size += sizeof(tdp->td_e2ep->e2e_header);
+		 tdp->td_e2ep->e2e_iosize = buffer_size;
 	}
 	/* Check to see if we want to use a shared memory segment and allocate it using shmget() and shmat().
 	 * NOTE: This is not supported by all operating systems. 
 	 */
-	if (p->target_options & TO_SHARED_MEMORY) {
+	if (tdp->td_target_options & TO_SHARED_MEMORY) {
 #if (AIX || LINUX || SOLARIS || DARWIN || FREEBSD)
 	    /* In AIX we need to get memory in a shared memory segment to avoid
 	     * the system continually trying to pin each page on every I/O operation */
 #if (AIX)
-		p->rwbuf_shmid = shmget(IPC_PRIVATE, buffer_size, IPC_CREAT | SHM_LGPAGE |SHM_PIN );
+		tdp->td_rwbuf_shmid = shmget(IPC_PRIVATE, buffer_size, IPC_CREAT | SHM_LGPAGE |SHM_PIN );
 #else
-		p->rwbuf_shmid = shmget(IPC_PRIVATE, buffer_size, IPC_CREAT );
+		tdp->td_rwbuf_shmid = shmget(IPC_PRIVATE, buffer_size, IPC_CREAT );
 #endif
-		if (p->rwbuf_shmid < 0) {
+		if (tdp->td_rwbuf_shmid < 0) {
 			fprintf(xgp->errout,"%s: Cannot create shared memory segment\n", xgp->progname);
 			perror("Reason");
 			rwbuf = 0;
-			p->rwbuf_shmid = -1;
+			tdp->td_rwbuf_shmid = -1;
 		} else {
-			shmat_status = (void *)shmat(p->rwbuf_shmid,NULL,0);
+			shmat_status = (void *)shmat(tdp->td_rwbuf_shmid,NULL,0);
 			if (shmat_status == (void *)-1) {
 				fprintf(xgp->errout,"%s: Cannot attach to shared memory segment\n",xgp->progname);
 				perror("Reason");
 				rwbuf = 0;
-				p->rwbuf_shmid = -1;
+				tdp->td_rwbuf_shmid = -1;
 			}
 			else rwbuf = (unsigned char *)shmat_status;
 		}
 		if (xgp->global_options & GO_REALLYVERBOSE)
-				fprintf(xgp->output,"Shared Memory ID allocated and attached, shmid=%d\n",p->rwbuf_shmid);
+				fprintf(xgp->output,"Shared Memory ID allocated and attached, shmid=%d\n",tdp->td_rwbuf_shmid);
 #elif (IRIX || WIN32 )
 		fprintf(xgp->errout,"%s: Shared Memory not supported on this OS - using valloc\n",
 			xgp->progname);
-		p->target_options &= ~TO_SHARED_MEMORY;
+		tdp->td_target_options &= ~TO_SHARED_MEMORY;
 #if (IRIX || SOLARIS || LINUX || AIX || DARWIN || FREEBSD)
 		rwbuf = valloc(buffer_size);
 #else

@@ -39,7 +39,7 @@ struct tte {
     char 			op_type;  	// operation: write=2, read=1, no-op=0
     char			filler1;	// 
     short 			pass_number;  	// Pass Number
-    int32_t			qthread_number;	// My QThread Number
+    int32_t			worker_thread_number;	// My Worker Thread Number
     int32_t         thread_id;      // My system thread ID (like a process ID)
 // 64 bits 8 bytes
     short 			disk_processor_start;   // Processor number that this disk op was started on
@@ -78,7 +78,7 @@ typedef struct tte tte_t;
  * Time stamp Trace Table Header - this gets written out before
  * the time stamp trace table data 
  */
-struct tthdr {
+struct xdd_tthdr {
     uint32_t    magic;          /**< Magic number indicating the beginning of timestamp data */
     char       version[XDD_VERSION_BUFSZ];        /**< Version string for the timestamp data format */
     int32_t    target_thread_id; // My system target thread ID (like a process ID)
@@ -102,7 +102,7 @@ struct tthdr {
     int64_t 	tte_indx; 	/**< Index into the time stamp table */
     struct 	tte tte[1]; 	/**< timestamp table entries */
 };
-typedef struct tthdr tthdr_t;
+typedef struct xdd_tthdr xdd_tthdr_t;
 
 /** ts_options bit settings */
 #define TS_NORMALIZE          0x00000001 /**< Time stamping normalization of output*/

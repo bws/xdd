@@ -171,7 +171,7 @@ xdd_restart_write_restart_file(restart_t *rp) {
 void *
 xdd_restart_monitor(void *data) {
 	int				target_number;			// Used as a counter
-	ptds_t			*current_ptds;			// The current Target Thread PTDS
+	target_data_t			*current_tdp;			// The current Target Thread PTDS
 	int64_t 		check_counter;			// The current number of times that we have checked on the progress of a copy
 	xdd_occupant_t	barrier_occupant;		// Used by the xdd_barrier() function to track who is inside a barrier
 	restart_t		*rp;
@@ -188,8 +188,8 @@ xdd_restart_monitor(void *data) {
 		fprintf(xgp->output,"%s: xdd_restart_monitor: Initializing...\n", xgp->progname);
 
 	for (target_number=0; target_number < planp->number_of_targets; target_number++) {
-		current_ptds = planp->ptdsp[target_number];
-		rp = current_ptds->restartp;
+		current_tdp = planp->target_datap[target_number];
+		rp = current_tdp->td_restartp;
 		status = pthread_mutex_init(&rp->restart_lock, 0);
 		if (status) {
 			fprintf(stderr,"%s: xdd_restart_monitor: ERROR initializing restart_lock for target %d, status=%d, errno=%d", 
@@ -200,13 +200,13 @@ xdd_restart_monitor(void *data) {
 			perror("Reason");
 			return(0);
 		}
-		if (current_ptds->target_options & TO_E2E_DESTINATION) {
+		if (current_tdp->td_target_options & TO_E2E_DESTINATION) {
 			xdd_restart_create_restart_file(rp);
 		} else {
 			fprintf(xgp->output,"%s: xdd_restart_monitor: INFO: No restart file being created for target %d [ %s ] because this is not the destination side of an E2E operation.\n", 
 				xgp->progname,
-				current_ptds->my_target_number,
-				current_ptds->target_full_pathname);
+				current_tdp->td_target_number,
+				current_tdp->td_target_full_pathname);
 		}
 	}
 	if (xgp->global_options & GO_REALLYVERBOSE)
@@ -229,12 +229,12 @@ xdd_restart_monitor(void *data) {
 		check_counter++;
 		// Check all targets
 		for (target_number=0; target_number < planp->number_of_targets; target_number++) {
-			current_ptds = planp->ptdsp[target_number];
+			current_tdp = planp->target_datap[target_number];
 			// If this target does not require restart monitoring then continue
-			if ( !(current_ptds->target_options & TO_RESTART_ENABLE) ) // if restart is NOT enabled for this target then continue
+			if ( !(current_tdp->td_target_options & TO_RESTART_ENABLE) ) // if restart is NOT enabled for this target then continue
 				continue;
 			
-			rp = current_ptds->restartp;
+			rp = current_tdp->td_restartp;
 			if (!rp) // Hmmm... no restart pointer..
 				continue;
 			pthread_mutex_lock(&rp->restart_lock);
@@ -251,8 +251,8 @@ xdd_restart_monitor(void *data) {
 				// to produce the *byte_offset* which is where to start writing 
 				// data into the file when restarted.
 				lowest_offset = LONGLONG_MAX;
-				for (te = 0; te < current_ptds->totp->tot_entries; te++) {
-					tep = &current_ptds->totp->tot_entry[te];
+				for (te = 0; te < current_tdp->td_totp->tot_entries; te++) {
+					tep = &current_tdp->td_totp->tot_entry[te];
 					if (tep->tot_byte_location < 0) {
 						// A byte_location of -1 indicates that this TOT Entry has not been updated yet.
 						// Thus the number of bytes of data processed up to this point is equal to
@@ -266,11 +266,11 @@ xdd_restart_monitor(void *data) {
 							rp->last_committed_op = -1;
 						} else { // Restart point is te times the iosize
 							// The *byte_offset* is the offset into the file where the first new byte should be written
-							rp->byte_offset = (long long int)te * (long long int)current_ptds->iosize;
+							rp->byte_offset = (long long int)te * (long long int)current_tdp->td_iosize;
 							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
-							rp->last_committed_byte_location = (long long int)(te - 1) * (long long int)current_ptds->iosize;
-							rp->last_committed_length = (long long int)current_ptds->iosize;
-							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_ptds->iosize;
+							rp->last_committed_byte_location = (long long int)(te - 1) * (long long int)current_tdp->td_iosize;
+							rp->last_committed_length = (long long int)current_tdp->td_iosize;
+							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_tdp->td_iosize;
 						}
 						break;
 					} else {
@@ -278,18 +278,18 @@ xdd_restart_monitor(void *data) {
 						if (tep->tot_byte_location < lowest_offset) {
 							lowest_offset = tep->tot_byte_location;
 							// The *byte_offset* is the offset into the file where the first new byte should be written
-							rp->byte_offset = tep->tot_byte_location + (long long int)((long long int)current_ptds->iosize * (long long int)current_ptds->totp->tot_entries);
+							rp->byte_offset = tep->tot_byte_location + (long long int)((long long int)current_tdp->td_iosize * (long long int)current_tdp->td_totp->tot_entries);
 							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
-							rp->last_committed_byte_location = tep->tot_byte_location + ((long long int)current_ptds->iosize *(long long int)(current_ptds->totp->tot_entries-1));
+							rp->last_committed_byte_location = tep->tot_byte_location + ((long long int)current_tdp->td_iosize *(long long int)(current_tdp->td_totp->tot_entries-1));
 							rp->last_committed_length = (long long int)tep->tot_io_size;
-							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_ptds->iosize;
+							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_tdp->td_iosize;
 						}
 					}
 					
 				} // End of FOR loop that scans the TOT for the restart offset to use
 	
 				// ...and write it to the restart file and sync sync sync
-				if (current_ptds->target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
+				if (current_tdp->td_target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
 					xdd_restart_write_restart_file(rp);
 
 			}
