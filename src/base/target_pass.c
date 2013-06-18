@@ -75,20 +75,11 @@ xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp) {
 
 	// Get the next available worker thread and give it a task to perform
 	// We stay in the following loop for a single PASS
-<<<<<<< HEAD
-	p->tgtstp->my_current_byte_location = 0;
-	p->tgtstp->my_current_op_number = 0;
-	p->bytes_issued = 0;
-	p->bytes_completed = 0;
-	p->ops_completed = 0;
-	p->bytes_remaining = p->target_bytes_to_xfer_per_pass;
-=======
 	tdp->td_tgtstp->my_current_byte_location = 0;
 	tdp->td_tgtstp->my_current_op_number = 0;
 	tdp->td_bytes_issued = 0;
 	tdp->td_bytes_completed = 0;
 	tdp->td_bytes_remaining = tdp->td_target_bytes_to_xfer_per_pass;
->>>>>>> ptds
 
 /////////////////////////////// PSEUDO-Loop Starts Here ////////////////////////
 // The PSEUDO-Loop just means that the actual "looping" in done in 
@@ -151,26 +142,12 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 // only ever be able to issue one I/O operation at a time and will have to wait
 // for an I/O operation to complete before moving on to the next. 
 //
-<<<<<<< HEAD
-	while (p->bytes_remaining) {
-=======
 	while (tdp->td_bytes_remaining) {
->>>>>>> ptds
 		// Lock Step Processing (located in lockstep.c)
 		// When the -lockstep option is specified, the xdd_lockstep()subroutine 
 		// will perform all I/O operations for a pass. Thus, when xdd_lockstep()
 		// returns, it is necessary to set the "bytes_remaining" to zero so that
 		// it looks like a normal completion.
-<<<<<<< HEAD
-		if (p->lsp) {
-			status = xdd_lockstep(p);
-			p->bytes_remaining = 0;
-			break;
-		}
-
-		// Get pointer to next QThread to issue a task to
-		qp = xdd_get_any_available_qthread(p);
-=======
 		if (tdp->td_lsp) {
 			status = xdd_lockstep(tdp);
 			tdp->td_bytes_remaining = 0;
@@ -179,7 +156,6 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 
 		// Get pointer to next Worker Thread to issue a task to
 		wdp = xdd_get_any_available_worker_thread(tdp);
->>>>>>> ptds
 
 		// Things to do before an I/O is issued
 		status = xdd_target_ttd_before_io_op(tdp, wdp);
@@ -218,13 +194,8 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 		wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
 		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 	}
-<<<<<<< HEAD
-	if (p->tgtstp->my_current_io_status != 0) 
-		planp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
-=======
 	if (tdp->td_tgtstp->my_current_io_status != 0) 
 		planp->target_errno[tdp->td_target_number] = XDD_RETURN_VALUE_IOERROR;
->>>>>>> ptds
 
 	return;
 } // End of xdd_targetpass_loop()

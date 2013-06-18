@@ -386,46 +386,6 @@ xdd_target_info(FILE *out, target_data_t *tdp) {
 	fprintf(out,"\t\tDelete file, %s", (tdp->td_target_options & TO_DELETEFILE)?"enabled\n":"disabled\n");
 
 	// Display Lockstep Info
-<<<<<<< HEAD
-//	if (p->my_qthread_number == 0) {
-//		if (p->slave_lsp) {
-//			if (p->slave_lsp->ls_ms_state & LS_I_AM_A_SLAVE) {
-//				masterp = p->slave_lsp->ls_master_ptdsp;
-//				master_lsp = masterp->master_lsp;
-//				fprintf(out,"\t\tMaster Target, %d\n", masterp->my_target_number);
-//				fprintf(out,"\t\tMaster Interval value and type, %lld,%s\n", (long long)master_lsp->ls_interval_value, master_lsp->ls_interval_units);
-//			}
-//		}
-//		if (p->master_lsp) {
-//			if (p->master_lsp->ls_ms_state & LS_I_AM_A_MASTER) {
-//				slavep = p->master_lsp->ls_slave_ptdsp;
-//				slave_lsp = slavep->slave_lsp;
-//				fprintf(out,"\t\tSlave Target, %d\n", slavep->my_target_number);
-//				fprintf(out,"\t\tSlave Interval value and type, %lld,%s\n", (long long)slave_lsp->ls_interval_value,slave_lsp->ls_interval_units);
-//				fprintf(out,"\t\tSlave initial condition, %s\n",(slave_lsp->ls_ms_state & LS_SLAVE_STARTUP_RUN)?"Run":"Wait");
-//				fprintf(out,"\t\tSlave termination, %s\n",(slave_lsp->ls_ms_state & LS_SLAVE_COMPLETION_COMPLETE)?"Complete":"Stop");
-=======
-//	if (tdp->td_worker thread_number == 0) {
-//		if (tdp->td_slave_lsp) {
-//			if (tdp->td_slave_lstdp->td_ls_ms_state & LS_I_AM_A_SLAVE) {
-//				masterp = tdp->td_slave_lstdp->td_ls_master_ptdsp;
-//				master_lsp = mastertdp->td_master_lsp;
-//				fprintf(out,"\t\tMaster Target, %d\n", mastertdp->td_target_number);
-//				fprintf(out,"\t\tMaster Interval value and type, %lld,%s\n", (long long)master_lstdp->td_ls_interval_value, master_lstdp->td_ls_interval_units);
-//			}
-//		}
-//		if (tdp->td_master_lsp) {
-//			if (tdp->td_master_lstdp->td_ls_ms_state & LS_I_AM_A_MASTER) {
-//				slavep = tdp->td_master_lstdp->td_ls_slave_ptdsp;
-//				slave_lsp = slavetdp->td_slave_lsp;
-//				fprintf(out,"\t\tSlave Target, %d\n", slavetdp->td_target_number);
-//				fprintf(out,"\t\tSlave Interval value and type, %lld,%s\n", (long long)slave_lstdp->td_ls_interval_value,slave_lstdp->td_ls_interval_units);
-//				fprintf(out,"\t\tSlave initial condition, %s\n",(slave_lstdp->td_ls_ms_state & LS_SLAVE_STARTUP_RUN)?"Run":"Wait");
-//				fprintf(out,"\t\tSlave termination, %s\n",(slave_lstdp->td_ls_ms_state & LS_SLAVE_COMPLETION_COMPLETE)?"Complete":"Stop");
->>>>>>> ptds
-//			}
-//		}
-//	}
 
 	// Display information about any End-to-End operations for this target 
 	// Only worker thread 0 displays the inforamtion

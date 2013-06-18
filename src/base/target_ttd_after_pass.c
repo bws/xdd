@@ -62,18 +62,6 @@ xdd_target_ttd_after_pass(target_data_t *tdp) {
 	/* Get the current CPU user and system times and the effective current wall clock time using nclk_now() */
 	times(&tdp->td_tgtstp->my_current_cpu_times);
 
-<<<<<<< HEAD
-	// Loop through all the QThreads to put the Earliest Start Time and Latest End Time into this Target PTDS
-	qp = p->next_qp;
-	while (qp) {
-		if (qp->first_pass_start_time <= p->first_pass_start_time) 
-			p->first_pass_start_time = qp->first_pass_start_time;
-		if (qp->tgtstp->my_pass_start_time <= p->tgtstp->my_pass_start_time) 
-			p->tgtstp->my_pass_start_time = qp->tgtstp->my_pass_start_time;
-		if (qp->tgtstp->my_pass_end_time >= p->tgtstp->my_pass_end_time) 
-			p->tgtstp->my_pass_end_time = qp->tgtstp->my_pass_end_time;
-		qp = qp->next_qp;
-=======
 	// Loop through all the Worker Threads to put the Earliest Start Time and Latest End Time into this Target PTDS
 	wdp = tdp->td_next_wdp;
 	while (wdp) {
@@ -84,7 +72,6 @@ xdd_target_ttd_after_pass(target_data_t *tdp) {
 		if (wdp->wd_pass_end_time >= tdp->td_tgtstp->my_pass_end_time) 
 			tdp->td_tgtstp->my_pass_end_time = wdp->wd_pass_end_time;
 		wdp = wdp->wd_next_wdp;
->>>>>>> ptds
 	}
 	if (tdp->td_target_options & TO_ENDTOEND) { 
 		// Average the Send/Receive Time 
