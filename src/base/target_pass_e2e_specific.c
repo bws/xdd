@@ -76,7 +76,7 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 			// When we got this Worker Thread the WTSYNC_BUSY flag was set by get_any_available_worker_thread()
 			// We need to reset it so that the subsequent loop will find it with get_specific_worker_thread()
 			// Normally we would get the mutex lock to do this update but at this point it is not necessary.
-			wdp->wd_thread_target_sync &= ~WTSYNC_BUSY;
+			wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY;
 			break;
 		}
 
@@ -130,9 +130,9 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 	// Worker Thread specifically and then reset it's "busy" bit to 0.
 	for (q = 0; q < tdp->td_queue_depth; q++) {
 		wdp = xdd_get_specific_worker_thread(tdp,q);
-		pthread_mutex_lock(&wdp->wd_thread_target_sync_mutex);
-		wdp->wd_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
-		pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
+		pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
+		wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
+		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 		// Check to see if we've been canceled - if so, we need to leave 
 		if (xgp->canceled) {
 			fprintf(xgp->errout,"\n%s: xdd_targetpass_e2e_loop_src: Target %d: ERROR: Canceled!\n",
@@ -210,9 +210,9 @@ xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, target_data_t *tdp) {
 	// Worker Thread specifically and then reset it's "busy" bit to 0.
 	for (q = 0; q < tdp->td_queue_depth; q++) {
 		wdp = xdd_get_specific_worker_thread(tdp,q);
-		pthread_mutex_lock(&wdp->wd_thread_target_sync_mutex);
-		wdp->wd_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
-		pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
+		pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
+		wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
+		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 	}
 
 	if (tdp->td_tgtstp->my_current_io_status != 0) 
@@ -345,7 +345,7 @@ xdd_targetpass_e2e_monitor(target_data_t *tdp) {
 		qavail = 0;
 		tmpwdp = tdp->td_next_wdp; // first Worker Thread on the chain
 		while (tmpwdp) { // Scan the Worker Threads to determine the one furthest ahead and the one furthest behind
-			if (tmpwdp->wd_thread_target_sync & WTSYNC_BUSY) {
+			if (tmpwdp->wd_worker_thread_target_sync & WTSYNC_BUSY) {
 				if (tdp->td_tgtstp->target_op_number < opmin) {
 					opmin = tdp->td_tgtstp->target_op_number;
 					qmin = tmpwdp->wd_thread_number;

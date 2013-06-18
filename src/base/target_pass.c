@@ -161,9 +161,9 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 		status = xdd_target_ttd_before_io_op(tdp, wdp);
 		if (status != XDD_RC_GOOD) {
 			// Mark this worker thread NOT BUSY and break out of this loop
-			pthread_mutex_lock(&wdp->wd_thread_target_sync_mutex);
-			wdp->wd_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
-			pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
+			pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
+			wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
+			pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 			break;
 		}
 
@@ -190,9 +190,9 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 	// Worker Thread specifically and then reset it's "busy" bit to 0.
 	for (q = 0; q < tdp->td_queue_depth; q++) {
 		wdp = xdd_get_specific_worker_thread(tdp,q);
-		pthread_mutex_lock(&wdp->wd_thread_target_sync_mutex);
-		wdp->wd_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
-		pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
+		pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
+		wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
+		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 	}
 	if (tdp->td_tgtstp->my_current_io_status != 0) 
 		planp->target_errno[tdp->td_target_number] = XDD_RETURN_VALUE_IOERROR;

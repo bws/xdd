@@ -50,7 +50,7 @@ void	xdd_destroy_barrier(xdd_plan_t* planp, struct xdd_barrier *bp);
 int32_t	xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner);
 
 // datapatterns.c
-void	xdd_datapattern_buffer_init(target_data_t *tdp);
+void	xdd_datapattern_buffer_init(worker_data_t *wdp);
 void	xdd_datapattern_fill(worker_data_t *wdp);
 
 // debug.c
@@ -123,7 +123,7 @@ void	xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t fl
 void	xdd_interactive_show_ptds(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_display_state_info(target_data_t *qp);
+void	xdd_interactive_display_state_info(worker_data_t *wdp);
 void	xdd_interactive_show_qtptds(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags);
@@ -132,7 +132,7 @@ void	xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags);
 
 // io_buffers.c
-unsigned char *xdd_init_io_buffers(target_data_t *p);
+unsigned char *xdd_init_io_buffers(worker_data_t *wdp);
 
 // lockstep.c
 int32_t	xdd_lockstep(target_data_t *p);
@@ -204,40 +204,40 @@ int32_t	xdd_worker_thread_init(worker_data_t *wdp);
 
 // worker_thread_io.c
 void	xdd_worker_thread_io(worker_data_t *wdp);
-int32_t	xdd_worker_thread_wait_for_previous_io(target_data_t *qp);
-int32_t	xdd_worker_thread_release_next_io(target_data_t *qp);
-void	xdd_worker_thread_update_local_counters(target_data_t *qp);
-void	xdd_worker_thread_update_target_counters(target_data_t *qp);
-void	xdd_worker_thread_check_io_status(target_data_t *qp);
+int32_t	xdd_worker_thread_wait_for_previous_io(worker_data_t *wdp);
+int32_t	xdd_worker_thread_release_next_io(worker_data_t *wdp);
+void	xdd_worker_thread_update_local_counters(worker_data_t *wdp);
+void	xdd_worker_thread_update_target_counters(worker_data_t *wdp);
+void	xdd_worker_thread_check_io_status(worker_data_t *wdp);
 
 // worker_thread_io_for_os.c
 void	xdd_io_for_os(worker_data_t *wdp);
 
 // worker_thread_ttd_after_io_op.c
-void	xdd_threshold_after_io_op(target_data_t *qp);
-void	xdd_status_after_io_op(target_data_t *qp);
-void	xdd_dio_after_io_op(target_data_t *qp);
-void	xdd_raw_after_io_op(target_data_t *qp);
-void	xdd_e2e_after_io_op(target_data_t *qp);
-void	xdd_extended_stats(target_data_t *qp);
-void	xdd_worker_thread_ttd_after_io_op(target_data_t *qp);
+void	xdd_threshold_after_io_op(worker_data_t *wdp);
+void	xdd_status_after_io_op(worker_data_t *wdp);
+void	xdd_dio_after_io_op(worker_data_t *wdp);
+void	xdd_raw_after_io_op(worker_data_t *wdp);
+void	xdd_e2e_after_io_op(worker_data_t *wdp);
+void	xdd_extended_stats(worker_data_t *wdp);
+void	xdd_worker_thread_ttd_after_io_op(worker_data_t *wdp);
 
 // worker_thread_ttd_before_io_op.c
-void	xdd_dio_before_io_op(target_data_t *qp);
-void	xdd_raw_before_io_op(target_data_t *qp);
-int32_t	xdd_e2e_before_io_op(target_data_t *qp);
-void	xdd_throttle_before_io_op(target_data_t *qp);
-int32_t	xdd_worker_thread_ttd_before_io_op(target_data_t *qp);
+void	xdd_dio_before_io_op(worker_data_t *wdp);
+void	xdd_raw_before_io_op(worker_data_t *wdp);
+int32_t	xdd_e2e_before_io_op(worker_data_t *wdp);
+void	xdd_throttle_before_io_op(worker_data_t *wdp);
+int32_t	xdd_worker_thread_ttd_before_io_op(worker_data_t *wdp);
 
 // read_after_write.c
 void	xdd_raw_err(char const *fmt, ...);
 int32_t	xdd_raw_setup_reader_socket(target_data_t *p);
 int32_t	xdd_raw_sockets_init(target_data_t *p);
 int32_t	xdd_raw_reader_init(target_data_t *p);
-int32_t	xdd_raw_read_wait(target_data_t *p);
+int32_t	xdd_raw_read_wait(worker_data_t *wdp);
 int32_t	xdd_raw_setup_writer_socket(target_data_t *p);
 int32_t	xdd_raw_writer_init(target_data_t *p);
-int32_t	xdd_raw_writer_send_msg(target_data_t *p);
+int32_t	xdd_raw_writer_send_msg(worker_data_t *wdp);
 
 // restart.c
 int	xdd_restart_create_restart_file(restart_t *rp);
@@ -384,13 +384,13 @@ int	xdd_random_int(void);
 double 	xdd_random_float(void);
 
 // verify.c
-int32_t	xdd_verify_checksum(target_data_t *p, int64_t current_op);
-int32_t	xdd_verify_hex(target_data_t *p, int64_t current_op);
-int32_t	xdd_verify_sequence(target_data_t *p, int64_t current_op);
-int32_t	xdd_verify_singlechar(target_data_t *p, int64_t current_op);
-int32_t	xdd_verify_contents(target_data_t *p, int64_t current_op);
-int32_t	xdd_verify_location(target_data_t *p, int64_t current_op);
-int32_t	xdd_verify(target_data_t *p, int64_t current_op);
+int32_t	xdd_verify_checksum(worker_data_t *wdp, int64_t current_op);
+int32_t	xdd_verify_hex(worker_data_t *wdp, int64_t current_op);
+int32_t	xdd_verify_sequence(worker_data_t *wdp, int64_t current_op);
+int32_t	xdd_verify_singlechar(worker_data_t *wdp, int64_t current_op);
+int32_t	xdd_verify_contents(worker_data_t *wdp, int64_t current_op);
+int32_t	xdd_verify_location(worker_data_t *wdp, int64_t current_op);
+int32_t	xdd_verify(worker_data_t *wdp, int64_t current_op);
 
 // xdd.c
 int32_t	xdd_start_targets();

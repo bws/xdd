@@ -249,7 +249,7 @@ xdd_target_ttd_before_io_op(target_data_t *tdp, worker_data_t *wdp) {
 		// will find it with get_specific_worker_thread()
 		// Normally we would get the mutex lock to do this 
 		// update but at this point it is not necessary.
-		wdp->wd_thread_target_sync &= ~WTSYNC_BUSY;
+		wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY;
 		return(XDD_RC_BAD);
 	}
 

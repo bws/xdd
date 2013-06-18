@@ -45,7 +45,8 @@
  * command line option.
  */
 unsigned char *
-xdd_init_io_buffers(target_data_t *tdp) {
+xdd_init_io_buffers(worker_data_t *wdp) {
+	target_data_t	*tdp;
 	unsigned char *rwbuf; /* the read/write buffer for this op */
 	void *shmat_status;
 	int	buffer_size;
@@ -54,6 +55,7 @@ xdd_init_io_buffers(target_data_t *tdp) {
 #endif
 
 
+	tdp = wdp->wd_tdp;
 
 	buffer_size = tdp->td_iosize;
 	/* allocate slightly larger buffer for meta data for end-to-end ops */

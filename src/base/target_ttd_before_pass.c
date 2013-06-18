@@ -319,7 +319,7 @@ xdd_target_ttd_before_pass(target_data_t *tdp) {
 			wdp->wd_pass_start_time = tdp->td_tgtstp->my_pass_start_time;
 			times(&wdp->wd_starting_cpu_times_this_pass);
 		}
-		xdd_init_ptds_before_pass(wdp);
+		xdd_init_ptds_before_pass(tdp);
 		wdp = wdp->wd_next_wdp;
 	}
 

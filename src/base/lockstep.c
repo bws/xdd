@@ -151,9 +151,9 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p
 			status = xdd_target_ttd_before_io_op(tdp, wdp);
 			if (status != XDD_RC_GOOD) {
 				// Mark this worker_thread NOT BUSY and break out of this loop
-				pthread_mutex_lock(&wdp->wd_thread_target_sync_mutex);
-				wdp->wd_thread_target_sync &= ~WDSYNC_BUSY; // Mark this WORKER_Thread NOT Busy
-				pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
+				pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
+				wdp->wd_worker_thread_target_sync &= ~WDSYNC_BUSY; // Mark this WORKER_Thread NOT Busy
+				pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 				break;
 			}
 
@@ -177,9 +177,9 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p
 if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::::Requesting WORKER_Thread %d\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,q);
 			wdp = xdd_get_specific_worker_thread(tdp,q);
 if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:Got  WORKER_Thread %d\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,q);
-			pthread_mutex_lock(&wdp->wd_thread_target_sync_mutex);
-			wdp->wd_thread_target_sync &= ~WDSYNC_BUSY; // Mark this WORKER_Thread NOT Busy
-			pthread_mutex_unlock(&wdp->wd_thread_target_sync_mutex);
+			pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
+			wdp->wd_worker_thread_target_sync &= ~WDSYNC_BUSY; // Mark this WORKER_Thread NOT Busy
+			pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 		}
 		if (ops_remaining <= 0) 
 			lsp->ls_state |= LS_STATE_PASS_COMPLETE;
