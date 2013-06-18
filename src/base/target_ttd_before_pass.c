@@ -101,7 +101,7 @@ fprintf(xgp->output,"XDD Timer Calibration Info: Requested sleep time in nanosec
  *
  */
 void
-xdd_start_delay_before_pass(ptds_t *p) {
+xdd_start_delay_before_pass(target_data_t *tdp) {
 	int				status;
 	struct timespec	req;	// The requested sleep time
 	struct timespec	rem;	// The remaining sleep time is awoken early
@@ -114,20 +114,20 @@ xdd_start_delay_before_pass(ptds_t *p) {
 	 * until the start delay time has elapsed and then spring into action!
 	 * The start_delay time is stored as a nclk_t which is units of nano seconds.
 	 */
-	if (p->start_delay <= 0.0)
+	if (tdp->td_start_delay <= 0.0)
 		return; // No start delay
 
 	// Convert the start delay from nanoseconds to milliseconds
 #ifdef WIN32
-	sleep_time_dw = (int32_t)(p->start_delay_psec/BILLION);
+	sleep_time_dw = (int32_t)(tdp->td_start_delay_psec/BILLION);
 	Sleep(sleep_time_dw);
 #elif (IRIX )
-	sleep_time_dw = (int32_t)(p->start_delay_psec/BILLION);
+	sleep_time_dw = (int32_t)(tdp->td_start_delay_psec/BILLION);
 	sginap((sleep_time_dw*CLK_TCK)/1000);
 #else
-	req.tv_sec = p->start_delay; // Whole seconds
-	req.tv_nsec = (p->start_delay - req.tv_sec) * BILLION; // Fraction of a second
-	fprintf(xgp->output, "\nTarget %d Beginning requested Start Delay for %f seconds before pass %d...\n",p->my_target_number, p->start_delay, p->tgtstp->my_current_pass_number);
+	req.tv_sec = tdp->td_start_delay; // Whole seconds
+	req.tv_nsec = (tdp->td_start_delay - req.tv_sec) * BILLION; // Fraction of a second
+	fprintf(xgp->output, "\nTarget %d Beginning requested Start Delay for %f seconds before pass %d...\n",tdp->td_target_number, tdp->td_start_delay, tdp->td_tgtstp->my_current_pass_number);
 	fflush(xgp->output);
 	rem.tv_sec = 0; // zero this out just to make sure
 	rem.tv_nsec = 0; // zero this out just to make sure
@@ -139,7 +139,7 @@ xdd_start_delay_before_pass(ptds_t *p) {
 		rem.tv_nsec = 0; // zero this out just to make sure
 		status = nanosleep(&req, &rem);
 	} 
-	fprintf(xgp->output, "\nTarget %d Starting pass %d after requested delay of %f seconds\n",p->my_target_number,p->tgtstp->my_current_pass_number, p->start_delay);
+	fprintf(xgp->output, "\nTarget %d Starting pass %d after requested delay of %f seconds\n",tdp->td_target_number,tdp->td_tgtstp->my_current_pass_number, tdp->td_start_delay);
 	fflush(xgp->output);
 #endif
 } // End of xdd_start_delay_before_pass()
@@ -153,13 +153,13 @@ xdd_start_delay_before_pass(ptds_t *p) {
  *
  */
 void
-xdd_raw_before_pass(ptds_t *p) {
+xdd_raw_before_pass(target_data_t *tdp) {
 	xdd_raw_t		*rawp;
 
-	if ((p->target_options & TO_READAFTERWRITE) == 0)
+	if ((tdp->td_target_options & TO_READAFTERWRITE) == 0)
 		return;
 
-	rawp = p->rawp;
+	rawp = tdp->td_rawp;
 
 	// Initialize the read-after-write variables
 	rawp->raw_msg_sent = 0;
@@ -181,19 +181,19 @@ xdd_raw_before_pass(ptds_t *p) {
  *
  */
 void
-xdd_e2e_before_pass(ptds_t *p) {
+xdd_e2e_before_pass(target_data_t *tdp) {
 
-	if ((p->target_options & TO_ENDTOEND) == 0)
+	if ((tdp->td_target_options & TO_ENDTOEND) == 0)
 		return;
 
 	// Initialize the read-after-write variables
-	p->e2ep->e2e_msg_sent = 0;
-	p->e2ep->e2e_msg_recv = 0;
-	p->e2ep->e2e_msg_sequence_number = 0;
-	p->e2ep->e2e_prev_loc = 0;
-	p->e2ep->e2e_prev_len = 0;
-	p->e2ep->e2e_data_length = 0;
-	p->e2ep->e2e_sr_time = 0;
+	tdp->td_e2ep->e2e_msg_sent = 0;
+	tdp->td_e2ep->e2e_msg_recv = 0;
+	tdp->td_e2ep->e2e_msg_sequence_number = 0;
+	tdp->td_e2ep->e2e_prev_loc = 0;
+	tdp->td_e2ep->e2e_prev_len = 0;
+	tdp->td_e2ep->e2e_data_length = 0;
+	tdp->td_e2ep->e2e_sr_time = 0;
 
 } // End of xdd_e2e_before_pass()
 
@@ -204,46 +204,46 @@ xdd_e2e_before_pass(ptds_t *p) {
  *
  */
 void 
-xdd_init_ptds_before_pass(ptds_t *p) {
+xdd_init_ptds_before_pass(target_data_t *tdp) {
     
 	// Init all the pass-related variables to 0
-	p->tgtstp->my_elapsed_pass_time = 0;
-	p->tgtstp->my_first_op_start_time = 0;
-	p->tgtstp->my_accumulated_op_time = 0; 
-	p->tgtstp->my_accumulated_read_op_time = 0;
-	p->tgtstp->my_accumulated_write_op_time = 0;
-	p->tgtstp->my_accumulated_pattern_fill_time = 0;
-	p->tgtstp->my_accumulated_flush_time = 0;
+	tdp->td_tgtstp->my_elapsed_pass_time = 0;
+	tdp->td_tgtstp->my_first_op_start_time = 0;
+	tdp->td_tgtstp->my_accumulated_op_time = 0; 
+	tdp->td_tgtstp->my_accumulated_read_op_time = 0;
+	tdp->td_tgtstp->my_accumulated_write_op_time = 0;
+	tdp->td_tgtstp->my_accumulated_pattern_fill_time = 0;
+	tdp->td_tgtstp->my_accumulated_flush_time = 0;
 	//
-	p->tgtstp->my_current_op_number = 0; 		// The current operation number init to 0
-	p->tgtstp->my_current_op_count = 0; 		// The number of read+write operations that have completed so far
-	p->tgtstp->my_current_read_op_count = 0;	// The number of read operations that have completed so far 
-	p->tgtstp->my_current_write_op_count = 0;	// The number of write operations that have completed so far 
-	p->tgtstp->my_current_bytes_xfered = 0;		// Total number of bytes transferred to far (to storage device, not network)
-	p->tgtstp->my_current_bytes_read = 0;		// Total number of bytes read to far (from storage device, not network)
-	p->tgtstp->my_current_bytes_written = 0;	// Total number of bytes written to far (to storage device, not network)
-	p->tgtstp->my_current_byte_location = 0; 	// Current byte location for this I/O operation 
-	p->tgtstp->my_current_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
-	p->tgtstp->my_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
-	p->tgtstp->my_current_error_count = 0;		// The number of I/O errors for this qthread
+	tdp->td_tgtstp->my_current_op_number = 0; 		// The current operation number init to 0
+	tdp->td_tgtstp->my_current_op_count = 0; 		// The number of read+write operations that have completed so far
+	tdp->td_tgtstp->my_current_read_op_count = 0;	// The number of read operations that have completed so far 
+	tdp->td_tgtstp->my_current_write_op_count = 0;	// The number of write operations that have completed so far 
+	tdp->td_tgtstp->my_current_bytes_xfered = 0;		// Total number of bytes transferred to far (to storage device, not network)
+	tdp->td_tgtstp->my_current_bytes_read = 0;		// Total number of bytes read to far (from storage device, not network)
+	tdp->td_tgtstp->my_current_bytes_written = 0;	// Total number of bytes written to far (to storage device, not network)
+	tdp->td_tgtstp->my_current_byte_location = 0; 	// Current byte location for this I/O operation 
+	tdp->td_tgtstp->my_current_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
+	tdp->td_tgtstp->my_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
+	tdp->td_tgtstp->my_current_error_count = 0;		// The number of I/O errors for this qthread
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS
-	if (p->esp) {
-		p->esp->my_longest_op_time = 0;			// Longest op time that occured during this pass
-		p->esp->my_longest_op_number = 0; 		// Number of the operation where the longest op time occured during this pass
-		p->esp->my_longest_read_op_time = 0; 	// Longest read op time that occured during this pass
-		p->esp->my_longest_read_op_number = 0; 	// Number of the read operation where the longest op time occured during this pass
-		p->esp->my_longest_write_op_time = 0; 	// Longest write op time that occured during this pass
-		p->esp->my_longest_write_op_number = 0; 	// Number of the write operation where the longest op time occured during this pass
-		p->esp->my_shortest_op_time = NCLK_MAX; 	// Shortest op time that occurred during this pass
-		p->esp->my_shortest_op_number = 0; 		// Number of the operation where the shortest op time occured during this pass
-		p->esp->my_shortest_read_op_time = NCLK_MAX;	// Shortest read op time that occured during this pass
-		p->esp->my_shortest_read_op_number = 0; 	// Number of the read operation where the shortest op time occured during this pass
-		p->esp->my_shortest_write_op_time = NCLK_MAX;// Shortest write op time that occured during this pass
-		p->esp->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
+	if (tdp->td_esp) {
+		tdp->td_esp->my_longest_op_time = 0;			// Longest op time that occured during this pass
+		tdp->td_esp->my_longest_op_number = 0; 		// Number of the operation where the longest op time occured during this pass
+		tdp->td_esp->my_longest_read_op_time = 0; 	// Longest read op time that occured during this pass
+		tdp->td_esp->my_longest_read_op_number = 0; 	// Number of the read operation where the longest op time occured during this pass
+		tdp->td_esp->my_longest_write_op_time = 0; 	// Longest write op time that occured during this pass
+		tdp->td_esp->my_longest_write_op_number = 0; 	// Number of the write operation where the longest op time occured during this pass
+		tdp->td_esp->my_shortest_op_time = NCLK_MAX; 	// Shortest op time that occurred during this pass
+		tdp->td_esp->my_shortest_op_number = 0; 		// Number of the operation where the shortest op time occured during this pass
+		tdp->td_esp->my_shortest_read_op_time = NCLK_MAX;	// Shortest read op time that occured during this pass
+		tdp->td_esp->my_shortest_read_op_number = 0; 	// Number of the read operation where the shortest op time occured during this pass
+		tdp->td_esp->my_shortest_write_op_time = NCLK_MAX;// Shortest write op time that occured during this pass
+		tdp->td_esp->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
 	}
 
-	p->tgtstp->my_time_limit_expired = 0;		// The time limit expiration indicator
+	tdp->td_tgtstp->my_time_limit_expired = 0;		// The time limit expiration indicator
 
 } // End of xdd_init_ptds_before_pass()
  
@@ -256,71 +256,71 @@ xdd_init_ptds_before_pass(ptds_t *p) {
  *                1 is bad
  */
 int32_t
-xdd_target_ttd_before_pass(ptds_t *p) {
-	ptds_t	*qp;	// Pointer to a QThread PTDS
+xdd_target_ttd_before_pass(target_data_t *tdp) {
+	worker_data_t	*wdp;	// Pointer to a QThread PTDS
 
 
 	// Timer Calibration and Information
 	xdd_timer_calibration_before_pass();
 
 	// Process Start Delay
-	xdd_start_delay_before_pass(p);
+	xdd_start_delay_before_pass(tdp);
 
 	// Lock Step Processing
-	xdd_lockstep_before_pass(p);
+	xdd_lockstep_before_pass(tdp);
 
 	// Read-After_Write setup
-	xdd_raw_before_pass(p);
+	xdd_raw_before_pass(tdp);
 
 	// End-to-End setup
-	xdd_e2e_before_pass(p);
+	xdd_e2e_before_pass(tdp);
 
-	xdd_init_ptds_before_pass(p);
+	xdd_init_ptds_before_pass(tdp);
 
 	/* Initialize counters, barriers, clocks, ...etc */
-	p->iosize = p->reqsize * p->block_size;
+	tdp->td_iosize = tdp->td_reqsize * tdp->td_block_size;
 
 	/* Get the starting time stamp */
-	if (p->tgtstp->my_current_pass_number == 1) { // For the *first* pass...
-		if ((p->target_options & TO_ENDTOEND) && (p->target_options & TO_E2E_DESTINATION)) {  
+	if (tdp->td_tgtstp->my_current_pass_number == 1) { // For the *first* pass...
+		if ((tdp->td_target_options & TO_ENDTOEND) && (tdp->td_target_options & TO_E2E_DESTINATION)) {  
 			// Since the Destination Side starts and *waits* for the Source Side, the
 			// actual "first pass start time" is set to a LARGE number so that it later
 			// gets set to the time that the first packet of data was actually received.
 			// That is done by the Results Manager at the end of a pass.
-			p->first_pass_start_time = NCLK_MAX;
-			p->tgtstp->my_pass_start_time = NCLK_MAX;
+			tdp->td_first_pass_start_time = NCLK_MAX;
+			tdp->td_tgtstp->my_pass_start_time = NCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
-			nclk_now(&p->first_pass_start_time);
-			p->tgtstp->my_pass_start_time = p->first_pass_start_time;
+			nclk_now(&tdp->td_first_pass_start_time);
+			tdp->td_tgtstp->my_pass_start_time = tdp->td_first_pass_start_time;
 		}
 		// Get the current CPU user and system times 
-		times(&p->tgtstp->my_starting_cpu_times_this_run);
-		memcpy(&p->tgtstp->my_starting_cpu_times_this_pass,&p->tgtstp->my_starting_cpu_times_this_run, sizeof(struct tms));
+		times(&tdp->td_tgtstp->my_starting_cpu_times_this_run);
+		memcpy(&tdp->td_tgtstp->my_starting_cpu_times_this_pass,&tdp->td_tgtstp->my_starting_cpu_times_this_run, sizeof(struct tms));
 	} else { // For pass number greater than 1
-		if ((p->target_options & TO_ENDTOEND) && (p->target_options & TO_E2E_DESTINATION)) {
+		if ((tdp->td_target_options & TO_ENDTOEND) && (tdp->td_target_options & TO_E2E_DESTINATION)) {
 			// Same as above... Pass numbers greater than one will be used when the
 			// multi-file copy support is added
-			p->tgtstp->my_pass_start_time = NCLK_MAX;
+			tdp->td_tgtstp->my_pass_start_time = NCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
-			nclk_now(&p->tgtstp->my_pass_start_time);
+			nclk_now(&tdp->td_tgtstp->my_pass_start_time);
 		}
-		times(&p->tgtstp->my_starting_cpu_times_this_pass);
+		times(&tdp->td_tgtstp->my_starting_cpu_times_this_pass);
 	}
 
-	qp = p->next_qp;
-	while (qp) { // Set up the pass_start_times for all the QThreads 
-		if (p->tgtstp->my_current_pass_number == 1) {
-			qp->first_pass_start_time = p->first_pass_start_time;
-			qp->tgtstp->my_pass_start_time = qp->first_pass_start_time;
+	wdp = tdp->td_next_wdp;
+	while (wdp) { // Set up the pass_start_times for all the QThreads 
+		if (tdp->td_tgtstp->my_current_pass_number == 1) {
+			wdp->wd_first_pass_start_time = tdp->td_first_pass_start_time;
+			wdp->wd_pass_start_time = wdp->wd_first_pass_start_time;
 			// Get the current CPU user and system times 
-			times(&qp->tgtstp->my_starting_cpu_times_this_run);
-			memcpy(&qp->tgtstp->my_starting_cpu_times_this_pass,&qp->tgtstp->my_starting_cpu_times_this_run, sizeof(struct tms));
+			times(&wdp->wd_starting_cpu_times_this_run);
+			memcpy(&wdp->wd_starting_cpu_times_this_pass,&wdp->wd_starting_cpu_times_this_run, sizeof(struct tms));
 		} else { 
-			qp->tgtstp->my_pass_start_time = p->tgtstp->my_pass_start_time;
-			times(&qp->tgtstp->my_starting_cpu_times_this_pass);
+			wdp->wd_pass_start_time = tdp->td_tgtstp->my_pass_start_time;
+			times(&wdp->wd_starting_cpu_times_this_pass);
 		}
-		xdd_init_ptds_before_pass(qp);
-		qp = qp->next_qp;
+		xdd_init_ptds_before_pass(wdp);
+		wdp = wdp->wd_next_wdp;
 	}
 
 	return(0);

@@ -14,7 +14,7 @@ BASE_SRC := $(DIR)/heartbeat.c \
 	$(DIR)/target_open.c \
 	$(DIR)/target_pass.c \
 	$(DIR)/target_pass_e2e_specific.c \
-	$(DIR)/target_pass_qt_locator.c \
+	$(DIR)/target_pass_wt_locator.c \
 	$(DIR)/target_thread.c \
 	$(DIR)/target_ttd_after_pass.c \
 	$(DIR)/target_ttd_before_io_op.c \

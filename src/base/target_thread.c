@@ -36,43 +36,43 @@
 /*----------------------------------------------------------------------------*/
 /* xdd_target_thread() - This thread represents a single target device or file.
  * One Target thread is started for each Target device or file by the xdd_target_start() subroutine.
- * Each Target thread will subsequently start 1 to N QThreads where N is the queue depth
+ * Each Target thread will subsequently start 1 to N Worker Threads where N is the queue depth
  * for the specific target. 
- * When the Target thread is released it will get QThreads that are Available 
+ * When the Target thread is released it will get Worker Threads that are Available 
  * and give each one a single location to access, an operation
  * to perform (read or write), the amount of data to transfer, and the global clock
  * time at which to start the operation if throttling is being used. 
- * When the QThread has completed its operation it will report its status, 
+ * When the Worker Thread has completed its operation it will report its status, 
  * update counters in the Target PTDS, and make itself Available.
  */
 void *
 xdd_target_thread(void *pin) {
 	int32_t  	status;		// Status of various function calls
-	ptds_t		*p;			// Pointer to this Target's PTDS
+	target_data_t		*tdp;			// Pointer to this Target's PTDS
 	xdd_plan_t* planp;
 
-	p = (ptds_t *)pin;
-	planp = p->my_planp;
+	tdp = (target_data_t *)pin;
+	planp = tdp->td_planp;
 
-	// Call xdd_target_thread_init() to create all the QThreads for this target
-	status = xdd_target_init(p);
+	// Call xdd_target_thread_init() to create all the Worker Threads for this target
+	status = xdd_target_init(tdp);
 	if (status != 0 ) {
 		fprintf(xgp->errout,"%s: xdd_target_thread: ERROR: Aborting due to previous initialization failure for target number %d name '%s'\n",
 			xgp->progname,
-			p->my_target_number,
-			p->target_full_pathname);
+			tdp->td_target_number,
+			tdp->td_target_full_pathname);
 		fflush(xgp->errout);
 		xgp->abort = 1; // This will tell xdd_start_targets() to abort
 	}
 
 	// Enter this barrier to release xdd_start_targets() 
-	xdd_barrier(&planp->main_general_init_barrier,&p->occupant,0);
+	xdd_barrier(&planp->main_general_init_barrier,&tdp->td_occupant,0);
 	if ( xgp->abort == 1) // Something went wrong during thread initialization so let's just leave
 		return(0);
 
 	// Enter the "wait for start"  barrier and wait here until all other Target Threads have started
 	// After all other Target Threads have started, xdd_main() will enter this barrier thus releasing all Target Threads
-	xdd_barrier(&planp->main_targets_waitforstart_barrier,&p->occupant,0);
+	xdd_barrier(&planp->main_targets_waitforstart_barrier,&tdp->td_occupant,0);
 
 	// If this is a dry run then just exit at this point
 	if (xgp->global_options & GO_DRYRUN) {
@@ -82,10 +82,10 @@ xdd_target_thread(void *pin) {
 	/* Start the main pass loop */
 	while (1) {
 		// Perform a single pass
-	    xdd_targetpass(planp, p);
+	    xdd_targetpass(planp, tdp);
 
 		// Check to see if we got canceled or if we need to abort for some reason
-		if ((xgp->canceled) || (xgp->abort) || (p->tgtstp->abort)) {
+		if ((xgp->canceled) || (xgp->abort) || (tdp->td_tgtstp->abort)) {
 			break;
 		}
 
@@ -96,56 +96,56 @@ xdd_target_thread(void *pin) {
 		if (planp->run_time_ticks > 0) {
 			if (xgp->run_time_expired) /* This is the alarm that goes off when the total run time specified has been exceeded */
 				break; /* Time to leave */
-			else if (p->tgtstp->my_current_pass_number == planp->passes) /* Otherwise if we just finished the last pass, we need to keep going */
+			else if (tdp->td_tgtstp->my_current_pass_number == planp->passes) /* Otherwise if we just finished the last pass, we need to keep going */
 				planp->passes++;
 		}
 
 		// If this is the Destination side of an E2E then set the RESTART SUCCESSFUL COMPLETION
 		// flag in the restart structure if there is one...
-		if (p->target_options & TO_E2E_DESTINATION) {
-			if( p->restartp) {
-				pthread_mutex_lock(&p->restartp->restart_lock);
-				p->restartp->flags |= RESTART_FLAG_SUCCESSFUL_COMPLETION;
-				if (p->restartp->fp) {
+		if (tdp->td_target_options & TO_E2E_DESTINATION) {
+			if( tdp->td_restartp) {
+				pthread_mutex_lock(&tdp->td_restartp->restart_lock);
+				tdp->td_restartp->flags |= RESTART_FLAG_SUCCESSFUL_COMPLETION;
+				if (tdp->td_restartp->fp) {
 					// Display an appropriate Successful Completion in the restart file and close it
 					// Seek to the beginning of the file 
-					status = fseek(p->restartp->fp, 0L, SEEK_SET);
+					status = fseek(tdp->td_restartp->fp, 0L, SEEK_SET);
 					if (status < 0) {
 						fprintf(xgp->errout,"%s: Target %d: WARNING: Seek to beginning of restart file %s failed\n",
 							xgp->progname,
-							p->my_target_number,
-							p->restartp->restart_filename);
+							tdp->td_target_number,
+							tdp->td_restartp->restart_filename);
 						perror("Reason");
 					}
 					
 					// Put the Normal Completion information into the restart file
-					fprintf(p->restartp->fp,"File Copy Operation completed successfully.\n");
-					fprintf(p->restartp->fp,"%lld bytes written to file %s\n",(long long int)p->tgtstp->my_current_bytes_xfered,p->target_full_pathname);
-					fflush(p->restartp->fp);
-					fclose(p->restartp->fp);
+					fprintf(tdp->td_restartp->fp,"File Copy Operation completed successfully.\n");
+					fprintf(tdp->td_restartp->fp,"%lld bytes written to file %s\n",(long long int)tdp->td_tgtstp->my_current_bytes_xfered,tdp->td_target_full_pathname);
+					fflush(tdp->td_restartp->fp);
+					fclose(tdp->td_restartp->fp);
 				}
-				pthread_mutex_unlock(&p->restartp->restart_lock);
+				pthread_mutex_unlock(&tdp->td_restartp->restart_lock);
 			} 
 		} // End of IF clause that deals with a restart file if there is one
 
 		// Check to see if we completed all passes in this run
- 		if (p->tgtstp->my_current_pass_number >= planp->passes)
+ 		if (tdp->td_tgtstp->my_current_pass_number >= planp->passes)
 			break; 
 
         /* Increment pass number and start work for next pass */
-        p->tgtstp->my_current_pass_number++;
+        tdp->td_tgtstp->my_current_pass_number++;
 
 		/* Close current file, create a new target file, and open the new (or existing) file is requested */
-		if ((p->target_options & TO_CREATE_NEW_FILES) || 
-		    (p->target_options & TO_REOPEN) || 
-		    (p->target_options & TO_RECREATE)) {
-			// Tell all QThreads to close and reopen the new file
-			xdd_target_reopen(p);
+		if ((tdp->td_target_options & TO_CREATE_NEW_FILES) || 
+		    (tdp->td_target_options & TO_REOPEN) || 
+		    (tdp->td_target_options & TO_RECREATE)) {
+			// Tell all Worker Threads to close and reopen the new file
+			xdd_target_reopen(tdp);
 		}
-	} /* end of FOR loop p->tgtstp->my_current_pass_number */
+	} /* end of FOR loop tdp->td_tgtstp->my_current_pass_number */
 
 	// If this is an E2E operation and we had gotten canceled - just return
-	if ((p->target_options & TO_ENDTOEND) && (xgp->canceled))
+	if ((tdp->td_target_options & TO_ENDTOEND) && (xgp->canceled))
 		exit(2); 
 	
 	// Indicate that this run has completed
@@ -161,13 +161,13 @@ xdd_target_thread(void *pin) {
 	// will be released and immediately notice that the "xgp->run_complete"
 	// flag is set and therefore display results for this last pass
 	// and then go on to displaying results for the run.
-	xdd_barrier(&planp->results_targets_startpass_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_startpass_barrier,&tdp->td_occupant,0);
 
 	// All Target Threads wait here until the results_manager displays the pass results.
-	xdd_barrier(&planp->results_targets_endpass_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_endpass_barrier,&tdp->td_occupant,0);
 
 	// All Target Threads wait here until the results_manager displays the run results.
-	xdd_barrier(&planp->results_targets_display_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_display_barrier,&tdp->td_occupant,0);
 
 	// At this point all the Target Threads have completed the run and have
 	// passed thru the previous barriers and the results_manager() 
@@ -175,10 +175,10 @@ xdd_target_thread(void *pin) {
 	// Now it is time to cleanup after this Target Thread
 
 	// Display output and cleanup 
-	xdd_target_thread_cleanup(p);
+	xdd_target_thread_cleanup(tdp);
 
 	// Wait for all the other threads to complete their cleanup
-	xdd_barrier(&planp->results_targets_waitforcleanup_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_waitforcleanup_barrier,&tdp->td_occupant,0);
 
     return(0);
 } /* end of xdd_target_thread() */
