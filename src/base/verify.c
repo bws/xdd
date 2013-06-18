@@ -39,7 +39,7 @@
  * Returns the number of miscompare errors.
  */
 int32_t
-xdd_verify_checksum(ptds_t *p, int64_t current_op) {
+xdd_verify_checksum(worker_data_t *wdp, int64_t current_op) {
 	fprintf(xgp->errout, "%s: xdd_verify_checksum: ERROR: NOT IMPLEMENTED YET\n", xgp->progname);
 	return(0);
 } // end of xdd_verify_checksum()
@@ -51,14 +51,15 @@ xdd_verify_checksum(ptds_t *p, int64_t current_op) {
  * factor has been previously written to the media that was just read and 
  * is being verified. 
  * It is further assumed that the data pattern and data pattern lenggth
- * are in p->dpp->data_pattern and p->dpp->data_pattern_length respectively. This is
+ * are in tdp->td_dpp->data_pattern and tdp->td_dpp->data_pattern_length respectively. This is
  * done by the datapattern function in the parse.c file. If the data_pattern_option
  * of "DP_REPLICATE_PATTERN" was specified as well, then the data comparison is
  * made throughout the data buffer. Otherwise only the first N bytes are compared
- * against the data pattern where N is equal to p->dpp->data_pattern_length. Cool, huh?
+ * against the data pattern where N is equal to tdp->td_dpp->data_pattern_length. Cool, huh?
  */
 int32_t
-xdd_verify_hex(ptds_t *p, int64_t current_op) {
+xdd_verify_hex(worker_data_t *wdp, int64_t current_op) {
+	target_data_t	*tdp;
 	int32_t i;
 	int32_t errors;
 	int32_t remaining;
@@ -66,24 +67,26 @@ xdd_verify_hex(ptds_t *p, int64_t current_op) {
 	unsigned char *patternp, *bufferp;
 
 
-	if (p->dpp->data_pattern_options & DP_REPLICATE_PATTERN) 
-		remaining = p->actual_iosize;
-	else remaining = p->dpp->data_pattern_length;
+	tdp = wdp->wd_tdp;
+
+	if (tdp->td_dpp->data_pattern_options & DP_REPLICATE_PATTERN) 
+		remaining = wdp->wd_current_io_size;
+	else remaining = tdp->td_dpp->data_pattern_length;
 
 	offset = 0;
-	bufferp = p->rwbuf;
+	bufferp = wdp->wd_current_rwbuf;
 	errors = 0;
 	while (remaining) {
-		patternp = p->dpp->data_pattern;
-		for (i=0; i<p->dpp->data_pattern_length; i++, patternp++, bufferp++) {
+		patternp = tdp->td_dpp->data_pattern;
+		for (i=0; i<tdp->td_dpp->data_pattern_length; i++, patternp++, bufferp++) {
 			if (*patternp != *bufferp) {
-				fprintf(xgp->errout,"%s: xdd_verify_hex: Target %d QThread %d: ERROR: Content mismatch on op %lld at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
+				fprintf(xgp->errout,"%s: xdd_verify_hex: Target %d Worker Thread %d: ERROR: Content mismatch on op %lld at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
 					xgp->progname, 
-					p->my_target_number, 
-					p->my_qthread_number, 
+					tdp->td_target_number, 
+					wdp->wd_thread_number, 
 					(long long int)current_op,
 					offset, 
-					(long long int)(p->tgtstp->my_current_byte_location/p->block_size), 
+					(long long int)(wdp->wd_current_byte_location/tdp->td_block_size), 
 					*patternp, 
 					*bufferp);
 
@@ -109,7 +112,8 @@ xdd_verify_hex(ptds_t *p, int64_t current_op) {
  * Keep in mind that this example is shown in BIG endian so as not to confuse myself.
  */
 int32_t
-xdd_verify_sequence(ptds_t *p, int64_t current_op) {
+xdd_verify_sequence(worker_data_t *wdp, int64_t current_op) {
+	target_data_t	*tdp;
 	int32_t  		i,j;
 	int64_t	  		errors;
 	uint64_t 		expected_data;
@@ -117,26 +121,28 @@ xdd_verify_sequence(ptds_t *p, int64_t current_op) {
 	unsigned char 	*ucp;        /* A temporary unsigned char pointer */
  
 
-	uint64p = (uint64_t *)p->rwbuf;
+	tdp = wdp->wd_tdp;
+
+	uint64p = (uint64_t *)wdp->wd_current_rwbuf;
 	errors = 0;
-	for (i = 0; i < p->actual_iosize; i+=(sizeof(p->tgtstp->my_current_byte_location))) {
-		expected_data = p->tgtstp->my_current_byte_location + i;
-		if (p->dpp->data_pattern_options & DP_PATTERN_PREFIX) { // OR-in the pattern prefix
-			expected_data |= p->dpp->data_pattern_prefix_binary;
+	for (i = 0; i < wdp->wd_current_io_size; i+=(sizeof(wdp->wd_current_byte_location))) {
+		expected_data = wdp->wd_current_byte_location + i;
+		if (tdp->td_dpp->data_pattern_options & DP_PATTERN_PREFIX) { // OR-in the pattern prefix
+			expected_data |= tdp->td_dpp->data_pattern_prefix_binary;
 		} 
-		if (p->dpp->data_pattern_options & DP_INVERSE_PATTERN)
+		if (tdp->td_dpp->data_pattern_options & DP_INVERSE_PATTERN)
 			expected_data ^= 0xffffffffffffffffLL; // 1's compliment of the expected data 
 
 		if (*uint64p != expected_data) { // If the expected_data pattern is not what we think it should be then scream!
 			//Check how many errors we've had, if too many, then don't print data
 			if (errors <= xgp->max_errors_to_print) {
-				fprintf(xgp->errout,"%s: xdd_verify_sequence: Target %d QThread %d: ERROR: Sequence mismatch on op number %lld at %d bytes into block %lld\n",
+				fprintf(xgp->errout,"%s: xdd_verify_sequence: Target %d Worker Thread %d: ERROR: Sequence mismatch on op number %lld at %d bytes into block %lld\n",
 					xgp->progname, 
-					p->my_target_number, 
-					p->my_qthread_number, 
+					tdp->td_target_number, 
+					wdp->wd_thread_number, 
 					(long long int)current_op,
 					i, 
-					(long long int)(p->tgtstp->my_current_byte_location/p->block_size));
+					(long long int)(wdp->wd_current_byte_location/tdp->td_block_size));
 
 				fprintf(xgp->errout, "expected 0x");
 				for (j=0, ucp=(unsigned char *)&expected_data; j<sizeof(uint64_t); j++, ucp++) {
@@ -154,10 +160,10 @@ xdd_verify_sequence(ptds_t *p, int64_t current_op) {
 	} // end of FOR loop that looks at all locations 
 	//print out remaining error count if exceeded max
     if (errors > xgp->max_errors_to_print) {
-		fprintf(xgp->errout,"%s: xdd_verify_sequence: Target %d QThread %d: ERROR: ADDITIONAL Data Buffer Content mismatches = %lld\n",
+		fprintf(xgp->errout,"%s: xdd_verify_sequence: Target %d Worker Thread %d: ERROR: ADDITIONAL Data Buffer Content mismatches = %lld\n",
 			    xgp->progname, 
-				p->my_target_number, 
-				p->my_qthread_number, 
+				tdp->td_target_number, 
+				wdp->wd_thread_number, 
 				(long long int)(errors - (xgp->max_errors_to_print)));
 	}
 	return(errors);
@@ -171,23 +177,27 @@ xdd_verify_sequence(ptds_t *p, int64_t current_op) {
  * contents of the I/O buffer for every block read.
  */
 int32_t
-xdd_verify_singlechar(ptds_t *p, int64_t current_op) {
+xdd_verify_singlechar(worker_data_t *wdp, int64_t current_op) {
+	target_data_t	*tdp;
 	int32_t  i;
 	int32_t  errors;
 	unsigned char *ucp;
  
-	ucp = p->rwbuf;
+
+	tdp = wdp->wd_tdp;
+
+	ucp = wdp->wd_current_rwbuf;
 	errors = 0;
-	for (i = 0; i < p->actual_iosize; i++) {
-		if (*ucp != *(p->dpp->data_pattern)) {
-			fprintf(xgp->errout,"%s: xdd_verify_singlechar: Target %d QThread %d: ERROR: Content mismatch on op number %lld at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
+	for (i = 0; i < wdp->wd_current_io_size; i++) {
+		if (*ucp != *(tdp->td_dpp->data_pattern)) {
+			fprintf(xgp->errout,"%s: xdd_verify_singlechar: Target %d Worker Thread %d: ERROR: Content mismatch on op number %lld at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
 				xgp->progname, 
-				p->my_target_number, 
-				p->my_qthread_number, 
+				tdp->td_target_number, 
+				wdp->wd_thread_number, 
 				(long long int)current_op,
 				i, 
-				(unsigned long long)(p->tgtstp->my_current_byte_location/p->block_size), 
-				*(p->dpp->data_pattern), 
+				(unsigned long long)(wdp->wd_current_byte_location/tdp->td_block_size), 
+				*(tdp->td_dpp->data_pattern), 
 				*ucp);
 		errors++;
 		} /* End printing error message */
@@ -209,31 +219,34 @@ xdd_verify_singlechar(ptds_t *p, int64_t current_op) {
  * The subroutine names are obvious. If not, you should not be reading this.
  */
 int32_t
-xdd_verify_contents(ptds_t *p, int64_t current_op) {
+xdd_verify_contents(worker_data_t *wdp, int64_t current_op) {
+	target_data_t	*tdp;
 	int32_t  errors;
+
+	tdp = wdp->wd_tdp;
 
 	errors = 0;
 	/* Verify the contents of the buffer is equal to the specified data pattern */
-	if (p->dpp->data_pattern_options & DP_SEQUENCED_PATTERN) { // Lets look at a sequenced data pattern
-		errors = xdd_verify_sequence(p, current_op);
+	if (tdp->td_dpp->data_pattern_options & DP_SEQUENCED_PATTERN) { // Lets look at a sequenced data pattern
+		errors = xdd_verify_sequence(wdp, current_op);
 		return(errors);
 	}
 
-	if (p->dpp->data_pattern_options & DP_HEX_PATTERN) { // Lets look at a HEX data pattern
-		errors = xdd_verify_hex(p, current_op);
+	if (tdp->td_dpp->data_pattern_options & DP_HEX_PATTERN) { // Lets look at a HEX data pattern
+		errors = xdd_verify_hex(wdp, current_op);
 		return(errors);
 	}
 
-	if (p->dpp->data_pattern_options & DP_SINGLECHAR_PATTERN) { // Lets look at a single character data pattern
-		errors = xdd_verify_singlechar(p, current_op);
+	if (tdp->td_dpp->data_pattern_options & DP_SINGLECHAR_PATTERN) { // Lets look at a single character data pattern
+		errors = xdd_verify_singlechar(wdp, current_op);
 		return(errors);
 	}
 
 	// If we get here then the data pattern was either not specified or the data pattern type was not recognized.
-	fprintf(xgp->errout, "%s: xdd_verify_contents: Target %d QThread %d: ERROR: Data verification request not understood. No verification possible.\n",
+	fprintf(xgp->errout, "%s: xdd_verify_contents: Target %d Worker Thread %d: ERROR: Data verification request not understood. No verification possible.\n",
 				xgp->progname, 
-				p->my_target_number, 
-				p->my_qthread_number);
+				tdp->td_target_number, 
+				wdp->wd_thread_number);
 	return(0);
 	
 } // end of xdd_verify_contents()  
@@ -242,26 +255,29 @@ xdd_verify_contents(ptds_t *p, int64_t current_op) {
 /* xdd_verify_location() - Verify data location 
  * This routine gets the current bytes location that is located in the first
  * 8-bytes of the rw buffer and compares it to the current byte location that
- * the calling routine specified in the ptds->my_current_byte_location. If the
+ * the calling routine specified in the worker_data_t->my_current_byte_location. If the
  * two do not match then we are not in Kansas anymore. Print an error message
  * and return a 1. Otherwise, everything is peachy, simply return a 0.
  * Returns the number of miscompare errors - 0 or 1 in this case.
  */
 int32_t
-xdd_verify_location(ptds_t *p, int64_t current_op) {
+xdd_verify_location(worker_data_t *wdp, int64_t current_op) {
+	target_data_t	*tdp;
 	int32_t  errors;
 	uint64_t current_position;
 
+	tdp = wdp->wd_tdp;
+
 	errors = 0;
-	current_position = *(uint64_t *)p->rwbuf;
-	if (current_position != p->tgtstp->my_current_byte_location) {
+	current_position = *(uint64_t *)wdp->wd_current_rwbuf;
+	if (current_position != tdp->td_tgtstp->my_current_byte_location) {
 		errors++;
-		fprintf(xgp->errout,"%s: xdd_verify_location: Target %d QThread %d: ERROR: op number %lld: Data Buffer Sequence mismatch - expected %lld, got %lld\n",
+		fprintf(xgp->errout,"%s: xdd_verify_location: Target %d Worker Thread %d: ERROR: op number %lld: Data Buffer Sequence mismatch - expected %lld, got %lld\n",
 			xgp->progname, 
-			p->my_target_number, 
-			p->my_qthread_number, 
-			(long long int)p->tgtstp->target_op_number, 
-			(long long int)p->tgtstp->my_current_byte_location, 
+			tdp->td_target_number, 
+			wdp->wd_thread_number, 
+			(long long int)tdp->td_tgtstp->target_op_number, 
+			(long long int)tdp->td_tgtstp->my_current_byte_location, 
 			(long long int)current_position);
 
 		fflush(xgp->errout);
@@ -274,26 +290,29 @@ xdd_verify_location(ptds_t *p, int64_t current_op) {
  * Returns the number of miscompare errors.
  */
 int32_t
-xdd_verify(ptds_t *p, int64_t current_op) {
+xdd_verify(worker_data_t *wdp, int64_t current_op) {
+	target_data_t	*tdp;
 	int32_t  errors;
 
+
+	tdp = wdp->wd_tdp;
 
    /* Since the last operation was a read operation check to see if a sequenced data pattern
 	* was specified. If so, then we need to verify that what we read has the correct 
 	* sequence number(s) in it.
 	*/
-	if (!(p->target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION))) { // If we don't need to verify location or contents of the buffer, then just return.
-		fprintf(xgp->errout,"%s: xdd_verify: Target %d QThread %d: ERROR: Data verification type <location or contents> not specified - No verification performed.\n",
+	if (!(tdp->td_target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION))) { // If we don't need to verify location or contents of the buffer, then just return.
+		fprintf(xgp->errout,"%s: xdd_verify: Target %d Worker Thread %d: ERROR: Data verification type <location or contents> not specified - No verification performed.\n",
 			xgp->progname,
-			p->my_target_number,
-			p->my_qthread_number);
+			tdp->td_target_number,
+			wdp->wd_thread_number);
 		return(0);
 	}
 
 	// Looks like we need to verify something...
-	if (p->target_options & TO_VERIFY_LOCATION) /* Assumes that the data pattern was sequenced. If not, there will be LOTS o' errors. */
-		 errors = xdd_verify_location(p, current_op);
-	else errors = xdd_verify_contents(p, current_op);
+	if (tdp->td_target_options & TO_VERIFY_LOCATION) /* Assumes that the data pattern was sequenced. If not, there will be LOTS o' errors. */
+		 errors = xdd_verify_location(wdp, current_op);
+	else errors = xdd_verify_contents(wdp, current_op);
 
 	return(errors);
 } /* End of xdd_verify() */

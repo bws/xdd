@@ -18,26 +18,30 @@
 /* Principal Author:
  *      Tom Ruwart (tmruwart@ioperformance.com)
  * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
+ *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
+ *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
+ *       Brad Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
  * Oak Ridge National Labs, Department of Energy and Department of Defense
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xint.h"
 
-/*----------------------------------------------------------------------------*/
-/* xdd_qthread_cleanup() - Termination cleanup routine for a QThread
- */
-void
-xdd_qthread_cleanup(ptds_t* qp) {
-    return;
-} // End of xdd_qthread_cleanup()
+// ------------------ Throttle stuff --------------------------------------------------
+// The following structure is used by the -throttle option
+struct xdd_throttle {
+		double				throttle;  			// Target Throttle assignments 
+		double				throttle_variance;  // Throttle Average Bandwidth variance 
+		uint32_t      		throttle_type; 		// Target Throttle type 
+#define XINT_THROTTLE_OPS   0x00000001  		// Throttle type of OPS 
+#define XINT_THROTTLE_BW    0x00000002  		// Throttle type of Bandwidth 
+#define XINT_THROTTLE_ABW   0x00000004  		// Throttle type of Average Bandwidth 
+#define XINT_THROTTLE_DELAY 0x00000008  		// Throttle type of a constant delay or time for each op 
+};
 
+typedef struct xdd_throttle xdd_throttle_t;
 /*
  * Local variables:
  *  indent-tabs-mode: t

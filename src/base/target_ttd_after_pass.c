@@ -41,27 +41,28 @@
  * that constitute a "pass" or some portion of a pass if it terminated early.
  */
 int32_t
-xdd_target_ttd_after_pass(ptds_t *p) {
+xdd_target_ttd_after_pass(target_data_t *tdp) {
 	int32_t  status;
-	ptds_t	*qp;
+	worker_data_t	*wdp;
 
 
 	status = 0;
 	// Issue an fdatasync() to flush all the write buffers to disk for this file if the -syncwrite option was specified
-	if (p->target_options & TO_SYNCWRITE) {
+	if (tdp->td_target_options & TO_SYNCWRITE) {
 #if (LINUX || AIX)
-            status = fdatasync(p->fd);
+            status = fdatasync(tdp->td_file_desc);
 #else
-            status = fsync(p->fd);
+            status = fsync(tdp->td_file_desc);
 #endif
         }
 	/* Get the ending time stamp */
-	nclk_now(&p->tgtstp->my_pass_end_time);
-	p->tgtstp->my_elapsed_pass_time = p->tgtstp->my_pass_end_time - p->tgtstp->my_pass_start_time;
+	nclk_now(&tdp->td_tgtstp->my_pass_end_time);
+	tdp->td_tgtstp->my_elapsed_pass_time = tdp->td_tgtstp->my_pass_end_time - tdp->td_tgtstp->my_pass_start_time;
 
 	/* Get the current CPU user and system times and the effective current wall clock time using nclk_now() */
-	times(&p->tgtstp->my_current_cpu_times);
+	times(&tdp->td_tgtstp->my_current_cpu_times);
 
+<<<<<<< HEAD
 	// Loop through all the QThreads to put the Earliest Start Time and Latest End Time into this Target PTDS
 	qp = p->next_qp;
 	while (qp) {
@@ -72,10 +73,22 @@ xdd_target_ttd_after_pass(ptds_t *p) {
 		if (qp->tgtstp->my_pass_end_time >= p->tgtstp->my_pass_end_time) 
 			p->tgtstp->my_pass_end_time = qp->tgtstp->my_pass_end_time;
 		qp = qp->next_qp;
+=======
+	// Loop through all the Worker Threads to put the Earliest Start Time and Latest End Time into this Target PTDS
+	wdp = tdp->td_next_wdp;
+	while (wdp) {
+		if (wdp->wd_first_pass_start_time <= tdp->td_first_pass_start_time) 
+			tdp->td_first_pass_start_time = wdp->wd_first_pass_start_time;
+		if (wdp->wd_pass_start_time <= tdp->td_tgtstp->my_pass_start_time) 
+			tdp->td_tgtstp->my_pass_start_time = wdp->wd_pass_start_time;
+		if (wdp->wd_pass_end_time >= tdp->td_tgtstp->my_pass_end_time) 
+			tdp->td_tgtstp->my_pass_end_time = wdp->wd_pass_end_time;
+		wdp = wdp->wd_next_wdp;
+>>>>>>> ptds
 	}
-	if (p->target_options & TO_ENDTOEND) { 
+	if (tdp->td_target_options & TO_ENDTOEND) { 
 		// Average the Send/Receive Time 
-		p->e2ep->e2e_sr_time /= p->queue_depth;
+		tdp->td_e2ep->e2e_sr_time /= tdp->td_queue_depth;
 	}
 
 	return(status);

@@ -119,6 +119,16 @@ int64_t pclk_now(void) {
 		nclk_now(&now);
 		return(now);
 }
+<<<<<<< HEAD
+=======
+#endif
+
+int64_t pclk_now(void) {
+		nclk_t	now;
+		nclk_now(&now);
+		return(now);
+}
+>>>>>>> ptds
 
 /*
  * Local variables:

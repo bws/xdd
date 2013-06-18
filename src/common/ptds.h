@@ -44,6 +44,7 @@
 #include "heartbeat.h"
 #include "sgio.h"
 #include "triggers.h"
+#include "throttle.h"
 #include "extended_stats.h"
 #include "xint_target_state.h"
 #include "xint_plan.h"
@@ -114,10 +115,6 @@ struct ptds {
 	int64_t				target_ops;  		// Total number of ops to perform on behalf of a "target"
 	seekhdr_t			seekhdr;  			// For all the seek information 
 	FILE				*tsfp;   			// Pointer to the time stamp output file 
-#ifdef WIN32
-	HANDLE				*ts_serializer_mutex; // needed to circumvent a Windows bug 
-	char				ts_serializer_mutex_name[256]; // needed to circumvent a Windows bug 
-#endif
 	// The Occupant Strcuture used by the barriers 
 	xdd_occupant_t		occupant;							// Used by the barriers to keep track of what is in a barrier at any given time
 	char				occupant_name[32];					// For a Target thread this is "TARGET####", for a QThread it is "TARGET####QTHREAD####"
@@ -188,15 +185,6 @@ struct ptds {
 	double				start_delay; 			// number of seconds to delay the start  of this operation 
 	nclk_t				start_delay_psec;		// number of nanoseconds to delay the start  of this operation 
 	char				random_init_state[256]; // Random number generator state initalizer array 
-    // ------------------ Throttle stuff --------------------------------------------------
-	// The following "throttle_" members are for the -throttle option
-	double				throttle;  				// Target Throttle assignments 
-	double				throttle_variance;  	// Throttle Average Bandwidth variance 
-	uint32_t      		throttle_type; 			// Target Throttle type 
-#define PTDS_THROTTLE_OPS   0x00000001  		// Throttle type of OPS 
-#define PTDS_THROTTLE_BW    0x00000002  		// Throttle type of Bandwidth 
-#define PTDS_THROTTLE_ABW   0x00000004  		// Throttle type of Average Bandwidth 
-#define PTDS_THROTTLE_DELAY 0x00000008  		// Throttle type of a constant delay or time for each op 
     //
     // ------------------ Heartbeat stuff --------------------------------------------------
 	// The following heartbeat structure and data is for the -heartbeat option
@@ -227,6 +215,7 @@ struct ptds {
 	nclk_t        		open_start_time; 			// Time just before the open is issued for this target 
 	nclk_t        		open_end_time; 				// Time just after the open completes for this target 
 
+	struct xdd_throttle			*throtp;		// Pointer to the throttle sturcture
 	struct xdd_target_state		*tgtstp;		// Pointer to the target state struct
 	struct xdd_timestamp		*tsp;			// Pointer to the time stamp stuff
 	struct xdd_e2e				*e2ep;			// Pointer to the e2e struct when needed
@@ -235,8 +224,11 @@ struct ptds {
 	struct xdd_sgio				*sgiop;			// SGIO Structure Pointer
 	struct xdd_data_pattern		*dpp;			// Data Pattern Structure Pointer
 	struct xdd_raw				*rawp;          // RAW Data Structure Pointer
+<<<<<<< HEAD
 	struct lockstep				*master_lsp;	// Pointer to the lockstep structure used by the lockstep option
 	struct lockstep				*slave_lsp;		// Pointer to the lockstep structure used by the lockstep option
+=======
+>>>>>>> ptds
 	struct lockstep				*lsp;			// Pointer to the lockstep structure used by the lockstep option
 	struct restart				*restartp;		// Pointer to the restart structure used by the restart monitor
 	struct ptds					*pm1;			// PTDS minus  1 - used for report print queueing - don't ask 

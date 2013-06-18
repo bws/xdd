@@ -58,7 +58,8 @@
  *       operation respectively.
  */
 int32_t 
-xdd_sg_io(ptds_t *p, char rw) {
+xdd_sg_io(worker_data_t *wdp, char rw) {
+	target_data_t	*tdp;			// Pointer to the Target Data for this worker
 	unsigned char 	Cmd[16];		// This is defined as a 16-byte CDB 
 	sg_io_hdr_t 	io_hdr;
 	int 			status;			// This is the status from the SG driver
@@ -67,11 +68,12 @@ xdd_sg_io(ptds_t *p, char rw) {
 	xdd_sgio_t		*sgiop;			// Pointer to the XDD sgio structure
 
 
-	sgiop = p->sgiop;				// The xdd_sgio struct contains all the info for this I/O
+	tdp = wdp->wd_tdp;
+	sgiop = wdp->wd_sgiop;			// The xdd_sgio struct contains all the info for this I/O
 	// Set up the sg-specific variables in the PTDS
 	sgiop->sg_blocksize = 512; // This is because sg uses a sector size block size
-	sgiop->sg_from_block = (p->tgtstp->my_current_byte_location / sgiop->sg_blocksize);
-	sgiop->sg_blocks = p->tgtstp->my_current_io_size / sgiop->sg_blocksize;
+	sgiop->sg_from_block = (wdp->wd_current_byte_location / sgiop->sg_blocksize);
+	sgiop->sg_blocks = wdp->wd_current_io_size / sgiop->sg_blocksize;
 	
 	// Init the CDB
 	if (rw == 'w') 
@@ -106,7 +108,7 @@ xdd_sg_io(ptds_t *p, char rw) {
 		io_hdr.dxfer_direction = SG_DXFER_TO_DEV; // Write op
 	else io_hdr.dxfer_direction = SG_DXFER_FROM_DEV; // Read op
 	io_hdr.dxfer_len = sgiop->sg_blocksize * sgiop->sg_blocks;
-	io_hdr.dxferp = p->rwbuf;
+	io_hdr.dxferp = wdp->wd_rwbuf;
 	io_hdr.mx_sb_len = SENSE_BUFF_LEN;
 	io_hdr.sbp = sgiop->sg_sense;
 	io_hdr.timeout = DEF_TIMEOUT;
@@ -116,29 +118,29 @@ xdd_sg_io(ptds_t *p, char rw) {
 	// This "write" command will send the IO Header and CDB to the SG device Driver
 	// which will then send the CDB to the actual device
 	errno = 0;
-	status = write(p->fd, &io_hdr, sizeof(io_hdr));
+	status = write(wdp->wd_file_desc, &io_hdr, sizeof(io_hdr));
 	while ((status  < 0) && (EINTR == errno)) {
-		status = write(p->fd, &io_hdr, sizeof(io_hdr));
+		status = write(wdp->wd_file_desc, &io_hdr, sizeof(io_hdr));
 	}
 	// Check status of sending the IO Header to the SG driver
 	if (status < 0) {
 		fprintf(xgp->errout, "%s:(T%d.Q%d): Error sending IO Header and CDB to SG Driver for a %s Command on target %s - status %d, op# %lld\n",
 			xgp->progname,
-			p->my_target_number,
-			p->my_qthread_number,
+			tdp->td_target_number,
+			wdp->wd_thread_number,
 			(rw == 'w')?"Write":"Read",
-			p->target_full_pathname,
+			tdp->td_target_full_pathname,
 			status,
-			(long long)p->tgtstp->my_current_op_number);
+			(long long)tdp->td_tgtstp->my_current_op_number);
 		fflush(xgp->errout);
 		return(status);
 	}
 
 	// Read/block on the return status of the actual SCSI command
 	errno = 0;
-	status = read(p->fd, &io_hdr, sizeof(io_hdr));
+	status = read(wdp->wd_file_desc, &io_hdr, sizeof(io_hdr));
 	while ((status < 0) && (EINTR == errno)) {
-		status = read(p->fd, &io_hdr, sizeof(io_hdr));
+		status = read(wdp->wd_file_desc, &io_hdr, sizeof(io_hdr));
 	}
 
 	// Check status of sending the IO Header to the SG driver
@@ -146,12 +148,12 @@ xdd_sg_io(ptds_t *p, char rw) {
 	if ((status < 0) || (io_status == 0)) { // There was an error....
 		fprintf(xgp->errout, "%s (T%d.Q%d): SG I/O Error for %s Command on target %s - status %d, op# %lld, from sector# %llu for %d sectors\n",
 			xgp->progname,
-			p->my_target_number,
-			p->my_qthread_number,
+			tdp->td_target_number,
+			wdp->wd_thread_number,
 			(rw == 'w')?"Write":"Read",
-			p->target_full_pathname,
+			tdp->td_target_full_pathname,
 			status,
-			(long long)p->tgtstp->my_current_op_number,
+			(long long)tdp->td_tgtstp->my_current_op_number,
 			(unsigned long long)sgiop->sg_from_block, 
 			sgiop->sg_blocks);
 		fflush(xgp->errout);
@@ -162,12 +164,12 @@ xdd_sg_io(ptds_t *p, char rw) {
 			case SG_ERR_CAT_RECOVERED:
 				fprintf(xgp->errout, "%s (T%d.Q%d): Recovered %s Error on target %s - status %d, op# %lld, from sector# %llu for %d sectors\n",
 					xgp->progname,
-					p->my_target_number,
-					p->my_qthread_number,
+					tdp->td_target_number,
+					wdp->wd_thread_number,
 					(rw == 'w')?"Write":"Read",
 					p->target_full_pathname,
 					status,
-					(long long)p->tgtstp->my_current_op_number,
+					(long long)tdp->td_tgtstp->my_current_op_number,
 					(unsigned long long)sgiop->sg_from_block, 
 					sgiop->sg_blocks);
 				break;
@@ -178,21 +180,21 @@ xdd_sg_io(ptds_t *p, char rw) {
 					if ( last_sector > sgiop->sg_num_sectors) { // LBA out of range error most likely
 						fprintf(xgp->errout, "%s (T%d.Q%d): Attempting to access a sector that is PAST the END of the device: op# %llu, from sector# %lld, for %d sectors\n",
 							xgp->progname,
-							p->my_target_number,
-							p->my_qthread_number,
-							(long long)p->tgtstp->my_current_op_number,
+							tdp->td_target_number,
+							wdp->wd_thread_number,
+							(long long)tdp->td_tgtstp->my_current_op_number,
 							(unsigned long long)sgiop->sg_from_block, 
 							sgiop->sg_blocks);
 					}
 				} // Done checking for out-of-range error
 				fprintf(xgp->errout, "%s (T%d.Q%d): %s Error on target %s - status %d, op# %lld, from sector# %llu for %d sectors\n",
 					xgp->progname,
-					p->my_target_number,
-					p->my_qthread_number,
+					tdp->td_target_number,
+					wdp->wd_thread_number,
 					(rw == 'w')?"Write":"Read",
-					p->target_full_pathname,
+					tdp->td_target_full_pathname,
 					status,
-					(long long)p->tgtstp->my_current_op_number,
+					(long long)tdp->td_tgtstp->my_current_op_number,
 					(unsigned long long)sgiop->sg_from_block, 
 					sgiop->sg_blocks);
 				return(0);

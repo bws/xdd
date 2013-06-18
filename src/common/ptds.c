@@ -56,10 +56,7 @@ xdd_init_new_ptds(ptds_t *p, int32_t n) {
 	p->target_basename = DEFAULT_TARGET;  // can be changed by CLO
 	sprintf(p->target_extension,"%08d",1);  // can be changed by CLO
 	p->reqsize = DEFAULT_REQSIZE;  // can be changed by CLO
-	p->throttle = DEFAULT_THROTTLE;
-	p->throttle_variance = DEFAULT_VARIANCE;
-	p->throttle_type = PTDS_THROTTLE_BW;
-        xdd_get_tsp(p);
+    xdd_get_tsp(p);
 	p->tsp->ts_options = DEFAULT_TS_OPTIONS;
 	p->target_options = DEFAULT_TARGET_OPTIONS; // Zero the target options field
 	p->time_limit = DEFAULT_TIME_LIMIT;

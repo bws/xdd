@@ -38,73 +38,73 @@
  * This subroutine will open the target file and perform some initial sanity 
  * checks. 
  * 
- * It will then start all QThreads that are responsible for doing the actual I/O.
+ * It will then start all WorkerThreads that are responsible for doing the actual I/O.
  *
  * It is important to note that upon entering this subroutine, the PTDS substructure
- * has already been built. This routine will simply create each QThread and 
- * pass it the address of the PTDS that unique to each QThread.
- * The PTDS that each QThread receives has its target number and QThread number.
+ * has already been built. This routine will simply create each WorkerThread and 
+ * pass it the address of the PTDS that unique to each WorkerThread.
+ * The PTDS that each WorkerThread receives has its target number and WorkerThread number.
  * 
- * The QThreadIssue threads is started after all QThreads
- * have been successfully initialized. As part of the QThread initialization
- * routine each QThread will place itself on the QThreadAvailable Queue.
+ * The WorkerThreadIssue threads is started after all WorkerThreads
+ * have been successfully initialized. As part of the WorkerThread initialization
+ * routine each WorkerThread will place itself on the WorkerThreadAvailable Queue.
  *
  * Return Values: 0 is good, -1 indicates an error.
  * 
  */
 int32_t
-xdd_target_init(ptds_t *p) {
+xdd_target_init(target_data_t *tdp) {
 	int32_t		status;			// Status of function calls
-	nclk_t		CurrentLocalTime;	// Used the init the Global Clock
-	nclk_t		TimeDelta;		// Used the init the Global Clock
-	uint32_t	sleepseconds;
+//	nclk_t		CurrentLocalTime;	// Used the init the Global Clock
+//	nclk_t		TimeDelta;		// Used the init the Global Clock
+//	uint32_t	sleepseconds;
 	
 
 #if (AIX)
-	p->my_thread_id = thread_self();
+	tdp->td_thread_id = thread_self();
 #elif (LINUX)
-	p->my_thread_id = syscall(SYS_gettid);
+	tdp->td_thread_id = syscall(SYS_gettid);
 #else
-	p->my_thread_id = p->my_pid;
+	tdp->td_thread_id = tdp->td_pid;
 #endif
 
 	// Set the pass number
-	p->tgtstp->my_current_pass_number = 1;
+	tdp->td_tgtstp->my_current_pass_number = 1;
 
 	// Check to see that the target is valid and can be opened properly
-	status = xdd_target_open(p);
+	status = xdd_target_open(tdp);
 	if (status) 
 		return(-1);
 
 	/* Perform preallocation if needed */
-	xdd_target_preallocate(p);
+	xdd_target_preallocate(tdp);
         
 	// The Seek List
 	// There is one Seek List per target.
 	// This list contains all the locations in a implied order that need to be accessed
 	// during a single pass. 
-	// It is this list that is used by xdd_issue() to assign I/O tasks to the QThreads.
+	// It is this list that is used by xdd_issue() to assign I/O tasks to the WorkerThreads.
 	//
-	p->seekhdr.seek_total_ops = p->target_ops;
-	p->seekhdr.seeks = (seek_t *)calloc((int32_t)p->seekhdr.seek_total_ops,sizeof(seek_t));
-	if (p->seekhdr.seeks == 0) {
+	tdp->td_seekhdr.seek_total_ops = tdp->td_target_ops;
+	tdp->td_seekhdr.seeks = (seek_t *)calloc((int32_t)tdp->td_seekhdr.seek_total_ops,sizeof(seek_t));
+	if (tdp->td_seekhdr.seeks == 0) {
 		fprintf(xgp->errout,"%s: xdd_target_thread_init: ERROR: Cannot allocate memory for access list for Target %d name '%s' - terminating\n",
 			xgp->progname,
-			p->my_target_number,
-			p->target_full_pathname);
+			tdp->td_target_number,
+			tdp->td_target_full_pathname);
 		fflush(xgp->errout);
 		xgp->abort = 1;
 		return(-1);
 	}
 
-	xdd_init_seek_list(p);
+	xdd_init_seek_list(tdp);
 
 	// Set up the timestamp table - Note: This must be done *after* the seek list is initialized
-	xdd_ts_setup(p); 
+	xdd_ts_setup(tdp); 
 
 	// Set up for the big loop 
 	if (xgp->max_errors == 0) 
-		xgp->max_errors = p->target_ops;
+		xgp->max_errors = tdp->td_target_ops;
 
 	/* If we are synchronizing to a Global Clock, let's synchronize
 	 * here so that we all start at *roughly* the same time
@@ -127,38 +127,38 @@ xdd_target_init(ptds_t *p) {
 	}
 
 	/* This section will initialize the slave side of the lock step mutex and barriers */
-	status = xdd_lockstep_init(p); 
+	status = xdd_lockstep_init(tdp); 
 	if (status != XDD_RC_GOOD)
 		return(status);
 	
 	// Initialize the barriers and mutex
-	status = xdd_target_init_barriers(p);
+	status = xdd_target_init_barriers(tdp);
 	if (status) 
 	    return(-1);
 	
 	// Initialize the Target Offset Table
-	status = tot_init(&(p->totp), p->queue_depth, p->target_ops);
+	status = tot_init(&(tdp->td_totp), tdp->td_queue_depth, tdp->td_target_ops);
 	if (status) {
 	    return(-1);
 	}
 	
 
 	// Special setup for an End-to-End operation
-	if (p->target_options & TO_ENDTOEND) {
-		status = xdd_e2e_target_init(p);
+	if (tdp->td_target_options & TO_ENDTOEND) {
+		status = xdd_e2e_target_init(tdp);
 		if (status)
 			return(-1);
 	}
 
-	// Start the QThreads
-	status = xdd_target_init_start_qthreads(p);
+	// Start the WorkerThreads
+	status = xdd_target_init_start_worker_threads(tdp);
 	if (status) 
 		return(-1);
 
 	// Display the information for this target
-	xdd_target_info(xgp->output, p);
+	xdd_target_info(xgp->output, tdp);
 	if (xgp->csvoutput)
-		xdd_target_info(xgp->csvoutput, p);
+		xdd_target_info(xgp->csvoutput, tdp);
 
 	return(0);
 } // End of xdd_target_init()
@@ -179,7 +179,7 @@ xdd_target_init(ptds_t *p) {
  * Return value is 0 if everything succeeded or -1 if there was a failure.
  */
 int32_t
-xdd_target_init_barriers(ptds_t *p) {
+xdd_target_init_barriers(target_data_t *tdp) {
     int32_t		status;								// Status of subroutine calls
     char		tmpname[XDD_BARRIER_NAME_LENGTH];	// Used to create unique names for the barriers
 
@@ -190,46 +190,46 @@ xdd_target_init_barriers(ptds_t *p) {
 	// for exiting XDD altogether. 
 	status = 0;
 
-	// The Target_QThread Initialization barrier
-	sprintf(tmpname,"T%04d:target_qthread_init_barrier",p->my_target_number);
-	status += xdd_init_barrier(p->my_planp, &p->target_qthread_init_barrier,2, tmpname);
+	// The Target_WorkerThread Initialization barrier
+	sprintf(tmpname,"T%04d:target_worker_thread_init_barrier",tdp->td_target_number);
+	status += xdd_init_barrier(tdp->td_planp, &tdp->td_target_worker_thread_init_barrier,2, tmpname);
 
 	// The Target Pass barrier
-	sprintf(tmpname,"T%04d>targetpass_qthread_passcomplete_barrier",p->my_target_number);
-	status += xdd_init_barrier(p->my_planp, &p->targetpass_qthread_passcomplete_barrier,p->queue_depth+1,tmpname);
+	sprintf(tmpname,"T%04d>targetpass_worker_thread_passcomplete_barrier",tdp->td_target_number);
+	status += xdd_init_barrier(tdp->td_planp, &tdp->td_targetpass_worker_thread_passcomplete_barrier,tdp->td_queue_depth+1,tmpname);
 
 	// The Target Pass E2E EOF Complete barrier - only initialized when an End-to-End operation is running
-	if (p->target_options & TO_ENDTOEND) {
-		sprintf(tmpname,"T%04d>targetpass_qthread_eofcomplete_barrier",p->my_target_number);
-		status += xdd_init_barrier(p->my_planp, &p->targetpass_qthread_eofcomplete_barrier,2,tmpname);
+	if (tdp->td_target_options & TO_ENDTOEND) {
+		sprintf(tmpname,"T%04d>targetpass_worker_thread_eofcomplete_barrier",tdp->td_target_number);
+		status += xdd_init_barrier(tdp->td_planp, &tdp->td_targetpass_worker_thread_eofcomplete_barrier,2,tmpname);
 	}
 
 	// The Target Start Trigger barrier 
-	if (p->target_options & TO_WAITFORSTART) { // If we are expecting a Start Trigger then we need to init the starttrigger barrier
-		sprintf(tmpname,"T%04d>target_target_starttrigger_barrier",p->my_target_number);
-		status += xdd_init_barrier(p->my_planp, &p->trigp->target_target_starttrigger_barrier,2,tmpname);
+	if (tdp->td_target_options & TO_WAITFORSTART) { // If we are expecting a Start Trigger then we need to init the starttrigger barrier
+		sprintf(tmpname,"T%04d>target_target_starttrigger_barrier",tdp->td_target_number);
+		status += xdd_init_barrier(tdp->td_planp, &tdp->td_trigp->target_target_starttrigger_barrier,2,tmpname);
 	}
 
-	// The "counter_mutex" is used by the QThreads when updating the counter information in the Target Thread PTDS
-	status += pthread_mutex_init(&p->counter_mutex, 0);
+	// The "counter_mutex" is used by the WorkerThreads when updating the counter information in the Target Thread PTDS
+	status += pthread_mutex_init(&tdp->td_counter_mutex, 0);
 
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_target_init_barriers: ERROR: Cannot create barriers/mutex for target number %d name '%s'\n",
 			xgp->progname, 
-			p->my_target_number,
-			p->target_full_pathname);
+			tdp->td_target_number,
+			tdp->td_target_full_pathname);
 		fflush(xgp->errout);
 		return(-1);
 	}
 
-	// Initialize the semaphores used to control QThread selection
-	p->any_qthread_available = 0;
-	status = pthread_mutex_init(&p->any_qthread_available_mutex, NULL);
-	status = pthread_cond_init(&p->any_qthread_available_condition, NULL);
+	// Initialize the semaphores used to control WorkerThread selection
+	tdp->td_any_worker_thread_available = 0;
+	status = pthread_mutex_init(&tdp->td_any_worker_thread_available_mutex, NULL);
+	status = pthread_cond_init(&tdp->td_any_worker_thread_available_condition, NULL);
 	if (status) {
-		fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot initialize any_qthread_available condvar.\n",
+		fprintf(xgp->errout,"%s: xdd_target_init_barriers: Target %d: ERROR: Cannot initialize any_worker_thread_available condvar.\n",
 			xgp->progname, 
-			p->my_target_number);
+			tdp->td_target_number);
 		fflush(xgp->errout);
 		return(-1);
 	}
@@ -238,71 +238,70 @@ xdd_target_init_barriers(ptds_t *p) {
 } // End of xdd_target_init_barriers()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_target_thread_init_start_qthreads() - Start up all QThreads 
+/* xdd_target_thread_init_start_worker_threads() - Start up all WorkerThreads 
  *
- * The actual QThread routine called xdd_qthread() is located in qthread.c 
+ * The actual WorkerThread routine called xdd_worker_thread() is located in worker_thread.c 
  *
  * Return value is 0 if everything succeeded or -1 if there was a failure.
  */
 int32_t
-xdd_target_init_start_qthreads(ptds_t *p) {
-	ptds_t		*qp;					// Pointer to the QThread PTDS
-	int32_t		q;						// QThread Number
-	int32_t		status;					// Status of subtroutine calls
-	int32_t		e2e_addr_index;			// index into the e2e address table
-	int32_t		e2e_addr_port;			// Port number in the e2e address table
+xdd_target_init_start_worker_threads(target_data_t *tdp) {
+	worker_data_t	*wdp;					// Pointer to the WorkerThread PTDS
+	int32_t			q;						// WorkerThread Number
+	int32_t			status;					// Status of subtroutine calls
+	int32_t			e2e_addr_index;			// index into the e2e address table
+	int32_t			e2e_addr_port;			// Port number in the e2e address table
 
 	
-	// Now let's start up all the QThreads for this target
-	qp = p->next_qp; // This is the first QThread
+	// Now let's start up all the WorkerThreads for this target
+	wdp = tdp->td_next_wdp; // This is the first WorkerThread
 	e2e_addr_index = 0;
 	e2e_addr_port = 0;
-	for (q = 0; q < p->queue_depth; q++ ) {
-	    pthread_attr_t qthread_attr;
+	for (q = 0; q < tdp->td_queue_depth; q++ ) {
+	    pthread_attr_t worker_thread_attr;
 
 	    // Initialize the attributes
-	    pthread_attr_init(&qthread_attr);
+	    pthread_attr_init(&worker_thread_attr);
 	    
-	    // Start a QThread and wait for it to initialize
-	    qp->my_target_number = p->my_target_number;
-	    qp->my_qthread_number = q;
-	    if (p->target_options & TO_ENDTOEND) {
+	    // Start a WorkerThread and wait for it to initialize
+	    wdp->wd_thread_number = q;
+	    if (tdp->td_target_options & TO_ENDTOEND) {
 
 		// Find an e2e entry that has a valid port count
-		while (0 == p->e2ep->e2e_address_table[e2e_addr_index].port_count) {
+		while (0 == tdp->td_e2ep->e2e_address_table[e2e_addr_index].port_count) {
 		    e2e_addr_index++;
 		}
 		//assert(e2e_addr_index < p->e2ep->e2e_address_table->number_of_entries);
 		
-		qp->e2ep->e2e_dest_hostname = p->e2ep->e2e_address_table[e2e_addr_index].hostname;
-		qp->e2ep->e2e_dest_port = p->e2ep->e2e_address_table[e2e_addr_index].base_port + e2e_addr_port;
+		wdp->wd_e2ep->e2e_dest_hostname = tdp->td_e2ep->e2e_address_table[e2e_addr_index].hostname;
+		wdp->wd_e2ep->e2e_dest_port = tdp->td_e2ep->e2e_address_table[e2e_addr_index].base_port + e2e_addr_port;
 		
-		// Set the QThread Numa node if possible
+		// Set the WorkerThread Numa node if possible
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
-		status = pthread_attr_setaffinity_np(&qthread_attr,
-						     sizeof(p->e2ep->e2e_address_table[e2e_addr_index].cpu_set),
-						     &p->e2ep->e2e_address_table[e2e_addr_index].cpu_set);
+		status = pthread_attr_setaffinity_np(&worker_thread_attr,
+						     sizeof(tdp->td_e2ep->e2e_address_table[e2e_addr_index].cpu_set),
+						     &tdp->td_e2ep->e2e_address_table[e2e_addr_index].cpu_set);
 #endif
 		// Roll over to the begining of the list if that is required
 		e2e_addr_port++;
-		if (e2e_addr_port == p->e2ep->e2e_address_table[e2e_addr_index].port_count) {
+		if (e2e_addr_port == tdp->td_e2ep->e2e_address_table[e2e_addr_index].port_count) {
 		    e2e_addr_index++;
 		    e2e_addr_port = 0;
 		}
 		if (xgp->global_options & GO_REALLYVERBOSE)
-		    fprintf(stderr,"Target Init: Target %d: assigning hostname %s port %d to qthread %d\n",
-			    p->my_target_number, qp->e2ep->e2e_dest_hostname,
-			    qp->e2ep->e2e_dest_port, qp->my_qthread_number);
+		    fprintf(stderr,"Target Init: Target %d: assigning hostname %s port %d to worker_thread %d\n",
+			    tdp->td_target_number, wdp->wd_e2ep->e2e_dest_hostname,
+			    wdp->wd_e2ep->e2e_dest_port, wdp->wd_thread_number);
 	    }
 
 	    
-	    status = pthread_create(&qp->qthread, &qthread_attr, xdd_qthread, qp);
+	    status = pthread_create(&wdp->wd_thread, &worker_thread_attr, xdd_worker_thread, wdp);
 	    if (status) {
-		fprintf(xgp->errout,"%s: xdd_target_init_start_qthreads: ERROR: Cannot create qthread %d for target number %d name '%s' - Error number %d\n",
+		fprintf(xgp->errout,"%s: xdd_target_init_start_worker_threads: ERROR: Cannot create worker_thread %d for target number %d name '%s' - Error number %d\n",
 			xgp->progname, 
 			q,
-			p->my_target_number,
-			p->target_full_pathname,
+			tdp->td_target_number,
+			tdp->td_target_full_pathname,
 			status);
 		fflush(xgp->errout);
 		// Set errno to the correct error number so that perror() can display the error message
@@ -311,38 +310,38 @@ xdd_target_init_start_qthreads(ptds_t *p) {
 		return(-1);
 	    }
 	    /* Wait for the previous thread to initialize before creating the next one */
-	    xdd_barrier(&p->target_qthread_init_barrier,&p->occupant,1);
+	    xdd_barrier(&tdp->td_target_worker_thread_init_barrier,&tdp->td_occupant,1);
 	    if (xgp->global_options & GO_REALLYVERBOSE) {
-		fprintf(xgp->errout,"\r%s: xdd_target_init_start_qthreads: Target %d QThread %d of %d started\n",
+		fprintf(xgp->errout,"\r%s: xdd_target_init_start_worker_threads: Target %d WorkerThread %d of %d started\n",
 			xgp->progname,
-			p->my_target_number,
+			tdp->td_target_number,
 			q,
-			p->queue_depth);
+			tdp->td_queue_depth);
 	    }
 
-	    // If the QThread initialization fails, then everything needs to stop right now.
+	    // If the WorkerThread initialization fails, then everything needs to stop right now.
 	    if (xgp->abort == 1) { 
-		fprintf(xgp->errout,"%s: xdd_target_init_start_qthreads: ERROR: Target thread aborting due to previous initialization failure for target number %d name '%s'\n",
+		fprintf(xgp->errout,"%s: xdd_target_init_start_worker_threads: ERROR: Target thread aborting due to previous initialization failure for target number %d name '%s'\n",
 			xgp->progname,
-			p->my_target_number,
-			p->target_full_pathname);
+			tdp->td_target_number,
+			tdp->td_target_full_pathname);
 		fflush(xgp->errout);
 		return(-1);
 	    }
-	    // Get next QThread pointer
-	    qp = qp->next_qp;
-	} // End of FOR loop that starts all qthreads for this target
+	    // Get next WorkerThread pointer
+	    wdp = wdp->wd_next_wdp;
+	} // End of FOR loop that starts all worker_threads for this target
 
 	if (xgp->global_options & GO_REALLYVERBOSE) {
-		fprintf(xgp->errout,"\n%s: xdd_target_init_start_qthreads: Target %d ALL %d QThreads started\n",
+		fprintf(xgp->errout,"\n%s: xdd_target_init_start_worker_threads: Target %d ALL %d WorkerThreads started\n",
 			xgp->progname,
-			p->my_target_number,
-			p->queue_depth);
+			tdp->td_target_number,
+			tdp->td_queue_depth);
 	}
 
 	return(0);
 
-} // End of xdd_target_init_start_qthreads()
+} // End of xdd_target_init_start_worker_threads()
 
 /*
  * Local variables:

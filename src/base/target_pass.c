@@ -37,32 +37,32 @@
 /* xdd_targetpass() - This subroutine will perform a single pass
  */
 int32_t
-xdd_targetpass(xdd_plan_t* planp, ptds_t *p) {
+xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp) {
 
 	/* Before we get started, check to see if we need to reset the 
 	 * run_status in case we are using the start trigger.
 	 */
-	if (p->target_options & TO_WAITFORSTART) {
-		if (p->trigp) p->trigp->run_status = 0;
+	if (tdp->td_target_options & TO_WAITFORSTART) {
+		if (tdp->td_trigp) tdp->td_trigp->run_status = 0;
 	}
 
 	// This barrier is to ensure that all TARGETS start at same time 
 
-	xdd_barrier(&planp->results_targets_startpass_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_startpass_barrier,&tdp->td_occupant,0);
 
 	/* Check to see if any of the other threads have aborted */
 	if (xgp->abort) {
 		fprintf(xgp->errout,"%s: ERROR: xdd_targetpass: Target number %d name '%s' Aborting due to failure with another target\n",
 			xgp->progname,
-			p->my_target_number,
-			p->target_full_pathname);
+			tdp->td_target_number,
+			tdp->td_target_full_pathname);
 		fflush(xgp->errout);
 		return(-1);
 	}
 
  	// This will wait for the interactive command processor to say go if we are in interactive mode
 	if (planp->plan_options & PLAN_INTERACTIVE) 
-		xdd_barrier(&planp->interactive_barrier,&p->occupant,0);
+		xdd_barrier(&planp->interactive_barrier,&tdp->td_occupant,0);
 	if (xgp->abort) 
 		return(0);
 
@@ -71,42 +71,50 @@ xdd_targetpass(xdd_plan_t* planp, ptds_t *p) {
 		return(0);
 
 	// Things to do before this pass is started
-	xdd_target_ttd_before_pass(p);
+	xdd_target_ttd_before_pass(tdp);
 
-	// Get the next available qthread and give it a task to perform
+	// Get the next available worker thread and give it a task to perform
 	// We stay in the following loop for a single PASS
+<<<<<<< HEAD
 	p->tgtstp->my_current_byte_location = 0;
 	p->tgtstp->my_current_op_number = 0;
 	p->bytes_issued = 0;
 	p->bytes_completed = 0;
 	p->ops_completed = 0;
 	p->bytes_remaining = p->target_bytes_to_xfer_per_pass;
+=======
+	tdp->td_tgtstp->my_current_byte_location = 0;
+	tdp->td_tgtstp->my_current_op_number = 0;
+	tdp->td_bytes_issued = 0;
+	tdp->td_bytes_completed = 0;
+	tdp->td_bytes_remaining = tdp->td_target_bytes_to_xfer_per_pass;
+>>>>>>> ptds
 
 /////////////////////////////// PSEUDO-Loop Starts Here ////////////////////////
 // The PSEUDO-Loop just means that the actual "looping" in done in 
 // the xdd_targetpass_loop() subroutine (or the e2e equivalent).
 	// The pass loops are handled by one of two subroutines depending on 
 	// whether this is the Destination Side of an E2E operation or not. 
-	p->tgtstp->my_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
-	if (p->target_options & TO_ENDTOEND) { // E2E operations are *different*
-		if (p->target_options & TO_E2E_SOURCE)
-		    xdd_targetpass_e2e_loop_src(planp, p);
-		else xdd_targetpass_e2e_loop_dst(planp, p);
+	tdp->td_tgtstp->my_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
+	if (tdp->td_target_options & TO_ENDTOEND) { // E2E operations are *different*
+		if (tdp->td_target_options & TO_E2E_SOURCE)
+		    xdd_targetpass_e2e_loop_src(planp, tdp);
+		else xdd_targetpass_e2e_loop_dst(planp, tdp);
 	} else { // Normal operations (other than E2E)
-	    xdd_targetpass_loop(planp, p);
+	    xdd_targetpass_loop(planp, tdp);
 	}
-	p->tgtstp->my_current_state |= CURRENT_STATE_PASS_COMPLETE;
+	tdp->td_tgtstp->my_current_state |= CURRENT_STATE_PASS_COMPLETE;
 /////////////////////////////// PSEUDO-Loop Ends  Here /////////////////////////
 	// If this is an E2E operation and we had gotten canceled - just return
-	if ((p->target_options & TO_ENDTOEND) && (xgp->canceled))
+	if ((tdp->td_target_options & TO_ENDTOEND) && (xgp->canceled))
 		return(-1); 
 
 	// Things that the Target Thread needs to do after a pass has completed
-	xdd_target_ttd_after_pass(p);
+	xdd_target_ttd_after_pass(tdp);
 
 	// Release the results_manager() to process/display the 
 	// results for this pass
-	xdd_barrier(&planp->results_targets_endpass_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_endpass_barrier,&tdp->td_occupant,0);
 
 	// At this point all the Target Threads have completed their pass and 
 	// have passed thru the previous barrier releasing the results_manager() 
@@ -114,21 +122,21 @@ xdd_targetpass(xdd_plan_t* planp, ptds_t *p) {
 
 	// Wait at this barrier for the results_manager() to process/display the 
 	// results for this last pass
-	xdd_barrier(&planp->results_targets_display_barrier,&p->occupant,0);
+	xdd_barrier(&planp->results_targets_display_barrier,&tdp->td_occupant,0);
 
 	// This pass is complete - return to the Target Thread
 	return(0);
 } // End of xdd_targetpass()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_targetpass_loop() - This subroutine will assign tasks to QThreads until
- * all bytes have been processed. 
+/* xdd_targetpass_loop() - This subroutine will assign tasks to Worker Threads 
+ * until all bytes have been processed. 
  * 
  * This subroutine is called by xdd_targetpass().
  */
 void
-xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p) {
-	ptds_t	*qp;
+xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
+	worker_data_t	*wdp;
 	int		q;
 	int32_t	status;	// Return status from various subroutines
 
@@ -136,19 +144,24 @@ xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p) {
 /////////////////////////////// Loop Starts Here ///////////////////////////////
 // This loop will transfer all data for a target until it runs out of
 // bytes or if we get canceled.
-// This loop will block/wait in xdd_get_and_available_qthread() until a 
-// qthread becomes available for use. The number of qthreads available to do
+// This loop will block/wait in xdd_get_and_available_worker_thread() until a 
+// worker thread becomes available for use. The number of worker threads available to do
 // work is determined by the queue_depth for this target. Therefore, if the
-// queue_depth is 1 then there is only 1 qthread available and this loop will
+// queue_depth is 1 then there is only 1 worker thread available and this loop will
 // only ever be able to issue one I/O operation at a time and will have to wait
 // for an I/O operation to complete before moving on to the next. 
 //
+<<<<<<< HEAD
 	while (p->bytes_remaining) {
+=======
+	while (tdp->td_bytes_remaining) {
+>>>>>>> ptds
 		// Lock Step Processing (located in lockstep.c)
 		// When the -lockstep option is specified, the xdd_lockstep()subroutine 
 		// will perform all I/O operations for a pass. Thus, when xdd_lockstep()
 		// returns, it is necessary to set the "bytes_remaining" to zero so that
 		// it looks like a normal completion.
+<<<<<<< HEAD
 		if (p->lsp) {
 			status = xdd_lockstep(p);
 			p->bytes_remaining = 0;
@@ -157,23 +170,33 @@ xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p) {
 
 		// Get pointer to next QThread to issue a task to
 		qp = xdd_get_any_available_qthread(p);
-
-		// Things to do before an I/O is issued
-		status = xdd_target_ttd_before_io_op(p, qp);
-		if (status != XDD_RC_GOOD) {
-			// Mark this qthread NOT BUSY and break out of this loop
-			pthread_mutex_lock(&qp->qthread_target_sync_mutex);
-			qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
-			pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+=======
+		if (tdp->td_lsp) {
+			status = xdd_lockstep(tdp);
+			tdp->td_bytes_remaining = 0;
 			break;
 		}
 
-		// Set up the task for the QThread
-		xdd_targetpass_task_setup(qp);
+		// Get pointer to next Worker Thread to issue a task to
+		wdp = xdd_get_any_available_worker_thread(tdp);
+>>>>>>> ptds
 
-		// Release the QThread to let it start working on this task.
+		// Things to do before an I/O is issued
+		status = xdd_target_ttd_before_io_op(tdp, wdp);
+		if (status != XDD_RC_GOOD) {
+			// Mark this worker thread NOT BUSY and break out of this loop
+			pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
+			wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
+			pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
+			break;
+		}
+
+		// Set up the task for the Worker Thread
+		xdd_targetpass_task_setup(wdp);
+
+		// Release the Worker Thread to let it start working on this task.
 		// This effectively causes the I/O operation to be issued.
-		xdd_barrier(&qp->qthread_targetpass_wait_for_task_barrier,&p->occupant,0);
+		xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&tdp->td_occupant,0);
 
 	} // End of WHILE loop that transfers data for a single pass
 //
@@ -183,20 +206,25 @@ xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p) {
 	if (xgp->canceled) {
 		fprintf(xgp->errout,"\n%s: xdd_targetpass_loop: Target %d: ERROR: Canceled!\n",
 			xgp->progname,
-			p->my_target_number);
+			tdp->td_target_number);
 		return;
 	}
-	// Wait for all QThreads to complete their most recent task
-	// The easiest way to do this is to get the QThread pointer for each
-	// QThread specifically and then reset it's "busy" bit to 0.
-	for (q = 0; q < p->queue_depth; q++) {
-		qp = xdd_get_specific_qthread(p,q);
-		pthread_mutex_lock(&qp->qthread_target_sync_mutex);
-		qp->qthread_target_sync &= ~QTSYNC_BUSY; // Mark this QThread NOT Busy
-		pthread_mutex_unlock(&qp->qthread_target_sync_mutex);
+	// Wait for all Worker Threads to complete their most recent task
+	// The easiest way to do this is to get the Worker Thread pointer for each
+	// Worker Thread specifically and then reset it's "busy" bit to 0.
+	for (q = 0; q < tdp->td_queue_depth; q++) {
+		wdp = xdd_get_specific_worker_thread(tdp,q);
+		pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
+		wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
+		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 	}
+<<<<<<< HEAD
 	if (p->tgtstp->my_current_io_status != 0) 
 		planp->target_errno[p->my_target_number] = XDD_RETURN_VALUE_IOERROR;
+=======
+	if (tdp->td_tgtstp->my_current_io_status != 0) 
+		planp->target_errno[tdp->td_target_number] = XDD_RETURN_VALUE_IOERROR;
+>>>>>>> ptds
 
 	return;
 } // End of xdd_targetpass_loop()
@@ -205,59 +233,59 @@ xdd_targetpass_loop(xdd_plan_t* planp, ptds_t *p) {
 /* xdd_targetpass_task_setup() - This subroutine will set up the task info for an I/O
  */
 void
-xdd_targetpass_task_setup(ptds_t *qp) {
-	ptds_t	*p;
+xdd_targetpass_task_setup(worker_data_t *wdp) {
+	target_data_t	*tdp;
 
-	p = qp->target_ptds;
-	// Assign an IO task to this qthread
-	qp->task_request = TASK_REQ_IO;
+	tdp = wdp->wd_tdp;
+	// Assign an IO task to this worker thread
+	wdp->wd_task_request = TASK_REQ_IO;
 
 	// Get the most recent File Descriptor in case it changed...
-	qp->fd = p->fd;
+	wdp->wd_file_desc = tdp->td_file_desc;
 
 	// Set the Operation Type
-	if (p->seekhdr.seeks[p->tgtstp->my_current_op_number].operation == SO_OP_WRITE) // Write Operation
-		qp->tgtstp->my_current_op_type = OP_TYPE_WRITE;
-	else if (p->seekhdr.seeks[p->tgtstp->my_current_op_number].operation == SO_OP_READ) // READ Operation
-		qp->tgtstp->my_current_op_type = OP_TYPE_READ;
-	else qp->tgtstp->my_current_op_type = OP_TYPE_NOOP;
+	if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_WRITE) // Write Operation
+		tdp->td_tgtstp->my_current_op_type = OP_TYPE_WRITE;
+	else if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_READ) // READ Operation
+		tdp->td_tgtstp->my_current_op_type = OP_TYPE_READ;
+	else tdp->td_tgtstp->my_current_op_type = OP_TYPE_NOOP;
 
 	// Figure out the transfer size to use for this I/O
-	if (p->bytes_remaining < p->iosize)
-		qp->tgtstp->my_current_io_size = p->bytes_remaining;
-	else qp->tgtstp->my_current_io_size = p->iosize;
+	if (tdp->td_bytes_remaining < tdp->td_iosize)
+		tdp->td_tgtstp->my_current_io_size = tdp->td_bytes_remaining;
+	else tdp->td_tgtstp->my_current_io_size = tdp->td_iosize;
 
 	// Set the location to seek to 
-	qp->tgtstp->my_current_byte_location = p->tgtstp->my_current_byte_location;
+	tdp->td_tgtstp->my_current_byte_location = tdp->td_tgtstp->my_current_byte_location;
 
 	// Remember the operation number for this target
-	qp->tgtstp->target_op_number = p->tgtstp->my_current_op_number;
-	if (p->tgtstp->my_current_op_number == 0) 
-		nclk_now(&p->tgtstp->my_first_op_start_time);
+	tdp->td_tgtstp->target_op_number = tdp->td_tgtstp->my_current_op_number;
+	if (tdp->td_tgtstp->my_current_op_number == 0) 
+		nclk_now(&tdp->td_tgtstp->my_first_op_start_time);
 
-   	// If time stamping is on then assign a time stamp entry to this QThread
-   	if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-		qp->tsp->ts_current_entry = p->tsp->ts_current_entry;	
-		p->tsp->ts_current_entry++;
-		if (p->tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
-			if (p->tsp->ts_current_entry == p->tsp->ts_size)
-				p->tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
-		} else if (p->tsp->ts_options & TS_WRAP) {
-			p->tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
+   	// If time stamping is on then assign a time stamp entry to this Worker Thread
+   	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
+		wdp->wd_tsp->ts_current_entry = tdp->td_tsp->ts_current_entry;	
+		tdp->td_tsp->ts_current_entry++;
+		if (tdp->td_tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
+			if (tdp->td_tsp->ts_current_entry == tdp->td_tsp->ts_size)
+				tdp->td_tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
+		} else if (tdp->td_tsp->ts_options & TS_WRAP) {
+			tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
-		p->ttp->tte[qp->tsp->ts_current_entry].pass_number = p->tgtstp->my_current_pass_number;
-		p->ttp->tte[qp->tsp->ts_current_entry].qthread_number = qp->my_qthread_number;
-		p->ttp->tte[qp->tsp->ts_current_entry].thread_id     = qp->my_thread_id;
-		p->ttp->tte[qp->tsp->ts_current_entry].op_type = qp->tgtstp->my_current_op_type;
-		p->ttp->tte[qp->tsp->ts_current_entry].op_number = qp->tgtstp->target_op_number;
-		p->ttp->tte[qp->tsp->ts_current_entry].byte_location = qp->tgtstp->my_current_byte_location;
+		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].pass_number = tdp->td_tgtstp->my_current_pass_number;
+		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].worker_thread_number = wdp->wd_thread_number;
+		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].thread_id     = wdp->wd_thread_id;
+		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].op_type = tdp->td_tgtstp->my_current_op_type;
+		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].op_number = tdp->td_tgtstp->target_op_number;
+		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].byte_location = tdp->td_tgtstp->my_current_byte_location;
 	}
 	// Update the pointers/counters in the Target PTDS to get 
 	// ready for the next I/O operation
-	p->tgtstp->my_current_byte_location += qp->tgtstp->my_current_io_size;
-	p->tgtstp->my_current_op_number++;
-	p->bytes_issued += qp->tgtstp->my_current_io_size;
-	p->bytes_remaining -= qp->tgtstp->my_current_io_size;
+	tdp->td_tgtstp->my_current_byte_location += tdp->td_tgtstp->my_current_io_size;
+	tdp->td_tgtstp->my_current_op_number++;
+	tdp->td_bytes_issued += tdp->td_tgtstp->my_current_io_size;
+	tdp->td_bytes_remaining -= tdp->td_tgtstp->my_current_io_size;
 
 } // End of xdd_targetpass_task_setup()
 
