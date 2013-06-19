@@ -47,7 +47,7 @@
  * to specific processors for Linux that code will be incorporated here.
  */
 void
-xdd_processor(ptds_t *p) {
+xdd_processor(target_data_t *tdp) {
 #if (SOLARIS)
 	processorid_t i;
 	int32_t  status;
@@ -92,7 +92,7 @@ xdd_processor(ptds_t *p) {
 	for (i = 0; n > 0; i++) {
 		if (CPU_ISSET(i, &cpumask)) {
 			/* processor present */
-			if (cpus == p->processor) 
+			if (cpus == tdp->td_processor) 
 				break;
 			cpus++;
 			n--;
@@ -110,15 +110,15 @@ xdd_processor(ptds_t *p) {
 	if (xgp->global_options&GO_REALLYVERBOSE)
 		fprintf(xgp->output,"%s: INFORMATION: Assigned processor %d to pid %d threadid %d \n",
 			xgp->progname,
-			p->processor,
-			p->my_pid,
-			p->my_thread_id);
+			tdp->td_processor,
+			tdp->td_pid,
+			tdp->td_thread_id);
 	return;
 #elif (AIX)
 	int32_t status;
 	if (xgp->global_options & GO_REALLYVERBOSE)
-		fprintf(xgp->output, "Binding process/thread %d/%d to processor %d\n",p->my_pid, p->my_thread_id, p->processor);
-	status = bindprocessor( BINDTHREAD, p->my_thread_id, p->processor );
+		fprintf(xgp->output, "Binding process/thread %d/%d to processor %d\n",tdp->td_pid, tdp->td_thread_id, tdp->td_processor);
+	status = bindprocessor( BINDTHREAD, tdp->td_thread_id, tdp->td_processor );
 	if (status) {
 		fprintf(xgp->errout,"%s: Processor assignment failed for target %d to processor %d, thread ID %d, process ID %d\n",
 			xgp->progname, p->my_target_number, p->processor, p->my_thread_id, p->my_pid);
@@ -136,7 +136,7 @@ xdd_processor(ptds_t *p) {
 	return;
 #else
         fprintf(xgp->errout,"%s: **WARNING** Error assigning target %d to processor %d\n",
-                xgp->progname, p->my_target_number, p->processor);
+                xgp->progname, tdp->td_target_number, tdp->td_processor);
         perror("Reason");
         return;
 #endif

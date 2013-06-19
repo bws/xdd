@@ -2744,9 +2744,9 @@ xddfunc_readafterwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 			if (rawp == NULL) return(-1);
 			tdp->td_target_options |= TO_READAFTERWRITE;
 			if (strcmp(argv[i+1], "stat") == 0)
-					rawp->raw_trigger |= PTDS_RAW_STAT;
+					rawp->raw_trigger |= RAW_STAT;
 				else if (strcmp(argv[i+1], "mp") == 0)
-					rawp->raw_trigger |= PTDS_RAW_MP;
+					rawp->raw_trigger |= RAW_MP;
 				else {
 					fprintf(stderr,"%s: Invalid trigger type specified for read-after-write option: %s\n",
 						xgp->progname, argv[i+1]);

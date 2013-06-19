@@ -43,17 +43,17 @@ void
 xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 
 
-	tdp->td_next_qp = 0; // set upon creation, used when other qthreads are created
+	tdp->td_next_wdp = 0; // set upon creation, used when other qthreads are created
 	tdp->td_target_number = n; // set upon creation of this Target_Data
-	tdp->td_my_pid = getpid(); // Set upon creation
+	tdp->td_pid = getpid(); // Set upon creation
 	tdp->td_thread_id = 0; // This is set later by the actual thread 
-	tdp->td_pm1 = 0; // set upon creation
+	tdp->td_tdpm1 = 0; // set upon creation
 	tdp->td_rwbuf = 0; // set during rwbuf allocation
 	tdp->td_rwbuf_shmid = -1; // set upon creation of a shared memory segment
 	tdp->td_rwbuf_save = 0; // used by the rwbuf allocation routine
 	tdp->td_target_directory = DEFAULT_TARGETDIR; // can be changed by CLO
 	tdp->td_target_basename = DEFAULT_TARGET;  // can be changed by CLO
-	tdp->td_intf(p->target_extension,"%08d",1);  // can be changed by CLO
+	sprintf(tdp->td_target_extension,"%08d",1);  // can be changed by CLO
 	tdp->td_reqsize = DEFAULT_REQSIZE;  // can be changed by CLO
     xdd_get_tsp(tdp);
 	tdp->td_tsp->ts_options = DEFAULT_TS_OPTIONS;
@@ -112,7 +112,7 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 		tdp->td_rawp->raw_hostname = NULL;  /* Reader hostname */
 		tdp->td_rawp->raw_lag = DEFAULT_RAW_LAG; 
 		tdp->td_rawp->raw_port = DEFAULT_RAW_PORT;
-		tdp->td_rawp->raw_trigger = TARGET_DATA_RAW_MP; /* default to a message passing */
+		tdp->td_rawp->raw_trigger = RAW_MP; /* default to a message passing */
 	}
 	/* Init the end-to-end fields */
 	if (tdp->td_e2ep) {
@@ -208,7 +208,7 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
 
 
 	// This is the upperlevel Worker_Data and it's next_qp needs to point to this new Worker_Data
-	wdp = malloc(sizeof(struct worker_data));
+	wdp = malloc(sizeof(worker_data_t));
 	if (wdp == NULL) {
 		fprintf(xgp->errout,"%s: error getting memory for Worker_Data Structure for target %d - worker number %d\n",
 			xgp->progname, tdp->td_target_number, q);
@@ -236,8 +236,8 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
 			memcpy(wdp->wd_e2ep, tdp->td_e2ep, sizeof(struct xdd_e2e));
 	}
 
-	sprintf(wdp->occupant_name,"TARGET%04d_WORKER%04d",tdp->td_target_number,wdp->wd_thread_number); 
-	xdd_init_barrier_occupant(&wdp->wd_occupant, wdp->wd_occupant_name, XDD_OCCUPANT_TYPE_WORKER_THREAD, wdp);
+	sprintf(wdp->wd_occupant_name,"TARGET%04d_WORKER%04d",tdp->td_target_number,wdp->wd_thread_number); 
+	xdd_init_barrier_occupant(&wdp->wd_occupant, wdp->wd_occupant_name, XDD_OCCUPANT_TYPE_WORKER_THREAD, tdp);
 	
 	return(wdp);
 
@@ -306,7 +306,7 @@ xdd_build_target_data_substructure(xdd_plan_t* planp) {
 		} 
 
 		// Calcualte the data transfer information - number of ops, bytes, starting offset, ...etc.
-		xdd_calculate_xfer_info(tp);
+		xdd_calculate_xfer_info(tdp);
 
 		// Allocate the first Worker_Data Structure that is anchored in the Target_Data struct
 		wdp = xdd_create_worker_data(tdp,q);
@@ -318,7 +318,7 @@ xdd_build_target_data_substructure(xdd_plan_t* planp) {
             planp->number_of_iothreads++;
                     
 			// Get a new Worker Data and have the previous Worker Data point to it.
-			wdp->wd_next_wdp = xdd_create_worker_data(tp,q);
+			wdp->wd_next_wdp = xdd_create_worker_data(tdp,q);
 			if (wdp->wd_next_wdp == NULL) break;
 			wdp = wdp->wd_next_wdp;
 		} // End of FOR loop that adds all Worker_Datas to a Target_Data linked list
@@ -359,6 +359,7 @@ xdd_build_target_data_substructure(xdd_plan_t* planp) {
 //		queue depth will be set to the number of destination hostnames specified and the port count
 //		for each entry in the e2e_address_table will be set to 1.
 // 
+void
 xdd_build_target_data_substructure_e2e(xdd_plan_t* planp, target_data_t *tdp) {
 	int32_t			entry;			// Entry number
 	int32_t			number_of_ports;// Number of ports to distribute - working variable

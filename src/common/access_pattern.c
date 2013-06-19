@@ -56,7 +56,7 @@
  *
  */
 void
-xdd_init_seek_list(ptds_t *p) {
+xdd_init_seek_list(target_data_t *tdp) {
 	int32_t  j;
 	int32_t  rw_op_index;  /* relative rw index from 0 to the number of rw ops minus 1  */
 	int32_t  rw_index;   /* absolute index into seek list for the current rw op*/
@@ -83,48 +83,48 @@ xdd_init_seek_list(ptds_t *p) {
 	char  state[256];
 	seekhdr_t *sp;   /* pointer to the seek header */
 	/* If a throttle value has been specified, calculate the time that each operation should take */
-	if (p->throtp->throttle > 0.0){
-		if (p->throtp->throttle_type & XINT_THROTTLE_BW){
-			bytes_per_sec = p->throtp->throttle * MILLION;
-			bytes_per_request = (p->reqsize * p->block_size);
+	if (tdp->td_throtp->throttle > 0.0){
+		if (tdp->td_throtp->throttle_type & XINT_THROTTLE_BW){
+			bytes_per_sec = tdp->td_throtp->throttle * MILLION;
+			bytes_per_request = (tdp->td_reqsize * tdp->td_block_size);
 			seconds_per_op = bytes_per_request/bytes_per_sec;
 			nano_seconds_per_op = seconds_per_op * BILLION;
-            if (p->throtp->throttle_variance) {
-                low_bw = (p->throtp->throttle - p->throtp->throttle_variance) * MILLION;
+            if (tdp->td_throtp->throttle_variance) {
+                low_bw = (tdp->td_throtp->throttle - tdp->td_throtp->throttle_variance) * MILLION;
                 seconds_per_op_high = bytes_per_request / low_bw;
-                hi_bw = (p->throtp->throttle + p->throtp->throttle_variance) * MILLION;
+                hi_bw = (tdp->td_throtp->throttle + tdp->td_throtp->throttle_variance) * MILLION;
                 seconds_per_op_low = bytes_per_request / hi_bw;
                 nano_second_throttle_variance = seconds_per_op - (bytes_per_request / low_bw);
             } else {
                 low_bw = bytes_per_sec;
                 hi_bw = bytes_per_sec;
             }
-		} else if (p->throtp->throttle_type & XINT_THROTTLE_OPS){
-			seconds_per_op = 1.0 / p->throtp->throttle;
+		} else if (tdp->td_throtp->throttle_type & XINT_THROTTLE_OPS){
+			seconds_per_op = 1.0 / tdp->td_throtp->throttle;
 			nano_seconds_per_op = seconds_per_op * BILLION;
-            variance_seconds_per_op = 1.0 / p->throtp->throttle_variance;
+            variance_seconds_per_op = 1.0 / tdp->td_throtp->throttle_variance;
             nano_second_throttle_variance = variance_seconds_per_op * BILLION;
-		} else if (p->throtp->throttle_type & XINT_THROTTLE_DELAY){
-			seconds_per_op = p->throtp->throttle;
+		} else if (tdp->td_throtp->throttle_type & XINT_THROTTLE_DELAY){
+			seconds_per_op = tdp->td_throtp->throttle;
 			nano_seconds_per_op = seconds_per_op * BILLION;
-            variance_seconds_per_op = 1.0 / p->throtp->throttle_variance;
+            variance_seconds_per_op = 1.0 / tdp->td_throtp->throttle_variance;
             nano_second_throttle_variance = variance_seconds_per_op * BILLION;
 		}
 	} else nano_seconds_per_op = 0;
-	sp = &p->seekhdr;
+	sp = &tdp->td_seekhdr;
 	/* Initialize the random number generator */
 	initstate(sp->seek_seed, state, 256);
 	/* Check to see if we need to load the seeks from a specified file */
 	if (sp->seek_options & SO_SEEK_LOAD) { /* Load pre-defined seek list */
-		xdd_load_seek_list(p);
+		xdd_load_seek_list(tdp);
 		sp->seek_options &= ~SO_SEEK_LOAD; /* only want to load seek list once */
 	} else { /* Generate a new seek list */ 
-		relative_time = nano_seconds_per_op + p->start_delay;
+		relative_time = nano_seconds_per_op + tdp->td_start_delay;
 		rw_op_index = 0;
 		rw_index = 0;
 		rw_index_incr = 1;
 		sp->seek_num_rw_ops = sp->seek_total_ops;
-		if (p->rwratio >= 0.5) /* This has to be set correctly or the first op may not be correct */
+		if (tdp->td_rwratio >= 0.5) /* This has to be set correctly or the first op may not be correct */
 			previous_percent_op = -1.0;
 		else previous_percent_op = 0.0;
 		for (op_index = 0; op_index < sp->seek_total_ops; op_index++) {   
@@ -132,10 +132,10 @@ xdd_init_seek_list(ptds_t *p) {
 			if (sp->seek_options & SO_SEEK_RANDOM) { /* generate a random seek location */
 				range_in_1kblocks = sp->seek_range;
 				range_in_bytes = range_in_1kblocks * 1024;
-				range_in_blocksize_blocks = range_in_bytes / p->block_size;
+				range_in_blocksize_blocks = range_in_bytes / tdp->td_block_size;
 				if (rw_op_index == 0) { /* This is the first location for this thread */
-					for (j = 0; j < p->my_qthread_number; j++) /* skip over the first N locations */
-						sp->seeks[rw_index].block_location = (uint64_t)(range_in_blocksize_blocks * xdd_random_float());
+// FIXME ????					for (j = 0; j < tdp->td_my_qthread_number; j++) /* skip over the first N locations */
+// FIXME ????						sp->seeks[rw_index].block_location = (uint64_t)(range_in_blocksize_blocks * xdd_random_float());
 					/* Assign this location as the first seek */
 					sp->seeks[rw_index].block_location = (uint64_t)(range_in_blocksize_blocks * xdd_random_float());
 				} else { /* This section if for seek locations 2 thru N */
@@ -145,18 +145,19 @@ xdd_init_seek_list(ptds_t *p) {
 				}
 			} else {/* generate a sequential seek */
 				if (sp->seek_options & SO_SEEK_STAGGER) {
-					gap = ((sp->seek_range-p->reqsize) - (sp->seek_num_rw_ops*p->reqsize)) / (sp->seek_num_rw_ops-1);
-				        if (sp->seek_stride > p->reqsize) gap = sp->seek_stride - p->reqsize;
+					gap = ((sp->seek_range-tdp->td_reqsize) - (sp->seek_num_rw_ops*tdp->td_reqsize)) / (sp->seek_num_rw_ops-1);
+				        if (sp->seek_stride > tdp->td_reqsize) gap = sp->seek_stride - tdp->td_reqsize;
                                 }
 				else gap = 0; 
 				if (sp->seek_interleave > 1)
-					interleave_threadoffset = (p->my_qthread_number%sp->seek_interleave)*p->reqsize;
+// FIXME ????		interleave_threadoffset = (tdp->td_my_qthread_number%sp->seek_interleave)*tdp->td_reqsize;
+					interleave_threadoffset = sp->seek_interleave*tdp->td_reqsize;
 				else interleave_threadoffset = 0;
-				sp->seeks[rw_index].block_location = p->start_offset + interleave_threadoffset + 
-						(rw_op_index * ((p->reqsize*sp->seek_interleave)+gap));
+				sp->seeks[rw_index].block_location = tdp->td_start_offset + interleave_threadoffset + 
+						(rw_op_index * ((tdp->td_reqsize*sp->seek_interleave)+gap));
 			} /* end of generating a sequential seek */
 			/* Now lets fill in the request sizes to transfer */
-			sp->seeks[rw_index].reqsize = p->reqsize;
+			sp->seeks[rw_index].reqsize = tdp->td_reqsize;
 			/* Now lets fill in the appropriate operation */
 			/* The operation is specified either as "read" or "write" in which case
 			 * all operations for this target will be either read or write accordingly.
@@ -168,10 +169,10 @@ xdd_init_seek_list(ptds_t *p) {
 			 * of read and write operations are used. 
 			 * The -rwratio option takes precedence over the -op option.
 			 */
-			if (p->rwratio == -1.0) { // No-op
+			if (tdp->td_rwratio == -1.0) { // No-op
 				sp->seeks[rw_index].operation = SO_OP_NOOP;
 			} else { // Normal read/write operations
-				percent_op = p->rwratio * rw_op_index;
+				percent_op = tdp->td_rwratio * rw_op_index;
 				if (percent_op > previous_percent_op) 
 					current_op = SO_OP_READ;
 				else current_op = SO_OP_WRITE;
@@ -191,7 +192,7 @@ xdd_init_seek_list(ptds_t *p) {
             //                   |Relative time minus the variance
             // The actual time that an I/O operation should take place is somewhere between
             // the relative time plus or minus the variance. In Theory. Maybe.
-            if (p->throtp->throttle_variance) {
+            if (tdp->td_throtp->throttle_variance) {
                 variance_seconds_per_op = ((seconds_per_op_high-seconds_per_op_low) * xdd_random_float()) * BILLION;
                 sp->seeks[rw_index].time1 = (relative_time - nano_second_throttle_variance) + variance_seconds_per_op;
 
@@ -208,13 +209,13 @@ xdd_init_seek_list(ptds_t *p) {
 	} /* done generating a new seek list */
 	/* Save this seek list to a file if requested to do so */
 	if (sp->seek_options & (SO_SEEK_SAVE | SO_SEEK_SEEKHIST | SO_SEEK_DISTHIST)) 
-		xdd_save_seek_list(p);
+		xdd_save_seek_list(tdp);
 } /* end of xdd_init_seek_list() */
 /*----------------------------------------------------------------------------*/
 /* xdd_save_seek_list() - save the specified seek list in a file    
  */
 void
-xdd_save_seek_list(ptds_t *p) {
+xdd_save_seek_list(target_data_t *tdp) {
 	int32_t  i; /* working variable */
 	uint64_t longest, shortest; /* Longest and shortest seek distances in blocks */
 	uint64_t total, average; /* Total and average distance traveled in blocks */
@@ -227,8 +228,8 @@ xdd_save_seek_list(ptds_t *p) {
 	char errormessage[1024]; /* error message buffer */
 	char tmpname[512]; /* enumerated name of the file to save the seeks into */
 	seekhdr_t *sp; 
-	sp = &p->seekhdr;
-	sprintf(tmpname,"%s.T%dQ%d.txt",sp->seek_savefile,p->my_target_number,p->my_qthread_number);
+	sp = &tdp->td_seekhdr;
+	sprintf(tmpname,"%s.T%d.txt",sp->seek_savefile,tdp->td_target_number);
 	if (sp->seek_savefile)
 		tmp = fopen(tmpname,"w");
 	else tmp = xgp->errout;
@@ -348,7 +349,7 @@ xdd_save_seek_list(ptds_t *p) {
 } /* end of xdd_save_seek_list()  */
 /*----------------------------------------------------------------------------*/
 int32_t
-xdd_load_seek_list(ptds_t *p) {
+xdd_load_seek_list(target_data_t *tdp) {
 	int32_t		i;  		/* index variable */
 	FILE 		*loadfp; 	/* Load File Pointer */
 	char 		*tp;  		/* token pointer */
@@ -363,7 +364,7 @@ xdd_load_seek_list(ptds_t *p) {
 	char 		line[1024]; 	/* one line of characters */
 
 
-	sp = &p->seekhdr;
+	sp = &tdp->td_seekhdr;
 	/* open the load file */
 	loadfp = fopen(sp->seek_loadfile,"r");
 	if (loadfp == NULL) {
@@ -403,7 +404,7 @@ xdd_load_seek_list(ptds_t *p) {
 		if (reqsz > reqsz_high) reqsz_high = reqsz;
 		i++;
 	}
-	sp->seek_iosize = reqsz_high * p->block_size;
+	sp->seek_iosize = reqsz_high * tdp->td_block_size;
 	return(0);
 } /* end of xdd_load_seek_list() */
 
