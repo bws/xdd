@@ -200,7 +200,7 @@ xdd_results_header_display(results_t *tmprp, xdd_plan_t *planp) {
 void *
 xdd_process_pass_results(xdd_plan_t *planp) {
     int			target_number;
-    ptds_t		*p;		// PTDS pointer of the Target PTDS
+    target_data_t		*tdp;		// PTDS pointer of the Target PTDS
     results_t	*tarp;	// Pointer to the Target Average results structure
     results_t	*trp;	// Pointer to the Temporary Target Pass results
     results_t	targetpass_results = {0}; // Temporary for target pass results
@@ -211,15 +211,15 @@ xdd_process_pass_results(xdd_plan_t *planp) {
 
     // Next, display pass results for each Target
     for (target_number=0; target_number<planp->number_of_targets; target_number++) {
-        /* Get the ptds for this target */
-        p = planp->ptdsp[target_number]; 
+        /* Get the Tartget_Data for this target */
+        tdp = planp->target_datap[target_number]; 
         
         // Init the Target Average Results struct
         tarp = planp->target_average_resultsp[target_number];
         memset(tarp, 0, sizeof(*tarp));
         tarp->format_string = planp->format_string;
         tarp->what = "TARGET_AVERAGE";
-        if (p->tgtstp->my_current_pass_number == 1) {
+        if (tdp->td_tgtstp->my_current_pass_number == 1) {
             tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
             tarp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
             tarp->shortest_op_time = (double)DOUBLE_MAX;
@@ -232,7 +232,7 @@ xdd_process_pass_results(xdd_plan_t *planp) {
 
         // Get the results from this Target's PTDS and
         // stuff them into a results struct for display
-        xdd_extract_pass_results(trp, p, planp);
+        xdd_extract_pass_results(trp, tdp, planp);
 
         // Combine the pass results from this target with its AVERAGE results
         // from all previous passes
@@ -269,7 +269,7 @@ xdd_process_pass_results(xdd_plan_t *planp) {
 void *
 xdd_process_run_results(xdd_plan_t *planp) {
 	int			target_number;	// Current target number
-	ptds_t		*p;		// PTDS pointer to a Target PTDS
+	target_data_t		*tdp;		// PTDS pointer to a Target PTDS
 	results_t	*tarp;	// Pointer to the Target Average results structure
 	results_t	*crp;	// Pointer to the temporary combined run results
 	results_t	combined_results; // Temporary for target combined results
@@ -294,10 +294,10 @@ xdd_process_run_results(xdd_plan_t *planp) {
 	crp->shortest_write_op_time = (double)DOUBLE_MAX;
 
 	for (target_number=0; target_number<planp->number_of_targets; target_number++) {
-		p = planp->ptdsp[target_number]; /* Get the ptds for this target */
+		tdp = planp->target_datap[target_number]; /* Get the target_datap for this target */
 		tarp = planp->target_average_resultsp[target_number];
 
-		if (p->tgtstp->abort) 
+		if (tdp->td_tgtstp->abort) 
 			xgp->abort = 1; // Indicate that this run ended with errors of some sort
 			
 		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
@@ -336,18 +336,21 @@ xdd_process_run_results(xdd_plan_t *planp) {
 	}
 
 	// Process TimeStamp reports for the -ts option
+//TMR FIXME
+#ifdef ndef
 	for (target_number=0; target_number<planp->number_of_targets; target_number++) { 
-		p = planp->ptdsp[target_number]; /* Get the ptds for this target */
+		tdp = planp->target_datap[target_number]; /* Get the target_datap for this target */
 		/* Display and write the time stamping information if requested */
-		if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-			if (p->tsp->ts_current_entry > p->ttp->tt_size) 
-				p->ttp->numents = p->ttp->tt_size;
-			else p->ttp->numents = p->tsp->ts_current_entry;
+		if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+			if (tdp->td_tsp->ts_current_entry > tdp->td_tsp->ts_size) 
+				tdp->td_ttp->numents = tdp->td_tsp->ts_size;
+			else tdp->td_ttp->numents = tdp->td_tsp->ts_current_entry;
 			xdd_ts_reports(p);  /* generate reports if requested */
 			xdd_ts_write(p); 
-			xdd_ts_cleanup(p->ttp); /* call this to free the TS table in memory */
+			xdd_ts_cleanup(tdp->td_ttp); /* call this to free the TS table in memory */
 		}
 	} // End of processing TimeStamp reports
+#endif
 
 	return(0);
 } // End of xdd_process_run_results() 
@@ -381,7 +384,7 @@ xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp) {
 	to->xfer_size_blocks = from->xfer_size_blocks;	// Transfer size in blocks 
 	to->xfer_size_kbytes = from->xfer_size_kbytes;	// Transfer size in Kbytes 
 	to->xfer_size_mbytes = from->xfer_size_mbytes;	// Transfer size in Mbytes 
-	to->reqsize = from->reqsize; 					// RequestSize from the ptds 
+	to->reqsize = from->reqsize; 					// RequestSize from the target_data 
 	to->pass_number = from->pass_number; 			// Pass number of this set of results 
 	to->optype = from->optype;			 			// operation type - read, write, or mixed 
 
@@ -684,56 +687,56 @@ xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp) {
 
 /*----------------------------------------------------------------------------*/
 // xdd_extract_pass_results() 
-// This routine will extract the pass results from the specified ptds
+// This routine will extract the pass results from the specified target_data
 // and put them into the specified results structure.
 // Called by xdd_process_pass_results() with a pointer to the results structure
 // to fill in and a pointer to the qthread PTDS that contains the raw data.
 //
 void *
-xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp) {
+xdd_extract_pass_results(results_t *rp, target_data_t *tdp, xdd_plan_t *planp) {
 
 	memset(rp, 0, sizeof(results_t));
 
 	// Basic parameters
-	rp->pass_number = p->tgtstp->my_current_pass_number;	// int32
-	rp->my_target_number = p->my_target_number;		// int32
-	rp->queue_depth = p->queue_depth;				// int32
-	rp->bytes_xfered = p->tgtstp->my_current_bytes_xfered;	// int64
-	rp->bytes_read = p->tgtstp->my_current_bytes_read;		// int64
-	rp->bytes_written = p->tgtstp->my_current_bytes_written;// int64
-	rp->op_count = p->tgtstp->my_current_op_count;			// int64
-	rp->read_op_count = p->tgtstp->my_current_read_op_count;// int64
-	rp->write_op_count = p->tgtstp->my_current_write_op_count;// int64
-	rp->error_count = p->tgtstp->my_current_error_count;	// int64
-	rp->reqsize = p->reqsize;						// int32
+	rp->pass_number = tdp->td_tgtstp->my_current_pass_number;	// int32
+	rp->my_target_number = tdp->td_target_number;		// int32
+	rp->queue_depth = tdp->td_queue_depth;				// int32
+	rp->bytes_xfered = tdp->td_tgtstp->my_current_bytes_xfered;	// int64
+	rp->bytes_read = tdp->td_tgtstp->my_current_bytes_read;		// int64
+	rp->bytes_written = tdp->td_tgtstp->my_current_bytes_written;// int64
+	rp->op_count = tdp->td_tgtstp->my_current_op_count;			// int64
+	rp->read_op_count = tdp->td_tgtstp->my_current_read_op_count;// int64
+	rp->write_op_count = tdp->td_tgtstp->my_current_write_op_count;// int64
+	rp->error_count = tdp->td_tgtstp->my_current_error_count;	// int64
+	rp->reqsize = tdp->td_reqsize;						// int32
 
 	// Operation type
-	if (p->rwratio == 0.0) 
+	if (tdp->td_rwratio == 0.0) 
 		rp->optype = "write";
-	else if (p->rwratio == 1.0) 
+	else if (tdp->td_rwratio == 1.0) 
 		rp->optype = "read";
 	else rp->optype = "mixed";
 
 	// These next values get converted from raw nanoseconds to seconds or miliseconds 
-	rp->accumulated_op_time = (double)((double)p->tgtstp->my_accumulated_op_time / FLOAT_BILLION); // nano to seconds
-	rp->accumulated_read_op_time = (double)((double)p->tgtstp->my_accumulated_read_op_time / FLOAT_BILLION); // nano to seconds
-	rp->accumulated_write_op_time = (double)((double)p->tgtstp->my_accumulated_write_op_time / FLOAT_BILLION); // nano to seconds
-	rp->accumulated_pattern_fill_time = (double)((double)p->tgtstp->my_accumulated_pattern_fill_time / FLOAT_BILLION); // nano to milli
-	rp->accumulated_flush_time = (double)((double)p->tgtstp->my_accumulated_flush_time / FLOAT_BILLION); // nano to milli
-	rp->earliest_start_time_this_run = (double)(p->first_pass_start_time); // nanoseconds
-	rp->earliest_start_time_this_pass = (double)(p->tgtstp->my_pass_start_time); // nanoseconds
-	rp->latest_end_time_this_run = (double)(p->tgtstp->my_pass_end_time); // nanoseconds
-	rp->latest_end_time_this_pass = (double)(p->tgtstp->my_pass_end_time); // nanoseconds
-	rp->elapsed_pass_time = (double)((double)(p->tgtstp->my_pass_end_time - p->tgtstp->my_pass_start_time) / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_op_time = (double)((double)tdp->td_tgtstp->my_accumulated_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_read_op_time = (double)((double)tdp->td_tgtstp->my_accumulated_read_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_write_op_time = (double)((double)tdp->td_tgtstp->my_accumulated_write_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_pattern_fill_time = (double)((double)tdp->td_tgtstp->my_accumulated_pattern_fill_time / FLOAT_BILLION); // nano to milli
+	rp->accumulated_flush_time = (double)((double)tdp->td_tgtstp->my_accumulated_flush_time / FLOAT_BILLION); // nano to milli
+	rp->earliest_start_time_this_run = (double)(tdp->td_first_pass_start_time); // nanoseconds
+	rp->earliest_start_time_this_pass = (double)(tdp->td_tgtstp->my_pass_start_time); // nanoseconds
+	rp->latest_end_time_this_run = (double)(tdp->td_tgtstp->my_pass_end_time); // nanoseconds
+	rp->latest_end_time_this_pass = (double)(tdp->td_tgtstp->my_pass_end_time); // nanoseconds
+	rp->elapsed_pass_time = (double)((double)(tdp->td_tgtstp->my_pass_end_time - tdp->td_tgtstp->my_pass_start_time) / FLOAT_BILLION); // nano to seconds
 	if (rp->elapsed_pass_time == 0.0) 
 		rp->elapsed_pass_time = -1.0; // This is done to prevent and divide-by-zero problems
 	rp->accumulated_elapsed_time += rp->elapsed_pass_time; 
 
 	// These get calculated here
-	rp->xfer_size_bytes = p->iosize;				// bytes
-	rp->xfer_size_blocks = p->iosize/p->block_size;	// blocks
-	rp->xfer_size_kbytes = p->iosize/1024;			// kbytes
-	rp->xfer_size_mbytes = p->iosize/(1024*1024);	// mbytes
+	rp->xfer_size_bytes = tdp->td_iosize;				// bytes
+	rp->xfer_size_blocks = tdp->td_iosize/tdp->td_block_size;	// blocks
+	rp->xfer_size_kbytes = tdp->td_iosize/1024;			// kbytes
+	rp->xfer_size_mbytes = tdp->td_iosize/(1024*1024);	// mbytes
 
 	// Bandwidth
 	rp->bandwidth = (double)(((double)rp->bytes_xfered / (double)rp->elapsed_pass_time) / FLOAT_MILLION);  // MB/sec
@@ -749,8 +752,8 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp) {
 	else rp->latency = (double)((1.0/rp->iops) * 1000.0);  // milliseconds
 
 	// Times
-	rp->user_time =   (double)(p->tgtstp->my_current_cpu_times.tms_utime  - p->tgtstp->my_starting_cpu_times_this_pass.tms_utime)/(double)(xgp->clock_tick); // Seconds
-	rp->system_time = (double)(p->tgtstp->my_current_cpu_times.tms_stime  - p->tgtstp->my_starting_cpu_times_this_pass.tms_stime)/(double)(xgp->clock_tick); // Seconds
+	rp->user_time =   (double)(tdp->td_tgtstp->my_current_cpu_times.tms_utime  - tdp->td_tgtstp->my_starting_cpu_times_this_pass.tms_utime)/(double)(xgp->clock_tick); // Seconds
+	rp->system_time = (double)(tdp->td_tgtstp->my_current_cpu_times.tms_stime  - tdp->td_tgtstp->my_starting_cpu_times_this_pass.tms_stime)/(double)(xgp->clock_tick); // Seconds
 	rp->us_time = (double)(rp->user_time + rp->system_time); // MilliSeconds
 	if (rp->elapsed_pass_time == 0.0) {
 		rp->percent_user = 0.0;
@@ -763,13 +766,13 @@ xdd_extract_pass_results(results_t *rp, ptds_t *p, xdd_plan_t *planp) {
 	}
 
 	// E2E Times
-	if (p->e2ep) {
-		rp->e2e_sr_time_this_pass = (double)p->e2ep->e2e_sr_time/FLOAT_BILLION; // E2E SendReceive Time in MicroSeconds
+	if (tdp->td_e2ep) {
+		rp->e2e_sr_time_this_pass = (double)tdp->td_e2ep->e2e_sr_time/FLOAT_BILLION; // E2E SendReceive Time in MicroSeconds
 		rp->e2e_io_time_this_pass = (double)rp->elapsed_pass_time; // E2E IO  Time in MicroSeconds
 		if (rp->e2e_io_time_this_pass == 0.0)
 			rp->e2e_sr_time_percent_this_pass = 0.0; // Percentage of IO Time spent in SendReceive
 		else rp->e2e_sr_time_percent_this_pass = (rp->e2e_sr_time_this_pass/rp->e2e_io_time_this_pass)*100.0; // Percentage of IO Time spent in SendReceive
-		rp->e2e_wait_1st_msg = (double)p->e2ep->e2e_wait_1st_msg/FLOAT_BILLION; // MicroSeconds
+		rp->e2e_wait_1st_msg = (double)tdp->td_e2ep->e2e_wait_1st_msg/FLOAT_BILLION; // MicroSeconds
 	}
 
 	// Extended Statistics
@@ -844,7 +847,7 @@ xdd_results_dump(results_t *rp, char *dumptype, xdd_plan_t *planp) {
 	fprintf(xgp->output,"	xfer_size_blocks = %12.3f\n",rp->xfer_size_blocks);		// Transfer size in blocks 
 	fprintf(xgp->output,"	xfer_size_kbytes = %12.3f\n",rp->xfer_size_kbytes);		// Transfer size in Kbytes 
 	fprintf(xgp->output,"	xfer_size_mbytes = %12.3f\n",rp->xfer_size_mbytes);		// Transfer size in Mbytes 
-	fprintf(xgp->output,"	reqsize = %d\n",rp->reqsize); 			// RequestSize from the ptds 
+	fprintf(xgp->output,"	reqsize = %d\n",rp->reqsize); 			// RequestSize from the target_data 
 	fprintf(xgp->output,"	pass_number = %d\n",rp->pass_number); 	// Pass number of this set of results 
 	fprintf(xgp->output,"	*optype = '%s'\n",rp->optype);			// Operation type - read, write, or mixed
 
