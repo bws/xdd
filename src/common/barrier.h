@@ -97,13 +97,13 @@
 // threads that are waiting at a particular barrier for other threads to arrive.
 // The occupants waiting in a barrier are of four different types:
 //      - Target Thread
-//      - QThread
+//      - Worker Thread
 //      - Support Thread like Results Manager, Heartbeat, Restart, or Interactive
 //      - XDD Main - the main parent thread
 // Each barrier will anchor a doubly linked circular list of "occupant" structures
 // that contain information about the thread waiting on that barrier.
-// The "occupant" structure contains the occupant's type, a pointer to a 
-// PTDS if the occupant is a Target Thread or QThread, and previous/next pointers
+// The "occupant" structure contains the occupant's type, a pointer to Target_Data or
+// Worker_Data if the occupant is a Target Thread or Worker Thread, and previous/next pointers
 // to the occupants in front or behind any given occupant structure. If the
 // occupant is the only one on the occupant chain then it simply points to itself.
 // Each time a thread enters a barrier, the pointer to the occupant structure passed 
@@ -115,7 +115,7 @@
 // given time if there are threads of any sort *stuck* in a barrier so that
 // something might be done about releasing them without necessarily terminating
 // the XDD run. This is useful for copy (aka end-to-end) operations that might
-// have a stalled QThread that needs to be terminated. 
+// have a stalled Worker Thread that needs to be terminated. 
 //
 // The "occupant" chain is very similar to the barrier chain in that it is
 // a circular doubly-linked list of "occupant" structures. Each barrier
@@ -133,12 +133,12 @@
 //
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // The occupant structure
-// When the occupant type is either TARGET or QTHREAD then the occupant_ptds member
-// points (or should point) to the PTDS for that particular thread.
+// When the occupant type is either TARGET or Worker THREAD then the occupant_data member
+// points (or should point) to the Target or Worker Data for that particular thread.
 // The occupant_name should always point to a character string that indicates
 // the name of the occupant. For example, if the occupant_type is SUPPORT then 
 // the occupant_name will be "results_manager" or "heartbeat" or "restart". 
-// If the occupant_type is a QTHREAD then the occupant_name will be "qthread_#_target_#"
+// If the occupant_type is a Worker THREAD then the occupant_name will be "TARGET_#_WORKER_#"
 // An occupant_type of TARGET will have an occupant_name of "target_#". 
 // Finally, an occupant_type of MAIN will have an occupant_name of "main".
 //
@@ -149,21 +149,21 @@ struct xdd_occupant {
 	struct		xdd_occupant	*next_occupant;	// Next occupant on the chain
 	uint64_t				 	occupant_type;	// Bitfield that indicates the type of occupant
 	char						*occupant_name;	// Pointer to a character string that is the name of this occupant
-	struct		ptds			*occupant_ptds;	// Pointer to a PTDS if the occupant_type is a Target or QThread
+	void						*occupant_data;	// Pointer to a Target_Data or Worker_Data if the occupant_type is a Target or Worker Thread
 	nclk_t						entry_time;		// Time stamp of when this occupant entered a barrier - filled in by xdd_barrier()
 	nclk_t						exit_time;		// Time stamp of when this occupant was released from a barrier - filled in by xdd_barrier()
 };
 typedef struct xdd_occupant xdd_occupant_t;
 #define XDD_OCCUPANT_TYPE_TARGET		0x0000000000000001ULL	// Occupant is a Target Thread
-#define XDD_OCCUPANT_TYPE_QTHREAD		0x0000000000000002ULL	// Occupant is a QThread
+#define XDD_OCCUPANT_TYPE_WORKER_THREAD	0x0000000000000002ULL	// Occupant is a Worker_Thread
 #define XDD_OCCUPANT_TYPE_SUPPORT		0x0000000000000004ULL	// Occupant is a Support Thread: Results Manager, Heartbeat, Restart, Interactive
 #define XDD_OCCUPANT_TYPE_MAIN			0x0000000000000008ULL	// Occupant is the XDD Main parent thread
-#define XDD_OCCUPANT_TYPE_CLEANUP		0x0000000000000010ULL	// Occupant is a Target or QThread Cleanup function
+#define XDD_OCCUPANT_TYPE_CLEANUP		0x0000000000000010ULL	// Occupant is a Target or Worker_Thread Cleanup function
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // The XDD barrier structure
 //
-#define XDD_BARRIER_NAME_LENGTH			64	// not to exceed this many characters in length
+#define XDD_BARRIER_MAX_NAME_LENGTH		64	// not to exceed this many characters in length
 #define	XDD_BARRIER_FLAG_INITIALIZED	0x0000000000000001ULL	// Indicates that this barrier has been initialized
 struct xdd_barrier {
 	struct 	xdd_barrier 	*prev_barrier; 	// Previous barrier in the chain 
@@ -171,7 +171,7 @@ struct xdd_barrier {
 	struct	xdd_occupant	*first_occupant;// First Occupant in the chain
 	struct	xdd_occupant	*last_occupant;	// Last Occupant in the chain
 	uint32_t				flags; 			// State indicators and the like
-	char					name[XDD_BARRIER_NAME_LENGTH]; 	// This is the ASCII name of the barrier
+	char					name[XDD_BARRIER_MAX_NAME_LENGTH]; 	// This is the ASCII name of the barrier
 	int32_t					counter; 		// Couter used to keep track of how many threads have entered the barrier
 	int32_t					threads; 		/// The number of threads that need to enter this barrier before occupants are released
 #ifdef WIN32

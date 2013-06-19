@@ -55,7 +55,7 @@ void	xdd_datapattern_fill(worker_data_t *wdp);
 
 // debug.c
 void	xdd_show_plan(xdd_plan_t *planp);
-void	xdd_show_ptds(target_data_t *tdp);
+void	xdd_show_target_data(target_data_t *tdp);
 void	xdd_show_global_data(void);
 
 // end_to_end.c
@@ -120,14 +120,13 @@ int 	xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags);
 int	xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_ptds(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags);
+void	xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags);
+void	xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_display_state_info(worker_data_t *wdp);
-void	xdd_interactive_show_qtptds(int32_t tokens, char *cmdline, uint32_t flags);
+void	xdd_interactive_show_worker_data(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_tot_display_fields(target_data_t *p, FILE *fp);
+void	xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp);
 void	xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags);
 void	xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags);
 
@@ -149,24 +148,24 @@ void	xdd_unlock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 int32_t	xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result);
 
 // parse.c
-void		xdd_parse_args(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags);
-void		xdd_parse(xdd_plan_t* planp, int32_t argc, char *argv[]);
-void		xdd_usage(int32_t fullhelp);
-int 		xdd_check_option(char *op);
-int32_t		xdd_process_paramfile(xdd_plan_t* planp, char *fnp);
-int 		xdd_parse_target_number(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags, int *target_number);
-xdd_target_state_t *xdd_get_tgtstp(void);
-target_data_t 		*xdd_get_ptdsp(xdd_plan_t* planp, int32_t target_number, char *op);
-restart_t 	*xdd_get_restartp(target_data_t *p);
-xdd_raw_t	*xdd_get_rawp(target_data_t *p);
-xdd_sgio_t 	*xdd_get_sgiop(target_data_t *p);
-xdd_e2e_t 	*xdd_get_e2ep(void);
-xdd_timestamp_t	*xdd_get_tsp(target_data_t *p);
-xdd_triggers_t 	*xdd_get_trigp(target_data_t *p);
-xdd_extended_stats_t 	*xdd_get_esp(target_data_t *p);
-int32_t		xdd_linux_cpu_count(void);
-int32_t		xdd_cpu_count(void);
-int32_t		xdd_atohex(unsigned char *destp, char *sourcep);
+void				xdd_parse_args(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags);
+void				xdd_parse(xdd_plan_t* planp, int32_t argc, char *argv[]);
+void				xdd_usage(int32_t fullhelp);
+int 				xdd_check_option(char *op);
+int32_t				xdd_process_paramfile(xdd_plan_t* planp, char *fnp);
+int 				xdd_parse_target_number(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags, int *target_number);
+xdd_target_state_t 	*xdd_get_tgtstp(void);
+target_data_t 		*xdd_get_target_datap(xdd_plan_t* planp, int32_t target_number, char *op);
+restart_t 			*xdd_get_restartp(target_data_t *p);
+xdd_raw_t			*xdd_get_rawp(target_data_t *p);
+xdd_sgio_t 			*xdd_get_sgiop(target_data_t *p);
+xdd_e2e_t 			*xdd_get_e2ep(void);
+xdd_timestamp_t		*xdd_get_tsp(target_data_t *p);
+xdd_triggers_t 		*xdd_get_trigp(target_data_t *p);
+xdd_extended_stats_t *xdd_get_esp(target_data_t *p);
+int32_t				xdd_linux_cpu_count(void);
+int32_t				xdd_cpu_count(void);
+int32_t				xdd_atohex(unsigned char *destp, char *sourcep);
 
 // parse_func.c
 int32_t	xdd_parse_arg_count_check(int32_t args, int32_t argc, char *option);
@@ -187,11 +186,12 @@ int32_t	xdd_target_preallocate(target_data_t *p);
 void	xdd_processor(target_data_t *p);
 int		xdd_get_processor(void);
 
-// ptds.c
-void	xdd_init_new_ptds(target_data_t *p, int32_t n);
-void	xdd_calculate_xfer_info(target_data_t *tp);
-target_data_t 	*xdd_create_worker_thread_ptds(target_data_t *tp, int32_t q);
-void	xdd_build_ptds_substructure(xdd_plan_t* planp);
+// target_data.c
+void	xdd_init_new_target_data(target_data_t *tdp, int32_t n);
+void	xdd_calculate_xfer_info(target_data_t *tdp);
+worker_data_t 	*xdd_create_worker_data(target_data_t *tdp, int32_t q);
+void	xdd_build_target_data_substructure(xdd_plan_t* planp);
+void	xdd_build_target_data_substructure_e2e(xdd_plan_t* planp, target_data_t *tdp);
 
 // worker_thread.c
 void 	*xdd_worker_thread(void *pin);

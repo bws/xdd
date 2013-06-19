@@ -181,7 +181,7 @@ xdd_target_init(target_data_t *tdp) {
 int32_t
 xdd_target_init_barriers(target_data_t *tdp) {
     int32_t		status;								// Status of subroutine calls
-    char		tmpname[XDD_BARRIER_NAME_LENGTH];	// Used to create unique names for the barriers
+    char		tmpname[XDD_BARRIER_MAX_NAME_LENGTH];	// Used to create unique names for the barriers
 
 
 	// The following initialization calls are all done with accumulated status for ease of coding.

@@ -32,6 +32,7 @@
  * This file contains the subroutines that support the Target threads.
  */
 #include "xint.h"
+#include "parse.h"
 #include "interactive.h"
 extern xdd_interactive_func_t xdd_interactive_func[];
 #define XDD_CMDLINE_LENGTH	512		// Length of the command line
