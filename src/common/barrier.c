@@ -92,13 +92,13 @@
 // threads that are waiting at a particular barrier for other threads to arrive.
 // The occupants waiting in a barrier are of four different types:
 //      - Target Thread
-//      - QThread
+//      - Worker Thread
 //      - Support Thread like Results Manager, Heartbeat, Restart, or Interactive
 //      - XDD Main - the main parent thread
 // Each barrier will anchor a doubly linked circular list of "occupant" structures
 // that contain information about the thread waiting on that barrier.
 // The "occupant" structure contains the occupant's type, a pointer to a 
-// PTDS if the occupant is a Target Thread or QThread, and previous/next pointers
+// Target Data Struct if the occupant is a Target Thread or Worker Thread, and previous/next pointers
 // to the occupants in front or behind any given occupant structure. If the
 // occupant is the only one on the occupant chain then it simply points to itself.
 // Each time a thread enters a barrier, the pointer to the occupant structure passed 
@@ -110,7 +110,7 @@
 // given time if there are threads of any sort *stuck* in a barrier so that
 // something might be done about releasing them without necessarily terminating
 // the XDD run. This is useful for copy (aka end-to-end) operations that might
-// have a stalled QThread that needs to be terminated.
+// have a stalled Worker Thread that needs to be terminated.
 //
 // The "occupant" chain is very similar to the barrier chain in that it is
 // a circular doubly-linked list of "occupant" structures. Each barrier
@@ -150,12 +150,12 @@ xdd_init_barrier_chain(xdd_plan_t* planp) {
 /* xdd_init_barrier_occupant() - Initialize the barrier occupant structure
  */
 void
-xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, ptds_t *p) {
+xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, target_data_t *tdp) {
 	bop->prev_occupant = NULL;
 	bop->next_occupant = NULL;
 	bop->occupant_name = name;
 	bop->occupant_type = type;
-	bop->occupant_ptds = p;
+	bop->occupant_data = tdp;
 	return;
 } /* end of xdd_init_barrier_occupant() */
 /*----------------------------------------------------------------------------*/
@@ -190,8 +190,8 @@ xdd_init_barrier(xdd_plan_t* planp, struct xdd_barrier *bp, int32_t threads, cha
 	bp->flags = 0;
 	bp->threads = threads;
 	bp->counter = 0;
-	strncpy(bp->name,barrier_name,XDD_BARRIER_NAME_LENGTH-1);
-	bp->name[XDD_BARRIER_NAME_LENGTH-1] = '\0';
+	strncpy(bp->name,barrier_name,XDD_BARRIER_MAX_NAME_LENGTH-1);
+	bp->name[XDD_BARRIER_MAX_NAME_LENGTH-1] = '\0';
 	bp->first_occupant = NULL;
 	bp->last_occupant = NULL;
 
@@ -310,8 +310,8 @@ xdd_destroy_barrier(xdd_plan_t* planp, struct xdd_barrier *bp) {
  * of the occupant chain. This allows the debug routine to see which threads
  * are in a barrier at any given time as well as when they entered the barrier.
  * 
- * If the barrier is a Target Thread or a QThread then the PTDS pointer is
- * valid and the "current_barrier" member of that PTDS is set to the barrier
+ * If the barrier is a Target Thread or a Worker Thread then the Target_Data pointer is
+ * valid and the "current_barrier" member of that Target_Data is set to the barrier
  * pointer of the barrier that this thread is about to enter. Upon leaving the
  * barrier, this pointer is cleared.
  *
@@ -325,8 +325,8 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 	/* "threads" is the number of participating threads */
 	if (bp->threads == 1) return(0); /* If there is only one thread then why bother sleeping */
 
-	// Put this PTDS on the Barrier PTDS Chain so that we can track it later if we need to 
-	/////// this is to keep track of which PTDSs are in a particular barrier at any given time...
+	// Put this Target_Data on the Barrier Target_Data Chain so that we can track it later if we need to 
+	/////// this is to keep track of which Target_Data are in a particular barrier at any given time...
 	pthread_mutex_lock(&bp->mutex);
 	// Add occupant structure here
 	if (bp->counter == 0) { // Add first occupant to the chain
@@ -341,10 +341,10 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 		bp->last_occupant = occupantp;
 	} // Done adding this barrier to the chain
 	if ((occupantp->occupant_type & XDD_OCCUPANT_TYPE_TARGET ) ||
-		(occupantp->occupant_type & XDD_OCCUPANT_TYPE_QTHREAD)) {
-		// Put the barrier pointer into this thread's PTDS->current_barrier
-		occupantp->occupant_ptds->tgtstp->my_current_state |= CURRENT_STATE_BARRIER;
-		occupantp->occupant_ptds->current_barrier = bp;
+		(occupantp->occupant_type & XDD_OCCUPANT_TYPE_WORKER_THREAD)) {
+		// Put the barrier pointer into this thread's Target_Data->current_barrier
+		((target_data_t *)(occupantp->occupant_data))->td_tgtstp->my_current_state |= CURRENT_STATE_BARRIER;
+		((target_data_t *)(occupantp->occupant_data))->td_current_barrier = bp;
 	}
 	bp->counter++;
 	pthread_mutex_unlock(&bp->mutex);
@@ -373,10 +373,10 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 #endif
 
 	if ((occupantp->occupant_type & XDD_OCCUPANT_TYPE_TARGET ) ||
-		(occupantp->occupant_type & XDD_OCCUPANT_TYPE_QTHREAD)) {
-		// Clear this thread's PTDS->current_barrier
-		occupantp->occupant_ptds->current_barrier = NULL;
-		occupantp->occupant_ptds->tgtstp->my_current_state &= ~CURRENT_STATE_BARRIER;
+		(occupantp->occupant_type & XDD_OCCUPANT_TYPE_WORKER_THREAD)) {
+		// Clear this thread's Target_Data->current_barrier
+		((target_data_t *)(occupantp->occupant_data))->td_current_barrier = NULL;
+		((target_data_t *)(occupantp->occupant_data))->td_tgtstp->my_current_state &= ~CURRENT_STATE_BARRIER;
 	}
 	// Clear this occupant chain if we are the owner of this barrier
 	if (owner) {

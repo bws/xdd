@@ -38,7 +38,7 @@
 /* xdd_ts_overhead() - determine time stamp overhead
  */
 void
-xdd_ts_overhead(struct tthdr *ttp) { 
+xdd_ts_overhead(struct xdd_tthdr *ttp) { 
 	int32_t  i;
 	nclk_t  tv[101];
 	ttp->timer_oh = 0;
@@ -66,7 +66,8 @@ xdd_ts_overhead(struct tthdr *ttp) {
  * 
  */
 void
-xdd_ts_setup(ptds_t *p) {
+xdd_ts_setup(target_data_t *tdp) {
+	xdd_timestamp_t	*tsp;
 	nclk_t		cycleval; /* resolution of the clock in nanoseconds per ticl */
 	time_t 		t;  /* Time */
 	int64_t 	tt_entries; /* number of entries inthe time stamp table */
@@ -74,116 +75,118 @@ xdd_ts_setup(ptds_t *p) {
 	int32_t		ts_filename_size; // Number of bytes in the size of the file name
 
 
+
+	tsp = tdp->td_tsp;
 	/* check to make sure we really need to do this */
-	if (!(p->tsp->ts_options & TS_ON) && !(xgp->global_options & GO_DESKEW))
+	if (!(tsp->ts_options & TS_ON) && !(xgp->global_options & GO_DESKEW))
 		return;
 
 	/* If DESKEW is TRUE but the TS option was not requested, then do a DESKEW ts setup */
-	if ((xgp->global_options & GO_DESKEW) && !(p->tsp->ts_options & TS_ON)) {
-		p->tsp->ts_options |= (TS_ON | TS_ALL | TS_ONESHOT | TS_SUPPRESS_OUTPUT);
-		p->tsp->ts_size = (p->my_planp->passes + 1) * p->queue_depth;
-	} else p->tsp->ts_size = (p->my_planp->passes * p->target_ops) + p->queue_depth;
-	if (p->tsp->ts_options & (TS_TRIGTIME | TS_TRIGOP)) 
-		p->tsp->ts_options &= ~TS_ALL; /* turn off the "time stamp all operations" flag if a trigger was requested */
-	if (p->tsp->ts_options & TS_TRIGTIME) { /* adjust the trigger time to an actual local time */
-		p->tsp->ts_trigtime *= BILLION;
-		p->tsp->ts_trigtime += p->my_planp->ActualLocalStartTime;
+	if ((xgp->global_options & GO_DESKEW) && !(tsp->ts_options & TS_ON)) {
+		tsp->ts_options |= (TS_ON | TS_ALL | TS_ONESHOT | TS_SUPPRESS_OUTPUT);
+		tsp->ts_size = (tdp->td_planp->passes + 1) * tdp->td_queue_depth;
+	} else tsp->ts_size = (tdp->td_planp->passes * tdp->td_target_ops) + tdp->td_queue_depth;
+	if (tsp->ts_options & (TS_TRIGTIME | TS_TRIGOP)) 
+		tsp->ts_options &= ~TS_ALL; /* turn off the "time stamp all operations" flag if a trigger was requested */
+	if (tsp->ts_options & TS_TRIGTIME) { /* adjust the trigger time to an actual local time */
+		tsp->ts_trigtime *= BILLION;
+		tsp->ts_trigtime += tdp->td_planp->ActualLocalStartTime;
 	}
 
 	/* Calculate size of the time stamp table and malloc it */
-	tt_entries = p->tsp->ts_size; 
-	if (tt_entries < ((p->my_planp->passes * p->target_ops) + p->queue_depth)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
-		if (((p->tsp->ts_options & TS_WRAP) == 0) &&
-			((p->tsp->ts_options & TS_ONESHOT) == 0) &&
+	tt_entries = tsp->ts_size; 
+	if (tt_entries < ((tdp->td_planp->passes * tdp->td_target_ops) + tdp->td_queue_depth)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
+		if (((tsp->ts_options & TS_WRAP) == 0) &&
+			((tsp->ts_options & TS_ONESHOT) == 0) &&
 			(!(xgp->global_options & GO_DESKEW))) {
-			fprintf(xgp->errout,"%s: ***NOTICE*** The size specified for timestamp table for target %d is too small - enabling time stamp wrapping to compensate\n",xgp->progname,p->my_target_number);
+			fprintf(xgp->errout,"%s: ***NOTICE*** The size specified for timestamp table for target %d is too small - enabling time stamp wrapping to compensate\n",xgp->progname,tdp->td_target_number);
 			fflush(xgp->errout);
-			p->tsp->ts_options |= TS_WRAP;
+			tsp->ts_options |= TS_WRAP;
 		}
 	}
 	/* calculate the total size in bytes of the time stamp table */
-	tt_bytes = (int)((sizeof(struct tthdr)) + (tt_entries * sizeof(struct tte)));
+	tt_bytes = (int)((sizeof(struct xdd_tthdr)) + (tt_entries * sizeof(struct tte)));
 #if (LINUX || SOLARIS || AIX || DARWIN)
-	p->ttp = (struct tthdr *)valloc(tt_bytes);
+	tdp->td_ttp = (struct xdd_tthdr *)valloc(tt_bytes);
 #else
-	p->ttp = (struct tthdr *)malloc(tt_bytes);
+	tdp->td_ttp = (struct xdd_tthdr *)malloc(tt_bytes);
 #endif
-	if (p->ttp == 0) {
+	if (tdp->td_ttp == 0) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp table\n",
-			xgp->progname,p->my_target_number, tt_bytes);
+			xgp->progname,tdp->td_target_number, tt_bytes);
 		fflush(xgp->errout);
 		perror("Reason");
-		p->tsp->ts_options &= ~TS_ON;
+		tsp->ts_options &= ~TS_ON;
 		return;
 	}
 	/* Lock the time stamp table in memory */
-	xdd_lock_memory((unsigned char *)p->ttp, tt_bytes, "TIMESTAMP");
+	xdd_lock_memory((unsigned char *)tdp->td_ttp, tt_bytes, "TIMESTAMP");
 	/* clear everything out of the trace table */
-	memset(p->ttp,0, tt_bytes);
+	memset(tdp->td_ttp,0, tt_bytes);
 	/* get access to the high-res clock*/
 	nclk_initialize(&cycleval);
 	if (cycleval == NCLK_BAD) {
 		fprintf(xgp->errout,"%s: Could not initialize high-resolution clock\n",
 			xgp->progname);
 		fflush(xgp->errout);
-		p->tsp->ts_options &= ~TS_ON;
+		tsp->ts_options &= ~TS_ON;
 	}
-	xdd_ts_overhead(p->ttp);
+	xdd_ts_overhead(tdp->td_ttp);
 
         /* Set the XDD Version into the timestamp header */
-        p->ttp->magic = 0xDEADBEEF;
-        snprintf(p->ttp->version, sizeof(p->ttp->version), "%s", PACKAGE_STRING);
+        tdp->td_ttp->magic = 0xDEADBEEF;
+        snprintf(tdp->td_ttp->version, sizeof(tdp->td_ttp->version), "%s", PACKAGE_STRING);
         
 	/* init entries in the trace table header */
-	p->ttp->target_thread_id = p->my_pid;
-	p->ttp->res = cycleval;
-	p->ttp->reqsize = p->iosize;
-	p->ttp->blocksize = p->block_size;
-	strcpy(p->ttp->id, xgp->id); 
-	p->ttp->range = p->seekhdr.seek_range;
-	p->ttp->start_offset = p->start_offset;
-	p->ttp->target_offset = p->my_planp->target_offset;
-	p->ttp->global_options = xgp->global_options;
-	p->ttp->target_options = p->target_options;
+	tdp->td_ttp->target_thread_id = tdp->td_pid;
+	tdp->td_ttp->res = cycleval;
+	tdp->td_ttp->reqsize = tdp->td_iosize;
+	tdp->td_ttp->blocksize = tdp->td_block_size;
+	strcpy(tdp->td_ttp->id, xgp->id); 
+	tdp->td_ttp->range = tdp->td_seekhdr.seek_range;
+	tdp->td_ttp->start_offset = tdp->td_start_offset;
+	tdp->td_ttp->target_offset = tdp->td_planp->target_offset;
+	tdp->td_ttp->global_options = xgp->global_options;
+	tdp->td_ttp->target_options = tdp->td_target_options;
 	t = time(NULL);
-	strcpy(p->ttp->td, ctime(&t));
-	p->ttp->tt_size = tt_entries;
-	p->ttp->trigtime = p->tsp->ts_trigtime;
-	p->ttp->trigop = p->tsp->ts_trigop;
-	p->ttp->tt_bytes = tt_bytes;
-	p->ttp->tte_indx = 0;
-	p->ttp->delta = p->my_planp->gts_delta;
-	p->tsp->ts_current_entry = 0;
+	strcpy(tdp->td_ttp->td, ctime(&t));
+	tdp->td_ttp->tt_size = tt_entries;
+	tdp->td_ttp->trigtime = tsp->ts_trigtime;
+	tdp->td_ttp->trigop = tsp->ts_trigop;
+	tdp->td_ttp->tt_bytes = tt_bytes;
+	tdp->td_ttp->tte_indx = 0;
+	tdp->td_ttp->delta = tdp->td_planp->gts_delta;
+	tsp->ts_current_entry = 0;
 
 	// Generate the name(s) of the ASCII and/or binary output files
 
 	// First we do the binary output file name
-	ts_filename_size = strlen(p->my_planp->ts_binary_filename_prefix) + 32;
-    p->tsp->ts_binary_filename = malloc(ts_filename_size);
-	if (p->tsp->ts_binary_filename == NULL) {
+	ts_filename_size = strlen(tdp->td_planp->ts_binary_filename_prefix) + 32;
+    tsp->ts_binary_filename = malloc(ts_filename_size);
+	if (tsp->ts_binary_filename == NULL) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp binary output filename\n",
-			xgp->progname,p->my_target_number, ts_filename_size);
+			xgp->progname,tdp->td_target_number, ts_filename_size);
 		fflush(xgp->errout);
 		perror("Reason");
-		p->tsp->ts_options &= ~TS_ON;
+		tsp->ts_options &= ~TS_ON;
 		return;
 	}
-	snprintf(p->tsp->ts_binary_filename,ts_filename_size,"%s.target.%04d.bin",p->my_planp->ts_binary_filename_prefix,p->my_target_number);
+	snprintf(tsp->ts_binary_filename,ts_filename_size,"%s.target.%04d.bin",tdp->td_planp->ts_binary_filename_prefix,tdp->td_target_number);
 
 	// Now do the ASCII output file name
 	// If -ts output filename option not used, then dont set it.
-    if ( p->my_planp->ts_output_filename_prefix != NULL ) {
-      ts_filename_size = strlen(p->my_planp->ts_output_filename_prefix) + 32;
-      p->tsp->ts_output_filename = malloc(ts_filename_size);
-  	  if (p->tsp->ts_output_filename == NULL) {
+    if ( tdp->td_planp->ts_output_filename_prefix != NULL ) {
+      ts_filename_size = strlen(tdp->td_planp->ts_output_filename_prefix) + 32;
+      tsp->ts_output_filename = malloc(ts_filename_size);
+  	  if (tsp->ts_output_filename == NULL) {
 		fprintf(xgp->errout,"%s: xdd_ts_setup: Target %d: ERROR: Cannot allocate %d bytes of memory for timestamp output filename\n",
-			xgp->progname,p->my_target_number, ts_filename_size);
+			xgp->progname,tdp->td_target_number, ts_filename_size);
 		fflush(xgp->errout);
 		perror("Reason");
-		p->tsp->ts_options &= ~TS_ON;
+		tsp->ts_options &= ~TS_ON;
 		return;
 	  }
-	  snprintf(p->tsp->ts_output_filename,ts_filename_size,"%s.target.%04d.csv",p->my_planp->ts_output_filename_prefix,p->my_target_number);
+	  snprintf(tsp->ts_output_filename,ts_filename_size,"%s.target.%04d.csv",tdp->td_planp->ts_output_filename_prefix,tdp->td_target_number);
     }
 	return;
 } /* end of xdd_ts_setup() */
@@ -191,32 +194,34 @@ xdd_ts_setup(ptds_t *p) {
 /* xdd_ts_write() - write the timestamp entried to a file. 
  */
 void
-xdd_ts_write(ptds_t *p) {
+xdd_ts_write(target_data_t *tdp) {
+	xdd_timestamp_t	*tsp;
 	int32_t i;   /* working variable */
 	int32_t ttfd;   /* file descriptor for the timestamp file */
 	int64_t newsize;  /* new size of the time stamp table */
-	tthdr_t *ttp;   /* pointer to the time stamp table header */
+	xdd_tthdr_t *ttp;   /* pointer to the time stamp table header */
 
 
-	ttp = p->ttp;
-	if ((p->tsp->ts_options & TS_DUMP) == 0)  /* dump only if DUMP was specified */
+	tsp = tdp->td_tsp;
+	ttp = tdp->td_ttp;
+	if ((tsp->ts_options & TS_DUMP) == 0)  /* dump only if DUMP was specified */
 		return;
-	ttfd = open(p->tsp->ts_binary_filename,O_WRONLY|O_CREAT,0666);
+	ttfd = open(tsp->ts_binary_filename,O_WRONLY|O_CREAT,0666);
 	if (ttfd < 0) {
-		fprintf(xgp->errout,"%s: cannot open timestamp table binary output file %s\n", xgp->progname,p->tsp->ts_binary_filename);
+		fprintf(xgp->errout,"%s: cannot open timestamp table binary output file %s\n", xgp->progname,tsp->ts_binary_filename);
 		fflush(xgp->errout);
 		perror("reason");
 		return;
 	}
-	newsize = sizeof(struct tthdr) + (sizeof(struct tte) * ttp->numents);
+	newsize = sizeof(struct xdd_tthdr) + (sizeof(struct tte) * ttp->numents);
 	i = write(ttfd,ttp,newsize);
 	if (i != newsize) {
-		fprintf(xgp->errout,"(%d) %s: cannot write timestamp table binary output file %s\n", p->my_target_number, xgp->progname,p->tsp->ts_binary_filename);
+		fprintf(xgp->errout,"(%d) %s: cannot write timestamp table binary output file %s\n", tdp->td_target_number, xgp->progname,tsp->ts_binary_filename);
 		fflush(xgp->errout);
 		perror("reason");
 	}
 	fprintf(xgp->output,"Timestamp table written to %s - %lld entries, %lld bytes\n",
-		p->tsp->ts_binary_filename, (long long)ttp->numents, (long long)newsize);
+		tsp->ts_binary_filename, (long long)ttp->numents, (long long)newsize);
 
 	close(ttfd);
 } /* end of xdd_ts_write() */
@@ -224,7 +229,7 @@ xdd_ts_write(ptds_t *p) {
 /* xdd_ts_cleanup() - Free up ts tables and stuff
  */
 void
-xdd_ts_cleanup(struct tthdr *ttp) {
+xdd_ts_cleanup(struct xdd_tthdr *ttp) {
 // xdd_unlock_memory((unsigned char *)ttp, ttp->tt_bytes, "TimeStampTable");
     free(ttp);
 } /* end of xdd_ts_cleanup() */
@@ -240,7 +245,8 @@ xdd_ts_cleanup(struct tthdr *ttp) {
  *    
  */
 void
-xdd_ts_reports(ptds_t *p) {
+xdd_ts_reports(target_data_t *tdp) {
+	xdd_timestamp_t	*tsp;
     int32_t  i;  /* working variable */
     int32_t  count;  /* counter for the number of seeks performed */
     int64_t  hi_dist, lo_dist; /* high and low distances traveled */
@@ -267,42 +273,44 @@ xdd_ts_reports(ptds_t *p) {
     double  disk_irate; /* instantaneous data rate */
     double  net_irate; /* instantaneous data rate */
     int64_t  indx; /* Current TS index */
-    tthdr_t  *ttp;  /* pointer to the time stamp table header */
+    xdd_tthdr_t  *ttp;  /* pointer to the time stamp table header */
     char  *opc;  /* pointer to the operation string */
     char  opc2[8];
+
+	tsp = tdp->td_tsp;
 #ifdef WIN32 /* This is required to circumvent the problem of mulitple streams to multiple files */
     /* We need to wait for the previous thread to finish writing its ts report and close the output stream before we can continue */
-    WaitForSingleObject(p->tsp->ts_serializer_mutex,INFINITE);
+    WaitForSingleObject(tsp->ts_serializer_mutex,INFINITE);
 #endif
-    if(p->tsp->ts_options & TS_SUPPRESS_OUTPUT)
+    if(tsp->ts_options & TS_SUPPRESS_OUTPUT)
 	return;
-    if (!(p->tgtstp->my_current_state & CURRENT_STATE_PASS_COMPLETE)) {
+    if (!(tdp->td_tgtstp->my_current_state & CURRENT_STATE_PASS_COMPLETE)) {
 	fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d has not yet completed! Results beyond this point are unpredictable!\n",
-		xgp->progname, p->my_target_number);
+		xgp->progname, tdp->td_target_number);
 	fflush(xgp->errout);
     }
-    ttp = p->ttp;
+    ttp = tdp->td_ttp;
     /* Open the correct output file */
-    if (p->my_planp->ts_output_filename_prefix != 0) {
-	if (p->tsp->ts_options & TS_APPEND)
-	    p->tsfp = fopen(p->tsp->ts_output_filename, "a");
+    if (tdp->td_planp->ts_output_filename_prefix != 0) {
+	if (tsp->ts_options & TS_APPEND)
+	    tdp->td_tsfp = fopen(tsp->ts_output_filename, "a");
 	else
-	    p->tsfp = fopen(p->tsp->ts_output_filename, "w");
-	if (p->tsfp == NULL)  {
-	    fprintf(xgp->errout,"Cannot open file '%s' as output for time stamp reports - using stdout\n", p->tsp->ts_output_filename);
+	    tdp->td_tsfp = fopen(tsp->ts_output_filename, "w");
+	if (tdp->td_tsfp == NULL)  {
+	    fprintf(xgp->errout,"Cannot open file '%s' as output for time stamp reports - using stdout\n", tsp->ts_output_filename);
 	    fflush(xgp->errout);
-	    p->tsfp = stdout;
+	    tdp->td_tsfp = stdout;
 	}
-    } else p->tsfp = stdout;
+    } else tdp->td_tsfp = stdout;
     /* Print the information in the TS header if this is not STDOUT */
-    if (p->tsfp != stdout ) {
-	fprintf(p->tsfp,"Target number for this report, %d\n",p->my_target_number);
-	xdd_options_info(p->my_planp, p->tsfp);
-	fflush(p->tsfp);
-	xdd_system_info(p->my_planp, p->tsfp);
-	fflush(p->tsfp);
-	xdd_target_info(p->tsfp,p);
-	fflush(p->tsfp);
+    if (tdp->td_tsfp != stdout ) {
+	fprintf(tdp->td_tsfp,"Target number for this report, %d\n",tdp->td_target_number);
+	xdd_options_info(tdp->td_planp, tdp->td_tsfp);
+	fflush(tdp->td_tsfp);
+	xdd_system_info(tdp->td_planp, tdp->td_tsfp);
+	fflush(tdp->td_tsfp);
+	xdd_target_info(tdp->td_tsfp,tdp);
+	fflush(tdp->td_tsfp);
     }
     /* allocate some temporary arrays */
     distance = (int64_t *)calloc(ttp->numents,sizeof(int64_t));
@@ -315,76 +323,76 @@ xdd_ts_reports(ptds_t *p) {
 	perror("Reason");
 	return;
     }
-    if (p->tsp->ts_options & TS_DETAILED) { /* Generate the detailed and summary report */
-	if ((p->tsp->ts_options & TS_WRAP) || (p->tsp->ts_options & TS_ONESHOT)) {
+    if (tsp->ts_options & TS_DETAILED) { /* Generate the detailed and summary report */
+	if ((tsp->ts_options & TS_WRAP) || (tsp->ts_options & TS_ONESHOT)) {
 	    if (ttp->tte_indx == 0) 
 		indx = ttp->tt_size - 1;
 	    else indx = ttp->tte_indx - 1;
-	    fprintf(p->tsfp, "Last time stamp table entry, %lld\n",
+	    fprintf(tdp->td_tsfp, "Last time stamp table entry, %lld\n",
 		    (long long)indx);
 	}
 	
-	fprintf(p->tsfp,"Start of DETAILED Time Stamp Report, Number of entries, %lld, Picoseconds per clock tick, %lld, delta, %lld\n",
+	fprintf(tdp->td_tsfp,"Start of DETAILED Time Stamp Report, Number of entries, %lld, Picoseconds per clock tick, %lld, delta, %lld\n",
 		(long long)ttp->numents,
 		(long long)ttp->res,
 		(long long)ttp->delta);
 	
 	// Print a header line with the Quantities as they appear across the page
-	fprintf(p->tsfp,"QThread");
-	fprintf(p->tsfp,"ThreadID");
-	fprintf(p->tsfp,",Op");
-	fprintf(p->tsfp,",Pass");
-	fprintf(p->tsfp,",OP");
-	fprintf(p->tsfp,",Location");
-	fprintf(p->tsfp,",Distance");
-	fprintf(p->tsfp,",IOSize");
-	fprintf(p->tsfp,",DiskCPUStart");
-	fprintf(p->tsfp,",DiskCPUEnd");
-	fprintf(p->tsfp,",DiskStart");
-	fprintf(p->tsfp,",DiskEnd");
-	fprintf(p->tsfp,",DiskIOTime");
-	fprintf(p->tsfp,",DiskRate");
-	fprintf(p->tsfp,",RelativeTime");
-	fprintf(p->tsfp,",LoopTime");
-	if (p->target_options & TO_ENDTOEND) {
-	    fprintf(p->tsfp,",NetIOSize");
-	    fprintf(p->tsfp,",NetCPUStart");
-	    fprintf(p->tsfp,",NetCPUEnd");
-	    fprintf(p->tsfp,",NetStart");
-	    fprintf(p->tsfp,",NetEnd");
-	    fprintf(p->tsfp,",NetTime");
-	    fprintf(p->tsfp,",NetRate");
+	fprintf(tdp->td_tsfp,"QThread");
+	fprintf(tdp->td_tsfp,"ThreadID");
+	fprintf(tdp->td_tsfp,",Op");
+	fprintf(tdp->td_tsfp,",Pass");
+	fprintf(tdp->td_tsfp,",OP");
+	fprintf(tdp->td_tsfp,",Location");
+	fprintf(tdp->td_tsfp,",Distance");
+	fprintf(tdp->td_tsfp,",IOSize");
+	fprintf(tdp->td_tsfp,",DiskCPUStart");
+	fprintf(tdp->td_tsfp,",DiskCPUEnd");
+	fprintf(tdp->td_tsfp,",DiskStart");
+	fprintf(tdp->td_tsfp,",DiskEnd");
+	fprintf(tdp->td_tsfp,",DiskIOTime");
+	fprintf(tdp->td_tsfp,",DiskRate");
+	fprintf(tdp->td_tsfp,",RelativeTime");
+	fprintf(tdp->td_tsfp,",LoopTime");
+	if (tdp->td_target_options & TO_ENDTOEND) {
+	    fprintf(tdp->td_tsfp,",NetIOSize");
+	    fprintf(tdp->td_tsfp,",NetCPUStart");
+	    fprintf(tdp->td_tsfp,",NetCPUEnd");
+	    fprintf(tdp->td_tsfp,",NetStart");
+	    fprintf(tdp->td_tsfp,",NetEnd");
+	    fprintf(tdp->td_tsfp,",NetTime");
+	    fprintf(tdp->td_tsfp,",NetRate");
 	}
-	fprintf(p->tsfp,"\n");
+	fprintf(tdp->td_tsfp,"\n");
 
 	// Print the UNITS of the above quantities
-	fprintf(p->tsfp,"Number");
-	fprintf(p->tsfp,"Number");
-	fprintf(p->tsfp,",Type");
-	fprintf(p->tsfp,",Number");
-	fprintf(p->tsfp,",Number");
-	fprintf(p->tsfp,",Bytes");
-	fprintf(p->tsfp,",Blocks");
-	fprintf(p->tsfp,",Bytes");
-	fprintf(p->tsfp,",Number");
-	fprintf(p->tsfp,",Number");
-	fprintf(p->tsfp,",TimeStamp");
-	fprintf(p->tsfp,",TimeStamp");
-	fprintf(p->tsfp,",milliseconds");
-	fprintf(p->tsfp,",MBytes/sec");
-	fprintf(p->tsfp,",milliseconds");
-	fprintf(p->tsfp,",milliseconds");
-	if (p->target_options & TO_ENDTOEND) {
-	    fprintf(p->tsfp,",Bytes");
-	    fprintf(p->tsfp,",Number");
-	    fprintf(p->tsfp,",Number");
-	    fprintf(p->tsfp,",TimeStamp");
-	    fprintf(p->tsfp,",TimeStamp");
-	    fprintf(p->tsfp,",milliseconds");
-	    fprintf(p->tsfp,",MBytes/sec");
+	fprintf(tdp->td_tsfp,"Number");
+	fprintf(tdp->td_tsfp,"Number");
+	fprintf(tdp->td_tsfp,",Type");
+	fprintf(tdp->td_tsfp,",Number");
+	fprintf(tdp->td_tsfp,",Number");
+	fprintf(tdp->td_tsfp,",Bytes");
+	fprintf(tdp->td_tsfp,",Blocks");
+	fprintf(tdp->td_tsfp,",Bytes");
+	fprintf(tdp->td_tsfp,",Number");
+	fprintf(tdp->td_tsfp,",Number");
+	fprintf(tdp->td_tsfp,",TimeStamp");
+	fprintf(tdp->td_tsfp,",TimeStamp");
+	fprintf(tdp->td_tsfp,",milliseconds");
+	fprintf(tdp->td_tsfp,",MBytes/sec");
+	fprintf(tdp->td_tsfp,",milliseconds");
+	fprintf(tdp->td_tsfp,",milliseconds");
+	if (tdp->td_target_options & TO_ENDTOEND) {
+	    fprintf(tdp->td_tsfp,",Bytes");
+	    fprintf(tdp->td_tsfp,",Number");
+	    fprintf(tdp->td_tsfp,",Number");
+	    fprintf(tdp->td_tsfp,",TimeStamp");
+	    fprintf(tdp->td_tsfp,",TimeStamp");
+	    fprintf(tdp->td_tsfp,",milliseconds");
+	    fprintf(tdp->td_tsfp,",MBytes/sec");
 	}
-	fprintf(p->tsfp,"\n");
-	fflush(p->tsfp);
+	fprintf(tdp->td_tsfp,"\n");
+	fflush(tdp->td_tsfp);
     }
     
     /* Scan the time stamp table and calculate the numbers */
@@ -403,9 +411,9 @@ xdd_ts_reports(ptds_t *p) {
 	} else {
 	    if (ttp->blocksize == 0) {
 		fprintf(xgp->errout,"%s: ALERT! ts_reports encounterd a blocksize of zero for target %d, setting it to %d\n",
-			xgp->progname, p->my_target_number, p->block_size);
+			xgp->progname, tdp->td_target_number, tdp->td_block_size);
 		fflush(xgp->errout);
-		ttp->blocksize = p->block_size;
+		ttp->blocksize = tdp->td_block_size;
 	    }
 	    if (ttp->tte[i].byte_location  > ttp->tte[i-1].byte_location) {
 		distance[i] = (ttp->tte[i].byte_location - 
@@ -423,7 +431,7 @@ xdd_ts_reports(ptds_t *p) {
 	relative_time = ttp->tte[i].disk_start - ttp->tte[0].disk_start;
 	if (i > 0) {
 	    if (ttp->tte[i].pass_number > ttp->tte[i-1].pass_number) {
-		fprintf(p->tsfp,"\n");
+		fprintf(tdp->td_tsfp,"\n");
 	    }
 	} else { 
 	    total_distance += distance[i];
@@ -444,7 +452,7 @@ xdd_ts_reports(ptds_t *p) {
 	if (net_fio_time > 0.0) 
 	    net_irate = ((ttp->reqsize)/(net_fio_time / BILLION))/1000000.0;
 	else net_irate = 0.0;
-	if (p->tsp->ts_options & TS_DETAILED) { /* Print the detailed report */
+	if (tsp->ts_options & TS_DETAILED) { /* Print the detailed report */
 	    disk_start_ts = ttp->tte[i].disk_start + ttp->delta;
 	    disk_end_ts = ttp->tte[i].disk_end + ttp->delta;
 	    net_start_ts = ttp->tte[i].net_start + ttp->delta;
@@ -476,33 +484,33 @@ xdd_ts_reports(ptds_t *p) {
 		    break;
 	    }
 	    
-	    fprintf(p->tsfp,"%d,",ttp->tte[i].qthread_number);
-	    fprintf(p->tsfp,"%d,",ttp->tte[i].thread_id);
-	    fprintf(p->tsfp,"%s,",opc);
-	    fprintf(p->tsfp,"%d,",ttp->tte[i].pass_number); 
-	    fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].op_number); 
-	    fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].byte_location); 
-	    fprintf(p->tsfp,"%lld,",(long long)distance[i]);  
-	    fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].disk_xfer_size); 
-	    fprintf(p->tsfp,"%d,",  ttp->tte[i].disk_processor_start); 
-	    fprintf(p->tsfp,"%d,",  ttp->tte[i].disk_processor_end); 
-	    fprintf(p->tsfp,"%llu,",(unsigned long long)disk_start_ts);  
-	    fprintf(p->tsfp,"%llu,",(unsigned long long)disk_end_ts); 
-	    fprintf(p->tsfp,"%15.5f,",disk_fio_time/1000000000.0); 
-	    fprintf(p->tsfp,"%15.5f,",disk_irate);
-	    fprintf(p->tsfp,"%15.5f,",frelative_time/1000000000.0); 
-	    fprintf(p->tsfp,"%15.5f,",floop_time/1000000000.0);
-	    if (p->target_options & TO_ENDTOEND) {
-		fprintf(p->tsfp,"%lld,",(long long)ttp->tte[i].net_xfer_size); 
-		fprintf(p->tsfp,"%d,",  ttp->tte[i].net_processor_start); 
-		fprintf(p->tsfp,"%d,",  ttp->tte[i].net_processor_end); 
-		fprintf(p->tsfp,"%llu,",(unsigned long long)net_start_ts);  
-		fprintf(p->tsfp,"%llu,",(unsigned long long)net_end_ts); 
-		fprintf(p->tsfp,"%15.5f,",net_fio_time/1000000000.0); 
-		fprintf(p->tsfp,"%15.3f",net_irate);
+	    fprintf(tdp->td_tsfp,"%d,",ttp->tte[i].worker_thread_number);
+	    fprintf(tdp->td_tsfp,"%d,",ttp->tte[i].thread_id);
+	    fprintf(tdp->td_tsfp,"%s,",opc);
+	    fprintf(tdp->td_tsfp,"%d,",ttp->tte[i].pass_number); 
+	    fprintf(tdp->td_tsfp,"%lld,",(long long)ttp->tte[i].op_number); 
+	    fprintf(tdp->td_tsfp,"%lld,",(long long)ttp->tte[i].byte_location); 
+	    fprintf(tdp->td_tsfp,"%lld,",(long long)distance[i]);  
+	    fprintf(tdp->td_tsfp,"%lld,",(long long)ttp->tte[i].disk_xfer_size); 
+	    fprintf(tdp->td_tsfp,"%d,",  ttp->tte[i].disk_processor_start); 
+	    fprintf(tdp->td_tsfp,"%d,",  ttp->tte[i].disk_processor_end); 
+	    fprintf(tdp->td_tsfp,"%llu,",(unsigned long long)disk_start_ts);  
+	    fprintf(tdp->td_tsfp,"%llu,",(unsigned long long)disk_end_ts); 
+	    fprintf(tdp->td_tsfp,"%15.5f,",disk_fio_time/1000000000.0); 
+	    fprintf(tdp->td_tsfp,"%15.5f,",disk_irate);
+	    fprintf(tdp->td_tsfp,"%15.5f,",frelative_time/1000000000.0); 
+	    fprintf(tdp->td_tsfp,"%15.5f,",floop_time/1000000000.0);
+	    if (tdp->td_target_options & TO_ENDTOEND) {
+		fprintf(tdp->td_tsfp,"%lld,",(long long)ttp->tte[i].net_xfer_size); 
+		fprintf(tdp->td_tsfp,"%d,",  ttp->tte[i].net_processor_start); 
+		fprintf(tdp->td_tsfp,"%d,",  ttp->tte[i].net_processor_end); 
+		fprintf(tdp->td_tsfp,"%llu,",(unsigned long long)net_start_ts);  
+		fprintf(tdp->td_tsfp,"%llu,",(unsigned long long)net_end_ts); 
+		fprintf(tdp->td_tsfp,"%15.5f,",net_fio_time/1000000000.0); 
+		fprintf(tdp->td_tsfp,"%15.3f",net_irate);
 	    }
-	    fprintf(p->tsfp,"\n");
-	    fflush(p->tsfp);
+	    fprintf(tdp->td_tsfp,"\n");
+	    fflush(tdp->td_tsfp);
 	}
     } /* end of FOR loop that scans time stamp table */
 
@@ -511,13 +519,13 @@ xdd_ts_reports(ptds_t *p) {
     free(disk_io_time);
     free(net_io_time);
     
-    if (p->tsp->ts_options & TS_DETAILED)  /* Print the detailed report trailer */
-	fprintf(p->tsfp,"End of DETAILED Time Stamp Report\n");
-    fflush(p->tsfp);
-    if (p->tsp->ts_options & TS_SUMMARY) {  /* Generate just the summary report */
+    if (tsp->ts_options & TS_DETAILED)  /* Print the detailed report trailer */
+	fprintf(tdp->td_tsfp,"End of DETAILED Time Stamp Report\n");
+    fflush(tdp->td_tsfp);
+    if (tsp->ts_options & TS_SUMMARY) {  /* Generate just the summary report */
 	if (ttp->numents == 0) {
 	    fprintf(xgp->errout,"%s: ALERT! ts_reports encounterd a numents of zero for target %d, skipping\n",
-					xgp->progname, p->my_target_number);
+					xgp->progname, tdp->td_target_number);
 	    fflush(xgp->errout);
 	    mean_distance = -1;
 	    mean_iotime = -1;
@@ -525,39 +533,39 @@ xdd_ts_reports(ptds_t *p) {
 	    mean_distance = (uint64_t)(total_distance / ttp->numents);
 	    mean_iotime = total_time / ttp->numents;
 	}
-	fprintf(p->tsfp, "Start of SUMMARY Time Stamp Report\n");
-	fflush(p->tsfp);
+	fprintf(tdp->td_tsfp, "Start of SUMMARY Time Stamp Report\n");
+	fflush(tdp->td_tsfp);
 	
 	/* display the results */
 	if (ttp->blocksize > 0) {
-	    fprintf(p->tsfp,"Average seek distance in %d byte blocks, %lld, request size in blocks, %d\n",
+	    fprintf(tdp->td_tsfp,"Average seek distance in %d byte blocks, %lld, request size in blocks, %d\n",
 		    ttp->blocksize, 
 		    (long long)mean_distance,
 		    ttp->reqsize/ttp->blocksize);
-	    fflush(p->tsfp);
+	    fflush(tdp->td_tsfp);
 	} else {
-	    fprintf(p->tsfp,"No average seek distance with 0 byte blocks\n");
+	    fprintf(tdp->td_tsfp,"No average seek distance with 0 byte blocks\n");
 	}
 	
-	fprintf(p->tsfp,"Range:  Longest seek distance in blocks, %lld, shortest seek distance in blocks, %lld\n",
+	fprintf(tdp->td_tsfp,"Range:  Longest seek distance in blocks, %lld, shortest seek distance in blocks, %lld\n",
 		(long long)hi_dist, 
 		(long long)lo_dist);
-	fflush(p->tsfp);
+	fflush(tdp->td_tsfp);
 	fmean_iotime = (double)mean_iotime;
-	fprintf(p->tsfp,"Average I/O time in milliseconds, %15.5f\n",
+	fprintf(tdp->td_tsfp,"Average I/O time in milliseconds, %15.5f\n",
 				fmean_iotime/1000000000.0);
 	fhi_time = (double)hi_time;
 	flo_time = (double)lo_time;
-	fprintf(p->tsfp,"I/O Time Range:  Longest I/O time in milliseconds, %15.5f, shortest I/O time in milliseconds, %15.5f\n",
+	fprintf(tdp->td_tsfp,"I/O Time Range:  Longest I/O time in milliseconds, %15.5f, shortest I/O time in milliseconds, %15.5f\n",
 		fhi_time/1000000000.0, flo_time/1000000000.0);
-	fprintf(p->tsfp, "End of SUMMARY Time Stamp Report\n");
+	fprintf(tdp->td_tsfp, "End of SUMMARY Time Stamp Report\n");
     } /* end of IF clause that prints SUMMARY */
     /* close the ts output file if necessary */
-    fflush(p->tsfp);
-    if (p->tsfp != stdout)
-	fclose(p->tsfp);
+    fflush(tdp->td_tsfp);
+    if (tdp->td_tsfp != stdout)
+	fclose(tdp->td_tsfp);
 #ifdef WIN32 /* Allow the next thread to write its file */
-    ReleaseMutex(p->tsp->ts_serializer_mutex);
+    ReleaseMutex(tsp->ts_serializer_mutex);
 #endif
 } /* end of xdd_ts_reports() */
 

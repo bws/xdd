@@ -35,12 +35,12 @@
 #include "xint.h"
 
 /*----------------------------------------------------------------------------*/
-/* xdd_show_ptds() - Display values in the specified Per-Target-Data-Structure 
+/* xdd_show_target_data() - Display values in the specified Per-Target-Data-Structure 
  */
 void
-xdd_show_ptds(ptds_t *p) {
-	fprintf(stderr,"********* Start of PTDS **********\n");
-	fprintf(xgp->output,"target_ptds     0x%p Pointer back to the Parent Target PTDS \n",p->target_ptds); 	
+xdd_show_target_data(target_data_t *tdp) {
+	fprintf(stderr,"********* Start of TARGET_DATA **********\n");
+#ifdef ndef
 	fprintf(xgp->output,"next_qp         %p Pointer to the next QThread PTDS in the PTDS Substructure \n",p->next_qp); 		
 	//pthread_t  			target_thread;		// Handle for this Target Thread 
 	//pthread_t  			qthread;			// Handle for this QThread 
@@ -150,8 +150,9 @@ xdd_show_ptds(ptds_t *p) {
 	fprintf(xgp->output,"my_accumulated_flush_time           %lld Accumulated time spent doing flush (fsync) operations \n",(long long int)p->tgtstp->my_accumulated_flush_time);
 	fprintf(xgp->output,"my_current_state                  0x%08x State of this thread at any given time \n",(unsigned int)p->tgtstp->my_current_state);
 
-	fprintf(stderr,"+++++++++++++ End of PTDS +++++++++++++\n");
-} /* end of xdd_show_ptds() */ 
+	fprintf(stderr,"+++++++++++++ End of TARGET_DATA +++++++++++++\n");
+#endif
+} /* end of xdd_show_target_data() */ 
  
  
 /*----------------------------------------------------------------------------*/
@@ -247,7 +248,7 @@ xdd_show_plan_data(xdd_plan_t* planp) {
 
 	/* Target Specific variables */
 	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
-		fprintf(xgp->output,"PTDS pointer for target %d of %d is 0x%p\n",target_number, planp->number_of_targets, planp->ptdsp[target_number]);
+		fprintf(xgp->output,"Target_Data pointer for target %d of %d is 0x%p\n",target_number, planp->number_of_targets, planp->target_datap[target_number]);
 	}
 	fprintf(stderr,"********* End of Plan Data **********\n");
 

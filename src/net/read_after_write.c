@@ -303,7 +303,7 @@ xdd_raw_read_wait(ptds_t *p) {
 			//rawp->raw_msg.recvtime += xgp->gts_delta;
 			if (status > 0) status = bytes_received;
 			if (status == sizeof(rawp->raw_msg)) { /* Successful receive */
-				if (rawp->raw_msg.magic != PTDS_RAW_MAGIC) {
+				if (rawp->raw_msg.magic != RAW_MAGIC) {
 					fprintf(stderr,"xdd_raw_read_wait: Bad magic number %08x on recv %d\n",rawp->raw_msg.magic, rawp->raw_msg_recv);
 				}
 				if (rawp->raw_msg.recvtime < rawp->raw_msg.sendtime) {
