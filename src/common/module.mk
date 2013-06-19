@@ -9,7 +9,7 @@ COMMON_SRC := $(DIR)/access_pattern.c \
 	$(DIR)/debug.c \
 	$(DIR)/memory.c \
 	$(DIR)/processor.c \
-	$(DIR)/ptds.c \
+	$(DIR)/target_data.c \
 	$(DIR)/timestamp.c \
 	$(DIR)/xint_global_data.c \
 	$(DIR)/xint_nclk.c

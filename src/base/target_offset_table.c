@@ -130,7 +130,7 @@ int tot_destroy(tot_t* tp)
 
 int tot_update(tot_t* table,
 	       int64_t req_number,
-	       int qthread_number,
+	       int worker_thread_number,
 	       int64_t offset,
 	       int32_t size)
 {
@@ -141,7 +141,7 @@ int tot_update(tot_t* table,
     // Check preconditions
     assert(NULL != table);
     assert(0 <= req_number);
-    assert(0 <= qthread_number);
+    assert(0 <= worker_thread_number);
 
     
     idx = req_number % table->tot_entries;
@@ -159,17 +159,17 @@ int tot_update(tot_t* table,
 		"byte location is %"PRId64" [block %"PRId64"], "
 		"my current op number is %"PRId64", "
 		"my byte location is %"PRId64" [block %"PRId64"] "
-		"last updated by qthread %d\n",
-		xgp->progname, qthread_number,
+		"last updated by worker_thread %d\n",
+		xgp->progname, worker_thread_number,
 		idx, tep->tot_op_number,
 		tep->tot_byte_location, tep->tot_byte_location/tep->tot_io_size,
 		req_number,
 		offset, offset/size,
-		tep->tot_update_qthread_number);
+		tep->tot_update_worker_thread_number);
     }
     else {
 	nclk_now(&tep->tot_update_ts);
-	tep->tot_update_qthread_number = qthread_number;
+	tep->tot_update_worker_thread_number = worker_thread_number;
 	tep->tot_op_number = req_number;
 	tep->tot_byte_location = offset;
 	tep->tot_io_size = size;

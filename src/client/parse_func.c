@@ -34,6 +34,7 @@
  */
 
 #include "xint.h"
+#include "parse.h"
 #include <ctype.h>
 
 #ifdef HAVE_NUMA_H
@@ -90,7 +91,7 @@ xddfunc_blocksize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int args,i; 
     int target_number;
 	int32_t block_size;
-    ptds_t *p;
+    target_data_t *tdp;
 
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -106,23 +107,23 @@ xddfunc_blocksize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 	
-		p->block_size = block_size;
-		if (p->block_size <= 0) {
-			fprintf(xgp->errout,"%s: blocksize of %d is not valid. blocksize must be a number greater than 0\n",xgp->progname,p->block_size);
+		tdp->td_block_size = block_size;
+		if (tdp->td_block_size <= 0) {
+			fprintf(xgp->errout,"%s: blocksize of %d is not valid. blocksize must be a number greater than 0\n",xgp->progname,tdp->td_block_size);
 			return(0);
 		}
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) { 
-				p->block_size = block_size;
+			while (tdp) { 
+				tdp->td_block_size = block_size;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -132,7 +133,7 @@ xddfunc_blocksize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 // Specify the number of Bytes to transfer per pass
 // Arguments: -bytes [target #] #
 // The -bytes/-kbytes/-mbytes option is mutually exclusive with the -numreqs option 
-// and will reset the p->numreqs to 0 for all affected targets. The number of 
+// and will reset the tdp->td_numreqs to 0 for all affected targets. The number of 
 // requests will be calculated at a later time.
 // 
 int
@@ -140,7 +141,7 @@ xddfunc_bytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
 	int args, i; 
 	int target_number;
-	ptds_t *p;
+	target_data_t *tdp;
 	int64_t bytes;
 
 
@@ -153,22 +154,22 @@ xddfunc_bytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 	bytes = atoll(argv[args+1]);
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL)
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL)
 			return(-1);
 
-		p->bytes = bytes;
-		p->numreqs = 0;
+		tdp->td_bytes = bytes;
+		tdp->td_numreqs = 0;
 		return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->bytes = bytes;
-				p->numreqs = 0;
+			while (tdp) {
+				tdp->td_bytes = bytes;
+				tdp->td_numreqs = 0;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(2);
@@ -201,26 +202,26 @@ xddfunc_createnewfiles(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->target_options |= TO_CREATE_NEW_FILES;
+		tdp->td_target_options |= TO_CREATE_NEW_FILES;
 
         return(args+1);
     } else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) { 
-				p->target_options |= TO_CREATE_NEW_FILES;
+			while (tdp) { 
+				tdp->td_target_options |= TO_CREATE_NEW_FILES;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(1);
@@ -254,7 +255,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 {
 	int           		args, i; 
 	int           		target_number;
-	ptds_t        		*p;
+	target_data_t        		*tdp;
 	char          		*pattern_type; // The pattern type of ascii, hex, random, ...etc
 	unsigned char 		*pattern; // The ACSII representation of the specified data pattern
 	unsigned char 		*pattern_value; // The ACSII representation of the specified data pattern
@@ -272,40 +273,40 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 
 	pattern_type = (char *)argv[args+1];
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
         retval = args+2;
     } else {
-        p = (ptds_t *)NULL;
+        tdp = (target_data_t *)NULL;
         args = 0;
         retval = 2;
     }
 	if (strcmp(pattern_type, "random") == 0) {  /* make it random data  */
-		if (p)  /* set option for the specific target */
-            p->dpp->data_pattern_options |= DP_RANDOM_PATTERN;
+		if (tdp)  /* set option for the specific target */
+            tdp->td_dpp->data_pattern_options |= DP_RANDOM_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) { 
-					p->dpp->data_pattern_options |= DP_RANDOM_PATTERN;
+				while (tdp) { 
+					tdp->td_dpp->data_pattern_options |= DP_RANDOM_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
     } else if (strcmp(pattern_type, "randbytarget") == 0) {  /* make it random data seeded by target number  */
-		if (p)  /* set option for the specific target */
-            p->dpp->data_pattern_options |= DP_RANDOM_BY_TARGET_PATTERN;
+		if (tdp)  /* set option for the specific target */
+            tdp->td_dpp->data_pattern_options |= DP_RANDOM_BY_TARGET_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) { 
-					p->dpp->data_pattern_options |= DP_RANDOM_BY_TARGET_PATTERN;
+				while (tdp) { 
+					tdp->td_dpp->data_pattern_options |= DP_RANDOM_BY_TARGET_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -317,21 +318,21 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 		}
 		pattern = (unsigned char *)argv[args+2];
 		pattern_length = strlen((char *)pattern);
-		if (p) { /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_ASCII_PATTERN;
-			p->dpp->data_pattern = (unsigned char *)argv[args+2];
-			p->dpp->data_pattern_length = strlen((char *)p->dpp->data_pattern);
+		if (tdp) { /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_ASCII_PATTERN;
+			tdp->td_dpp->data_pattern = (unsigned char *)argv[args+2];
+			tdp->td_dpp->data_pattern_length = strlen((char *)tdp->td_dpp->data_pattern);
 		}
 		else  {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) { 
-					p->dpp->data_pattern_options |= DP_ASCII_PATTERN;
-					p->dpp->data_pattern = pattern;
-					p->dpp->data_pattern_length = pattern_length;
+				while (tdp) { 
+					tdp->td_dpp->data_pattern_options |= DP_ASCII_PATTERN;
+					tdp->td_dpp->data_pattern = pattern;
+					tdp->td_dpp->data_pattern_length = pattern_length;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}			
 		}
@@ -371,21 +372,21 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 			else 	pattern_length = 1;
 		} else pattern_length = 0;
 
-		if (p) { /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_HEX_PATTERN;
-			p->dpp->data_pattern = pattern_value; // The actual 64-bit value left-justtified
-			p->dpp->data_pattern_length = pattern_length; // length in nibbles 
+		if (tdp) { /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_HEX_PATTERN;
+			tdp->td_dpp->data_pattern = pattern_value; // The actual 64-bit value left-justtified
+			tdp->td_dpp->data_pattern_length = pattern_length; // length in nibbles 
 		}
 		else  {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) { 
-					p->dpp->data_pattern_options |= DP_HEX_PATTERN;
-					p->dpp->data_pattern = pattern_value; // The actual 64-bit value right-justtified
-					p->dpp->data_pattern_length = pattern_length; // length in bytes
+				while (tdp) { 
+					tdp->td_dpp->data_pattern_options |= DP_HEX_PATTERN;
+					tdp->td_dpp->data_pattern = pattern_value; // The actual 64-bit value right-justtified
+					tdp->td_dpp->data_pattern_length = pattern_length; // length in bytes
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -436,24 +437,24 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 			}
 			pattern_binary <<= ((sizeof(uint64_t)*8)-(pattern_length*2));
 		}
-		if (p) { /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_PATTERN_PREFIX;
-			p->dpp->data_pattern_prefix = pattern;
-			p->dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
-			p->dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
-			p->dpp->data_pattern_prefix_length = pattern_length; // Length in nibbles
+		if (tdp) { /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_PATTERN_PREFIX;
+			tdp->td_dpp->data_pattern_prefix = pattern;
+			tdp->td_dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
+			tdp->td_dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
+			tdp->td_dpp->data_pattern_prefix_length = pattern_length; // Length in nibbles
 		} else  {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) { 
-					p->dpp->data_pattern_options |= DP_PATTERN_PREFIX;
-					p->dpp->data_pattern_prefix = pattern;
-					p->dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
-					p->dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
-					p->dpp->data_pattern_prefix_length = pattern_length; // Length in nibbles
+				while (tdp) { 
+					tdp->td_dpp->data_pattern_options |= DP_PATTERN_PREFIX;
+					tdp->td_dpp->data_pattern_prefix = pattern;
+					tdp->td_dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
+					tdp->td_dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
+					tdp->td_dpp->data_pattern_prefix_length = pattern_length; // Length in nibbles
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -463,146 +464,146 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 			fprintf(xgp->errout,"%s: ERROR: not enough arguments specified for the option '-datapattern'\n",xgp->progname);
 			return(0);
 		}
-		if (p) {/* set option for specific target */
-			p->dpp->data_pattern_options |= DP_FILE_PATTERN;
-			p->dpp->data_pattern_filename = (char *)argv[args+2];
+		if (tdp) {/* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_FILE_PATTERN;
+			tdp->td_dpp->data_pattern_filename = (char *)argv[args+2];
 		} else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_FILE_PATTERN;
-					p->dpp->data_pattern_filename = (char *)argv[args+2];
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_FILE_PATTERN;
+					tdp->td_dpp->data_pattern_filename = (char *)argv[args+2];
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 	} else if (strcmp(pattern_type, "sequenced") == 0) {
-		if (p) /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
+		if (tdp) /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 	} else if (strcmp(pattern_type, "inverse") == 0) {
-		if (p) /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_INVERSE_PATTERN;
+		if (tdp) /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_INVERSE_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_INVERSE_PATTERN;
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_INVERSE_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 	} else if (strncmp(pattern_type, "replicate", 9) == 0) {
-		if (p) /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_REPLICATE_PATTERN;
+		if (tdp) /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_REPLICATE_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_REPLICATE_PATTERN;
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_REPLICATE_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 	} else if (strcmp(pattern_type, "lfpat") == 0) {
-		if (p) /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_LFPAT_PATTERN;
+		if (tdp) /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_LFPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_LFPAT_PATTERN;
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_LFPAT_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 	} else if (strcmp(pattern_type, "ltpat") == 0) {
-		if (p) /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_LTPAT_PATTERN;
+		if (tdp) /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_LTPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_LTPAT_PATTERN;
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_LTPAT_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 	} else if (strcmp(pattern_type, "cjtpat") == 0) {
-		if (p) /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_CJTPAT_PATTERN;
+		if (tdp) /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_CJTPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_CJTPAT_PATTERN;
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_CJTPAT_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 	} else if (strcmp(pattern_type, "crpat") == 0) {
-		if (p) /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_CRPAT_PATTERN;
+		if (tdp) /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_CRPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_CRPAT_PATTERN;
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_CRPAT_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 	} else if (strcmp(pattern_type, "cspat") == 0) {
-		if (p) /* set option for specific target */
-			p->dpp->data_pattern_options |= DP_CSPAT_PATTERN;
+		if (tdp) /* set option for specific target */
+			tdp->td_dpp->data_pattern_options |= DP_CSPAT_PATTERN;
 		else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_CSPAT_PATTERN;
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_CSPAT_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 	} else {
-		if (p) { /* set option for a specific target */ 
-			p->dpp->data_pattern_options |= DP_SINGLECHAR_PATTERN;
-			p->dpp->data_pattern = (unsigned char *)pattern_type;
+		if (tdp) { /* set option for a specific target */ 
+			tdp->td_dpp->data_pattern_options |= DP_SINGLECHAR_PATTERN;
+			tdp->td_dpp->data_pattern = (unsigned char *)pattern_type;
 		} else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->dpp->data_pattern_options |= DP_SINGLECHAR_PATTERN;
-					p->dpp->data_pattern = (unsigned char *)pattern_type;
+				while (tdp) {
+					tdp->td_dpp->data_pattern_options |= DP_SINGLECHAR_PATTERN;
+					tdp->td_dpp->data_pattern = (unsigned char *)pattern_type;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -626,25 +627,25 @@ xddfunc_deletefile(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->target_options |= TO_DELETEFILE;
+		tdp->td_target_options |= TO_DELETEFILE;
         return(args+1);
     } else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->target_options |= TO_DELETEFILE;
+			while (tdp) {
+				tdp->td_target_options |= TO_DELETEFILE;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(1);
@@ -657,26 +658,26 @@ xddfunc_devicefile(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
     // At this point the "target_number" is valid
 	if (target_number >= 0) { /* Set this option for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->target_options |= TO_DEVICEFILE;
+		tdp->td_target_options |= TO_DEVICEFILE;
         return(args+1);
     } else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->target_options |= TO_DEVICEFILE;
+				while (tdp) {
+					tdp->td_target_options |= TO_DEVICEFILE;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
         return(1);
@@ -690,7 +691,7 @@ xddfunc_dio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -698,19 +699,19 @@ xddfunc_dio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
     // At this point the "target_number" is valid
 	if (target_number >= 0) { /* Set this option for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->target_options |= TO_DIO;
+		tdp->td_target_options |= TO_DIO;
         return(args+1);
     } else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->target_options |= TO_DIO;
+				while (tdp) {
+					tdp->td_target_options |= TO_DIO;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
         return(1);
@@ -737,7 +738,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int i,j;
     int args, args_index; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
     char *hostname, *base_port, *port_count, *numa_node;
     char *cp, *sp;
     char *source_path;
@@ -759,30 +760,30 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 	// Make sure that the PTDS exists and that the E2E structures have been allocated
 	if (target_number >= 0) {
-    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	   	if (p == NULL) return(-1);
-		if (NULL == p->e2ep) { // If there is no e2e struct then allocate one.
-	    	p->e2ep = xdd_get_e2ep();
-			if (NULL == p->e2ep) {
+    	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+	   	if (tdp == NULL) return(-1);
+		if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
+	    	tdp->td_e2ep = xdd_get_e2ep();
+			if (NULL == tdp->td_e2ep) {
 	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
 		    		xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
 	    		return(-1);
 			}
 		}
 	} else {
-		p = planp->ptdsp[0];
+		tdp = planp->target_datap[0];
 		i = 0;
-		while (p) {
-			if (NULL == p->e2ep) { // If there is no e2e struct then allocate one.
-	    		p->e2ep = xdd_get_e2ep();
-				if (NULL == p->e2ep) {
+		while (tdp) {
+			if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
+	    		tdp->td_e2ep = xdd_get_e2ep();
+				if (NULL == tdp->td_e2ep) {
 	    			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
 		    			xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
 	    			return(-1);
 				}
 			}
 			i++;
-			p = planp->ptdsp[i];
+			tdp = planp->target_datap[i];
 		}
 	}
     
@@ -933,27 +934,27 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 		// Now we need to put the address and base_port and number of ports into the PTDS for this Target or all Targets
 		if (target_number >= 0) {
-	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	    	if (p == NULL) return(-1);
+	    	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+	    	if (tdp == NULL) return(-1);
 
-	    	p->target_options |= TO_ENDTOEND;
-	    	strcpy(p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].hostname, hostname); 
-	    	p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
-			p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count = 0;
+	    	tdp->td_target_options |= TO_ENDTOEND;
+	    	strcpy(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].hostname, hostname); 
+	    	tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+			tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = 0;
             // Set a default NUMA node value if possible
 #if defined(HAVE_CPU_SET_T)
-			CPU_ZERO(&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+			CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 				sched_getaffinity(getpid(), 
-				sizeof(p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set),
-				&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+				sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set),
+				&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 #endif
 
 	    	if (base_port) { // Set the requested Port Number and possible Port Count
-				p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].base_port = atoi(base_port); 
+				tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].base_port = atoi(base_port); 
 				if (port_count) {
-		    		p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count = atoi(port_count); 
+		    		tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = atoi(port_count); 
 				} else {
-		    		p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count = 0;
+		    		tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = 0;
 				}
 
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS) && defined(HAVE_NUMA_ALLOCATE_CPUMASK) 
@@ -961,18 +962,18 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		    		int i;
 		    		struct bitmask* numa_mask = numa_allocate_cpumask();
 		    		int numa_node_no = atoi(numa_node);
-		    		CPU_ZERO(&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+		    		CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 		    		numa_node_to_cpus(numa_node_no, numa_mask);
 		    		for (i = 0; i <= CPU_SETSIZE; i++) {
 							if (numa_bitmask_isbitset(numa_mask, i))
-			    				CPU_SET(i, &p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+			    				CPU_SET(i, &tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 		    		}
 		    		numa_free_cpumask(numa_mask);
 				} else {
-		    		CPU_ZERO(&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+		    		CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 		    			sched_getaffinity(getpid(),
-						sizeof(p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set),
-						&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+						sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set),
+						&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 				}
 #else
 				if (numa_node) {
@@ -980,50 +981,50 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 				}
 #endif
 	    	} 
-	    	p->e2ep->e2e_address_table_port_count += p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count;
-	    	p->e2ep->e2e_address_table_next_entry++;
-	    	p->e2ep->e2e_address_table_host_count++;
+	    	tdp->td_e2ep->e2e_address_table_port_count += tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count;
+	    	tdp->td_e2ep->e2e_address_table_next_entry++;
+	    	tdp->td_e2ep->e2e_address_table_host_count++;
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-		    		p->target_options |= TO_ENDTOEND;
-		    		strcpy(p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].hostname, hostname); 
-					p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
-                    p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count = 0;
+				while (tdp) {
+		    		tdp->td_target_options |= TO_ENDTOEND;
+		    		strcpy(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].hostname, hostname); 
+					tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
+                    tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = 0;
                     // Set a default NUMA node value if possible
 #if defined(HAVE_CPU_SET_T)
-		    		CPU_ZERO(&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+		    		CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 						sched_getaffinity(getpid(),
-						sizeof(p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set),
-						&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+						sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set),
+						&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 #endif
 
 		    		if (base_port) { // Set the requested Port Number and possible Port Count
-						p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].base_port = atoi(base_port); 
+						tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].base_port = atoi(base_port); 
 						if (port_count) {
-							p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count = atoi(port_count); 
+							tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = atoi(port_count); 
 						} else {
-			    			p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count = 0;
+			    			tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = 0;
 						}
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS) && defined(HAVE_NUMA_ALLOCATE_CPUMASK)
 						if (numa_node && -1 != numa_available()) {
 			    			int i;
 			    			struct bitmask* numa_mask = numa_allocate_cpumask();
 			    			int numa_node_no = atoi(numa_node);
-			    			CPU_ZERO(&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+			    			CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 								numa_node_to_cpus(numa_node_no, numa_mask);
 			    			for (i = 0; i <= CPU_SETSIZE; i++) {
 								if (numa_bitmask_isbitset(numa_mask, i))
-				    				CPU_SET(i, &p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+				    				CPU_SET(i, &tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 			    			}
 			    			numa_free_cpumask(numa_mask);
 						} else {
-			    			CPU_ZERO(&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+			    			CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 								sched_getaffinity(getpid(),
-								sizeof(p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set),
-								&p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].cpu_set);
+								sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set),
+								&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
 						}
 #else
 						if (numa_node) {
@@ -1031,11 +1032,11 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 						}
 #endif
 		    		} // End of IF stmnt that sets the Port/NPorts
-				    p->e2ep->e2e_address_table_port_count += p->e2ep->e2e_address_table[p->e2ep->e2e_address_table_next_entry].port_count;
-		    		p->e2ep->e2e_address_table_host_count++;
-		    		p->e2ep->e2e_address_table_next_entry++;
+				    tdp->td_e2ep->e2e_address_table_port_count += tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count;
+		    		tdp->td_e2ep->e2e_address_table_host_count++;
+		    		tdp->td_e2ep->e2e_address_table_next_entry++;
 		    		i++;
-		    		p = planp->ptdsp[i];
+		    		tdp = planp->target_datap[i];
 				}
 	    	}
 		}
@@ -1046,17 +1047,17 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		// "source" host name for the -e2e option
 		args_index++;
 		if (target_number >= 0) {
-	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	    	if (p == NULL) return(-1);
-	    	p->target_options |= TO_E2E_SOURCE;
+	    	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+	    	if (tdp == NULL) return(-1);
+	    	tdp->td_target_options |= TO_E2E_SOURCE;
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-		    		p->target_options |= TO_E2E_SOURCE;
+				while (tdp) {
+		    		tdp->td_target_options |= TO_E2E_SOURCE;
 		    		i++;
-		    		p = planp->ptdsp[i];
+		    		tdp = planp->target_datap[i];
 				}
 	    	}
 		}
@@ -1067,17 +1068,17 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		// "destination" host name for the -e2e option
 		args_index++;
 		if (target_number >= 0) {
-	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	    	if (p == NULL) return(-1);
-	    	p->target_options |= TO_E2E_DESTINATION;
+	    	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+	    	if (tdp == NULL) return(-1);
+	    	tdp->td_target_options |= TO_E2E_DESTINATION;
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-		    		p->target_options |= TO_E2E_DESTINATION;
+				while (tdp) {
+		    		tdp->td_target_options |= TO_E2E_DESTINATION;
 		    		i++;
-		    		p = planp->ptdsp[i];
+		    		tdp = planp->target_datap[i];
 				}
 	    	}
 		}
@@ -1086,54 +1087,54 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	       (strcmp(argv[args_index], "baseport") == 0)) { 
 		args_index++;
 		if (target_number >= 0) {
-	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	    	if (p == NULL) return(-1);
+	    	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+	    	if (tdp == NULL) return(-1);
 		
-	    	p->target_options |= TO_ENDTOEND;
+	    	tdp->td_target_options |= TO_ENDTOEND;
 	    	base_port_number = atoi(argv[args_index]);
 	    	for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
-				p->e2ep->e2e_address_table[j].base_port = base_port_number;
+				tdp->td_e2ep->e2e_address_table[j].base_port = base_port_number;
 	    	// Set the base_port number in each of the currently specified e2e_address_table entries
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
 				base_port_number = atoi(argv[args_index]);
-				while (p) {
-		    		p->target_options |= TO_ENDTOEND;
+				while (tdp) {
+		    		tdp->td_target_options |= TO_ENDTOEND;
 		    		// Set the base_port number in each of the currently specified e2e_address_table entries
 		    		for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
-						p->e2ep->e2e_address_table[j].base_port = base_port_number;
+						tdp->td_e2ep->e2e_address_table[j].base_port = base_port_number;
 	
 		    		i++;
-		    		p = planp->ptdsp[i];
-				} // End of while(p) loop
+		    		tdp = planp->target_datap[i];
+				} // End of while(tdp) loop
 	    	}
 		}
 		return(args_index+1);
     } else if (strcmp(argv[args_index], "portcount") == 0) {  /* set the port count in each address table entry  */
 		args_index++;
 		if (target_number >= 0) {
-	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	    	if (p == NULL) return(-1);
-	    	p->target_options |= TO_ENDTOEND;
+	    	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+	    	if (tdp == NULL) return(-1);
+	    	tdp->td_target_options |= TO_ENDTOEND;
 	    	number_of_ports = atoi(argv[args_index]);
 	    	for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
-				p->e2ep->e2e_address_table[j].port_count = number_of_ports;
+				tdp->td_e2ep->e2e_address_table[j].port_count = number_of_ports;
 	    	// Set the base_port number in each of the currently specified e2e_address_table entries
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
 				number_of_ports = atoi(argv[args_index]);
-				while (p) {
-		    		p->target_options |= TO_ENDTOEND;
+				while (tdp) {
+		    		tdp->td_target_options |= TO_ENDTOEND;
 		    		// Set the base_port number in each of the currently specified e2e_address_table entries
 		    		for (j = 0; j < E2E_ADDRESS_TABLE_ENTRIES; j++) 
-						p->e2ep->e2e_address_table[j].port_count = number_of_ports;
+						tdp->td_e2ep->e2e_address_table[j].port_count = number_of_ports;
 		    		i++;
-		    		p = planp->ptdsp[i];
-				} // End of while(p) loop
+		    		tdp = planp->target_datap[i];
+				} // End of while(tdp) loop
 	    	}
 		}
 		return(args_index+1);
@@ -1142,17 +1143,17 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		// Monitor the Source Side in target_pass_loop()
 		args_index++;
 		if (target_number >= 0) {
-	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	    	if (p == NULL) return(-1);
-	    	p->target_options |= TO_E2E_SOURCE_MONITOR;
+	    	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+	    	if (tdp == NULL) return(-1);
+	    	tdp->td_target_options |= TO_E2E_SOURCE_MONITOR;
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-		    	p->target_options |= TO_E2E_SOURCE_MONITOR;
+			while (tdp) {
+		    	tdp->td_target_options |= TO_E2E_SOURCE_MONITOR;
 		    	i++;
-		    	p = planp->ptdsp[i];
+		    	tdp = planp->target_datap[i];
 			}
 	    	}
 		}
@@ -1160,25 +1161,25 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     } else if ((strcmp(argv[args_index], "sourcepath") == 0) ||  /* complete source file path for restart option */
 	       (strcmp(argv[args_index], "srcpath") == 0)) { 
 		if (target_number >= 0) {
-	    	p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	    	if (p == NULL) return(-1);
-	    	p->target_options |= TO_ENDTOEND;
+	    	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+	    	if (tdp == NULL) return(-1);
+	    	tdp->td_target_options |= TO_ENDTOEND;
 	    	source_path  = argv[args_index+1];
 	    	source_mtime = atoll(argv[args_index+2]);
-	    	p->e2ep->e2e_src_file_path  = source_path;
-	    	p->e2ep->e2e_src_file_mtime = source_mtime;
+	    	tdp->td_e2ep->e2e_src_file_path  = source_path;
+	    	tdp->td_e2ep->e2e_src_file_mtime = source_mtime;
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
 				source_path  = argv[args_index+1];
 		    	source_mtime = atoll(argv[args_index+2]);
-		    	while (p) {
-					p->target_options |= TO_ENDTOEND;
-					p->e2ep->e2e_src_file_path  = source_path;
-					p->e2ep->e2e_src_file_mtime = source_mtime;
+		    	while (tdp) {
+					tdp->td_target_options |= TO_ENDTOEND;
+					tdp->td_e2ep->e2e_src_file_path  = source_path;
+					tdp->td_e2ep->e2e_src_file_mtime = source_mtime;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 		    	}
 	    	}
 		}
@@ -1226,7 +1227,7 @@ xddfunc_flushwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 	int64_t flushwrite;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -1237,20 +1238,20 @@ xddfunc_flushwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 
 	flushwrite = atoll(argv[args+1]);
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->flushwrite = flushwrite;
+		tdp->td_flushwrite = flushwrite;
 
         return(args+2);
 	} else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->flushwrite = flushwrite;
+				while (tdp) {
+					tdp->td_flushwrite = flushwrite;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
         return(2);
@@ -1288,7 +1289,7 @@ xddfunc_heartbeat(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int 		args, i; // Number of args and a counter
     int 		target_number; // The specific target number to update
-    ptds_t 		*p;		// Current PTDS being updated
+    target_data_t 		*tdp;		// Current PTDS being updated
 	char		*sp;	// String pointer
 	int			c1,c2;	// A single character
 	char		*cp;	// A single Character pointer
@@ -1401,12 +1402,12 @@ xddfunc_heartbeat(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	xgp->global_options |= GO_HEARTBEAT;
     // At this point the "target_number" is valid
 	if (target_number >= 0) { /* Set this option for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 		if (hb.hb_options)
-			p->hb.hb_options |= hb.hb_options;
+			tdp->td_hb.hb_options |= hb.hb_options;
 		if (hb.hb_interval > 0) 
-			p->hb.hb_interval = hb.hb_interval;
+			tdp->td_hb.hb_interval = hb.hb_interval;
 		if (hb.hb_filename) {
 			len = strlen(hb.hb_filename);
 			filename = (char *)malloc(len+16);
@@ -1414,22 +1415,22 @@ xddfunc_heartbeat(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 				fprintf(stderr,"%s: ERROR: Cannot allocate %d bytes for heartbeat output file name: '%s'\n", xgp->progname, len+16,hb.hb_filename);
 				return(-1);
 			}
-			sprintf(filename,"%s.T%04d.csv",hb.hb_filename,p->my_target_number);
-			p->hb.hb_filename = filename;
+			sprintf(filename,"%s.T%04d.csv",hb.hb_filename,tdp->td_target_number);
+			tdp->td_hb.hb_filename = filename;
 		}
 		// Check to see if the heartbeat interval has been set yet. If not, then set it to 1.
-		if (p->hb.hb_interval == 0)
-			p->hb.hb_interval = 1;
+		if (tdp->td_hb.hb_interval == 0)
+			tdp->td_hb.hb_interval = 1;
         return(args+return_value);
     } else {// Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
+			while (tdp) {
 				if (hb.hb_options)
-					p->hb.hb_options |= hb.hb_options;
+					tdp->td_hb.hb_options |= hb.hb_options;
 				if (hb.hb_interval > 0) 
-					p->hb.hb_interval = hb.hb_interval;
+					tdp->td_hb.hb_interval = hb.hb_interval;
 				if (hb.hb_filename) {
 					len = strlen(hb.hb_filename);
 					filename = (char *)malloc(len+16);
@@ -1437,14 +1438,14 @@ xddfunc_heartbeat(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 						fprintf(stderr,"%s: ERROR: Cannot allocate %d bytes for heartbeat output file name: '%s'\n", xgp->progname, len+16,hb.hb_filename);
 						return(-1);
 					}
-					sprintf(filename,"%s.T%04d.csv",hb.hb_filename,p->my_target_number);
-					p->hb.hb_filename = filename;
+					sprintf(filename,"%s.T%04d.csv",hb.hb_filename,tdp->td_target_number);
+					tdp->td_hb.hb_filename = filename;
 				}
 				// Check to see if the heartbeat interval has been set yet. If not, then set it to 1.
-				if (p->hb.hb_interval == 0)
-					p->hb.hb_interval = 1;
+				if (tdp->td_hb.hb_interval == 0)
+					tdp->td_hb.hb_interval = 1;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(return_value);
@@ -1529,9 +1530,9 @@ xddfunc_interactive(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 /*----------------------------------------------------------------------------*/
 // Specify the number of KBytes to transfer per pass (1K=1024 bytes)
 // Arguments: -kbytes [target #] #
-// This will set p->bytes to the calculated value (kbytes * 1024)
+// This will set tdp->td_bytes to the calculated value (kbytes * 1024)
 // The -bytes/-kbytes/-mbytes option is mutually exclusive with the -numreqs option 
-// and will reset the p->numreqs to 0 for all affected targets. The number of 
+// and will reset the tdp->td_numreqs to 0 for all affected targets. The number of 
 // requests will be calculated at a later time.
 // 
 int
@@ -1539,7 +1540,7 @@ xddfunc_kbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 	int64_t kbytes;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -1550,20 +1551,20 @@ xddfunc_kbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 	kbytes = atoll(argv[args+1]);
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
-		p->bytes = kbytes * 1024;
-		p->numreqs = 0;
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
+		tdp->td_bytes = kbytes * 1024;
+		tdp->td_numreqs = 0;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->bytes = kbytes * 1024;
-					p->numreqs = 0;
+				while (tdp) {
+					tdp->td_bytes = kbytes * 1024;
+					tdp->td_numreqs = 0;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
         return(2);
@@ -1626,8 +1627,8 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int 		mt;						// Master Target number
     int			st;						// Slave Target number
     double 		tmpf;
-    ptds_t 		*master_ptdsp;				// Pointer to the Master PTDS
-    ptds_t		*slave_ptdsp;				// Pointer to the Slave PTDS
+    target_data_t 		*master_target_datap;				// Pointer to the Master PTDS
+    target_data_t		*slave_target_datap;				// Pointer to the Slave PTDS
     int 		retval;					// Return value at any give time
     int 		lsmode;					// Lockstep mode
     char 		*when;					// Indicates WHEN to do something
@@ -1645,35 +1646,35 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     mt = atoi(argv[1]); /* T1 is the master target */
     st = atoi(argv[2]); /* T2 is the slave target */
     /* Sanity checks on the target numbers */
-    master_ptdsp = xdd_get_ptdsp(planp, mt, argv[0]);
+    master_target_datap = xdd_get_target_datap(planp, mt, argv[0]);
 
-    if (master_ptdsp == NULL) return(-1);
-    slave_ptdsp = xdd_get_ptdsp(planp, st, argv[0]);
-    if (slave_ptdsp == NULL) return(-1);
+    if (master_target_datap == NULL) return(-1);
+    slave_target_datap = xdd_get_target_datap(planp, st, argv[0]);
+    if (slave_target_datap == NULL) return(-1);
  
     // Make sure there is a Lockstep Structure for the MASTER
-    if (master_ptdsp->lsp == 0) {
-		master_ptdsp->lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (master_ptdsp->lsp == 0) {
+    if (master_target_datap->td_lsp == 0) {
+		master_target_datap->td_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (master_target_datap->td_lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Master lockstep structure\n",
 			xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
-		memset(master_ptdsp->lsp, 0, sizeof(lockstep_t ));
+		memset(master_target_datap->td_lsp, 0, sizeof(lockstep_t ));
     } 
-	master_lsp = master_ptdsp->lsp;
+	master_lsp = master_target_datap->td_lsp;
 
     // Make sure there is a Lockstep Structure for the SLAVE
-    if (slave_ptdsp->lsp == 0) {
-		slave_ptdsp->lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
-		if (slave_ptdsp->lsp == 0) {
+    if (slave_target_datap->td_lsp == 0) {
+		slave_target_datap->td_lsp = (lockstep_t *)malloc(sizeof(lockstep_t));
+		if (slave_target_datap->td_lsp == 0) {
 			fprintf(stderr,"%s: Cannot allocate %d bytes of memory for Slave lockstep structure\n",
 			xgp->progname, (int)sizeof(lockstep_t));
 			return(0);
 		}
-		memset(slave_ptdsp->lsp, 0, sizeof(lockstep_t));
+		memset(slave_target_datap->td_lsp, 0, sizeof(lockstep_t));
     } 
-	slave_lsp = slave_ptdsp->lsp;
+	slave_lsp = slave_target_datap->td_lsp;
 
 	if (flags & XDD_PARSE_PHASE1) {
 		if (!(xgp->global_options & GO_LOCKSTEP)) {
@@ -1681,15 +1682,15 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			master_lsp->ls_state |= LS_STATE_I_AM_THE_FIRST;
 		} 
 	
-		if (master_lsp->ls_next_ptdsp) {
-			slave_lsp->ls_next_ptdsp = master_lsp->ls_next_ptdsp;
+		if (master_lsp->ls_next_tdp) {
+			slave_lsp->ls_next_tdp = master_lsp->ls_next_tdp;
 		} else { 
-			slave_lsp->ls_next_ptdsp = master_ptdsp;
+			slave_lsp->ls_next_tdp = master_target_datap;
 		}
-		master_lsp->ls_next_ptdsp = slave_ptdsp;
-		master_ptdsp->target_options |= lsmode;
+		master_lsp->ls_next_tdp = slave_target_datap;
+		master_target_datap->td_target_options |= lsmode;
 		slave_lsp->ls_state &= ~LS_STATE_I_AM_THE_FIRST;
-		slave_ptdsp->target_options |= lsmode; 
+		slave_target_datap->td_target_options |= lsmode; 
 	}
 
 
@@ -1837,7 +1838,7 @@ xddfunc_looseordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fl
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -1845,21 +1846,21 @@ xddfunc_looseordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fl
 
     // At this point the "target_number" is valid
 	if (target_number >= 0) { /* Set this option for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->target_options |= TO_ORDERING_STORAGE_LOOSE;
-		p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+		tdp->td_target_options |= TO_ORDERING_STORAGE_LOOSE;
+		tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
         return(args+1);
     } else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->target_options |= TO_ORDERING_STORAGE_LOOSE;
-					p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+				while (tdp) {
+					tdp->td_target_options |= TO_ORDERING_STORAGE_LOOSE;
+					tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
         return(1);
@@ -1935,9 +1936,9 @@ xddfunc_maxpri(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 /*----------------------------------------------------------------------------*/
 // Specify the number of MBytes to transfer per pass (1M=1024*1024 bytes)
 // Arguments: -mbytes [target #] #
-// This will set p->bytes to the calculated value (mbytes * 1024*1024)
+// This will set tdp->td_bytes to the calculated value (mbytes * 1024*1024)
 // The -bytes/-kbytes/-mbytes option is mutually exclusive with the -numreqs option 
-// and will reset the p->numreqs to 0 for all affected targets. The number of 
+// and will reset the tdp->td_numreqs to 0 for all affected targets. The number of 
 // requests will be calculated at a later time.
 // 
 int
@@ -1945,7 +1946,7 @@ xddfunc_mbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 	int64_t mbytes;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -1956,21 +1957,21 @@ xddfunc_mbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 	mbytes = atoll(argv[args+1]);
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->bytes = mbytes * 1024 * 1024;
-		p->numreqs = 0;
+		tdp->td_bytes = mbytes * 1024 * 1024;
+		tdp->td_numreqs = 0;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->bytes = mbytes * 1024 * 1024;
-					p->numreqs = 0;
+				while (tdp) {
+					tdp->td_bytes = mbytes * 1024 * 1024;
+					tdp->td_numreqs = 0;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
         return(2);
@@ -1983,7 +1984,7 @@ xddfunc_memalign(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int args, i; 
     int target_number;
 	int32_t align;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
@@ -1995,19 +1996,19 @@ xddfunc_memalign(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	align = atoi(argv[args+1]);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->mem_align = align;
+		tdp->td_mem_align = align;
 		return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) { 
-				p->mem_align = align;
+			while (tdp) { 
+				tdp->td_mem_align = align;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(2);
@@ -2063,7 +2064,7 @@ xddfunc_noordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2072,22 +2073,22 @@ xddfunc_noordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
     // At this point the "target_number" is valid
 	if (target_number >= 0) { 
 		/* Unset the Loose and Serial Ordering Opetions for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
-		p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+		tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+		tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
         return(args+1);
     } else {// Put this option into all PTDSs 
 			/* Unset the Loose and Serial Ordering Opetions for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
-					p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+				while (tdp) {
+					tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+					tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
         return(1);
@@ -2105,9 +2106,9 @@ xddfunc_noproclock(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 /*----------------------------------------------------------------------------*/
 // Specify the number of requests to run 
 // Arguments: -numreqs [target #] #
-// This will set p->numreqs to the specified value 
+// This will set tdp->td_numreqs to the specified value 
 // The -numreqs option is mutually exclusive with the -bytes/-kbytes/-mbytes options
-// and will reset the p->bytes to 0 for all affected targets. The number of 
+// and will reset the tdp->td_bytes to 0 for all affected targets. The number of 
 // bytes to transfer will be calculated at a later time.
 // 
 int
@@ -2115,7 +2116,7 @@ xddfunc_numreqs(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
 	int 		args, i; 
 	int 		target_number;
-	ptds_t 		*p;
+	target_data_t 		*tdp;
 	int64_t 	numreqs;
 	
 	args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2132,21 +2133,21 @@ xddfunc_numreqs(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
-		p->numreqs = numreqs;
-		p->bytes = 0; // reset p->bytes
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
+		tdp->td_numreqs = numreqs;
+		tdp->td_bytes = 0; // reset tdp->td_bytes
 		return(args+2);
 
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->numreqs = numreqs;
-				p->bytes = 0; // reset p->bytes
+			while (tdp) {
+				tdp->td_numreqs = numreqs;
+				tdp->td_bytes = 0; // reset tdp->td_bytes
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -2159,7 +2160,7 @@ xddfunc_operationdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 { 
     int 	args, i; 
     int 	target_number;
-    ptds_t 	*p;
+    target_data_t 	*tdp;
 	int 	operationdelay;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2176,19 +2177,19 @@ xddfunc_operationdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
             return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
-		p->op_delay = operationdelay;
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
+		tdp->td_op_delay = operationdelay;
         return(args+2);
 
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->op_delay = operationdelay;
+			while (tdp) {
+				tdp->td_op_delay = operationdelay;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -2202,7 +2203,7 @@ xddfunc_operation(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int 	args, i; 
     int 	target_number;
-    ptds_t 	*p;
+    target_data_t 	*tdp;
 	char	*opname;
 	double 	rwratio;
 
@@ -2228,19 +2229,19 @@ xddfunc_operation(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->rwratio = rwratio;
+		tdp->td_rwratio = rwratio;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->rwratio = rwratio;
+			while (tdp) {
+				tdp->td_rwratio = rwratio;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -2254,7 +2255,7 @@ xddfunc_ordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int			args, i; 
     int			target_number;
-    ptds_t		*p;
+    target_data_t		*tdp;
 	char		*thing;
 	char		network_ordering = 0;
 	char		storage_ordering = 0;
@@ -2313,57 +2314,57 @@ xddfunc_ordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	}
 	// At this point the "order" variable has the proper flags OR'd into it so just or "order" into the target options for either a specific target or all targets
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
 		if (serial_storage_ordering) {
-			p->target_options |= TO_ORDERING_STORAGE_SERIAL;
-			p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+			tdp->td_target_options |= TO_ORDERING_STORAGE_SERIAL;
+			tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
 		} else if (loose_storage_ordering) {
-			p->target_options |= TO_ORDERING_STORAGE_LOOSE;
-			p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+			tdp->td_target_options |= TO_ORDERING_STORAGE_LOOSE;
+			tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
 		} else if (no_storage_ordering) {
-			p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
-			p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+			tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+			tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
 		}
 		if (serial_network_ordering) {
-			p->target_options |= TO_ORDERING_NETWORK_SERIAL;
-			p->target_options &= ~TO_ORDERING_NETWORK_LOOSE;
+			tdp->td_target_options |= TO_ORDERING_NETWORK_SERIAL;
+			tdp->td_target_options &= ~TO_ORDERING_NETWORK_LOOSE;
 		} else if (loose_network_ordering) {
-			p->target_options |= TO_ORDERING_NETWORK_LOOSE;
-			p->target_options &= ~TO_ORDERING_NETWORK_SERIAL;
+			tdp->td_target_options |= TO_ORDERING_NETWORK_LOOSE;
+			tdp->td_target_options &= ~TO_ORDERING_NETWORK_SERIAL;
 		} else if (no_network_ordering) {
-			p->target_options &= ~TO_ORDERING_NETWORK_SERIAL;
-			p->target_options &= ~TO_ORDERING_NETWORK_LOOSE;
+			tdp->td_target_options &= ~TO_ORDERING_NETWORK_SERIAL;
+			tdp->td_target_options &= ~TO_ORDERING_NETWORK_LOOSE;
 		}
         return(args+3);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
+			while (tdp) {
 				if (serial_storage_ordering) {
-					p->target_options |= TO_ORDERING_STORAGE_SERIAL;
-					p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+					tdp->td_target_options |= TO_ORDERING_STORAGE_SERIAL;
+					tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
 				} else if (loose_storage_ordering) {
-					p->target_options |= TO_ORDERING_STORAGE_LOOSE;
-					p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+					tdp->td_target_options |= TO_ORDERING_STORAGE_LOOSE;
+					tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
 				} else if (no_storage_ordering) {
-					p->target_options &= ~TO_ORDERING_STORAGE_SERIAL;
-					p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+					tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
+					tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
 				}
 				if (serial_network_ordering) {
-					p->target_options |= TO_ORDERING_NETWORK_SERIAL;
-					p->target_options &= ~TO_ORDERING_NETWORK_LOOSE;
+					tdp->td_target_options |= TO_ORDERING_NETWORK_SERIAL;
+					tdp->td_target_options &= ~TO_ORDERING_NETWORK_LOOSE;
 				} else if (loose_network_ordering) {
-					p->target_options |= TO_ORDERING_NETWORK_LOOSE;
-					p->target_options &= ~TO_ORDERING_NETWORK_SERIAL;
+					tdp->td_target_options |= TO_ORDERING_NETWORK_LOOSE;
+					tdp->td_target_options &= ~TO_ORDERING_NETWORK_SERIAL;
 				} else if (no_network_ordering) {
-					p->target_options &= ~TO_ORDERING_NETWORK_SERIAL;
-					p->target_options &= ~TO_ORDERING_NETWORK_LOOSE;
+					tdp->td_target_options &= ~TO_ORDERING_NETWORK_SERIAL;
+					tdp->td_target_options &= ~TO_ORDERING_NETWORK_LOOSE;
 				}
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(3);
@@ -2470,7 +2471,7 @@ xddfunc_passoffset(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 	int64_t pass_offset;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2482,19 +2483,19 @@ xddfunc_passoffset(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 	pass_offset = atoll(argv[args+1]);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->pass_offset = pass_offset;
+		tdp->td_pass_offset = pass_offset;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->pass_offset = pass_offset;
+			while (tdp) {
+				tdp->td_pass_offset = pass_offset;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -2507,7 +2508,7 @@ xddfunc_percentcpu(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 {
     int args; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
@@ -2517,17 +2518,17 @@ xddfunc_percentcpu(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 		return(0);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
 		/*
         if ( strcmp(argv[args+1], "absolute") == 0) 
-            p->target_options = TO_PCPU_ABSOLUTE; // Make sure 'absolute' percent CPU is on
+            tdp->td_target_options = TO_PCPU_ABSOLUTE; // Make sure 'absolute' percent CPU is on
         else if (strcmp(argv[args+1], "relative") == 0)
-            p->target_options &= ~TO_PCPU_ABSOLUTE; // For "relative" percent CPU, turn off 'absolute" percent CPU
+            tdp->td_target_options &= ~TO_PCPU_ABSOLUTE; // For "relative" percent CPU, turn off 'absolute" percent CPU
         else {
             fprintf(xgp->errout,"%s: Error: The percent CPU specification of '%s' is not valid. It should be either 'absolute' or 'relative'. Defaulting to 'absolute'\n",xgp->progname, argv[args+1]);
-            p->target_options = TO_PCPU_ABSOLUTE; // Make sure 'absolute' percent CPU is on
+            tdp->td_target_options = TO_PCPU_ABSOLUTE; // Make sure 'absolute' percent CPU is on
         }
 		*/
 		return(args+2);
@@ -2544,7 +2545,7 @@ xddfunc_preallocate(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 { 
 	int 		args, i; 
 	int 		target_number;
-	ptds_t 		*p;
+	target_data_t 		*tdp;
 	int64_t 	preallocate;
 
 	args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2560,19 +2561,19 @@ xddfunc_preallocate(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	}
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 		
-		p->preallocate = preallocate;
+		tdp->td_preallocate = preallocate;
 		return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->preallocate = preallocate;
+			while (tdp) {
+				tdp->td_preallocate = preallocate;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(2);
@@ -2596,7 +2597,7 @@ xddfunc_processor(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	int32_t cpus;
 	int32_t processor_number;
 	int target_number;
-	ptds_t *p;
+	target_data_t *tdp;
 
 
 	args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2614,18 +2615,18 @@ xddfunc_processor(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} 
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
-			p->processor = processor_number;
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
+			tdp->td_processor = processor_number;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {	
-				p->processor = processor_number;
+			while (tdp) {	
+				tdp->td_processor = processor_number;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 	return(2);
@@ -2637,7 +2638,7 @@ xddfunc_queuedepth(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 { 
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 	int32_t queue_depth;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2649,19 +2650,19 @@ xddfunc_queuedepth(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 	queue_depth = atoi(argv[args+1]);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->queue_depth = queue_depth;
+		tdp->td_queue_depth = queue_depth;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->queue_depth = queue_depth;
+			while (tdp) {
+				tdp->td_queue_depth = queue_depth;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -2676,7 +2677,7 @@ xddfunc_randomize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2684,19 +2685,19 @@ xddfunc_randomize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
     // At this point the "target_number" is valid
     if (target_number >= 0) { /* Set this option value for a specific target */
-	    p = xdd_get_ptdsp(planp, target_number, argv[0]);
-	    if (p == NULL) return(-1);
+	    tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+	    if (tdp == NULL) return(-1);
 
-	    p->target_options |= TO_PASS_RANDOMIZE;
+	    tdp->td_target_options |= TO_PASS_RANDOMIZE;
 	    return(args+1);
     } else { // Put this option into all PTDSs 
 	    if (flags & XDD_PARSE_PHASE2) {
-		    p = planp->ptdsp[0];
+		    tdp = planp->target_datap[0];
 		    i = 0;
-		    while (p) {
-			    p->target_options |= TO_PASS_RANDOMIZE;
+		    while (tdp) {
+			    tdp->td_target_options |= TO_PASS_RANDOMIZE;
 			    i++;
-			    p = planp->ptdsp[i];
+			    tdp = planp->target_datap[i];
 		    }
 	    }
 	    return(1);
@@ -2717,15 +2718,15 @@ xddfunc_readafterwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
     int			args; 
     int			target_number;
 	xdd_raw_t	*rawp;
-    ptds_t		*p;
+    target_data_t		*tdp;
 
 	i = 1;
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
 		if (target_number >= MAX_TARGETS) { /* Make sure the target number is somewhat valid */
 			fprintf(stderr,"%s: Invalid Target Number %d specified for read-after-write option %s\n",
@@ -2737,11 +2738,11 @@ xddfunc_readafterwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 	/* At this point "i" points to the raw "option" argument */
 	if (strcmp(argv[i], "trigger") == 0) { /* set the the trigger type */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			rawp = xdd_get_rawp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			rawp = xdd_get_rawp(tdp);
 			if (rawp == NULL) return(-1);
-			p->target_options |= TO_READAFTERWRITE;
+			tdp->td_target_options |= TO_READAFTERWRITE;
 			if (strcmp(argv[i+1], "stat") == 0)
 					rawp->raw_trigger |= PTDS_RAW_STAT;
 				else if (strcmp(argv[i+1], "mp") == 0)
@@ -2756,32 +2757,32 @@ xddfunc_readafterwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 	} else if (strcmp(argv[i], "lag") == 0) { /* set the lag block count */
 		if (target_number >= 0) {
 			/* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			rawp = xdd_get_rawp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			rawp = xdd_get_rawp(tdp);
 			if (rawp == NULL) return(-1);
-			p->target_options |= TO_READAFTERWRITE;
+			tdp->td_target_options |= TO_READAFTERWRITE;
 			rawp->raw_lag = atoi(argv[i+1]);
 		}
         return(i+2);
 	} else if (strcmp(argv[i], "reader") == 0) { /* hostname of the reader for this read-after-write */
 		/* This assumes that these targets are all writers and need to know who the reader is */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			rawp = xdd_get_rawp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			rawp = xdd_get_rawp(tdp);
 			if (rawp == NULL) return(-1);
-			p->target_options |= TO_READAFTERWRITE;
+			tdp->td_target_options |= TO_READAFTERWRITE;
 			rawp->raw_hostname = argv[i+1];
 		}
         return(i+2);
 	} else if (strcmp(argv[i], "port") == 0) { /* set the port number for the socket used by the writer */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			rawp = xdd_get_rawp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			rawp = xdd_get_rawp(tdp);
 			if (rawp == NULL) return(-1);
-			p->target_options |= TO_READAFTERWRITE;
+			tdp->td_target_options |= TO_READAFTERWRITE;
 			rawp->raw_port = atoi(argv[i+1]);
 		}
         return(i+2);
@@ -2806,25 +2807,25 @@ xddfunc_recreatefiles(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fl
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-	    p->target_options |= TO_RECREATE;
+	    tdp->td_target_options |= TO_RECREATE;
         return(args+1);
     } else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->target_options |= TO_RECREATE;
+			while (tdp) {
+				tdp->td_target_options |= TO_RECREATE;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(1);
@@ -2838,25 +2839,25 @@ xddfunc_reopen(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-	    p->target_options |= TO_REOPEN;
+	    tdp->td_target_options |= TO_REOPEN;
         return(args+1);
     } else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->target_options |= TO_REOPEN;
+			while (tdp) {
+				tdp->td_target_options |= TO_REOPEN;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(1);
@@ -2871,7 +2872,7 @@ xddfunc_report_threshold(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
     double threshold;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2886,19 +2887,19 @@ xddfunc_report_threshold(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t
         return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->report_threshold = (nclk_t)(threshold * BILLION);
+		tdp->td_report_threshold = (nclk_t)(threshold * BILLION);
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->report_threshold = (nclk_t)(threshold * BILLION);
+			while (tdp) {
+				tdp->td_report_threshold = (nclk_t)(threshold * BILLION);
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -2912,7 +2913,7 @@ xddfunc_reqsize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 	int32_t reqsize;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2928,19 +2929,19 @@ xddfunc_reqsize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	}
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->reqsize = reqsize;
+		tdp->td_reqsize = reqsize;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->reqsize = reqsize;
+			while (tdp) {
+				tdp->td_reqsize = reqsize;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -2955,7 +2956,7 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int 		args; 
     int 		args_index;
     int 		target_number;
-    ptds_t 		*p;
+    target_data_t 		*tdp;
 	restart_t	*rp;
 
 
@@ -2976,21 +2977,21 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		if(planp->restart_frequency == 0) 
 			planp->restart_frequency = 1;
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			rp = xdd_get_restartp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			rp = xdd_get_restartp(tdp);
 			if (rp == NULL) return(-1);
-			p->target_options |= TO_RESTART_ENABLE;
+			tdp->td_target_options |= TO_RESTART_ENABLE;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					rp = xdd_get_restartp(p);
+				while (tdp) {
+					rp = xdd_get_restartp(tdp);
 					if (rp == NULL) return(-1);
-					p->target_options |= TO_RESTART_ENABLE;
+					tdp->td_target_options |= TO_RESTART_ENABLE;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -2999,21 +3000,21 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		if(planp->restart_frequency == 0)  // Turn on restart 
 			planp->restart_frequency = 1;
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			rp = xdd_get_restartp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			rp = xdd_get_restartp(tdp);
 			if (rp == NULL) return(-1);
 			rp->restart_filename = argv[args_index+1];
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					rp = xdd_get_restartp(p);
+				while (tdp) {
+					rp = xdd_get_restartp(tdp);
 					if (rp == NULL) return(-1);
 					rp->restart_filename = argv[args_index+1];
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		} 
@@ -3021,21 +3022,21 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else if ((strcmp(argv[args_index], "frequency") == 0) || 
 			   (strcmp(argv[args_index], "freq") == 0)) { // The frequency in seconds to check the threads
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			rp = xdd_get_restartp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			rp = xdd_get_restartp(tdp);
 			if (rp == NULL) return(-1);
 			planp->restart_frequency = atoi(argv[args_index+1]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					rp = xdd_get_restartp(p);
+				while (tdp) {
+					rp = xdd_get_restartp(tdp);
 					if (rp == NULL) return(-1);
 					planp->restart_frequency = atoi(argv[args_index+1]);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		} 
@@ -3045,47 +3046,47 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		if(planp->restart_frequency == 0) 
 			planp->restart_frequency = 1;
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			rp = xdd_get_restartp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			rp = xdd_get_restartp(tdp);
 			if (rp == NULL) return(-1);
 			
-	    	if (NULL == p->e2ep) // If there is no e2e struct, then allocate one
-				p->e2ep = xdd_get_e2ep();
-	    	if (p->e2ep == NULL) // If there is still no e2e struct then return -1
+	    	if (NULL == tdp->td_e2ep) // If there is no e2e struct, then allocate one
+				tdp->td_e2ep = xdd_get_e2ep();
+	    	if (tdp->td_e2ep == NULL) // If there is still no e2e struct then return -1
 				return(-1);
 
 			rp->byte_offset = atoll(argv[args_index+1]);
 			rp->flags |= RESTART_FLAG_RESUME_COPY;
-			p->e2ep->e2e_total_bytes_written=rp->byte_offset;
+			tdp->td_e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 			/* Set the last committed location to avoid restart output of
 			   0 if the target does not complete any I/O during first interval 
 			 */
-			p->last_committed_location = rp->byte_offset;
+			tdp->td_last_committed_location = rp->byte_offset;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					rp = xdd_get_restartp(p);
+				while (tdp) {
+					rp = xdd_get_restartp(tdp);
 					if (rp == NULL) return(-1);
 			
-	    			if (NULL == p->e2ep) // If there is no e2e struct, then allocate one
-						p->e2ep = xdd_get_e2ep();
-	    			if (p->e2ep == NULL) // If there is still no e2e struct then return -1
+	    			if (NULL == tdp->td_e2ep) // If there is no e2e struct, then allocate one
+						tdp->td_e2ep = xdd_get_e2ep();
+	    			if (tdp->td_e2ep == NULL) // If there is still no e2e struct then return -1
 						return(-1);
 
 					rp->byte_offset = atoll(argv[args_index+1]);
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
-					p->e2ep->e2e_total_bytes_written=rp->byte_offset;
+					tdp->td_e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 					/* Set the last committed location to avoid restart output 
 					   of 0 if the target does not complete any I/O during 
 					   first interval */
-					p->last_committed_location = rp->byte_offset;
+					tdp->td_last_committed_location = rp->byte_offset;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}  
@@ -3104,7 +3105,7 @@ xddfunc_retry(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 	int32_t retry_count;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -3120,19 +3121,19 @@ xddfunc_retry(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	}
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->retry_count = retry_count;
+		tdp->td_retry_count = retry_count;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->retry_count = retry_count;
+			while (tdp) {
+				tdp->td_retry_count = retry_count;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -3160,10 +3161,10 @@ xddfunc_roundrobin(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 	/* - this needs to be fixed
 	k = 0;
 	for (j = 0; j < MAX_TARGETS; j++) {
-		p = xdd_get_ptdsp(planp, j, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, j, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->processor = k;
+		tdp->td_processor = k;
 		k++;
 		if (k >= processor_number)
 			k = 0;
@@ -3197,7 +3198,7 @@ xddfunc_rwratio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
     double rwratio;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -3212,19 +3213,19 @@ xddfunc_rwratio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
         return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->rwratio = rwratio;
+		tdp->td_rwratio = rwratio;
         return(args+2);
 	} else { // Put this option into all PTDSs 
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->rwratio = rwratio;
+			while (tdp) {
+				tdp->td_rwratio = rwratio;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -3240,7 +3241,7 @@ xddfunc_seek(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int     i;
     int     args, args_index; 
     int     target_number;
-    ptds_t  *p;
+    target_data_t  *tdp;
 
 	args_index = 1;
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -3257,207 +3258,207 @@ xddfunc_seek(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	/* At this point "args_index" is an index to the seek "option" argument */
 	if (strcmp(argv[args_index], "save") == 0) { /* save the seek information in a file */
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_options |= SO_SEEK_SAVE;
-			p->seekhdr.seek_savefile = argv[args_index+1];
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_options |= SO_SEEK_SAVE;
+			tdp->td_seekhdr.seek_savefile = argv[args_index+1];
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_options |= SO_SEEK_SAVE;
-					p->seekhdr.seek_savefile = argv[args_index+1];
+				while (tdp) {
+					tdp->td_seekhdr.seek_options |= SO_SEEK_SAVE;
+					tdp->td_seekhdr.seek_savefile = argv[args_index+1];
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 		return(args_index+2);
 	} else if (strcmp(argv[args_index], "load") == 0) { /* load seek list from "filename" */
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_options |= SO_SEEK_LOAD;
-			p->seekhdr.seek_loadfile = argv[args_index+1];
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_options |= SO_SEEK_LOAD;
+			tdp->td_seekhdr.seek_loadfile = argv[args_index+1];
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_options |= SO_SEEK_LOAD;
-					p->seekhdr.seek_loadfile = argv[args_index+1];
+				while (tdp) {
+					tdp->td_seekhdr.seek_options |= SO_SEEK_LOAD;
+					tdp->td_seekhdr.seek_loadfile = argv[args_index+1];
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		} 
 		return(args_index+2);
 	} else if (strcmp(argv[args_index], "disthist") == 0) { /*  Print a Distance Histogram */
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_options |= SO_SEEK_DISTHIST;
-			p->seekhdr.seek_NumDistHistBuckets = atoi(argv[args_index+1]);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_options |= SO_SEEK_DISTHIST;
+			tdp->td_seekhdr.seek_NumDistHistBuckets = atoi(argv[args_index+1]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_options |= SO_SEEK_DISTHIST;
-					p->seekhdr.seek_NumDistHistBuckets = atoi(argv[args_index+1]);
+				while (tdp) {
+					tdp->td_seekhdr.seek_options |= SO_SEEK_DISTHIST;
+					tdp->td_seekhdr.seek_NumDistHistBuckets = atoi(argv[args_index+1]);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}  
 		return(args_index+2);
 	} else if (strcmp(argv[args_index], "seekhist") == 0) { /* Print a Seek Histogram */
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_options |= SO_SEEK_SEEKHIST;
-			p->seekhdr.seek_NumSeekHistBuckets = atoi(argv[args_index+1]);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_options |= SO_SEEK_SEEKHIST;
+			tdp->td_seekhdr.seek_NumSeekHistBuckets = atoi(argv[args_index+1]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_options |= SO_SEEK_SEEKHIST;
-					p->seekhdr.seek_NumSeekHistBuckets = atoi(argv[args_index+1]);
+				while (tdp) {
+					tdp->td_seekhdr.seek_options |= SO_SEEK_SEEKHIST;
+					tdp->td_seekhdr.seek_NumSeekHistBuckets = atoi(argv[args_index+1]);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		} 
 		return(args_index+2);
 	} else if (strcmp(argv[args_index], "sequential") == 0) { /*  Sequential seek list option */     
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_options &= ~SO_SEEK_RANDOM;
-			p->seekhdr.seek_pattern = "sequential";
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_options &= ~SO_SEEK_RANDOM;
+			tdp->td_seekhdr.seek_pattern = "sequential";
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_options &= ~SO_SEEK_RANDOM;
-					p->seekhdr.seek_pattern = "sequential";
+				while (tdp) {
+					tdp->td_seekhdr.seek_options &= ~SO_SEEK_RANDOM;
+					tdp->td_seekhdr.seek_pattern = "sequential";
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}  
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "random") == 0) { /*  Random seek list option */     
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_options |= SO_SEEK_RANDOM;
-			p->seekhdr.seek_pattern = "random";
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_options |= SO_SEEK_RANDOM;
+			tdp->td_seekhdr.seek_pattern = "random";
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_options |= SO_SEEK_RANDOM;
-					p->seekhdr.seek_pattern = "random";
+				while (tdp) {
+					tdp->td_seekhdr.seek_options |= SO_SEEK_RANDOM;
+					tdp->td_seekhdr.seek_pattern = "random";
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		} 
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "stagger") == 0) { /*  Staggered seek list option */
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_options |= SO_SEEK_STAGGER;
-			p->seekhdr.seek_pattern = "staggered";
-			p->seekhdr.seek_stride = atoi(argv[args_index+1]);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_options |= SO_SEEK_STAGGER;
+			tdp->td_seekhdr.seek_pattern = "staggered";
+			tdp->td_seekhdr.seek_stride = atoi(argv[args_index+1]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_options |= SO_SEEK_STAGGER;
-					p->seekhdr.seek_pattern = "staggered";
-			                p->seekhdr.seek_stride = atoi(argv[args_index+1]);
+				while (tdp) {
+					tdp->td_seekhdr.seek_options |= SO_SEEK_STAGGER;
+					tdp->td_seekhdr.seek_pattern = "staggered";
+			                tdp->td_seekhdr.seek_stride = atoi(argv[args_index+1]);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}  
 		return(args_index+2);
 	} else if (strcmp(argv[args_index], "interleave") == 0) { /* set the interleave for sequential seek locations */
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_interleave = atoi(argv[args_index+1]);
-			p->seekhdr.seek_pattern = "interleaved";
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_interleave = atoi(argv[args_index+1]);
+			tdp->td_seekhdr.seek_pattern = "interleaved";
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_interleave = atoi(argv[args_index+1]);
-					p->seekhdr.seek_pattern = "interleaved";
+				while (tdp) {
+					tdp->td_seekhdr.seek_interleave = atoi(argv[args_index+1]);
+					tdp->td_seekhdr.seek_pattern = "interleaved";
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}  
 		return(args_index+2);
 	} else if (strcmp(argv[args_index], "none") == 0) { /* no seeking at all */
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_options |= SO_SEEK_NONE;
-			p->seekhdr.seek_pattern = "none";
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_options |= SO_SEEK_NONE;
+			tdp->td_seekhdr.seek_pattern = "none";
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_options |= SO_SEEK_NONE;
-					p->seekhdr.seek_pattern = "none";
+				while (tdp) {
+					tdp->td_seekhdr.seek_options |= SO_SEEK_NONE;
+					tdp->td_seekhdr.seek_pattern = "none";
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}  
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "range") == 0) { /* set the range of seek locations */
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_range = atoll(argv[args_index+1]);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_range = atoll(argv[args_index+1]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_range = atoll(argv[args_index+1]);
+				while (tdp) {
+					tdp->td_seekhdr.seek_range = atoll(argv[args_index+1]);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}  
 		return(args_index+2);
 	} else if (strcmp(argv[args_index], "seed") == 0) { /* set the seed for random seek locations */
 		if (target_number >= 0) {  /* set option for specific target */
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->seekhdr.seek_seed = atoi(argv[args_index+1]);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_seed = atoi(argv[args_index+1]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->seekhdr.seek_seed = atoi(argv[args_index+1]);
+				while (tdp) {
+					tdp->td_seekhdr.seek_seed = atoi(argv[args_index+1]);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		} 
@@ -3477,7 +3478,7 @@ xddfunc_serialordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -3485,21 +3486,21 @@ xddfunc_serialordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 
     // At this point the "target_number" is valid
 	if (target_number >= 0) { /* Set this option for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->target_options |= TO_ORDERING_STORAGE_SERIAL;
-		p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+		tdp->td_target_options |= TO_ORDERING_STORAGE_SERIAL;
+		tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
         return(args+1);
     } else {// Put this option into all PTDSs 
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->target_options |= TO_ORDERING_STORAGE_SERIAL;
-					p->target_options &= ~TO_ORDERING_STORAGE_LOOSE;
+				while (tdp) {
+					tdp->td_target_options |= TO_ORDERING_STORAGE_SERIAL;
+					tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
         return(1);
@@ -3526,7 +3527,7 @@ xddfunc_sgio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -3534,23 +3535,23 @@ xddfunc_sgio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
     // At this point the "target_number" is valid
 	if (target_number >= 0) { /* Set this option for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
-		p->sgiop = xdd_get_sgiop(p);
-		if (p->sgiop == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
+		tdp->td_sgiop = xdd_get_sgiop(tdp);
+		if (tdp->td_sgiop == NULL) return(-1);
 
-		p->target_options |= TO_SGIO;
+		tdp->td_target_options |= TO_SGIO;
         return(args+1);
     } else { /* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->sgiop = xdd_get_sgiop(p);
-				if (p->sgiop == NULL) return(-1);
-				p->target_options |= TO_SGIO;
+			while (tdp) {
+				tdp->td_sgiop = xdd_get_sgiop(tdp);
+				if (tdp->td_sgiop == NULL) return(-1);
+				tdp->td_target_options |= TO_SGIO;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(1);
@@ -3562,7 +3563,7 @@ xddfunc_sharedmemory(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fla
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -3570,19 +3571,19 @@ xddfunc_sharedmemory(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fla
 
     // At this point the "target_number" is valid
 	if (target_number >= 0) { /* Set this option for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->target_options |= TO_SHARED_MEMORY;
+		tdp->td_target_options |= TO_SHARED_MEMORY;
         return(args+1);
 	} else {/* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->target_options |= TO_SHARED_MEMORY;
+			while (tdp) {
+				tdp->td_target_options |= TO_SHARED_MEMORY;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(1);
@@ -3597,7 +3598,7 @@ xddfunc_singleproc(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
     int32_t processor_number;
     int32_t args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
 
 	cpus = xdd_cpu_count();
@@ -3618,18 +3619,18 @@ xddfunc_singleproc(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 	}
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
-		p->processor = processor_number;
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
+		tdp->td_processor = processor_number;
 		return(args+1);
 	} else {/* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->processor = processor_number;
+			while (tdp) {
+				tdp->td_processor = processor_number;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(2);
@@ -3660,7 +3661,7 @@ xddfunc_startdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
     int target_number;
     double start_delay;
     nclk_t start_delay_psec;
-    ptds_t *p;
+    target_data_t *tdp;
 
 		
 	args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -3677,21 +3678,21 @@ xddfunc_startdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 	}
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
-		p->start_delay = start_delay;
-		p->start_delay_psec = start_delay_psec;
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
+		tdp->td_start_delay = start_delay;
+		tdp->td_start_delay_psec = start_delay_psec;
 
 		return(args+2);
 	} else {/* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->start_delay = start_delay;
-				p->start_delay_psec = start_delay_psec;
+			while (tdp) {
+				tdp->td_start_delay = start_delay;
+				tdp->td_start_delay_psec = start_delay_psec;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(2);
@@ -3707,7 +3708,7 @@ xddfunc_startoffset(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
     int args, i; 
     int target_number;
 	int64_t	start_offset;
-    ptds_t *p;
+    target_data_t *tdp;
 
 	
 	args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -3722,19 +3723,19 @@ xddfunc_startoffset(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 		return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->start_offset = start_offset;
+		tdp->td_start_offset = start_offset;
         return(args+2);
 	} else {/* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->start_offset = start_offset;
+			while (tdp) {
+				tdp->td_start_offset = start_offset;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(2);
@@ -3779,7 +3780,7 @@ int
 xddfunc_starttrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int 			t1,t2;				// Target numbers
-    ptds_t 			*p1, *p2;			// PTDS pointers for the two targets involved
+    target_data_t 			*tdp1, *tdp2;			// PTDS pointers for the two targets involved
     xdd_triggers_t 	*trigp;				// Trigger Stucture pointers for the this target
     char 			*when;				// The "When" to perform a trigger
     double 			tmpf;				// temp
@@ -3794,17 +3795,17 @@ xddfunc_starttrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fla
 	t1 = atoi(argv[1]); /* T1 is the target that does the triggering */
 	t2 = atoi(argv[2]); /* T2 is the target that gets triggered by T1 */
 	// Get the PTDS and Trigger Structures for each target
-	p1 = xdd_get_ptdsp(planp, t1, argv[0]);
-	if (p1 == NULL) return(-1); 
-	trigp = xdd_get_trigp(p1);
+	tdp1 = xdd_get_target_datap(planp, t1, argv[0]);
+	if (tdp1 == NULL) return(-1); 
+	trigp = xdd_get_trigp(tdp1);
 	if (trigp == NULL) return(-1); 
 
-	p2 = xdd_get_ptdsp(planp, t2, argv[0]);
-	if (p2 == NULL) return(-1); 
+	tdp2 = xdd_get_target_datap(planp, t2, argv[0]);
+	if (tdp2 == NULL) return(-1); 
 	  
 	trigp->start_trigger_target = t2; /* The target that does the triggering has to 
 									* know the target number to trigger */
-	p2->target_options |= TO_WAITFORSTART; /* The target that will be triggered has to know to wait */
+	tdp2->td_target_options |= TO_WAITFORSTART; /* The target that will be triggered has to know to wait */
 	when = argv[3];
 
 	if (strcmp(when,"time") == 0){ /* get the number of seconds to wait before triggering the other target */
@@ -3875,7 +3876,7 @@ int
 xddfunc_stoptrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int 			t1,  t2;			// Target numbers
-    ptds_t 			*p1;				// PTDS pointers for the target 
+    target_data_t 			*tdp1;				// PTDS pointers for the target 
     xdd_triggers_t 	*trigp;				// Trigger Stucture pointers for the this target
     char 			*when;				// The "When" to perform a trigger
     double 			tmpf;				// temp
@@ -3891,9 +3892,9 @@ xddfunc_stoptrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	t2 = atoi(argv[2]);
     when = argv[3];
 
-	p1 = xdd_get_ptdsp(planp, t1, argv[0]);  
-	if (p1 == NULL) return(-1);
-	trigp = xdd_get_trigp(p1);
+	tdp1 = xdd_get_target_datap(planp, t1, argv[0]);  
+	if (tdp1 == NULL) return(-1);
+	trigp = xdd_get_trigp(tdp1);
 	if (trigp == NULL) return(-1); 
 
 	trigp->stop_trigger_target = t2; /* The target that does the triggering has to 
@@ -3941,25 +3942,25 @@ xddfunc_syncwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
 	int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->target_options |= TO_SYNCWRITE;
+		tdp->td_target_options |= TO_SYNCWRITE;
 		return(3);
 	} else { /* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->target_options |= TO_SYNCWRITE;
+			while (tdp) {
+				tdp->td_target_options |= TO_SYNCWRITE;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 	return(1);
@@ -3971,14 +3972,14 @@ int
 xddfunc_target(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 { 
 	int target_number;
-	ptds_t *p;
+	target_data_t *tdp;
 
 	if (flags & XDD_PARSE_PHASE1) {
 		target_number = planp->number_of_targets; // This is the last target + 1 
-		p = xdd_get_ptdsp(planp, target_number, argv[0]); 
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]); 
+		if (tdp == NULL) return(-1);
 	
-		p->target_basename = argv[1];
+		tdp->td_target_basename = argv[1];
 		planp->number_of_targets++; 
 	}
 	return(2);
@@ -3994,7 +3995,7 @@ xddfunc_targetdir(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
@@ -4003,19 +4004,19 @@ xddfunc_targetdir(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		return(0);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-	    p = xdd_get_ptdsp(planp, target_number, argv[0]); 
-		if (p == NULL) return(-1);
+	    tdp = xdd_get_target_datap(planp, target_number, argv[0]); 
+		if (tdp == NULL) return(-1);
 
-	    p->target_directory = argv[args+1];
+	    tdp->td_target_directory = argv[args+1];
         return(args+2);
     } else { /* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->target_directory = argv[args+1];
+			while (tdp) {
+				tdp->td_target_directory = argv[args+1];
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(2);
@@ -4062,7 +4063,7 @@ xddfunc_targets(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int i,j,k;
 	int status;
-	ptds_t *p;
+	target_data_t *tdp;
 
 	if (flags & XDD_PARSE_PHASE1) {
 		k = planp->number_of_targets;  // Keep the current number of targets we have
@@ -4083,23 +4084,23 @@ xddfunc_targets(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			for (j=k; j<planp->number_of_targets; j++) { // This will add targets to the end of the current list of targets 
 				// Call xdd_get_ptds() for each target and put the same target name in each PTDS
 				// Make sure the PTDS for this target exists - if it does not, the xdd_get_ptds() subroutine will create one
-				p = xdd_get_ptdsp(planp, j, argv[0]);
-				if (p == NULL) return(-1);
+				tdp = xdd_get_target_datap(planp, j, argv[0]);
+				if (tdp == NULL) return(-1);
 				
-				p->target_basename = argv[2];
-				if (strcmp(p->target_basename,"null") == 0) 
-					p->target_options |= TO_NULL_TARGET;
+				tdp->td_target_basename = argv[2];
+				if (strcmp(tdp->td_target_basename,"null") == 0) 
+					tdp->td_target_options |= TO_NULL_TARGET;
 			} // end of FOR loop that places a single target name on each of the associated PTDSs
 		} else { // Set all target names to the appropriate name
 			i = 2; // start with the third argument  
 			planp->number_of_targets += k;  // add in the previous number of targets 
 			for (j=k; j<planp->number_of_targets; j++) { // This will add targets to the end of the current list of targets 
 				// Make sure the PTDS for this target exists - if it does not, the xdd_get_ptds() subroutine will create one
-				p = xdd_get_ptdsp(planp, j, argv[0]);
-				if (p == NULL) return(-1);
-				p->target_basename = argv[i];
-				if (strcmp(p->target_basename,"null") == 0) 
-					p->target_options |= TO_NULL_TARGET;
+				tdp = xdd_get_target_datap(planp, j, argv[0]);
+				if (tdp == NULL) return(-1);
+				tdp->td_target_basename = argv[i];
+				if (strcmp(tdp->td_target_basename,"null") == 0) 
+					tdp->td_target_options |= TO_NULL_TARGET;
 				i++;
 			}
 		}
@@ -4141,7 +4142,7 @@ xddfunc_targetstartdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t
     int target_number;
     double start_delay;
     nclk_t start_delay_psec;
-    ptds_t *p;
+    target_data_t *tdp;
 
 	args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
@@ -4157,20 +4158,20 @@ xddfunc_targetstartdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t
 	}
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
-		p->start_delay = (double)(start_delay * target_number);
-		p->start_delay_psec = start_delay_psec * target_number;
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
+		tdp->td_start_delay = (double)(start_delay * target_number);
+		tdp->td_start_delay_psec = start_delay_psec * target_number;
 		return(args+2);
 	} else {/* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->start_delay = (double)(start_delay * p->my_target_number);
-				p->start_delay_psec = start_delay_psec * p->my_target_number;
+			while (tdp) {
+				tdp->td_start_delay = (double)(start_delay * tdp->td_target_number);
+				tdp->td_start_delay_psec = start_delay_psec * tdp->td_target_number;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
 		return(2);
@@ -4199,7 +4200,7 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int target_number;
     char *what;
     double value;
-    ptds_t *p;
+    target_data_t *tdp;
     int retval;
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -4209,14 +4210,14 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		return(0);
 	}
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
 		what = argv[args+1];
 		value = atof(argv[args+2]);
         retval = args+3;
     } else { /* All targets */
-        p = 0;
+        tdp = 0;
         what = argv[1];
 		value = atof(argv[2]);
         retval = 3;
@@ -4227,18 +4228,18 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			fprintf(xgp->errout,"%s: throttle of %5.2f is not valid. throttle must be a number greater than 0.00\n",xgp->progname,value);
             return(0);
         }
-        if (p) {
-		    p->throtp->throttle_type = XINT_THROTTLE_OPS;
-            p->throtp->throttle = value;
+        if (tdp) {
+		    tdp->td_throtp->throttle_type = XINT_THROTTLE_OPS;
+            tdp->td_throtp->throttle = value;
         } else  { /* Set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->throtp->throttle_type = XINT_THROTTLE_OPS;
-					p->throtp->throttle = value;
+				while (tdp) {
+					tdp->td_throtp->throttle_type = XINT_THROTTLE_OPS;
+					tdp->td_throtp->throttle = value;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4248,18 +4249,18 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			fprintf(xgp->errout,"%s: throttle of %5.2f is not valid. throttle must be a number greater than 0.00\n",xgp->progname,value);
             return(0);
         }
-        if (p) {
-		    p->throtp->throttle_type = XINT_THROTTLE_BW;
-            p->throtp->throttle = value;
+        if (tdp) {
+		    tdp->td_throtp->throttle_type = XINT_THROTTLE_BW;
+            tdp->td_throtp->throttle = value;
         } else { /* Set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->throtp->throttle_type = XINT_THROTTLE_BW;
-					p->throtp->throttle = value;
+				while (tdp) {
+					tdp->td_throtp->throttle_type = XINT_THROTTLE_BW;
+					tdp->td_throtp->throttle = value;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4269,39 +4270,39 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			fprintf(xgp->errout,"%s: throttle delay of %5.2f is not valid. throttle must be a number greater than 0.00\n",xgp->progname,value);
             return(0);
         }
-        if (p) {
-	    p->throtp->throttle_type = XINT_THROTTLE_DELAY;
-            p->throtp->throttle = value;
+        if (tdp) {
+	    tdp->td_throtp->throttle_type = XINT_THROTTLE_DELAY;
+            tdp->td_throtp->throttle = value;
         } else { /* Set option for all targets */
 	    if (flags & XDD_PARSE_PHASE2) {
-		p = planp->ptdsp[0];
+		tdp = planp->target_datap[0];
 		i = 0;
-		while (p) {
-		    p->throtp->throttle_type = XINT_THROTTLE_DELAY;
-		    p->throtp->throttle = value;
+		while (tdp) {
+		    tdp->td_throtp->throttle_type = XINT_THROTTLE_DELAY;
+		    tdp->td_throtp->throttle = value;
 		    i++;
-		    p = planp->ptdsp[i];
+		    tdp = planp->target_datap[i];
 		}
 	    }
 	}
 	return(retval);
     } else if (strcmp(what, "var") == 0) { /* Throttle Variance */
-	if (NULL != p && value <= 0.0) {
-	    fprintf(xgp->errout,"%s: throttle variance of %5.2f is not valid. throttle variance must be a number greater than 0.00 but less than the throttle value of %5.2f\n",xgp->progname,p->throtp->throttle_variance,p->throtp->throttle);
+	if (NULL != tdp && value <= 0.0) {
+	    fprintf(xgp->errout,"%s: throttle variance of %5.2f is not valid. throttle variance must be a number greater than 0.00 but less than the throttle value of %5.2f\n",xgp->progname,tdp->td_throtp->throttle_variance,tdp->td_throtp->throttle);
 	    return(0);
 	}
 	else if (value <= 0.0)
 	    fprintf(xgp->errout,"%s: Negative throttle variance of %5.2f is not valid.\n",xgp->progname, value);
-        if (p)
-            p->throtp->throttle_variance = value;
+        if (tdp)
+            tdp->td_throtp->throttle_variance = value;
 		else { /* Set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->throtp->throttle_variance = value;
+				while (tdp) {
+					tdp->td_throtp->throttle_variance = value;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4317,7 +4318,7 @@ xddfunc_timelimit(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int args, i; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 	double	time_limit;
 	nclk_t	time_limit_ticks;
 
@@ -4335,21 +4336,21 @@ xddfunc_timelimit(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	time_limit_ticks = (nclk_t)(time_limit * BILLION);
 
 	if (target_number >= 0) { /* Set this option value for a specific target */
-		p = xdd_get_ptdsp(planp, target_number, argv[0]);
-		if (p == NULL) return(-1);
+		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL) return(-1);
 
-		p->time_limit = time_limit;
-		p->time_limit_ticks = time_limit_ticks;
+		tdp->td_time_limit = time_limit;
+		tdp->td_time_limit_ticks = time_limit_ticks;
         return(args+2);
 	} else  { /* Set option for all targets */
 		if (flags & XDD_PARSE_PHASE2) {
-			p = planp->ptdsp[0];
+			tdp = planp->target_datap[0];
 			i = 0;
-			while (p) {
-				p->time_limit = time_limit;
-				p->time_limit_ticks = time_limit_ticks;
+			while (tdp) {
+				tdp->td_time_limit = time_limit;
+				tdp->td_time_limit_ticks = time_limit_ticks;
 				i++;
-				p = planp->ptdsp[i];
+				tdp = planp->target_datap[i];
 			}
 		}
         return(2);
@@ -4401,7 +4402,7 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	int i;
 	int args, args_index; 
 	int target_number;
-	ptds_t *p;
+	target_data_t *tdp;
 	xdd_timestamp_t *tsp;
 
 
@@ -4425,84 +4426,84 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	/* At this point "args_index" indexes to the ts "option" argument */
 	if (strcmp(argv[args_index], "on") == 0) { /* set the time stamp reporting option */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= (TS_ON | TS_ALL);
+			tdp->td_tsp->ts_options |= (TS_ON | TS_ALL);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= (TS_ON | TS_ALL);
+					tdp->td_tsp->ts_options |= (TS_ON | TS_ALL);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "off") == 0) { /* Turn off the time stamp reporting option */
 		if (target_number >= 0) { 
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options &= ~TS_ON; /* Turn OFF time stamping */
+			tdp->td_tsp->ts_options &= ~TS_ON; /* Turn OFF time stamping */
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options &= ~TS_ON; /* Turn OFF time stamping */
+					tdp->td_tsp->ts_options &= ~TS_ON; /* Turn OFF time stamping */
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "wrap") == 0) { /* Turn on the TS Wrap option */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= TS_WRAP;
+			tdp->td_tsp->ts_options |= TS_WRAP;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= TS_WRAP;
+					tdp->td_tsp->ts_options |= TS_WRAP;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "oneshot") == 0) { /* Turn on the TS Wrap option */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= TS_ONESHOT;
+			tdp->td_tsp->ts_options |= TS_ONESHOT;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= TS_ONESHOT;
+					tdp->td_tsp->ts_options |= TS_ONESHOT;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4514,21 +4515,21 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		}
         args_index++;
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_size = atoi(argv[args_index]);
+			tdp->td_tsp->ts_size = atoi(argv[args_index]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_size = atoi(argv[args_index]);
+					tdp->td_tsp->ts_size = atoi(argv[args_index]);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4540,23 +4541,23 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		}
         args_index++;
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= (TS_ON | TS_TRIGTIME);
-			p->tsp->ts_trigtime = atoll(argv[args_index]);
+			tdp->td_tsp->ts_options |= (TS_ON | TS_TRIGTIME);
+			tdp->td_tsp->ts_trigtime = atoll(argv[args_index]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= (TS_ON | TS_TRIGTIME);
-					p->tsp->ts_trigtime = atoll(argv[args_index]);
+					tdp->td_tsp->ts_options |= (TS_ON | TS_TRIGTIME);
+					tdp->td_tsp->ts_trigtime = atoll(argv[args_index]);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4568,44 +4569,44 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		}
 		args_index++;
         if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= (TS_ON | TS_TRIGOP);
-			p->tsp->ts_trigop = atoi(argv[args_index]);
+			tdp->td_tsp->ts_options |= (TS_ON | TS_TRIGOP);
+			tdp->td_tsp->ts_trigop = atoi(argv[args_index]);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= (TS_ON | TS_TRIGOP);
-					p->tsp->ts_trigop = atoi(argv[args_index]);
+					tdp->td_tsp->ts_options |= (TS_ON | TS_TRIGOP);
+					tdp->td_tsp->ts_trigop = atoi(argv[args_index]);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "normalize") == 0) { /* set the time stamp Append Output File  reporting option */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
+			tdp->td_tsp->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
+					tdp->td_tsp->ts_options |= ((TS_ON | TS_ALL) | TS_NORMALIZE);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4617,21 +4618,21 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		}
 		args_index++;
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
+			tdp->td_tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
+					tdp->td_tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4639,21 +4640,21 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "append") == 0) { /* set the time stamp Append Output File  reporting option */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
+			tdp->td_tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
+					tdp->td_tsp->ts_options |= (TS_ON | TS_ALL | TS_APPEND | TS_DETAILED | TS_SUMMARY);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4661,21 +4662,21 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	} else if (strcmp(argv[args_index], "dump") == 0) { /* dump a binary stimestamp file to "filename" */
         args_index++;
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
+			tdp->td_tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
+					tdp->td_tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DUMP);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4683,42 +4684,42 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "summary") == 0) { /* set the time stamp SUMMARY reporting option */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
+			tdp->td_tsp->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
+					tdp->td_tsp->ts_options |= ((TS_ON | TS_ALL) | TS_SUMMARY);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "detailed") == 0) { /* set the time stamp DETAILED reporting option */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			tsp = xdd_get_tsp(p);
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tsp = xdd_get_tsp(tdp);
    			if (tsp == NULL) return(-1);
-			p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
+			tdp->td_tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					tsp = xdd_get_tsp(p);
+				while (tdp) {
+					tsp = xdd_get_tsp(tdp);
    					if (tsp == NULL) return(-1);
-					p->tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
+					tdp->td_tsp->ts_options |= ((TS_ON | TS_ALL) | TS_DETAILED | TS_SUMMARY);
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
@@ -4734,7 +4735,7 @@ xddfunc_verify(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int i;
     int args, args_index; 
     int target_number;
-    ptds_t *p;
+    target_data_t *tdp;
 
     args_index = 1;
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -4753,36 +4754,36 @@ xddfunc_verify(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	}
     if (strcmp(argv[args_index], "contents") == 0) { /*  Verify the contents of the buffer */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->target_options |= TO_VERIFY_CONTENTS;
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_target_options |= TO_VERIFY_CONTENTS;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->target_options |= TO_VERIFY_CONTENTS;
+				while (tdp) {
+					tdp->td_target_options |= TO_VERIFY_CONTENTS;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}
 		return(args_index+1);
 	} else if (strcmp(argv[args_index], "location") == 0) { /*  Verify the buffer location */
 		if (target_number >= 0) {
-			p = xdd_get_ptdsp(planp, target_number, argv[0]);
-			if (p == NULL) return(-1);
-			p->target_options |= TO_VERIFY_LOCATION;
-			p->dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_target_options |= TO_VERIFY_LOCATION;
+			tdp->td_dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
 		} else {  /* set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
-				p = planp->ptdsp[0];
+				tdp = planp->target_datap[0];
 				i = 0;
-				while (p) {
-					p->target_options |= TO_VERIFY_LOCATION;
-					p->dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
+				while (tdp) {
+					tdp->td_target_options |= TO_VERIFY_LOCATION;
+					tdp->td_dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
 					i++;
-					p = planp->ptdsp[i];
+					tdp = planp->target_datap[i];
 				}
 			}
 		}

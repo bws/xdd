@@ -34,6 +34,7 @@
  */
 
 #include "xint.h"
+#include "parse.h"
 extern xdd_func_t xdd_func[];
 
 /*----------------------------------------------------------------------------*/
@@ -88,8 +89,15 @@ xdd_parse_args(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags) {
             if ((strcmp(xdd_func[funci].func_name, (char *)((argv[argi])+1)) == 0) || 
                 (strcmp(xdd_func[funci].func_alt, (char *)((argv[argi])+1)) == 0)) {
                 argvp = &(argv[argi]);
+<<<<<<< HEAD
                 status = (int)xdd_func[funci].func_ptr(planp, arg_count, argvp, flags);
 
+=======
+fprintf(stderr,"XDD_PARSE_ARGS: Calling... func_name=%s, planp=%p, planp->target_datap[0]=%p\n",xdd_func[funci].func_name,planp, planp->target_datap[0]);
+                status = (int)xdd_func[funci].func_ptr(planp, arg_count, argvp, flags);
+
+fprintf(stderr,"XDD_PARSE_ARGS: After... func_name=%s, planp=%p, planp->target_datap[0]=%p, status=%d\n",xdd_func[funci].func_name,planp,planp->target_datap[0],status);
+>>>>>>> ptds
                 if (status == 0) {
                     invalid = 1;
                     break;
@@ -128,14 +136,14 @@ xdd_parse(xdd_plan_t *planp, int32_t argc, char *argv[]) {
 	xdd_parse_args(planp, argc, argv, XDD_PARSE_PHASE1);
 
 	xdd_parse_args(planp, argc, argv, XDD_PARSE_PHASE2);
-	if (planp->ptdsp[0] == NULL) {
+	if (planp->target_datap[0] == NULL) {
 		fprintf(xgp->errout,"You must specify a target device or filename\n");
 		xdd_usage(0);
 		exit(XDD_RETURN_VALUE_INVALID_ARGUMENT);
 	}
 
 	// Build the PTDS substructure for all targets
-	xdd_build_ptds_substructure(planp);
+	xdd_build_target_data_substructure(planp);
 
 } /* end of xdd_parse() */
 /*----------------------------------------------------------------------------*/
@@ -330,7 +338,7 @@ xdd_process_paramfile(xdd_plan_t *planp, char *fnp) {
 int
 xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags, int *target_number) {
 	int32_t tn; // Temporary target number 
-	ptds_t	*p; // Pointer to a ptds for the specified target number
+	target_data_t	*tdp; // Pointer to a target_data for the specified target number
 
 
     if (argc <= 1) { // not enough arguments in this line to specify a valid target number
@@ -349,9 +357,9 @@ xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t 
                 return(-1);
 			}
 		}
-		// Make sure the PTDS for this target exists - if it does not, the xdd_get_ptds() subroutine will create one
-		p = xdd_get_ptdsp(planp, tn, "xdd_parse_target_number, target");
-		if (p == NULL) return(-1);
+		// Make sure the PTDS for this target exists - if it does not, the xdd_get_target_data() subroutine will create one
+		tdp = xdd_get_target_datap(planp, tn, "xdd_parse_target_number, target");
+		if (tdp == NULL) return(-1);
 
 		// At this point the target number is valid and a PTDS exists for this target
 		*target_number = tn;
@@ -359,9 +367,9 @@ xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t 
 	} else { // The user could have specified the word "previous" to indicate the current target number minus 1
 		if ((strcmp(argv[0], "previous") == 0) || (strcmp(argv[0], "prev") == 0) || (strcmp(argv[0], "p") == 0)) {
 			tn = planp->number_of_targets - 1;
-			// Make sure the PTDS for this target exists - if it does not, the xdd_get_ptds() subroutine will create one
-			p = xdd_get_ptdsp(planp, tn, "xdd_parse_target_number, previous");
-			if (p == NULL) return(-1);
+			// Make sure the PTDS for this target exists - if it does not, the xdd_get_target_data() subroutine will create one
+			tdp = xdd_get_target_datap(planp, tn, "xdd_parse_target_number, previous");
+			if (tdp == NULL) return(-1);
 
 		    // At this point the target number is valid and a PTDS exists for this target
             *target_number = tn;
@@ -392,12 +400,13 @@ xdd_get_tgtstp(void) {
 } // Endo f xdd_get_tgtstp()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_get_ptdsp() - return a pointer to the PTDS for the specified target
+/* xdd_get_target_datap() - return a pointer to the PTDS for the specified target
  */
-ptds_t * 
-xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
-    ptds_t *p;
+target_data_t * 
+xdd_get_target_datap(xdd_plan_t *planp, int32_t target_number, char *op) {
+    target_data_t *tdp;
 
+<<<<<<< HEAD
 
 	// If there is an existing PTDS then just return the pointer 
     if (planp->ptdsp[target_number]) 
@@ -413,31 +422,45 @@ xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
 	// Zero out the memory first
 	memset((unsigned char *)planp->ptdsp[target_number], 0, sizeof(ptds_t));
 	p = planp->ptdsp[target_number];
+=======
+fprintf(stderr,"GET_PTDSP: Enter: planp=%p, target_number=%d, op=%s\n",planp,target_number,op);
+    if (0 == planp->target_datap[target_number]) {
+		planp->target_datap[target_number] = malloc(sizeof(target_data_t));
+		if (planp->target_datap[target_number] == NULL) {
+	    	fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
+		    	xgp->progname, target_number, op);
+	    	return(NULL);
+		}
+		// Zero out the memory first
+		memset((unsigned char *)planp->target_datap[target_number], 0, sizeof(target_data_t));
+	}
+	tdp = planp->target_datap[target_number];
+>>>>>>> ptds
 
 	// Allocate and initialize the target state structure
-	p->tgtstp = xdd_get_tgtstp();
-	if (p->tgtstp == NULL) {
+	tdp->td_tgtstp = xdd_get_tgtstp();
+	if (tdp->td_tgtstp == NULL) {
 	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for target %d\n",
 		    xgp->progname, (int)sizeof(struct xdd_target_state), target_number);
 	    return(NULL);
 	}
 
 	// Allocate and initialize the data pattern structure
-	p->dpp = (struct xdd_data_pattern *)malloc(sizeof(struct xdd_data_pattern));
-	if (p->dpp == NULL) {
+	tdp->td_dpp = (struct xdd_data_pattern *)malloc(sizeof(struct xdd_data_pattern));
+	if (tdp->td_dpp == NULL) {
 	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS Data Pattern Structure for target %d\n",
 		    xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
 	    return(NULL);
 	}
-	xdd_data_pattern_init(p->dpp);
+	xdd_data_pattern_init(tdp->td_dpp);
 
 	if (xgp->global_options & GO_EXTENDED_STATS) 
-	    xdd_get_esp(p);
+	    xdd_get_esp(tdp);
 
 	if (planp->plan_options & PLAN_ENDTOEND) {
-		if (NULL == p->e2ep) { // If there is no e2e struct then allocate one.
-	    	p->e2ep = xdd_get_e2ep();
-			if (NULL == p->e2ep) {
+		if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
+	    	tdp->td_e2ep = xdd_get_e2ep();
+			if (NULL == tdp->td_e2ep) {
 	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
 		    		xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
 	    		return(NULL);
@@ -446,33 +469,39 @@ xdd_get_ptdsp(xdd_plan_t *planp, int32_t target_number, char *op) {
 	}
 
 	// Initialize the new PTDS and lets rock and roll!
-	xdd_init_new_ptds(p, target_number);
+	xdd_init_new_target_data(tdp, target_number);
 	planp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
 	if (planp->target_average_resultsp[target_number] == NULL) {
 	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESULTS struct for target %d\n",
 		    xgp->progname, (int)sizeof(results_t), target_number);
 	    return(NULL);
 	}
+<<<<<<< HEAD
     return(p);
 } /* End of xdd_get_ptdsp() */
+=======
+fprintf(stderr,"GET_PTDSP: Exit: planp=%p, target_number=%d, op=%s, tdp=%p, planp->target_datap[%d]=%p\n",planp,target_number,op,tdp,target_number,planp->target_datap[target_number]);
+    return(tdp);
+} /* End of xdd_get_target_datap() */
+>>>>>>> ptds
 
 /*----------------------------------------------------------------------------*/
 /* xdd_get_restartp() - return a pointer to the RESTART structure 
  * for the specified target
  */
 restart_t *
-xdd_get_restartp(ptds_t *p) {
+xdd_get_restartp(target_data_t *tdp) {
 	
-	if (p->restartp == 0) { // Since there is no existing Restart Structure, allocate a new one for this target, initialize it, and move on...
-		p->restartp = malloc(sizeof(struct restart));
-		if (p->restartp == NULL) {
+	if (tdp->td_restartp == 0) { // Since there is no existing Restart Structure, allocate a new one for this target, initialize it, and move on...
+		tdp->td_restartp = malloc(sizeof(struct restart));
+		if (tdp->td_restartp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESTART structure for target %d\n",
-			xgp->progname, (int)sizeof(struct restart), p->my_target_number);
+			xgp->progname, (int)sizeof(struct restart), tdp->td_target_number);
 			return(NULL);
 		}
-		memset(p->restartp, 0, sizeof(*p->restartp));
+		memset(tdp->td_restartp, 0, sizeof(*tdp->td_restartp));
 	}
-	return(p->restartp);
+	return(tdp->td_restartp);
 } /* End of xdd_get_restartp() */
 
 /*----------------------------------------------------------------------------*/
@@ -480,17 +509,17 @@ xdd_get_restartp(ptds_t *p) {
  * for the specified target
  */
 xdd_raw_t *
-xdd_get_rawp(ptds_t *p) {
+xdd_get_rawp(target_data_t *tdp) {
 	
-	if (p->rawp == 0) { // Since there is no existing RAW structure, allocate a new one for this target, initialize it, and move on...
-		p->rawp = malloc(sizeof(struct xdd_raw));
-		if (p->rawp == NULL) {
+	if (tdp->td_rawp == 0) { // Since there is no existing RAW structure, allocate a new one for this target, initialize it, and move on...
+		tdp->td_rawp = malloc(sizeof(struct xdd_raw));
+		if (tdp->td_rawp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RAW structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_raw), p->my_target_number);
+			xgp->progname, (int)sizeof(struct xdd_raw), tdp->td_target_number);
 			return(NULL);
 		}
 	}
-	return(p->rawp);
+	return(tdp->td_rawp);
 } /* End of xdd_get_rawp() */
 
 /*----------------------------------------------------------------------------*/
@@ -498,17 +527,17 @@ xdd_get_rawp(ptds_t *p) {
  * for the specified target
  */
 xdd_sgio_t *
-xdd_get_sgiop(ptds_t *p) {
+xdd_get_sgiop(target_data_t *tdp) {
 	
-	if (p->sgiop == 0) { // Since there is no existing SGIO structure, allocate a new one for this target, initialize it, and move on...
-		p->sgiop = malloc(sizeof(struct xdd_sgio));
-		if (p->sgiop == NULL) {
+	if (tdp->td_sgiop == 0) { // Since there is no existing SGIO structure, allocate a new one for this target, initialize it, and move on...
+		tdp->td_sgiop = malloc(sizeof(struct xdd_sgio));
+		if (tdp->td_sgiop == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for SGIO structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_sgio), p->my_target_number);
+			xgp->progname, (int)sizeof(struct xdd_sgio), tdp->td_target_number);
 			return(NULL);
 		}
 	}
-	return(p->sgiop);
+	return(tdp->td_sgiop);
 } /* End of xdd_get_sgiop() */
 
 /*----------------------------------------------------------------------------*/
@@ -516,17 +545,17 @@ xdd_get_sgiop(ptds_t *p) {
  * for the specified target
  */
 xdd_triggers_t *
-xdd_get_trigp(ptds_t *p) {
+xdd_get_trigp(target_data_t *tdp) {
 	
-	if (p->trigp == 0) { // Since there is no existing triggers structure, allocate a new one for this target, initialize it, and move on...
-		p->trigp = malloc(sizeof(struct xdd_triggers));
-		if (p->trigp == NULL) {
+	if (tdp->td_trigp == 0) { // Since there is no existing triggers structure, allocate a new one for this target, initialize it, and move on...
+		tdp->td_trigp = malloc(sizeof(struct xdd_triggers));
+		if (tdp->td_trigp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for xdd_triggers structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_triggers), p->my_target_number);
+			xgp->progname, (int)sizeof(struct xdd_triggers), tdp->td_target_number);
 			return(NULL);
 		}
 	}
-	return(p->trigp);
+	return(tdp->td_trigp);
 } /* End of xdd_get_trigp() */
 
 /*----------------------------------------------------------------------------*/
@@ -534,17 +563,17 @@ xdd_get_trigp(ptds_t *p) {
  * for the specified target
  */
 xdd_extended_stats_t *
-xdd_get_esp(ptds_t *p) {
+xdd_get_esp(target_data_t *tdp) {
 	
-	if (p->esp == 0) { // Since there is no existing Extended Stats structure, allocate a new one for this target, initialize it, and move on...
-		p->esp = malloc(sizeof(struct xdd_extended_stats));
-		if (p->esp == NULL) {
+	if (tdp->td_esp == 0) { // Since there is no existing Extended Stats structure, allocate a new one for this target, initialize it, and move on...
+		tdp->td_esp = malloc(sizeof(struct xdd_extended_stats));
+		if (tdp->td_esp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Extended Stats structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_extended_stats), p->my_target_number);
+			xgp->progname, (int)sizeof(struct xdd_extended_stats), tdp->td_target_number);
 			return(NULL);
 		}
 	}
-	return(p->esp);
+	return(tdp->td_esp);
 } /* End of xdd_get_esp() */
 
 /*----------------------------------------------------------------------------*/
@@ -570,16 +599,16 @@ xdd_get_e2ep(void) {
  * for the specified target
  */
 xdd_timestamp_t *
-xdd_get_tsp(ptds_t *p) {
-	if (p->tsp == 0) { // Since there is no existing Extended Stats structure, allocate a new one for this target, initialize it, and move on...
-		p->tsp = malloc(sizeof(struct xdd_timestamp));
-		if (p->tsp == NULL) {
+xdd_get_tsp(target_data_t *tdp) {
+	if (tdp->td_tsp == 0) { // Since there is no existing Extended Stats structure, allocate a new one for this target, initialize it, and move on...
+		tdp->td_tsp = malloc(sizeof(struct xdd_timestamp));
+		if (tdp->td_tsp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for xdd_e2e data structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_timestamp), p->my_target_number);
+			xgp->progname, (int)sizeof(struct xdd_timestamp), tdp->td_target_number);
 			return(NULL);
 		}
 	}
-	return(p->tsp);
+	return(tdp->td_tsp);
 } /* End of xdd_get_esp() */
 #if (LINUX)
 /*----------------------------------------------------------------------------*/

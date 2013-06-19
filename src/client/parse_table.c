@@ -34,6 +34,7 @@
  */
 
 #include "xint.h"
+#include "parse.h"
 /* -------------------------------------------------------------------------------------------------- */
 // The xdd Function Table
 //   This table contains entries of the following structure as defined in xdd.h:

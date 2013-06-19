@@ -85,14 +85,12 @@ xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags) {
 	while ((*cp == TAB) || (*cp == SPACE) || (*cp == '\0')) cp++;
 	if (strcmp(cp, "barrier") == 0) 
 		xdd_interactive_show_barrier(tokens, cp, flags);
-	else if (strcmp(cp, "ptds") == 0) 
-		xdd_interactive_show_ptds(tokens, cp, flags);
-	else if (strcmp(cp, "qtptds") == 0) 
-		xdd_interactive_show_qtptds(tokens, cp, flags);
-	else if (strcmp(cp, "qtsem") == 0) 
-		xdd_interactive_show_qtsem(tokens, cp, flags);
-	else if (strcmp(cp, "qtstate") == 0) 
-		xdd_interactive_show_qtstate(tokens, cp, flags);
+	else if (strcmp(cp, "target_data") == 0) 
+		xdd_interactive_show_target_data(tokens, cp, flags);
+	else if (strcmp(cp, "worker_data") == 0) 
+		xdd_interactive_show_worker_data(tokens, cp, flags);
+	else if (strcmp(cp, "worker_state") == 0) 
+		xdd_interactive_show_worker_state(tokens, cp, flags);
 	else if (strcmp(cp, "tot") == 0) 
 		xdd_interactive_show_tot(tokens, cp, flags);
 	else if (strcmp(cp, "printtot") == 0) 
@@ -104,7 +102,7 @@ xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags) {
 	else if (strcmp(cp, "data") == 0) 
 		xdd_interactive_show_rwbuf(tokens, cp, flags);
 	else { // Show a list of what one can show
-		fprintf(xgp->output,"show: please specify: barrier, ptds, qtptds, qtsem, qtstate, trace, global, or data\n");
+		fprintf(xgp->output,"show: please specify: barrier, target_data, worker_data, worker_state, trace, global, or data\n");
 	}
 
 	return(0);
@@ -191,102 +189,71 @@ xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags) 
 } // End of xdd_interactive_show_global_data()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_interactive_show_ptds()
+/* xdd_interactive_show_target_data()
  * Display the PTDS of a specific QThread or Target Thread
  */
 void
-xdd_interactive_show_ptds(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags) {
 #ifdef ndef
 	int		target_number;
 
 	/* Target Specific variables */
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		if (xgp->ptdsp[target_number]) {
-			xdd_show_ptds(xgp->ptdsp[target_number]);
+		if (xgp->target_datap[target_number]) {
+			xdd_show_target_data(xgp->target_datap[target_number]);
 		} else {
-		fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
+				fprintf(xgp->output,"ERROR: Target %d does not seem to have a TARGE_DATA structure\n", target_number);
 		}
 	}
 #endif
 
-} // End of xdd_interactive_show_ptds()
-/*----------------------------------------------------------------------------*/
-/* xdd_interactive_show_qtsem()
- * Display the state of the QThread semaphores
- */
-void
-xdd_interactive_show_qtsem(int32_t tokens, char *cmdline, uint32_t flags) {
-    //int		target_number;
-    //ptds_t	*p;
-    //ptds_t	*qp;
-    //int		sem_val;
-    //int		status;
-
-/*
-	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		p = xgp->ptdsp[target_number];
-		if (p) {
-			sem_val = 0;
-			status = sem_getvalue(&p->any_qthread_available_sem, &sem_val);
-			fprintf(xgp->output,"Target %d any_qthread_available_sem: status of sem_getvalue is %d, sem_val is %d\n",p->my_target_number, status, sem_val);
-			qp = p->next_qp;
-			while (qp) {
-				sem_val = 0;
-				status = sem_getvalue(&qp->this_qthread_is_available_sem, &sem_val);
-				fprintf(xgp->output,"Target %d Qthread %d this_qthread_is_available_sem: status of sem_getvalue is %d, sem_val is %d\n",qp->my_target_number, qp->my_qthread_number, status, sem_val);
-				qp = qp->next_qp;
-			}
-		} else {
-		fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
-		}
-                }*/
-}
+} // End of xdd_interactive_show_target_data()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_interactive_show_qtstate()
+/* xdd_interactive_show_worker_state()
  * Display the state of each QThread
  */
 void
-xdd_interactive_show_qtstate(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags) {
 #ifdef ndef
 	int		target_number;
-	ptds_t	*p;
-	ptds_t	*qp;
+	target_data_t	*tdp;
+	worker_data_t	*wdp;
 
 
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		p = xgp->ptdsp[target_number];
+		p = xgp->target_datap[target_number];
 		if (p) {
-			fprintf(xgp->output,"Target %d\n",p->my_target_number);
+			fprintf(xgp->output,"Target %d\n",tdp->td_target_number);
 			xdd_interactive_display_state_info(p);
-			qp = p->next_qp;
-			while (qp) {
-				fprintf(xgp->output,"Target %d Qthread %d\n",qp->my_target_number, qp->my_qthread_number);
-				xdd_interactive_display_state_info(qp);
-				qp = qp->next_qp;
+			wdp = tdp->td_next_wdp;
+			while (wdp) {
+				fprintf(xgp->output,"Target %d Qthread %d\n",tdp->td_target_number, wdp->wd_thread_number);
+				xdd_interactive_display_state_info(wdp);
+				wdp = wdp->wd_next_wdp;
 			}
 		} else {
 		fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
 		}
 	}
 #endif
-} // End of xdd_interactive_show_qtstate()
+} // End of xdd_interactive_show_worker_state()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_display_state_info()
- * Display the state of each QThread
+ * Display the state of each Worker Thread
  */
 void
-xdd_interactive_display_state_info(ptds_t *qp) {
+xdd_interactive_display_state_info(worker_data_t *wdp) {
 #ifdef ndef
-	int64_t		tmp;
-	nclk_t		now;		// Current time
-	int32_t		tot_offset; // Offset into TOT
-	tot_entry_t	*tep;
-	ptds_t		*p;			// Pointer to the parent Target Thread's PTDS
+	int64_t			tmp;
+	nclk_t			now;		// Current time
+	int32_t			tot_offset; // Offset into TOT
+	tot_entry_t		*tep;
+	target_data_t	*tdp;	// Pointer to the parent Target Thread's PTDS
 
 
-	p = qp->target_ptds;
+	tdp = wdp->wd_tdp;
 	nclk_now(&now);		// Current time
 	fprintf(xgp->output,"    Current State is 0x%08x\n",qp->tgtstp->my_current_state);
 	if (qp->tgtstp->my_current_state & CURRENT_STATE_INIT)
@@ -378,15 +345,15 @@ xdd_interactive_display_state_info(ptds_t *qp) {
 } // End of xdd_interactive_display_state_info()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_interactive_show_qptds()
- * Display the PTDS of the QThreads 
+/* xdd_interactive_show_worker_data()
+ * Display the Worker Thread Data
  */
 void
-xdd_interactive_show_qtptds(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_show_worker_data(int32_t tokens, char *cmdline, uint32_t flags) {
 #ifdef ndef
 	int		target_number;
-	ptds_t	*p;
-	ptds_t	*qp;
+	target_data_t	*tdp;
+	worker_data_t	*wdp;
 
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
 		p = xgp->ptdsp[target_number];
@@ -405,7 +372,7 @@ xdd_interactive_show_qtptds(int32_t tokens, char *cmdline, uint32_t flags) {
 	}
 #endif
 
-} // End of xdd_interactive_show_qtptds()
+} // End of xdd_interactive_show_worker_data()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show_trace()
@@ -425,7 +392,7 @@ void
 xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags) {
 #ifdef ndef
 	int		target_number;
-	ptds_t	*p;
+	target_data_t	*tdp;
 
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
 		p = xgp->ptdsp[target_number];
@@ -446,7 +413,7 @@ void
 xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags) {
 #ifdef ndef
 	int		target_number;
-	ptds_t	*p;
+	target_data_t	*tdp;
 
 	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
 		p = xgp->ptdsp[target_number];
@@ -470,7 +437,7 @@ xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags) {
  * Display the data in the target_offset_table for a specific target
  */
 void
-xdd_interactive_show_tot_display_fields(ptds_t	*p, FILE *fp) {
+xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 
 #ifdef ndef
 	char		*tot_mutex_state;
