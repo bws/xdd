@@ -44,7 +44,7 @@
  *
  */
 int32_t
-xdd_target_preallocate_for_os(ptds_t *p) {
+xdd_target_preallocate_for_os(target_data_t *tdp) {
 	
 #ifdef XFS_ENABLED
 	int32_t 	status;		// Status of various system calls
@@ -52,13 +52,13 @@ xdd_target_preallocate_for_os(ptds_t *p) {
 	xfs_flock64_t 	xfs_flock;	// Used to pass preallocation information to xfsctl()
 	
 	// Determine the file system type
-	status = fstatfs(p->fd, &sfs);
+	status = fstatfs(tdp->td_file_desc, &sfs);
 	if (0 != status) {
 		fprintf(xgp->errout, 
 			"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: cannot get file system information via statfs\n",
 			xgp->progname,
-			p->my_target_number,
-			p->target_full_pathname);
+			tdp->td_target_number,
+			tdp->td_target_full_pathname);
 		perror("Reason");
 		fflush(xgp->errout);
 		return(1);
@@ -71,7 +71,7 @@ xdd_target_preallocate_for_os(ptds_t *p) {
 
 		/* Perform allocation in 4GB chunks to support 16KB alignment */
 		pos = 0;
-		rem = p->preallocate;
+		rem = tdp->td_preallocate;
 		while (rem > 0) {
 			/* Always set whence to 0, for now */
 			xfs_flock.l_whence = 0;
@@ -79,15 +79,15 @@ xdd_target_preallocate_for_os(ptds_t *p) {
 			/* Allocate the next 4GB */
 			xfs_flock.l_start = pos; 
 			xfs_flock.l_len = (rem <= max_bytes) ? rem : max_bytes;
-			status = xfsctl(p->target_full_pathname,p->fd, XFS_IOC_RESVSP64, &xfs_flock);
+			status = xfsctl(tdp->td_target_full_pathname,tdp->td_file_desc, XFS_IOC_RESVSP64, &xfs_flock);
 
 			/* Check preallocate status */
 			if (status) { 
 				fprintf(xgp->errout, 
 					"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: xfsctl call for preallocation failed\n",
 					xgp->progname,
-					p->my_target_number,
-					p->target_full_pathname);
+					tdp->td_target_number,
+					tdp->td_target_full_pathname);
 				perror("Reason");
 				fflush(xgp->errout);
 				return(1);
@@ -99,13 +99,13 @@ xdd_target_preallocate_for_os(ptds_t *p) {
         /* A regression in XFS means that preallocate fixes the extents, but
            performance is still bad during file extend sequences.  Truncate
            the file to length to improve performance */
-       status = ftruncate(p->fd, p->preallocate);
+       status = ftruncate(tdp->td_file_desc, tdp->td_preallocate);
        if (0 != status) {
            fprintf(xgp->errout,
                    "%s: xdd_target_preallocatefor_os<LINUX>: WARNING: Target %d name %s: preallocation ftruncate failed\n",
                    xgp->progname,
-                   p->my_target_number,
-                   p->target_full_pathname);
+                   tdp->td_target_number,
+                   tdp->td_target_full_pathname);
             perror("Reason");
             fflush(xgp->errout);
         }
@@ -130,13 +130,13 @@ xdd_target_preallocate_for_os(ptds_t *p) {
 /* xdd_target_preallocate() - Preallocate routine for AIX
  */
 int32_t
-xdd_target_preallocate_for_os(ptds_t *p) {
+xdd_target_preallocate_for_os(target_data_t *tdp) {
 
 	fprintf(xgp->errout,
 		"%s: xdd_target_preallocate_for_os<AIX>: ERROR: Target %d name %s: Preallocation is not supported on AIX\n",
 		xgp->progname,
-		p->my_target_number,
-		p->target_full_pathname);
+		tdp->td_target_number,
+		tdp->td_target_full_pathname);
 	fflush(xgp->errout);
 	return(-1);
 	
@@ -148,13 +148,13 @@ xdd_target_preallocate_for_os(ptds_t *p) {
 /* xdd_target_preallocate() - The default Preallocate routine for all other OS
  */
 int32_t
-xdd_target_preallocate_for_os(ptds_t *p) {
+xdd_target_preallocate_for_os(target_data_t *tdp) {
 
 	fprintf(xgp->errout,
 		"%s: xdd_target_preallocate_for_os: ERROR: Target %d name %s: Preallocation is not supported on this OS\n",
 		xgp->progname,
-		p->my_target_number,
-		p->target_full_pathname);
+		tdp->td_target_number,
+		tdp->td_target_full_pathname);
 	fflush(xgp->errout);
 	return(-1);
 	
@@ -171,19 +171,19 @@ xdd_target_preallocate_for_os(ptds_t *p) {
  * Otherwise -1 is returned to indicate an error.
  */
 int32_t
-xdd_target_preallocate(ptds_t *p){
+xdd_target_preallocate(target_data_t *tdp){
 	int32_t		status;		// Status of the preallocate call
 
 
 	// If this is a NULL target then don't bother with preallocation
-	if (p->target_options & TO_NULL_TARGET)
+	if (tdp->td_target_options & TO_NULL_TARGET)
 		return(0);
 
 	// Check to see if a preallocation amount was specified - if not, just return
-	if (p->preallocate <= 0) 
+	if (tdp->td_preallocate <= 0) 
 		return(0);
 
-	status = xdd_target_preallocate_for_os(p);
+	status = xdd_target_preallocate_for_os(tdp);
 
 	// Check the status of the preallocate operation to see if it worked
 	if (-1 == status)  // Preallocation not supported
@@ -193,8 +193,8 @@ xdd_target_preallocate(ptds_t *p){
 	if (status) {
  		fprintf(xgp->errout,"%s: xdd_target_preallocate: ERROR: Unable to preallocate space for target %d name %s\n",
 			xgp->progname,
-			p->my_target_number,
-			p->target_full_pathname);
+			tdp->td_target_number,
+			tdp->td_target_full_pathname);
 		perror("Reason");
 		fflush(xgp->errout);
 		return(-1);

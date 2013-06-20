@@ -87,7 +87,7 @@ main(int32_t argc,char *argv[]) {
 
 	// Start up all the necessary threads 
 	// Start the Target Threads 
-	// The Target Threads will start their QThreads as part of their initialization process
+	// The Target Threads will start their Worker Threads as part of their initialization process
 	status = xdd_start_targets(planp);
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_main: ERROR: Could not start target threads\n", xgp->progname);
@@ -168,11 +168,11 @@ DFLOW("\n----------------------All targets should start now---------------------
  
 /*----------------------------------------------------------------------------*/
 /* xdd_start_targets() - Will start all the Target threads. Target Threads are 
- * responsible for starting their own qthreads. The basic idea here is that 
- * there are N targets and each target can have X instances (or qthreads as they 
+ * responsible for starting their own worker threads. The basic idea here is that 
+ * there are N targets and each target can have X instances (or worker threads as they 
  * are referred to) where X is the queue depth. The Target thread is responsible '
- * for managing the qthreads.
- * The "PTDS" array contains pointers to the PTDSs for each of the Targets.
+ * for managing the worker threads.
+ * The "TARGET_DATA" array contains pointers to the TARGET_DATA for each of the Targets.
  * The Target thread creation process is serialized such that when a thread 
  * is created, it will perform its initialization tasks and then enter the 
  * "serialization" barrier. Upon entering this barrier, the *while* loop that 
@@ -185,17 +185,17 @@ int32_t
 xdd_start_targets(xdd_plan_t *planp) {
 	int32_t		target_number;	// Target number to work on
 	int32_t		status;			// Status of a subroutine call
-	ptds_t		*p;				// pointer to the PTS for this QThread
+	target_data_t		*tdp;				// pointer to the PTS for this Worker Thread
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
 
 	xdd_init_barrier_occupant(&barrier_occupant, "XDDMAIN_START_TARGETS", XDD_OCCUPANT_TYPE_MAIN, NULL);
 	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
-		p = planp->ptdsp[target_number]; /* Get the ptds for this target */
+		tdp = planp->target_datap[target_number]; /* Get the target_datap for this target */
 		/* Create the new thread */
-		p->my_target_number = target_number;
-		p->my_planp = planp;
-		status = pthread_create(&p->target_thread, NULL, xdd_target_thread, p);
+		tdp->td_target_number = target_number;
+		tdp->td_planp = planp;
+		status = pthread_create(&tdp->td_thread, NULL, xdd_target_thread, tdp);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_start_targets: ERROR: Cannot create thread for target %d",
 				xgp->progname, 
@@ -210,7 +210,7 @@ xdd_start_targets(xdd_plan_t *planp) {
 		if (xgp->abort == 1) { 
 			fprintf(xgp->errout,"%s: xdd_start_targets: ERROR: xdd thread %d aborting due to previous initialization failure\n",
 				xgp->progname,
-				p->my_target_number);
+				tdp->td_target_number);
 			return(-1);
 		}
 	}

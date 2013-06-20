@@ -51,6 +51,7 @@
  */
 void
 xdd_raw_err(char const *fmt, ...) {
+#ifdef ndef
 #ifdef WIN32
 	LPVOID lpMsgBuf;
 #endif
@@ -71,6 +72,7 @@ xdd_raw_err(char const *fmt, ...) {
 			NULL);
 		fprintf(xgp->errout,"Reason: %s",lpMsgBuf);
 #endif /* WIN32 */
+#endif // ndef
 } /* end of raw_err() */
 /*----------------------------------------------------------------------*/
 /*
@@ -78,7 +80,8 @@ xdd_raw_err(char const *fmt, ...) {
  *
  */
 int32_t
-xdd_raw_setup_reader_socket(ptds_t *p) {
+xdd_raw_setup_reader_socket(target_data_t *tdp) {
+#ifdef ndef
 	xdd_raw_t	*rawp;
 
 
@@ -116,6 +119,7 @@ xdd_raw_setup_reader_socket(ptds_t *p) {
 		xdd_raw_err("error starting listening on socket");
 		return(FALSE);
 	}
+#endif // ndef
 	return(TRUE);
 } /* end of xdd_raw_setup_reader_socket() */
 /*----------------------------------------------------------------------*/
@@ -132,7 +136,8 @@ xdd_raw_setup_reader_socket(ptds_t *p) {
  * present, and it worked, so I kept it that way.
  */
 int32_t
-xdd_raw_sockets_init(ptds_t *p) {
+xdd_raw_sockets_init(target_data_t *tdp) {
+#ifdef ndef
 	xdd_raw_t	*rawp;
 
 
@@ -170,6 +175,7 @@ xdd_raw_sockets_init(ptds_t *p) {
 		return(FALSE);
 	}
 #endif
+#endif // ndef
 	return(TRUE);
 } /* end of xdd_raw_sockets_init() */
 /*----------------------------------------------------------------------*/
@@ -178,7 +184,8 @@ xdd_raw_sockets_init(ptds_t *p) {
  *
  */
 int32_t
-xdd_raw_reader_init(ptds_t *p) {
+xdd_raw_reader_init(target_data_t *tdp) {
+#ifdef ndef
 	int  status; /* status of various function calls */
 	xdd_raw_t	*rawp;
 
@@ -235,6 +242,7 @@ xdd_raw_reader_init(ptds_t *p) {
 #endif
 	rawp->raw_msg_recv = 0;
 	rawp->raw_msg_last_sequence = 0;
+#endif // ndef
 	return(TRUE);
 } /* end of xdd_raw_reader_init() */
 /*----------------------------------------------------------------------*/
@@ -243,7 +251,8 @@ xdd_raw_reader_init(ptds_t *p) {
  *
  */
 int32_t
-xdd_raw_read_wait(ptds_t *p) {
+xdd_raw_read_wait(worker_data_t *wdp) {
+#ifdef ndef
 	int 		status; /* status of send/recv function calls */
 	unsigned int  	bytes_received;
 	int  		bytes_remaining;
@@ -324,6 +333,7 @@ xdd_raw_read_wait(ptds_t *p) {
 		} /* End of IF stmnt that processes a CSD */
 	} /* End of FOR loop that processes all CSDs that were ready */
 	rawp->raw_readset = rawp->raw_active;  /* Prepare for the next select */
+#endif // ndef
     return(TRUE);
 } /* end of xdd_raw_read_wait() */
 /*----------------------------------------------------------------------*/
@@ -332,7 +342,8 @@ xdd_raw_read_wait(ptds_t *p) {
  *
  */
 int32_t
-xdd_raw_setup_writer_socket(ptds_t *p) {
+xdd_raw_setup_writer_socket(target_data_t *tdp) {
+#ifdef ndef
 	int  		status; 		/* status of send/recv function calls */
 	char  		optionvalue; 	/* used to set the socket option */
 	xdd_raw_t	*rawp;
@@ -361,6 +372,7 @@ xdd_raw_setup_writer_socket(ptds_t *p) {
 		xdd_raw_err("error connecting to socket for RAW writer");
 		return(FALSE);
 	}
+#endif // ndef
 	return(TRUE);
 } /* end of xdd_raw_setup_writer_socket() */
 /*----------------------------------------------------------------------*/
@@ -369,7 +381,8 @@ xdd_raw_setup_writer_socket(ptds_t *p) {
  *
  */
 int32_t
-xdd_raw_writer_init(ptds_t *p) {
+xdd_raw_writer_init(target_data_t *tdp) {
+#ifdef ndef
 	int  		status; 	/* status of various function calls */
 	xdd_raw_t	*rawp;
 
@@ -398,6 +411,7 @@ xdd_raw_writer_init(ptds_t *p) {
 	}
 	rawp->raw_msg_sent = 0;
 	rawp->raw_msg_last_sequence = 0;
+#endif // ndef
 	return(TRUE);
 } /* end of xdd_raw_writer_init() */
 /*----------------------------------------------------------------------*/
@@ -406,7 +420,8 @@ xdd_raw_writer_init(ptds_t *p) {
  *      the reader for a read-after-write to be performed.
  */
 int32_t
-xdd_raw_writer_send_msg(ptds_t *p) {
+xdd_raw_writer_send_msg(worker_data_t *wdp) {
+#ifdef ndef
 	int  		status; 	/* status of various function calls */
 	xdd_raw_t	*rawp;
 
@@ -421,6 +436,7 @@ xdd_raw_writer_send_msg(ptds_t *p) {
 	}
 	rawp->raw_msg_sent++;
 	rawp->raw_msg.sequence++;
+#endif // ndef
 	return(TRUE);
 } /* end of xdd_raw_writer_send_msg() */
  

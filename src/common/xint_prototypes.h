@@ -66,7 +66,7 @@ int32_t xdd_e2e_eof_destination_side(worker_data_t *wdp);
 
 // end_to_end_init.c
 int32_t	xdd_e2e_target_init(target_data_t *tdp);
-int32_t	xdd_e2e_worker_thread_init(worker_data_t *wdp);
+int32_t	xdd_e2e_worker_init(worker_data_t *wdp);
 int32_t	xdd_e2e_src_init(worker_data_t *wdp);
 int32_t	xdd_e2e_setup_src_socket(worker_data_t *wdp);
 int32_t	xdd_e2e_dest_init(worker_data_t *wdp);
@@ -158,7 +158,6 @@ xdd_target_state_t 	*xdd_get_tgtstp(void);
 target_data_t 		*xdd_get_target_datap(xdd_plan_t* planp, int32_t target_number, char *op);
 restart_t 			*xdd_get_restartp(target_data_t *p);
 xdd_raw_t			*xdd_get_rawp(target_data_t *p);
-xdd_sgio_t 			*xdd_get_sgiop(target_data_t *p);
 xdd_e2e_t 			*xdd_get_e2ep(void);
 xdd_timestamp_t		*xdd_get_tsp(target_data_t *p);
 xdd_triggers_t 		*xdd_get_trigp(target_data_t *p);
@@ -231,12 +230,12 @@ int32_t	xdd_worker_thread_ttd_before_io_op(worker_data_t *wdp);
 
 // read_after_write.c
 void	xdd_raw_err(char const *fmt, ...);
-int32_t	xdd_raw_setup_reader_socket(target_data_t *p);
-int32_t	xdd_raw_sockets_init(target_data_t *p);
-int32_t	xdd_raw_reader_init(target_data_t *p);
+int32_t	xdd_raw_setup_reader_socket(target_data_t *tdp);
+int32_t	xdd_raw_sockets_init(target_data_t *tdp);
+int32_t	xdd_raw_reader_init(target_data_t *tdp);
 int32_t	xdd_raw_read_wait(worker_data_t *wdp);
-int32_t	xdd_raw_setup_writer_socket(target_data_t *p);
-int32_t	xdd_raw_writer_init(target_data_t *p);
+int32_t	xdd_raw_setup_writer_socket(target_data_t *tdp);
+int32_t	xdd_raw_writer_init(target_data_t *tdp);
 int32_t	xdd_raw_writer_send_msg(worker_data_t *wdp);
 
 // restart.c
@@ -303,10 +302,11 @@ void    *xdd_results_dump(results_t *rp, char *dumptype, xdd_plan_t *planp);
 void	xdd_schedule_options(void);
 
 // sg.c
-int32_t	xdd_sg_io(target_data_t *p, char rw);
-int32_t	xdd_sg_read_capacity(target_data_t *p);
-void	xdd_sg_set_reserved_size(target_data_t *p, int fd);
-void	xdd_sg_get_version(target_data_t *p, int fd);
+xdd_sgio_t *xdd_get_sgiop(worker_data_t *wdp);
+int32_t	xdd_sg_io(worker_data_t *wdp, char rw);
+int32_t	xdd_sg_read_capacity(worker_data_t *wdp);
+void	xdd_sg_set_reserved_size(target_data_t *tdp, int fd);
+void	xdd_sg_get_version(target_data_t *tdp, int fd);
 
 // signals.c
 void	xdd_signal_handler(int signum, siginfo_t *sip, void *ucp);
@@ -393,10 +393,10 @@ int32_t	xdd_verify_location(worker_data_t *wdp, int64_t current_op);
 int32_t	xdd_verify(worker_data_t *wdp, int64_t current_op);
 
 // xdd.c
-int32_t	xdd_start_targets();
-void	xdd_start_results_manager();
-void	xdd_start_heartbeat();
-void	xdd_start_restart_monitor();
-void	xdd_start_interactive();
+int32_t	xdd_start_targets(xdd_plan_t *planp);
+void	xdd_start_results_manager(xdd_plan_t *planp);
+void	xdd_start_heartbeat(xdd_plan_t *planp);
+void	xdd_start_restart_monitor(xdd_plan_t *planp);
+void	xdd_start_interactive(xdd_plan_t *planp);
 
 #endif
