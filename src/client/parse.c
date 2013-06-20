@@ -89,15 +89,10 @@ xdd_parse_args(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags) {
             if ((strcmp(xdd_func[funci].func_name, (char *)((argv[argi])+1)) == 0) || 
                 (strcmp(xdd_func[funci].func_alt, (char *)((argv[argi])+1)) == 0)) {
                 argvp = &(argv[argi]);
-<<<<<<< HEAD
-                status = (int)xdd_func[funci].func_ptr(planp, arg_count, argvp, flags);
-
-=======
 fprintf(stderr,"XDD_PARSE_ARGS: Calling... func_name=%s, planp=%p, planp->target_datap[0]=%p\n",xdd_func[funci].func_name,planp, planp->target_datap[0]);
                 status = (int)xdd_func[funci].func_ptr(planp, arg_count, argvp, flags);
 
 fprintf(stderr,"XDD_PARSE_ARGS: After... func_name=%s, planp=%p, planp->target_datap[0]=%p, status=%d\n",xdd_func[funci].func_name,planp,planp->target_datap[0],status);
->>>>>>> ptds
                 if (status == 0) {
                     invalid = 1;
                     break;
@@ -406,23 +401,6 @@ target_data_t *
 xdd_get_target_datap(xdd_plan_t *planp, int32_t target_number, char *op) {
     target_data_t *tdp;
 
-<<<<<<< HEAD
-
-	// If there is an existing PTDS then just return the pointer 
-    if (planp->ptdsp[target_number]) 
-		 return(planp->ptdsp[target_number]);
-
-	// ...otherwise, allocate and initialize a new PTDS
-	planp->ptdsp[target_number] = malloc(sizeof(struct ptds));
-	if (planp->ptdsp[target_number] == NULL) {
-    	fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
-	    	xgp->progname, target_number, op);
-    	return(NULL);
-	}
-	// Zero out the memory first
-	memset((unsigned char *)planp->ptdsp[target_number], 0, sizeof(ptds_t));
-	p = planp->ptdsp[target_number];
-=======
 fprintf(stderr,"GET_PTDSP: Enter: planp=%p, target_number=%d, op=%s\n",planp,target_number,op);
     if (0 == planp->target_datap[target_number]) {
 		planp->target_datap[target_number] = malloc(sizeof(target_data_t));
@@ -435,7 +413,6 @@ fprintf(stderr,"GET_PTDSP: Enter: planp=%p, target_number=%d, op=%s\n",planp,tar
 		memset((unsigned char *)planp->target_datap[target_number], 0, sizeof(target_data_t));
 	}
 	tdp = planp->target_datap[target_number];
->>>>>>> ptds
 
 	// Allocate and initialize the target state structure
 	tdp->td_tgtstp = xdd_get_tgtstp();
@@ -476,14 +453,9 @@ fprintf(stderr,"GET_PTDSP: Enter: planp=%p, target_number=%d, op=%s\n",planp,tar
 		    xgp->progname, (int)sizeof(results_t), target_number);
 	    return(NULL);
 	}
-<<<<<<< HEAD
-    return(p);
-} /* End of xdd_get_ptdsp() */
-=======
 fprintf(stderr,"GET_PTDSP: Exit: planp=%p, target_number=%d, op=%s, tdp=%p, planp->target_datap[%d]=%p\n",planp,target_number,op,tdp,target_number,planp->target_datap[target_number]);
     return(tdp);
 } /* End of xdd_get_target_datap() */
->>>>>>> ptds
 
 /*----------------------------------------------------------------------------*/
 /* xdd_get_restartp() - return a pointer to the RESTART structure 

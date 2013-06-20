@@ -84,8 +84,6 @@ xdd_initialization(int32_t argc,char *argv[], xdd_plan_t *planp) {
 		return(-1);
 	}
 	nclk_now(&planp->base_time);
-	if (xgp->global_options & GO_DEBUG) 
-		xgp->debug_base_time = planp->base_time;
 
 	// Init the Global Clock 
 	// See global_clock.c

@@ -33,7 +33,6 @@
  * for the end-to-end option.
  */
 #include "xint.h"
-#define DEFAULT_CONNECT_RETRY_LIMIT 4
 
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_target_init() - init socket library
@@ -176,7 +175,7 @@ int32_t
 xdd_e2e_setup_src_socket(worker_data_t *wdp) {
 	int  	status; /* status of send/recv function calls */
 	int 	type;
-	static const int connect_try_limit = 1 + DEFAULT_CONNECT_RETRY_LIMIT;
+	static const int connect_try_limit = 4;
 	int i;
 	
 	// The socket type is SOCK_STREAM because this is a TCP connection 
