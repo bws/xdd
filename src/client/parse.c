@@ -495,24 +495,6 @@ xdd_get_rawp(target_data_t *tdp) {
 } /* End of xdd_get_rawp() */
 
 /*----------------------------------------------------------------------------*/
-/* xdd_get_sgiop() - return a pointer to the SCSI Generic I/O (SGIO) Data Structure 
- * for the specified target
- */
-xdd_sgio_t *
-xdd_get_sgiop(target_data_t *tdp) {
-	
-	if (tdp->td_sgiop == 0) { // Since there is no existing SGIO structure, allocate a new one for this target, initialize it, and move on...
-		tdp->td_sgiop = malloc(sizeof(struct xdd_sgio));
-		if (tdp->td_sgiop == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for SGIO structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_sgio), tdp->td_target_number);
-			return(NULL);
-		}
-	}
-	return(tdp->td_sgiop);
-} /* End of xdd_get_sgiop() */
-
-/*----------------------------------------------------------------------------*/
 /* xdd_get_trigp() - return a pointer to the Triggers Data Structure 
  * for the specified target
  */

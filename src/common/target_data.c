@@ -217,6 +217,7 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
 	wdp->wd_tdp = tdp;
 	wdp->wd_next_wdp = NULL; 
 	wdp->wd_thread_number = q;
+	wdp->wd_sgiop = xdd_get_sgiop(wdp);
 	// Allocate and initialize the Target_State structure
 	wdp->wd_tgtstp = xdd_get_tgtstp();
 	if (wdp->wd_tgtstp == NULL) {
@@ -308,19 +309,17 @@ xdd_build_target_data_substructure(xdd_plan_t* planp) {
 		// Calcualte the data transfer information - number of ops, bytes, starting offset, ...etc.
 		xdd_calculate_xfer_info(tdp);
 
-		// Allocate the first Worker_Data Structure that is anchored in the Target_Data struct
-		wdp = xdd_create_worker_data(tdp,q);
-		tdp->td_next_wdp = wdp;
-
 		// Allocate a shiney new PTDS for each qthread 
 		for (q = 0; q < tdp->td_queue_depth; q++ ) {
 			// Increament the number of iothreads
             planp->number_of_iothreads++;
                     
 			// Get a new Worker Data and have the previous Worker Data point to it.
-			wdp->wd_next_wdp = xdd_create_worker_data(tdp,q);
+			wdp = xdd_create_worker_data(tdp,q);
 			if (wdp->wd_next_wdp == NULL) break;
-			wdp = wdp->wd_next_wdp;
+			if (q == 0) // The first worker_data struct is anchored in the target_data struct
+				 tdp->td_next_wdp = wdp;
+			else wdp->wd_next_wdp = wdp;
 		} // End of FOR loop that adds all Worker_Datas to a Target_Data linked list
 
 	} // End of FOR loop that builds Worker_Datas for each Target_Data

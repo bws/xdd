@@ -3537,8 +3537,6 @@ xddfunc_sgio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	if (target_number >= 0) { /* Set this option for a specific target */
 		tdp = xdd_get_target_datap(planp, target_number, argv[0]);
 		if (tdp == NULL) return(-1);
-		tdp->td_sgiop = xdd_get_sgiop(tdp);
-		if (tdp->td_sgiop == NULL) return(-1);
 
 		tdp->td_target_options |= TO_SGIO;
         return(args+1);
@@ -3547,8 +3545,6 @@ xddfunc_sgio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			tdp = planp->target_datap[0];
 			i = 0;
 			while (tdp) {
-				tdp->td_sgiop = xdd_get_sgiop(tdp);
-				if (tdp->td_sgiop == NULL) return(-1);
 				tdp->td_target_options |= TO_SGIO;
 				i++;
 				tdp = planp->target_datap[i];

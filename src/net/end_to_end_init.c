@@ -43,69 +43,77 @@
  *
  */
 int32_t
-xdd_e2e_target_init(ptds_t *p)
-{
+xdd_e2e_target_init(target_data_t *tdp) {
+	restart_t	*rp;	// pointer to a restart structure
 	int status;
 
 	// Init the sockets - This is actually just for Windows that requires some additional initting
 	status = xdd_sockets_init();
 	if (status == -1) {
-		xdd_e2e_err(p,"xdd_e2e_target_init","could not initialize sockets for e2e target\n");
+		fprintf(xgp->errout,"%s: xdd_e2e_target_init: could not initialize sockets for e2e target\n",xgp->progname);
 		return(-1);
+	}
+	// Restart processing if necessary
+	if ((tdp->td_target_options & TO_RESTART_ENABLE) && (tdp->td_restartp)) { // Check to see if restart was requested
+		// Set the last_committed_byte_location to 0
+		rp = tdp->td_restartp;
+		rp->last_committed_byte_location = rp->byte_offset;
+		rp->last_committed_length = 0;
 	}
 
 	return(0);
 }
 
 /*----------------------------------------------------------------------*/
-/* xdd_e2e_qthread_init() - init source and destination sides
- * This routine is called during QThread initialization to initialize
- * a source or destination QThread.
+/* xdd_e2e_worker_init() - init source and destination sides
+ * This routine is called during Worker Thread initialization to initialize
+ * a source or destination Worker Thread.
  *
  * Return values: 0 is good, -1 is bad
  *
  */
 int32_t
-xdd_e2e_qthread_init(ptds_t *qp)
-{
+xdd_e2e_worker_init(worker_data_t *wdp) {
+	target_data_t	*tdp;
 	int status;
 	in_addr_t addr;
 
-	qp->e2ep->e2e_sr_time = 0;
+	tdp = wdp->wd_tdp;
+	wdp->wd_e2ep->e2e_sr_time = 0;
 
-	if(qp->e2ep->e2e_dest_hostname == NULL) {
-		fprintf(xgp->errout,"%s: xdd_e2e_qthread_init: Target %d QThread %d: No DESTINATION host name or IP address specified for this end-to-end operation.\n",
+	if(wdp->wd_e2ep->e2e_dest_hostname == NULL) {
+		fprintf(xgp->errout,"%s: xdd_e2e_worker_init: Target %d Worker Thread %d: No DESTINATION host name or IP address specified for this end-to-end operation.\n",
 				xgp->progname,
-				qp->my_target_number,
-				qp->my_qthread_number);
-		fprintf(xgp->errout,"%s: xdd_e2e_qthread_init: Target %d QThread %d: Use the '-e2e destination' option to specify the DESTINATION host name or IP address.\n",
+				tdp->td_target_number,
+				wdp->wd_thread_number);
+		fprintf(xgp->errout,"%s: xdd_e2e_worker_init: Target %d Worker Thread %d: Use the '-e2e destination' option to specify the DESTINATION host name or IP address.\n",
 				xgp->progname,
-				qp->my_target_number,
-				qp->my_qthread_number);
+				tdp->td_target_number,
+				wdp->wd_thread_number);
 		return(-1);
 	}
 
 	// Get the IP address of the destination host
-	status = xdd_lookup_addr(qp->e2ep->e2e_dest_hostname, 0, &addr);
+	status = xdd_lookup_addr(wdp->wd_e2ep->e2e_dest_hostname, 0, &addr);
 	if (status) {
-		fprintf(xgp->errout, "%s: xdd_e2e_qthread_init: unable to identify host '%s'\n",
-				xgp->progname, qp->e2ep->e2e_dest_hostname);
+		fprintf(xgp->errout, "%s: xdd_e2e_worker_init: unable to identify host '%s'\n",
+				xgp->progname, wdp->wd_e2ep->e2e_dest_hostname);
 		return(-1);
 	}
 
 	// Convert to host byte order
-	qp->e2ep->e2e_dest_addr = ntohl(addr);
+	wdp->wd_e2ep->e2e_dest_addr = ntohl(addr);
 
-	if (qp->target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
-		status = xdd_e2e_dest_init(qp);
-	} else if (qp->target_options & TO_E2E_SOURCE) { // This is the Source side of an End-to-End
-		status = xdd_e2e_src_init(qp);
+	if (tdp->td_target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
+		status = xdd_e2e_dest_init(wdp);
+	} else if (tdp->td_target_options & TO_E2E_SOURCE) { // This is the Source side of an End-to-End
+		status = xdd_e2e_src_init(wdp);
 	} else { // Should never reach this point
 		status = -1;
 	}
 
 	return status;
-}
+} // xdd_e2e_worker_init()
 
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_src_init() - init the source side 
@@ -118,44 +126,38 @@ xdd_e2e_qthread_init(ptds_t *qp)
  *
  */
 int32_t
-xdd_e2e_src_init(ptds_t *qp) {
+xdd_e2e_src_init(worker_data_t *wdp) {
+	target_data_t	*tdp;
 	int  		status; // status of various function calls 
-	restart_t	*rp;	// pointer to a restart structure
 
 
+	tdp = wdp->wd_tdp;
 	// Check to make sure that the source target is actually *reading* the data from a file or device
-	if (qp->rwratio < 1.0) { // Something is wrong - the source file/device is not 100% read
-		fprintf(xgp->errout,"%s: xdd_e2e_src_init: Target %d QThread %d: Error - E2E source file '%s' is not being *read*: rwratio=%5.2f is not valid\n",
+	if (tdp->td_rwratio < 1.0) { // Something is wrong - the source file/device is not 100% read
+		fprintf(xgp->errout,"%s: xdd_e2e_src_init: Target %d Worker Thread %d: Error - E2E source file '%s' is not being *read*: rwratio=%5.2f is not valid\n",
 			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number,
-			qp->target_full_pathname,
-			qp->rwratio);
+			tdp->td_target_number,
+			wdp->wd_thread_number,
+			tdp->td_target_full_pathname,
+			tdp->td_rwratio);
 		return(-1);
 	}
 
-	status = xdd_e2e_setup_src_socket(qp);
+	status = xdd_e2e_setup_src_socket(wdp);
 	if (status == -1){
-		xdd_e2e_err(qp,"xdd_e2e_src_init","could not setup sockets for e2e source\n");
+		xdd_e2e_err(wdp,"xdd_e2e_src_init","could not setup sockets for e2e source\n");
 		return(-1);
 	}
-	// Init the relevant variables in the ptds
-	qp->e2ep->e2e_msg_sent = 0;
-	qp->e2ep->e2e_msg_sequence_number = 0;
+	// Init the relevant variables 
+	wdp->wd_e2ep->e2e_msg_sent = 0;
+	wdp->wd_e2ep->e2e_msg_sequence_number = 0;
 	// Init the message header
-	qp->e2ep->e2e_header.sequence = 0;
-	qp->e2ep->e2e_header.sendtime = 0;
-	qp->e2ep->e2e_header.recvtime = 0;
-	qp->e2ep->e2e_header.location = 0;
-	qp->e2ep->e2e_header.sendqnum = 0;
+	wdp->wd_e2ep->e2e_header.sequence = 0;
+	wdp->wd_e2ep->e2e_header.sendtime = 0;
+	wdp->wd_e2ep->e2e_header.recvtime = 0;
+	wdp->wd_e2ep->e2e_header.location = 0;
+	wdp->wd_e2ep->e2e_header.sendqnum = 0;
 
-	// Restart processing if necessary
-	if ((qp->target_options & TO_RESTART_ENABLE) && (qp->restartp)) { // Check to see if restart was requested
-		// Set the last_committed_byte_location to 0
-		rp = qp->restartp;
-		rp->last_committed_byte_location = rp->byte_offset;
-		rp->last_committed_length = 0;
-	}
 
 	return(0);
 
@@ -164,13 +166,13 @@ xdd_e2e_src_init(ptds_t *qp) {
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_setup_src_socket() - set up the source side
  * This subroutine is called by xdd_e2e_src_init() and is passed a
- * pointer to the PTDS of the requesting QThread.
+ * pointer to the PTDS of the requesting Worker Thread.
  *
  * Return values: 0 is good, -1 is bad
  *
  */
 int32_t
-xdd_e2e_setup_src_socket(ptds_t *qp) {
+xdd_e2e_setup_src_socket(worker_data_t *wdp) {
 	int  	status; /* status of send/recv function calls */
 	int 	type;
 	static const int connect_try_limit = 4;
@@ -180,19 +182,19 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 	type = SOCK_STREAM;
 
 	// Create the socket 
-	qp->e2ep->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
-	if (qp->e2ep->e2e_sd < 0) {
-		xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","ERROR: error openning socket\n");
+	wdp->wd_e2ep->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
+	if (wdp->wd_e2ep->e2e_sd < 0) {
+		xdd_e2e_err(wdp,"xdd_e2e_setup_src_socket","ERROR: error openning socket\n");
 		return(-1);
 	}
-	(void) xdd_e2e_set_socket_opts (qp,qp->e2ep->e2e_sd);
+	(void) xdd_e2e_set_socket_opts (wdp,wdp->wd_e2ep->e2e_sd);
 
 	/* Now build the "name" of the DESTINATION machine socket thingy and connect to it. */
-	(void) memset(&qp->e2ep->e2e_sname, 0, sizeof(qp->e2ep->e2e_sname));
-	qp->e2ep->e2e_sname.sin_family = AF_INET;
-	qp->e2ep->e2e_sname.sin_addr.s_addr = htonl(qp->e2ep->e2e_dest_addr);
-	qp->e2ep->e2e_sname.sin_port = htons(qp->e2ep->e2e_dest_port);
-	qp->e2ep->e2e_snamelen = sizeof(qp->e2ep->e2e_sname);
+	(void) memset(&wdp->wd_e2ep->e2e_sname, 0, sizeof(wdp->wd_e2ep->e2e_sname));
+	wdp->wd_e2ep->e2e_sname.sin_family = AF_INET;
+	wdp->wd_e2ep->e2e_sname.sin_addr.s_addr = htonl(wdp->wd_e2ep->e2e_dest_addr);
+	wdp->wd_e2ep->e2e_sname.sin_port = htons(wdp->wd_e2ep->e2e_dest_port);
+	wdp->wd_e2ep->e2e_snamelen = sizeof(wdp->wd_e2ep->e2e_sname);
 
 	// Attempt to connect to the server for roughly 10 seconds
 	i = 0;
@@ -212,14 +214,14 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 		nanosleep(&req, (struct timespec *)NULL);
 	    }
 	    
-	    status = connect(qp->e2ep->e2e_sd,
-			     (struct sockaddr *) &qp->e2ep->e2e_sname,
-			     sizeof(qp->e2ep->e2e_sname));
+	    status = connect(wdp->wd_e2ep->e2e_sd,
+			     (struct sockaddr *) &wdp->wd_e2ep->e2e_sname,
+			     sizeof(wdp->wd_e2ep->e2e_sname));
 	    i++;
 	}
 	
 	if (0 != status) {
-	    xdd_e2e_err(qp,"xdd_e2e_setup_src_socket","error connecting to socket for E2E destination\n");
+	    xdd_e2e_err(wdp,"xdd_e2e_setup_src_socket","error connecting to socket for E2E destination\n");
 	    return(-1);
 	}
 
@@ -229,76 +231,70 @@ xdd_e2e_setup_src_socket(ptds_t *qp) {
 
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_dest_init() - init the destination side 
- * This routine is called by a QThread on the "destination" side of an
+ * This routine is called by a Worker Thread on the "destination" side of an
  * end_to_end operation and is passed a pointer to the PTDS of the 
- * requesting QThread.
+ * requesting Worker Thread.
  *
  * Return values: 0 is good, -1 is bad
  *
  */
 int32_t
-xdd_e2e_dest_init(ptds_t *qp) {
+xdd_e2e_dest_init(worker_data_t *wdp) {
+	target_data_t	*tdp;
 	int  		status; // status of various function calls 
-	restart_t	*rp;	// Pointer to a restart structure used by the restart_monitor()
 
+
+	tdp = wdp->wd_tdp;
 	// Check to make sure that the destination target is actually *writing* the data it receives to a file or device
-	if (qp->rwratio > 0.0) { // Something is wrong - the destination file/device is not 100% write
-		fprintf(xgp->errout,"%s: xdd_e2e_dest_init: Target %d QThread %d: Error - E2E destination file/device '%s' is not being *written*: rwratio=%5.2f is not valid\n",
+	if (tdp->td_rwratio > 0.0) { // Something is wrong - the destination file/device is not 100% write
+		fprintf(xgp->errout,"%s: xdd_e2e_dest_init: Target %d Worker Thread %d: Error - E2E destination file/device '%s' is not being *written*: rwratio=%5.2f is not valid\n",
 			xgp->progname,
-			qp->my_target_number,
-			qp->my_qthread_number,
-			qp->target_full_pathname,
-			qp->rwratio);
+			tdp->td_target_number,
+			wdp->wd_thread_number,
+			tdp->td_target_full_pathname,
+			tdp->td_rwratio);
 		return(-1);
 	}
 	
 	/* Set up the destination-side sockets */
-	status = xdd_e2e_setup_dest_socket(qp);
+	status = xdd_e2e_setup_dest_socket(wdp);
 	if (status == -1) {
-		xdd_e2e_err(qp,"xdd_e2e_dest_init","could not init e2e destination socket\n");
+		xdd_e2e_err(wdp,"xdd_e2e_dest_init","could not init e2e destination socket\n");
 		return(-1);
 	}
 
 	// Set up the descriptor table for the select() call
 	// This section is used when we are using TCP 
 	/* clear out the csd table */
-	for (qp->e2ep->e2e_current_csd = 0; qp->e2ep->e2e_current_csd < FD_SETSIZE; qp->e2ep->e2e_current_csd++)
-		qp->e2ep->e2e_csd[qp->e2ep->e2e_current_csd] = 0;
+	for (wdp->wd_e2ep->e2e_current_csd = 0; wdp->wd_e2ep->e2e_current_csd < FD_SETSIZE; wdp->wd_e2ep->e2e_current_csd++)
+		wdp->wd_e2ep->e2e_csd[wdp->wd_e2ep->e2e_current_csd] = 0;
 
 	// Set the current and next csd indices to 0
-	qp->e2ep->e2e_current_csd = qp->e2ep->e2e_next_csd = 0;
+	wdp->wd_e2ep->e2e_current_csd = wdp->wd_e2ep->e2e_next_csd = 0;
 
 	/* Initialize the socket sets for select() */
-	FD_ZERO(&qp->e2ep->e2e_readset);
-	FD_SET(qp->e2ep->e2e_sd, &qp->e2ep->e2e_readset);
-	qp->e2ep->e2e_active = qp->e2ep->e2e_readset;
-	qp->e2ep->e2e_current_csd = qp->e2ep->e2e_next_csd = 0;
+	FD_ZERO(&wdp->wd_e2ep->e2e_readset);
+	FD_SET(wdp->wd_e2ep->e2e_sd, &wdp->wd_e2ep->e2e_readset);
+	wdp->wd_e2ep->e2e_active = wdp->wd_e2ep->e2e_readset;
+	wdp->wd_e2ep->e2e_current_csd = wdp->wd_e2ep->e2e_next_csd = 0;
 
 	/* Find out how many sockets are in each set (berkely only) */
 #if (IRIX || WIN32 )
-	qp->e2ep->e2e_nd = getdtablehi();
+	wdp->wd_e2ep->e2e_nd = getdtablehi();
 #endif
 #if (LINUX || DARWIN)
-	qp->e2ep->e2e_nd = getdtablesize();
+	wdp->wd_e2ep->e2e_nd = getdtablesize();
 #endif
 #if (AIX)
-	qp->e2ep->e2e_nd = FD_SETSIZE;
+	wdp->wd_e2ep->e2e_nd = FD_SETSIZE;
 #endif
 #if (SOLARIS )
-	qp->e2ep->e2e_nd = FD_SETSIZE;
+	wdp->wd_e2ep->e2e_nd = FD_SETSIZE;
 #endif
 
 	// Initialize the message counter and sequencer to 0
-	qp->e2ep->e2e_msg_recv = 0;
-	qp->e2ep->e2e_msg_sequence_number = 0;
-
-	// Check to see if restart was requested
-	if ((qp->target_options & TO_RESTART_ENABLE) && (qp->restartp)) { 
-		// Set the last_committed_byte_location to 0
-		rp = qp->restartp;
-		rp->last_committed_byte_location = rp->byte_offset;
-		rp->last_committed_length = 0;
-	}
+	wdp->wd_e2ep->e2e_msg_recv = 0;
+	wdp->wd_e2ep->e2e_msg_sequence_number = 0;
 
 	return(0);
 
@@ -307,13 +303,13 @@ xdd_e2e_dest_init(ptds_t *qp) {
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_setup_dest_socket() - Set up the socket on the Destination side
  * This subroutine is called by xdd_e2e_dest_init() and is passed a
- * pointer to the PTDS of the requesting QThread.
+ * pointer to the PTDS of the requesting Worker Thread.
  *
  * Return values: 0 is good, -1 is bad
  *
  */
 int32_t
-xdd_e2e_setup_dest_socket(ptds_t *qp) {
+xdd_e2e_setup_dest_socket(worker_data_t *wdp) {
 	int  	status;
 	int 	type;
 	char 	msg[256];
@@ -323,34 +319,34 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
 	type = SOCK_STREAM;
 
 	// Create the socket 
-	qp->e2ep->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
-	if (qp->e2ep->e2e_sd < 0) {
-		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket","ERROR: error openning socket\n");
+	wdp->wd_e2ep->e2e_sd = socket(AF_INET, type, IPPROTO_TCP);
+	if (wdp->wd_e2ep->e2e_sd < 0) {
+		xdd_e2e_err(wdp,"xdd_e2e_setup_dest_socket","ERROR: error openning socket\n");
 		return(-1);
 	}
 
-	(void) xdd_e2e_set_socket_opts (qp, qp->e2ep->e2e_sd);
+	(void) xdd_e2e_set_socket_opts (wdp, wdp->wd_e2ep->e2e_sd);
 
 	/* Bind the name to the socket */
-	(void) memset(&qp->e2ep->e2e_sname, 0, sizeof(qp->e2ep->e2e_sname));
-	qp->e2ep->e2e_sname.sin_family = AF_INET;
-	qp->e2ep->e2e_sname.sin_addr.s_addr = htonl(qp->e2ep->e2e_dest_addr);
-	qp->e2ep->e2e_sname.sin_port = htons(qp->e2ep->e2e_dest_port);
-	qp->e2ep->e2e_snamelen = sizeof(qp->e2ep->e2e_sname);
-	if (bind(qp->e2ep->e2e_sd, (struct sockaddr *) &qp->e2ep->e2e_sname, qp->e2ep->e2e_snamelen)) {
+	(void) memset(&wdp->wd_e2ep->e2e_sname, 0, sizeof(wdp->wd_e2ep->e2e_sname));
+	wdp->wd_e2ep->e2e_sname.sin_family = AF_INET;
+	wdp->wd_e2ep->e2e_sname.sin_addr.s_addr = htonl(wdp->wd_e2ep->e2e_dest_addr);
+	wdp->wd_e2ep->e2e_sname.sin_port = htons(wdp->wd_e2ep->e2e_dest_port);
+	wdp->wd_e2ep->e2e_snamelen = sizeof(wdp->wd_e2ep->e2e_sname);
+	if (bind(wdp->wd_e2ep->e2e_sd, (struct sockaddr *) &wdp->wd_e2ep->e2e_sname, wdp->wd_e2ep->e2e_snamelen)) {
 		sprintf(msg,"Error binding name to socket - addr=0x%08x, port=0x%08x, specified as %d \n",
-			qp->e2ep->e2e_sname.sin_addr.s_addr, 
-			qp->e2ep->e2e_sname.sin_port,
-			qp->e2ep->e2e_dest_port);
-		xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket",msg);
+			wdp->wd_e2ep->e2e_sname.sin_addr.s_addr, 
+			wdp->wd_e2ep->e2e_sname.sin_port,
+			wdp->wd_e2ep->e2e_dest_port);
+		xdd_e2e_err(wdp,"xdd_e2e_setup_dest_socket",msg);
 		return(-1);
 	}
 
 	/* All set; prepare to accept connection requests */
 	if (type == SOCK_STREAM) { // If this is a stream socket then we need to listen for incoming data
-		status = listen(qp->e2ep->e2e_sd, SOMAXCONN);
+		status = listen(wdp->wd_e2ep->e2e_sd, SOMAXCONN);
 		if (status) {
-			xdd_e2e_err(qp,"xdd_e2e_setup_dest_socket","ERROR: bad status starting LISTEN on socket\n");
+			xdd_e2e_err(wdp,"xdd_e2e_setup_dest_socket","ERROR: bad status starting LISTEN on socket\n");
 			return(-1);
 		}
 	}
@@ -365,10 +361,11 @@ xdd_e2e_setup_dest_socket(ptds_t *qp) {
  *
  */
 void 
-xdd_e2e_set_socket_opts(ptds_t *qp, int skt) {
+xdd_e2e_set_socket_opts(worker_data_t *wdp, int skt) {
+	target_data_t	*tdp;
 	int status;
 	int level = SOL_SOCKET;
-	xdd_plan_t* planp = qp->target_ptds->my_planp;
+	xdd_plan_t* planp = wdp->wd_tdp->td_planp;
 	
 #if WIN32
 	char  optionvalue;
@@ -376,31 +373,38 @@ xdd_e2e_set_socket_opts(ptds_t *qp, int skt) {
 	int  optionvalue;
 #endif
 
+	tdp = wdp->wd_tdp;
 	/* Create the socket and set some options */
 	optionvalue = 1;
 	status = setsockopt(skt, IPPROTO_TCP, TCP_NODELAY, &optionvalue, sizeof(optionvalue));
 	if (status != 0) {
-		xdd_e2e_err(qp,"xdd_e2e_set_socket_opts","Error setting TCP_NODELAY \n");
+		xdd_e2e_err(wdp,"xdd_e2e_set_socket_opts","Error setting TCP_NODELAY \n");
 	}
 	status = setsockopt(skt,level,SO_SNDBUF,(char *)&planp->e2e_TCP_Win,sizeof(planp->e2e_TCP_Win));
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: WARNING: on setsockopt SO_SNDBUF: status %d: %s\n", 
+		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d Worker Thread %d: WARNING: on setsockopt SO_SNDBUF: status %d: %s\n", 
 			xgp->progname, 
-			qp->my_target_number, qp->my_qthread_number, status, 
+			tdp->td_target_number, 
+			wdp->wd_thread_number, 
+			status, 
 			strerror(errno));
 	}
 	status = setsockopt(skt,level,SO_RCVBUF,(char *)&planp->e2e_TCP_Win,sizeof(planp->e2e_TCP_Win));
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: WARNING: on setsockopt SO_RCVBUF: status %d: %s\n", 
+		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d Worker Thread %d: WARNING: on setsockopt SO_RCVBUF: status %d: %s\n", 
 			xgp->progname, 
-			qp->my_target_number, qp->my_qthread_number, status, 
+			tdp->td_target_number, 
+			wdp->wd_thread_number, 
+			status, 
 			strerror(errno));
 	}
 	status = setsockopt(skt,level,SO_REUSEADDR,(char *)&planp->e2e_TCP_Win,sizeof(planp->e2e_TCP_Win));
 	if (status < 0) {
-		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d QThread %d: WARNING: on setsockopt SO_REUSEPORT: status %d: %s\n", 
+		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d Worker Thread %d: WARNING: on setsockopt SO_REUSEPORT: status %d: %s\n", 
 			xgp->progname, 
-			qp->my_target_number, qp->my_qthread_number, status, 
+			tdp->td_target_number, 
+			wdp->wd_thread_number, 
+			status, 
 			strerror(errno));
 	}
 
@@ -438,7 +442,7 @@ xdd_e2e_prt_socket_opts(int skt) {
  * printf()).
  */
 void
-xdd_e2e_err(ptds_t *qp, char const *whence, char const *fmt, ...) {
+xdd_e2e_err(worker_data_t *wdp, char const *whence, char const *fmt, ...) {
 #ifdef WIN32
 	LPVOID lpMsgBuf;
     fprintf(xgp->errout, "last error was %d\n", WSAGetLastError());
@@ -454,11 +458,11 @@ xdd_e2e_err(ptds_t *qp, char const *whence, char const *fmt, ...) {
 			NULL);
 		fprintf(xgp->errout,"Reason: %s",lpMsgBuf);
 #endif /* WIN32 */
-	fprintf(xgp->errout,"\n%s: %s: Target %d QThread %d: ",
+	fprintf(xgp->errout,"\n%s: %s: Target %d Worker Thread %d: ",
 		xgp->progname,
 		whence,
-		qp->my_target_number,
-		qp->my_qthread_number);
+		wdp->wd_tdp->td_target_number,
+		wdp->wd_thread_number);
 	fprintf(xgp->errout, "%s", fmt);
 	perror(" Reason");
 	return;

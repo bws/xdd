@@ -49,6 +49,24 @@
 // SCSI Generic Support Routines
 //******************************************************************************
 /*----------------------------------------------------------------------------*/
+/* xdd_get_sgiop() - return a pointer to the SCSI Generic I/O (SGIO) Data Structure 
+ * for the specified target
+ */
+xdd_sgio_t *
+xdd_get_sgiop(worker_data_t *wdp) {
+	
+	if (wdp->wd_sgiop == 0) { // Since there is no existing SGIO structure, allocate a new one for this target, initialize it, and move on...
+		wdp->wd_sgiop = malloc(sizeof(struct xdd_sgio));
+		if (wdp->wd_sgiop == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for SGIO structure for target %d, worker %d\n",
+			xgp->progname, (int)sizeof(struct xdd_sgio), wdp->wd_tdp->td_target_number, wdp->wd_thread_number);
+			return(NULL);
+		}
+	}
+	return(wdp->wd_sgiop);
+} /* End of xdd_get_sgiop() */
+
+/*----------------------------------------------------------------------------*/
 /* xdd_sg_io() - Perform a "read" or "write" operation on the specified target
  * Will return a -1 if the command fails, 0 for EOF, or the number of 
  * bytes transferred if everything works. 
@@ -108,7 +126,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 		io_hdr.dxfer_direction = SG_DXFER_TO_DEV; // Write op
 	else io_hdr.dxfer_direction = SG_DXFER_FROM_DEV; // Read op
 	io_hdr.dxfer_len = sgiop->sg_blocksize * sgiop->sg_blocks;
-	io_hdr.dxferp = wdp->wd_rwbuf;
+	io_hdr.dxferp = wdp->wd_current_rwbuf;
 	io_hdr.mx_sb_len = SENSE_BUFF_LEN;
 	io_hdr.sbp = sgiop->sg_sense;
 	io_hdr.timeout = DEF_TIMEOUT;
@@ -131,7 +149,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 			(rw == 'w')?"Write":"Read",
 			tdp->td_target_full_pathname,
 			status,
-			(long long)tdp->td_tgtstp->my_current_op_number);
+			(long long)wdp->wd_current_op_number);
 		fflush(xgp->errout);
 		return(status);
 	}
@@ -153,7 +171,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 			(rw == 'w')?"Write":"Read",
 			tdp->td_target_full_pathname,
 			status,
-			(long long)tdp->td_tgtstp->my_current_op_number,
+			(long long)wdp->wd_current_op_number,
 			(unsigned long long)sgiop->sg_from_block, 
 			sgiop->sg_blocks);
 		fflush(xgp->errout);
@@ -167,14 +185,14 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 					tdp->td_target_number,
 					wdp->wd_thread_number,
 					(rw == 'w')?"Write":"Read",
-					p->target_full_pathname,
+					tdp->td_target_full_pathname,
 					status,
-					(long long)tdp->td_tgtstp->my_current_op_number,
+					(long long)wdp->wd_current_op_number,
 					(unsigned long long)sgiop->sg_from_block, 
 					sgiop->sg_blocks);
 				break;
 			default:
-				status = xdd_sg_read_capacity(p); 
+				status = xdd_sg_read_capacity(wdp); 
 				if (status == SUCCESS) { // Check for an out-of-bounds condition
 					last_sector = sgiop->sg_from_block + sgiop->sg_blocks - 1;
 					if ( last_sector > sgiop->sg_num_sectors) { // LBA out of range error most likely
@@ -182,7 +200,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 							xgp->progname,
 							tdp->td_target_number,
 							wdp->wd_thread_number,
-							(long long)tdp->td_tgtstp->my_current_op_number,
+							(long long)wdp->wd_current_op_number,
 							(unsigned long long)sgiop->sg_from_block, 
 							sgiop->sg_blocks);
 					}
@@ -194,7 +212,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 					(rw == 'w')?"Write":"Read",
 					tdp->td_target_full_pathname,
 					status,
-					(long long)tdp->td_tgtstp->my_current_op_number,
+					(long long)wdp->wd_current_op_number,
 					(unsigned long long)sgiop->sg_from_block, 
 					sgiop->sg_blocks);
 				return(0);
@@ -214,7 +232,8 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
  * Will return SUCCESS or FAILED depending on the outcome of the command.
  */
 int32_t 
-xdd_sg_read_capacity(ptds_t *p) {
+xdd_sg_read_capacity(worker_data_t *wdp) {
+	target_data_t	*tdp;			// Pointer to the Target Data for this worker
 	int 			status;
 	unsigned char	rcCmd[10];
 	unsigned char	rcBuff[READ_CAP_REPLY_LEN];
@@ -222,7 +241,8 @@ xdd_sg_read_capacity(ptds_t *p) {
 	xdd_sgio_t		*sgiop;			// Pointer to the XDD sgio structure
 
 
-	sgiop = p->sgiop;				// The xdd_sgio struct contains all the info for this I/O
+	tdp = wdp->wd_tdp;
+	sgiop = wdp->wd_sgiop;				// The xdd_sgio struct contains all the info for this I/O
 
 	rcCmd[0] = 0x25;
 	rcCmd[1] = 0;
@@ -246,15 +266,15 @@ xdd_sg_read_capacity(ptds_t *p) {
 	io_hdr.sbp = sgiop->sg_sense;
 	io_hdr.timeout = DEF_TIMEOUT;
 
-	status = ioctl(p->fd, SG_IO, &io_hdr);
+	status = ioctl(tdp->td_file_desc, SG_IO, &io_hdr);
 	if (status < 0) {
 		fprintf(xgp->errout, "(T%d.Q%d) %s: I/O Error - Read Capacity Command on target %s - status %d, op# %lld\n",
-			p->my_target_number,
-			p->my_qthread_number,
+			tdp->td_target_number,
+			wdp->wd_thread_number,
 			xgp->progname,
-			p->target_full_pathname,
+			tdp->td_target_full_pathname,
 			status,
-			(long long)p->tgtstp->my_current_op_number);
+			(long long)wdp->wd_current_op_number);
 		fflush(xgp->errout);
 		perror("reason");
 		return(FAILED);
@@ -279,17 +299,17 @@ xdd_sg_read_capacity(ptds_t *p) {
 /* xdd_sg_set_reserved_size() - issued after open  - called from initialization.c
  */
 void
-xdd_sg_set_reserved_size(ptds_t *p, int fd) {
+xdd_sg_set_reserved_size(target_data_t *tdp, int fd) {
 	int		reserved_size;
 	int		status;
 
 
-	reserved_size = (p->block_size*p->reqsize);
+	reserved_size = (tdp->td_block_size*tdp->td_reqsize);
 	status = ioctl(fd, SG_SET_RESERVED_SIZE, &reserved_size);
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_sg_set_reserved_size: SG_SET_RESERVED_SIZE error - request for %d bytes denied",
 			xgp->progname, 
-			(p->block_size*p->reqsize));
+			(tdp->td_block_size*tdp->td_reqsize));
 	}
 } // End of xdd_sg_set_reserved_size() 
 
@@ -297,7 +317,7 @@ xdd_sg_set_reserved_size(ptds_t *p, int fd) {
 /* xdd_sg_get_version() - issued after open  - get the current version of SG
  */
 void
-xdd_sg_get_version(ptds_t *p, int fd) {
+xdd_sg_get_version(target_data_t *tdp, int fd) {
 	int 	version;
 	int		status;
 
