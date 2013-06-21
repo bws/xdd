@@ -56,27 +56,27 @@ int kernel_trace = 0;
 int window_size;
 
 /* normalize timestamps */
-void normalize_time(tthdr_t *src, nclk_t *start_norm);
+void normalize_time(xdd_tthdr_t *src, nclk_t *start_norm);
 /* custom quick sort for the tte_t array */
 void tte_qsort(tte_t **list, size_t key_offset, int64_t left, int64_t right);
 /* sorts the timestamp entries by completion time */
-void sort_by_time(tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted);
+void sort_by_time(xdd_tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted);
 /* write all the outfiles */
-void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
+void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
 	tte_t **send_op, tte_t **recv_op, tte_t **write_op);
 /* read, check, and store the src and dst file data */
-int xdd_readfile(char *filename, tthdr_t **tsdata, size_t *tsdata_size);
+int xdd_readfile(char *filename, xdd_tthdr_t **tsdata, size_t *tsdata_size);
 /* Write an XDD binary timestamp structure to file */
-int xdd_writefile(char *filename, tthdr_t *tsdata, size_t tsdata_size);
+int xdd_writefile(char *filename, xdd_tthdr_t *tsdata, size_t tsdata_size);
 /* parse command line options */
 int getoptions(int argc, char **argv);
 /* print command line usage */
 void printusage(char *progname);
 /* get total threads, thread pids, operation mix (%read,%write) */
-void xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix);
+void xdd_getthreads(xdd_tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix);
 
 int
-matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filespec, tthdr_t *xdd_data);
+matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filespec, xdd_tthdr_t *xdd_data);
 
 
 int main(int argc, char **argv) {
@@ -85,9 +85,9 @@ int main(int argc, char **argv) {
         size_t tsdata_size;
         char *iotrace_data_dir, *current_work_dir;
 	/* tsdumps for the source and destination sides */
-	tthdr_t *src = NULL;
-	tthdr_t *dst = NULL;
-	tthdr_t *tsdata = NULL;
+	xdd_tthdr_t *src = NULL;
+	xdd_tthdr_t *dst = NULL;
+	xdd_tthdr_t *tsdata = NULL;
 	/* timestamp entries sorted by ending time */
 	tte_t **read_op = NULL;
 	tte_t **send_op = NULL;
@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
 }
 /* get total threads, thread ids, operation mix */
 void
-xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix)
+xdd_getthreads(xdd_tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix)
 {       
        int i, k = -1, tothreads = 0;
        uint64_t read_ops = 0, write_ops = 0;
@@ -280,7 +280,7 @@ xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_
        }
         /* how many qthreads are there? */
         for (i = 0; i < tsdata->tt_size; i++) {
-                tothreads = MAX(tsdata->tte[i].qthread_number,tothreads);
+                tothreads = MAX(tsdata->tte[i].worker_thread_number,tothreads);
                 if (k < tothreads && k < MAX_QTHREADS)
                 {
                             k = tothreads;
@@ -295,7 +295,7 @@ xdd_getthreads(tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_
 }
 
 /* subtract the timestamps by the minimum start times */
-void normalize_time(tthdr_t *tsdata, nclk_t *start_norm) {
+void normalize_time(xdd_tthdr_t *tsdata, nclk_t *start_norm) {
 	int64_t i;
 	nclk_t start;
 	start = tsdata->tte[0].disk_start;
@@ -381,7 +381,7 @@ void tte_qsort(tte_t **list, size_t key_offset, int64_t low, int64_t high) {
 }
 
 /* sort timestamp entries by completion time */
-void sort_by_time(tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted )
+void sort_by_time(xdd_tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted )
 		                                                         {
 	/* allocate array of pointers to tte structs */
 	tte_t **op = malloc(tsdata->tt_size*sizeof(tte_t *));
@@ -403,7 +403,7 @@ void sort_by_time(tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted )
 	*op_sorted = op;
 }
 /* write the outfile */
-void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
+void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
 	tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
 
 	int64_t   i, k, numts_entries;
@@ -736,11 +736,11 @@ void write_outfile(tthdr_t *src, tthdr_t *dst, tte_t **read_op,
  * RETURN:
  *   1 if succeeded, 0 if failed
  *********************************************************/
-int xdd_readfile(char *filename, tthdr_t **tsdata, size_t *tsdata_size) {
+int xdd_readfile(char *filename, xdd_tthdr_t **tsdata, size_t *tsdata_size) {
 
 	FILE *tsfd;
 	size_t tsize = 0;
-	tthdr_t *tdata = NULL;
+	xdd_tthdr_t *tdata = NULL;
 	size_t result = 0;
 	uint32_t magic = 0;
 
@@ -770,7 +770,7 @@ int xdd_readfile(char *filename, tthdr_t **tsdata, size_t *tsdata_size) {
 		return 0;
 	}
 
-	/* check magic number in tthdr */
+	/* check magic number in xdd_tthdr */
 	result = fread(&magic,sizeof(uint32_t),1,tsfd);
 	fseek(tsfd,0,SEEK_SET);
 
@@ -818,7 +818,7 @@ int xdd_readfile(char *filename, tthdr_t **tsdata, size_t *tsdata_size) {
  * RETURN:
  *   1 if succeeded, 0 if failed
  *********************************************************/
-int xdd_writefile(char *filename, tthdr_t *tsdata, size_t tsdata_size) {
+int xdd_writefile(char *filename, xdd_tthdr_t *tsdata, size_t tsdata_size) {
 
 	FILE *tsfd;
 	size_t result = 0;
