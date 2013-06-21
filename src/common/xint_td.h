@@ -78,19 +78,12 @@ struct xint_target_data {
 	int32_t   			td_file_desc;		// File Descriptor for the target device/file 
 #endif
 	int32_t				td_open_flags;		// Flags used during open processing of a target
-	int32_t				td_iosize;   		// Number of bytes per request 
-	int32_t				td_actual_iosize;  	// Number of bytes actually transferred for this request 
-	int32_t				td_last_iosize; 	// Number of bytes for the final request 
-	int32_t				td_op_delay; 		// Number of seconds to delay between operations 
+	int32_t				td_io_size;   		// Number of bytes per request 
 	int32_t				td_filetype;  		// Type of file: regular, device, socket, ... 
 	int64_t				td_filesize;  		// Size of target file in bytes 
-	int64_t				td_worker_thread_ops;  	// Total number of ops to perform per qthread 
 	int64_t				td_target_ops;  	// Total number of ops to perform on behalf of a "target"
 	seekhdr_t			td_seekhdr;  		// For all the seek information 
 	FILE				*td_tsfp;   		// Pointer to the time stamp output file 
-	unsigned char 		*td_rwbuf;   			// The re-aligned I/O buffers 
-	int32_t				td_rwbuf_shmid; 		// Shared Memeory ID for rwbuf 
-	unsigned char 		*td_rwbuf_save; 		// The original I/O buffers 
 	// The Occupant Strcuture used by the barriers 
 	xdd_occupant_t		td_occupant;							// Used by the barriers to keep track of what is in a barrier at any given time
 	char				td_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH];	// For a Target thread this is "TARGET####", for a Worker Thread it is "TARGET####WORKER####"
@@ -193,6 +186,7 @@ struct xint_target_data {
 #elif (AIX || SOLARIS)
 	struct stat64				td_statbuf;			// Target File Stat buffer used by xdd_target_open()
 #endif
+	int32_t				td_op_delay; 		// Number of seconds to delay between operations 
 };
 typedef struct xint_target_data target_data_t;
 

@@ -733,10 +733,10 @@ xdd_extract_pass_results(results_t *rp, target_data_t *tdp, xdd_plan_t *planp) {
 	rp->accumulated_elapsed_time += rp->elapsed_pass_time; 
 
 	// These get calculated here
-	rp->xfer_size_bytes = tdp->td_iosize;				// bytes
-	rp->xfer_size_blocks = tdp->td_iosize/tdp->td_block_size;	// blocks
-	rp->xfer_size_kbytes = tdp->td_iosize/1024;			// kbytes
-	rp->xfer_size_mbytes = tdp->td_iosize/(1024*1024);	// mbytes
+	rp->xfer_size_bytes = tdp->td_io_size;				// bytes
+	rp->xfer_size_blocks = tdp->td_io_size/tdp->td_block_size;	// blocks
+	rp->xfer_size_kbytes = tdp->td_io_size/1024;			// kbytes
+	rp->xfer_size_mbytes = tdp->td_io_size/(1024*1024);	// mbytes
 
 	// Bandwidth
 	rp->bandwidth = (double)(((double)rp->bytes_xfered / (double)rp->elapsed_pass_time) / FLOAT_MILLION);  // MB/sec

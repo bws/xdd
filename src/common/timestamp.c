@@ -140,7 +140,7 @@ xdd_ts_setup(target_data_t *tdp) {
 	/* init entries in the trace table header */
 	tdp->td_ttp->target_thread_id = tdp->td_pid;
 	tdp->td_ttp->res = cycleval;
-	tdp->td_ttp->reqsize = tdp->td_iosize;
+	tdp->td_ttp->reqsize = tdp->td_io_size;
 	tdp->td_ttp->blocksize = tdp->td_block_size;
 	strcpy(tdp->td_ttp->id, xgp->id); 
 	tdp->td_ttp->range = tdp->td_seekhdr.seek_range;

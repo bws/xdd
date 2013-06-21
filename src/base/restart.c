@@ -266,11 +266,11 @@ xdd_restart_monitor(void *data) {
 							rp->last_committed_op = -1;
 						} else { // Restart point is te times the iosize
 							// The *byte_offset* is the offset into the file where the first new byte should be written
-							rp->byte_offset = (long long int)te * (long long int)current_tdp->td_iosize;
+							rp->byte_offset = (long long int)te * (long long int)current_tdp->td_io_size;
 							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
-							rp->last_committed_byte_location = (long long int)(te - 1) * (long long int)current_tdp->td_iosize;
-							rp->last_committed_length = (long long int)current_tdp->td_iosize;
-							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_tdp->td_iosize;
+							rp->last_committed_byte_location = (long long int)(te - 1) * (long long int)current_tdp->td_io_size;
+							rp->last_committed_length = (long long int)current_tdp->td_io_size;
+							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_tdp->td_io_size;
 						}
 						break;
 					} else {
@@ -278,11 +278,11 @@ xdd_restart_monitor(void *data) {
 						if (tep->tot_byte_location < lowest_offset) {
 							lowest_offset = tep->tot_byte_location;
 							// The *byte_offset* is the offset into the file where the first new byte should be written
-							rp->byte_offset = tep->tot_byte_location + (long long int)((long long int)current_tdp->td_iosize * (long long int)current_tdp->td_totp->tot_entries);
+							rp->byte_offset = tep->tot_byte_location + (long long int)((long long int)current_tdp->td_io_size * (long long int)current_tdp->td_totp->tot_entries);
 							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
-							rp->last_committed_byte_location = tep->tot_byte_location + ((long long int)current_tdp->td_iosize *(long long int)(current_tdp->td_totp->tot_entries-1));
+							rp->last_committed_byte_location = tep->tot_byte_location + ((long long int)current_tdp->td_io_size *(long long int)(current_tdp->td_totp->tot_entries-1));
 							rp->last_committed_length = (long long int)tep->tot_io_size;
-							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_tdp->td_iosize;
+							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_tdp->td_io_size;
 						}
 					}
 					

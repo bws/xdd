@@ -276,9 +276,9 @@ xdd_heartbeat_values(target_data_t *tdp, int64_t bytes, int64_t ops, double elap
 			// Adjust the number of bytes completed so far - add in the start offset
 			adjusted_bytes = bytes + (tdp->td_start_offset * tdp->td_block_size);
 			// Adjust the number of ops completed so far
-			adjusted_ops = adjusted_bytes / tdp->td_iosize;
+			adjusted_ops = adjusted_bytes / tdp->td_io_size;
 			// Adjust the number of target_ops needed to complete the entire copy
-			adjusted_target_ops = (tdp->td_target_bytes_to_xfer_per_pass + (tdp->td_start_offset*tdp->td_block_size))/tdp->td_iosize; 
+			adjusted_target_ops = (tdp->td_target_bytes_to_xfer_per_pass + (tdp->td_start_offset*tdp->td_block_size))/tdp->td_io_size; 
 		} // End of making adjustments for a restart operation
 	}
 	if (tdp->td_hb.hb_options & HB_TARGET)  // Display Target Number of this information 

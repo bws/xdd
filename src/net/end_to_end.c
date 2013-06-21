@@ -66,13 +66,13 @@ xdd_e2e_src_send(worker_data_t *wdp) {
 		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_processor_start = xdd_get_processor();
 #endif
 
-	// Note: the wdp->wd_e2ep->e2e_iosize is the size of the data field plus the size of the header
+	// Note: the wdp->wd_e2ep->e2e_io_size is the size of the data field plus the size of the header
 	maxmit = MAXMIT_TCP;
 	sent = 0;
         sentcalls = 0;
 	nclk_now(&wdp->wd_current_net_start_time);
-	while (sent < wdp->wd_e2ep->e2e_iosize) {
-		sendsize = (wdp->wd_e2ep->e2e_iosize-sent) > maxmit ? maxmit : (wdp->wd_e2ep->e2e_iosize-sent);
+	while (sent < wdp->wd_e2ep->e2e_io_size) {
+		sendsize = (wdp->wd_e2ep->e2e_io_size-sent) > maxmit ? maxmit : (wdp->wd_e2ep->e2e_io_size-sent);
 		wdp->wd_e2ep->e2e_send_status = sendto(wdp->wd_e2ep->e2e_sd,(char *)wdp->wd_current_rwbuf+sent, sendsize, 0, (struct sockaddr *)&wdp->wd_e2ep->e2e_sname, sizeof(struct sockaddr_in));
 		sent += wdp->wd_e2ep->e2e_send_status;
                 sentcalls++;
@@ -83,7 +83,7 @@ fprintf(stderr,"E2E_SOURCE_SIDE_SEND: Sent %d bytes\n",wdp->wd_e2ep->e2e_send_st
 #ifdef ndef
 	// FIXME
 	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_xfer_size = wdp->wd_e2ep->e2e_iosize;
+		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_xfer_size = wdp->wd_e2ep->e2e_io_size;
 		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_start = wdp->wd_current_net_start_time;
 		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_end = wdp->wd_current_net_end_time;
 		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_processor_end = xdd_get_processor();
@@ -94,7 +94,7 @@ fprintf(stderr,"E2E_SOURCE_SIDE_SEND: Sent %d bytes\n",wdp->wd_e2ep->e2e_send_st
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
 	wdp->wd_e2ep->e2e_sr_time = (wdp->wd_current_net_end_time - wdp->wd_current_net_start_time);
 
-	if (sent != wdp->wd_e2ep->e2e_iosize) {
+	if (sent != wdp->wd_e2ep->e2e_io_size) {
 		xdd_e2e_err(wdp,"xdd_e2e_src_send","ERROR: could not send data from e2e source\n");
 		return(-1);
 	}
@@ -178,8 +178,8 @@ xdd_e2e_dest_recv(worker_data_t *wdp) {
 			rcvd_so_far = 0;
                         recvcalls = 0;
 			nclk_now(&wdp->wd_current_net_start_time);
-			while (rcvd_so_far < wdp->wd_e2ep->e2e_iosize) {
-				recvsize = (wdp->wd_e2ep->e2e_iosize-rcvd_so_far) > maxmit ? maxmit : (wdp->wd_e2ep->e2e_iosize-rcvd_so_far);
+			while (rcvd_so_far < wdp->wd_e2ep->e2e_io_size) {
+				recvsize = (wdp->wd_e2ep->e2e_io_size-rcvd_so_far) > maxmit ? maxmit : (wdp->wd_e2ep->e2e_io_size-rcvd_so_far);
 				wdp->wd_e2ep->e2e_recv_status = recvfrom(wdp->wd_e2ep->e2e_csd[wdp->wd_e2ep->e2e_current_csd], (char *) wdp->wd_current_rwbuf+rcvd_so_far, recvsize, 0, NULL,NULL);
 				// Check for other conditions that will get us out of this loop
 fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: Recv %d bytes\n",wdp->wd_e2ep->e2e_recv_status);
@@ -190,9 +190,9 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: Recv %d bytes\n",wdp->wd_e2ep->e2e_recv_s
 				recvcalls++;
 			} // End of WHILE loop that received incoming data from the source machine
 
-			// bws: BAND-AID PATCH: EOF message padded to iosize, header must be sent at end;
+			// bws: BAND-AID PATCH: EOF message padded to io_size, header must be sent at end;
 			// however, later code expects the header to be at the beginning of the buffer for EOF
-			if (rcvd_so_far == wdp->wd_e2ep->e2e_iosize && 
+			if (rcvd_so_far == wdp->wd_e2ep->e2e_io_size && 
 				((struct xdd_e2e_header*)(wdp->wd_current_rwbuf+wdp->wd_current_io_size))->magic == PTDS_E2E_MAGIQ) {
 				memmove(wdp->wd_current_rwbuf, wdp->wd_current_rwbuf+wdp->wd_current_io_size, sizeof(struct xdd_e2e_header));
 fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
@@ -230,12 +230,12 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 			}
 			// Check the status of the last recvfrom()
 			// The normal condition where the recvfrom() call returns the expected amount of data (recvsize)
-			// which is equal to the size of the e2e_header plus the size of the user payload (iosize)
+			// which is equal to the size of the e2e_header plus the size of the user payload (io_size)
 			// There are two cases: 
 			//    (1) Transfer of a normal packet of data plus the header 
 			//    (2) Transfer of just the header with no data - this should be an End-of-File packet from the Source side
 			//        and will have the header.magic number set to MAGIQ indicating that it is an EOF packet.
-			if (wdp->wd_e2ep->e2e_recv_status == wdp->wd_e2ep->e2e_iosize) {  // This is the total amount of data we should have received (data+header)
+			if (wdp->wd_e2ep->e2e_recv_status == wdp->wd_e2ep->e2e_io_size) {  // This is the total amount of data we should have received (data+header)
 				/* Copy meta data into destinations e2e_header struct */
 				memcpy(&wdp->wd_e2ep->e2e_header, wdp->wd_current_rwbuf+wdp->wd_current_io_size, sizeof(wdp->wd_e2ep->e2e_header));
 	 			wdp->wd_e2ep->e2e_header.recvtime = wdp->wd_current_net_end_time; // This needs to be the net_end_time from this side of the operation
@@ -348,8 +348,8 @@ xdd_e2e_eof_source_side(worker_data_t *wdp) {
 	// This will send the E2E Header to the Destination
 	sent = 0;
 	sentcalls = 0;
-	while (sent < wdp->wd_e2ep->e2e_iosize) {
-		sendsize = (wdp->wd_e2ep->e2e_iosize-sent) > maxmit ? maxmit : (wdp->wd_e2ep->e2e_iosize-sent);
+	while (sent < wdp->wd_e2ep->e2e_io_size) {
+		sendsize = (wdp->wd_e2ep->e2e_io_size-sent) > maxmit ? maxmit : (wdp->wd_e2ep->e2e_io_size-sent);
 
 		wdp->wd_e2ep->e2e_send_status = sendto(wdp->wd_e2ep->e2e_sd,((char *)wdp->wd_current_rwbuf)+sent, sendsize, 0, (struct sockaddr *)&wdp->wd_e2ep->e2e_sname, sizeof(struct sockaddr_in));
 		if (wdp->wd_e2ep->e2e_send_status <= 0) {
@@ -381,7 +381,7 @@ fprintf(stderr,"E2E_EOF_SOURCE_SIDE: Sent %d bytes\n",wdp->wd_e2ep->e2e_send_sta
 #endif
 
 
-	if (sent != wdp->wd_e2ep->e2e_iosize) {
+	if (sent != wdp->wd_e2ep->e2e_io_size) {
 		xdd_e2e_err(wdp,"xdd_e2e_eof_source_side","ERROR: could not send EOF to destination\n");
 		return(-1);
 	}

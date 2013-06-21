@@ -278,7 +278,7 @@ xdd_target_ttd_before_pass(target_data_t *tdp) {
 	xdd_init_ptds_before_pass(tdp);
 
 	/* Initialize counters, barriers, clocks, ...etc */
-	tdp->td_iosize = tdp->td_reqsize * tdp->td_block_size;
+	tdp->td_io_size = tdp->td_reqsize * tdp->td_block_size;
 
 	/* Get the starting time stamp */
 	if (tdp->td_tgtstp->my_current_pass_number == 1) { // For the *first* pass...

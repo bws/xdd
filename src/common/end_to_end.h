@@ -93,7 +93,7 @@ struct xdd_e2e {
 	uint32_t			e2e_rnamelen; 			// the length of the source socket name 
 	int32_t				e2e_current_csd; 		// the current csd used by the select call on the destination side
 	int32_t				e2e_next_csd; 			// The next available csd to use 
-	int32_t				e2e_iosize;   			// Number of bytes per End to End request - size of data buffer plus size of E2E Header
+	int32_t				e2e_io_size;   			// Number of bytes per End to End request - size of data buffer plus size of E2E Header
 	int32_t				e2e_send_status; 		// Current Send Status
 	int32_t				e2e_recv_status; 		// Current Recv status
 #define PTDS_E2E_MAGIC 	0x07201959 				// The magic number that should appear at the beginning of each message 

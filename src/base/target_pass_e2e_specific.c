@@ -240,12 +240,12 @@ xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp) {
 	else tdp->td_tgtstp->my_current_op_type = OP_TYPE_NOOP;
 
 	// Figure out the transfer size to use for this I/O
-	// It will be either the normal I/O size (tdp->td_iosize) or if this is the
+	// It will be either the normal I/O size (tdp->td_io_size) or if this is the
 	// end of this file then the last transfer could be less than the
 	// normal I/O size. 
-	if (tdp->td_bytes_remaining < tdp->td_iosize)
+	if (tdp->td_bytes_remaining < tdp->td_io_size)
 		tdp->td_tgtstp->my_current_io_size = tdp->td_bytes_remaining;
-	else tdp->td_tgtstp->my_current_io_size = tdp->td_iosize;
+	else tdp->td_tgtstp->my_current_io_size = tdp->td_io_size;
 
 	// Set the location to seek to 
 	tdp->td_tgtstp->my_current_byte_location = tdp->td_tgtstp->my_current_byte_location;

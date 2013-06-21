@@ -222,9 +222,9 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	else tdp->td_tgtstp->my_current_op_type = OP_TYPE_NOOP;
 
 	// Figure out the transfer size to use for this I/O
-	if (tdp->td_bytes_remaining < tdp->td_iosize)
+	if (tdp->td_bytes_remaining < tdp->td_io_size)
 		tdp->td_tgtstp->my_current_io_size = tdp->td_bytes_remaining;
-	else tdp->td_tgtstp->my_current_io_size = tdp->td_iosize;
+	else tdp->td_tgtstp->my_current_io_size = tdp->td_io_size;
 
 	// Set the location to seek to 
 	tdp->td_tgtstp->my_current_byte_location = tdp->td_tgtstp->my_current_byte_location;

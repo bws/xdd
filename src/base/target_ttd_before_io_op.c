@@ -104,12 +104,6 @@ xdd_start_trigger_before_io_op(target_data_t *tdp) {
 					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&tdp->td_occupant,0);
 				}
 			}
-			if (trigp1->trigger_types & TRIGGER_STARTPERCENT) {
-				/* If we have completed percentage of operations then signal the specified target to start */
-				if (tdp->td_tgtstp->my_current_op_number > (trigp1->start_trigger_percent * tdp->td_worker_thread_ops)) {
-					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&tdp->td_occupant,0);
-				}
-			}
 			if (trigp1->trigger_types & TRIGGER_STARTBYTES) {
 				/* If we have completed transferring the specified number of bytes, then signal the 
 				* specified target to start 

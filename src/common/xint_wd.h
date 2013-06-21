@@ -63,6 +63,7 @@ struct xint_worker_data {
 	int32_t						wd_current_op_type; 		// Current I/O operation type - OP_TYPE_READ or OP_TYPE_WRITE
 	int64_t						wd_current_error_count;		// The number of I/O errors for this qthread
 	unsigned char 				*wd_current_rwbuf;   		// Pointer to the current read/write buffer
+	int32_t						wd_rwbuf_shmid; 			// Shared Memory ID
 // The task variables
 	char				wd_task_request;						// Type of Task to perform
 #define TASK_REQ_IO				0x01						// Perform an IO Operation 
