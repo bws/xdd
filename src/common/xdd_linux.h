@@ -80,12 +80,7 @@ typedef int  sd_t;  /* A socket descriptor */
 #define DFL_FL_ADDR INADDR_ANY /* Any address */  /* server only */
 #define closesocket(sd) close(sd)
 
-#include "restart.h"
-
-// int32_t xdd_sg_io(ptds_t *p, char rw);
-// int32_t xdd_sg_read_capacity(ptds_t *p);
-// void xdd_sg_set_reserved_size(ptds_t *p, int fd);
-// void xdd_sg_get_version(ptds_t *p, int fd);
+#include "xint_restart.h"
 
 extern int h_errno; // For socket calls
 

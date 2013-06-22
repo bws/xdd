@@ -103,51 +103,60 @@ xdd_get_any_available_worker_thread(target_data_t *tdp) {
     wdp = 0;
     eof = 0;
     while (0 == wdp && eof != tdp->td_queue_depth) {
-	
-	pthread_mutex_lock(&tdp->td_any_worker_thread_available_mutex);
-	while (tdp->td_any_worker_thread_available <= 0) {
-	    tdp->td_tgtstp->my_current_state |= CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
-	    pthread_cond_wait(&tdp->td_any_worker_thread_available_condition, &tdp->td_any_worker_thread_available_mutex);
-	    tdp->td_tgtstp->my_current_state &= ~CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
-	}
-	tdp->td_any_worker_thread_available--;
-        
-	// Locate an idle worker_thread
-	wdp = tdp->td_next_wdp;
-    eof = 0;
-	while (wdp) {
-	    pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
-	    // Ignore busy worker threads
-	    if (wdp->wd_worker_thread_target_sync & WTSYNC_BUSY) {
-		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
-		wdp = wdp->wd_next_wdp;
-		continue;
-	    }
-
-	    // Ignore e2e threads that have received their eof
-	    if ((tdp->td_target_options & TO_E2E_DESTINATION) && 
-		(wdp->wd_worker_thread_target_sync & WTSYNC_EOF_RECEIVED)) {
-		eof++;
-		// Multi-level short circuit hack for when all threads
-		// have recieved an EOF
-		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
-		if (eof == tdp->td_queue_depth) {
-		    wdp = 0;
-		    break;
+fprintf(stderr,"xdd_get_any_available_worker_thread: getting td_any_worker_thread_available_mutex lock, wdp=%p, eof=%d, td_queue_depth=%d\n",wdp,eof,tdp->td_queue_depth);
+		pthread_mutex_lock(&tdp->td_any_worker_thread_available_mutex);
+fprintf(stderr,"xdd_get_any_available_worker_thread: got the td_any_worker_thread_available_mutex lock...\n");
+		while (tdp->td_any_worker_thread_available <= 0) {
+fprintf(stderr,"xdd_get_any_available_worker_thread: waiting for td_any_worker_thread_available...\n");
+	    	tdp->td_tgtstp->my_current_state |= CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
+	    	pthread_cond_wait(&tdp->td_any_worker_thread_available_condition, &tdp->td_any_worker_thread_available_mutex);
+	    	tdp->td_tgtstp->my_current_state &= ~CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
+fprintf(stderr,"xdd_get_any_available_worker_thread: td_any_worker_thread_available is now %d...\n",tdp->td_any_worker_thread_available);
 		}
-		wdp = wdp->wd_next_wdp;            
-	    }
-	    else {
-		// Got a Worker Thread - mark it BUSY
-		// Indicate that this Worker Thread is now busy
-		wdp->wd_worker_thread_target_sync |= WTSYNC_BUSY; 
-		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
-		break;
-	    }
-	}
+		tdp->td_any_worker_thread_available--;
+        
+fprintf(stderr,"xdd_get_any_available_worker_thread: Locating an idle worker thread...\n");
+		// Locate an idle worker_thread
+		wdp = tdp->td_next_wdp;
+    	eof = 0;
+		while (wdp) {
+fprintf(stderr,"xdd_get_any_available_worker_thread: getting wd_worker_thread_target_sync_mutex lock...\n");
+	    	pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
+	    	// Ignore busy worker threads
+fprintf(stderr,"xdd_get_any_available_worker_thread: got the wd_worker_thread_target_sync_mutex lock., wdp->wd_worker_thread_target_sync = 0x%x, WT_SYNC_BUSY=0x%x\n",wdp->wd_worker_thread_target_sync,WTSYNC_BUSY);
+	    	if (wdp->wd_worker_thread_target_sync & WTSYNC_BUSY) {
+				pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
+				wdp = wdp->wd_next_wdp;
+				continue;
+	    	}
+
+fprintf(stderr,"xdd_get_any_available_worker_thread: wdp is now %p\n",wdp);
+	    	// Ignore e2e threads that have received their eof
+	    	if ((tdp->td_target_options & TO_E2E_DESTINATION) && 
+				(wdp->wd_worker_thread_target_sync & WTSYNC_EOF_RECEIVED)) {
+				eof++;
+				// Multi-level short circuit hack for when all threads
+				// have recieved an EOF
+				pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
+				if (eof == tdp->td_queue_depth) {
+		    		wdp = 0;
+		    		break;
+				}
+				wdp = wdp->wd_next_wdp;            
+	    	} else {
+fprintf(stderr,"xdd_get_any_available_worker_thread: got a worker thread..., wdp=%p\n",wdp);
+				// Got a Worker Thread - mark it BUSY
+				// Indicate that this Worker Thread is now busy
+				wdp->wd_worker_thread_target_sync |= WTSYNC_BUSY; 
+				pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
+				break;
+	    	}
+		}
 	//unlock_and_return:	    
 	pthread_mutex_unlock(&tdp->td_any_worker_thread_available_mutex);
     }
+
+fprintf(stderr,"xdd_get_any_available_worker_thread: Returning wdp=%p...\n",wdp);
 
     return wdp;        
 } // End of xdd_get_any_available_worker_thread()

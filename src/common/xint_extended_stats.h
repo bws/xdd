@@ -28,7 +28,7 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-struct xdd_extended_stats {
+struct xint_extended_stats {
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS 
 	// These values are only updated when the -extendedstats option is specified
 	nclk_t		my_longest_op_time; 			// Longest op time that occured during this pass
@@ -67,7 +67,7 @@ struct xdd_extended_stats {
 	int32_t		my_shortest_write_op_pass_number;// Pass Number when the shortest write op time occured 
 	int32_t		my_shortest_noop_op_pass_number;// Pass Number when the shortest noop op time occured 
 };
-typedef struct xdd_extended_stats xdd_extended_stats_t;
+typedef struct xint_extended_stats xint_extended_stats_t;
 
 /*
  * Local variables:

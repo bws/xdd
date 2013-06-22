@@ -265,7 +265,7 @@ xdd_throttle_before_io_op(worker_data_t *wdp) {
 
 
 	tdp = wdp->wd_tdp;
-	if (tdp->td_throtp->throttle <= 0.0)
+	if ((tdp->td_throtp == NULL) || (tdp->td_throtp->throttle <= 0.0)) 
 		return;
 
 	/* If this is a 'throttled' operation, check to see what time it is relative to the start

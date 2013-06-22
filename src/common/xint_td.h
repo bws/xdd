@@ -170,16 +170,16 @@ struct xint_target_data {
 	nclk_t        		td_open_end_time; 			// Time just after the open completes for this target 
 
 	struct xint_throttle		*td_throtp;			// Pointer to the throttle sturcture
-	struct xdd_target_state		*td_tgtstp;			// Pointer to the target state struct
-	struct xdd_timestamp		*td_tsp;			// Pointer to the time stamp stuff
+	struct xint_target_state	*td_tgtstp;			// Pointer to the target state struct
+	struct xint_timestamp		*td_tsp;			// Pointer to the time stamp stuff
 	struct xdd_tthdr			*td_ttp;			// Pointer to the time stamp stuff
-	struct xdd_e2e				*td_e2ep;			// Pointer to the e2e struct when needed
-	struct xdd_extended_stats	*td_esp;			// Extended Stats Structure Pointer
-	struct xdd_triggers			*td_trigp;			// Triggers Structure Pointer
-	struct xdd_data_pattern		*td_dpp;			// Data Pattern Structure Pointer
-	struct xdd_raw				*td_rawp;          	// RAW Data Structure Pointer
+	struct xint_e2e				*td_e2ep;			// Pointer to the e2e struct when needed
+	struct xint_extended_stats	*td_esp;			// Extended Stats Structure Pointer
+	struct xint_triggers		*td_trigp;			// Triggers Structure Pointer
+	struct xint_data_pattern	*td_dpp;			// Data Pattern Structure Pointer
+	struct xint_raw				*td_rawp;          	// RAW Data Structure Pointer
 	struct lockstep				*td_lsp;			// Pointer to the lockstep structure used by the lockstep option
-	struct restart				*td_restartp;		// Pointer to the restart structure used by the restart monitor
+	struct xint_restart			*td_restartp;		// Pointer to the restart structure used by the restart monitor
 	struct ptds					*td_tdpm1;			// Target_Data minus  1 - used for report print queueing - don't ask 
 #if (LINUX || DARWIN)
 	struct stat					td_statbuf;			// Target File Stat buffer used by xdd_target_open()

@@ -41,18 +41,19 @@
  */
 void
 xdd_io_for_os(worker_data_t *wdp) {
-	target_data_t	*tdp;		// Pointer to the parent Target Data Structure
-	xdd_timestamp_t	*tsp;		// Time Stamp pointer
-	xdd_tthdr_t		*ttp;		// Time Stamp Table Header pointer
+	target_data_t		*tdp;		// Pointer to the parent Target Data Structure
+	xint_timestamp_t	*tsp;		// Time Stamp pointer
+	xdd_tthdr_t			*ttp;		// Time Stamp Table Header pointer
 
-	tdp = wdp->wd_tdp;
-	tsp = wdp->wd_tsp;
-	ttp = wdp->wd_ttp;
+
+	tdp = wdp->wd_tdp;		// Get pointer to the Target Data 
+	tsp = tdp->td_tsp;		// Get pointer to the Time Stamp Variables 
+	ttp = tdp->td_ttp;		// Get pointer to the Time Stamp Table
 
 	// Record the starting time for this write op
 	nclk_now(&wdp->wd_current_op_start_time);
 	// Time stamp if requested
-	if (tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+	if ((tsp) && (tsp->ts_options & (TS_ON | TS_TRIGGERED))) {
 		ttp->tte[tsp->ts_current_entry].disk_start = wdp->wd_current_op_start_time;
 		ttp->tte[tsp->ts_current_entry].disk_processor_start = xdd_get_processor();
 	}
@@ -116,7 +117,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p
 	// Record the ending time for this op 
 	nclk_now(&wdp->wd_current_op_end_time);
 	// Time stamp if requested
-	if (tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+	if ((tsp) && (tsp->ts_options & (TS_ON | TS_TRIGGERED))) {
 		ttp->tte[tsp->ts_current_entry].disk_end = wdp->wd_current_op_end_time;
 		ttp->tte[tsp->ts_current_entry].disk_xfer_size = wdp->wd_current_io_status;
 		ttp->tte[tsp->ts_current_entry].disk_processor_end = xdd_get_processor();
@@ -133,18 +134,19 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p
  */
 void
 xdd_io_for_os(xint_wd_t *wdp) {
-	xint_td_t		*tdp;		// Pointer to the parent Target Data Structure
-	xdd_timestamp_t	*tsp;		// Time Stamp pointer
-	xdd_tthdr_t		*ttp;		// Time Stamp Table Header pointer
+	target_data_t		*tdp;		// Pointer to the parent Target Data Structure
+	xint_timestamp_t	*tsp;		// Time Stamp pointer
+	xdd_tthdr_t			*ttp;		// Time Stamp Table Header pointer
 
-	tdp = wdp->wd_tdp;
-	tsp = wdp->wd_tsp;
-	ttp = wdp->wd_ttp;
+
+	tdp = wdp->wd_tdp;		// Get pointer to the Target Data 
+	tsp = tdp->td_tsp;		// Get pointer to the Time Stamp Variables 
+	ttp = tdp->td_ttp;		// Get pointer to the Time Stamp Table
 
 	// Record the starting time for this write op
 	nclk_now(&wdp->wd_current_op_start_time);
 	// Time stamp if requested
-	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+	if ((tsp) && (tsp->ts_options & (TS_ON | TS_TRIGGERED))) {
 		ttp->tte[tsp->ts_current_entry].disk_start = wdp->wd_current_op_start_time;
 		ttp->tte[tsp->ts_current_entry].disk_processor_start = xdd_get_processor();
 	}
@@ -199,7 +201,7 @@ xdd_io_for_os(xint_wd_t *wdp) {
 	// Record the ending time for this op 
 	nclk_now(&wdp->wd_current_op_end_time);
 	// Time stamp if requested
-	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+	if ((tsp) && (tsp->ts_options & (TS_ON | TS_TRIGGERED))) {
 		ttp->tte[tsp->ts_current_entry].disk_end = wdp->wd_current_op_end_time;
 		ttp->tte[tsp->ts_current_entry].disk_xfer_size = wdp->wd_current_io_status;
 		ttp->tte[tsp->ts_current_entry].disk_processor_end = xdd_get_processor();

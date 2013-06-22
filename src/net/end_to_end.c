@@ -47,12 +47,14 @@
  */
 int32_t
 xdd_e2e_src_send(worker_data_t *wdp) {
+	target_data_t	*tdp;
 	int 	sent;
 	int		sendsize; 
 	int		sentcalls; 
 	int		maxmit;
 
 
+	tdp = wdp->wd_tdp;
 	wdp->wd_e2ep->e2e_header.sendqnum = wdp->wd_thread_number;
 	wdp->wd_e2ep->e2e_header.sequence = wdp->wd_current_op_number;
 	wdp->wd_e2ep->e2e_header.location = wdp->wd_current_byte_location;
@@ -60,11 +62,8 @@ xdd_e2e_src_send(worker_data_t *wdp) {
 
 	// The message header for this data packet is placed after the user data in the buffer
 	memcpy(wdp->wd_current_rwbuf+wdp->wd_current_io_size,&wdp->wd_e2ep->e2e_header, sizeof(wdp->wd_e2ep->e2e_header));
-#ifdef ndef
-	//FIXME
-	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_processor_start = xdd_get_processor();
-#endif
+	if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_processor_start = xdd_get_processor();
 
 	// Note: the wdp->wd_e2ep->e2e_io_size is the size of the data field plus the size of the header
 	maxmit = MAXMIT_TCP;
@@ -80,16 +79,13 @@ fprintf(stderr,"E2E_SOURCE_SIDE_SEND: Sent %d bytes\n",wdp->wd_e2ep->e2e_send_st
 	}
 	nclk_now(&wdp->wd_current_net_end_time);
 	// Time stamp if requested
-#ifdef ndef
-	// FIXME
-	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_xfer_size = wdp->wd_e2ep->e2e_io_size;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_start = wdp->wd_current_net_start_time;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_end = wdp->wd_current_net_end_time;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_processor_end = xdd_get_processor();
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_xfer_calls = sentcalls;
+	if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_xfer_size = wdp->wd_e2ep->e2e_io_size;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_start = wdp->wd_current_net_start_time;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_end = wdp->wd_current_net_end_time;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_processor_end = xdd_get_processor();
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_xfer_calls = sentcalls;
 	}
-#endif
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
 	wdp->wd_e2ep->e2e_sr_time = (wdp->wd_current_net_end_time - wdp->wd_current_net_start_time);
@@ -114,13 +110,13 @@ fprintf(stderr,"E2E_SOURCE_SIDE_SEND: Sent %d bytes\n",wdp->wd_e2ep->e2e_send_st
 int32_t
 xdd_e2e_dest_recv(worker_data_t *wdp) {
 	target_data_t	*tdp;
-	int 	rcvd_so_far;	// Cumulative number of bytes received if multiple recvfrom() invocations are necessary
-	int		recvsize; 		// The number of bytes to receive for this invocation of recvfrom()
-	int		recvcalls; 		// The number of calls to recvfrom() to receive recvsize bytes
-	int		headersize; 	// Size of the E2E Header
-	int		maxmit;			// Maximum TCP transmission size
-	nclk_t 	e2e_wait_1st_msg_start_time; // This is the time stamp of when the first message arrived
-	int		errno_save;		// A copy of the errno
+	int 			rcvd_so_far;	// Cumulative number of bytes received if multiple recvfrom() invocations are necessary
+	int				recvsize; 		// The number of bytes to receive for this invocation of recvfrom()
+	int				recvcalls; 		// The number of calls to recvfrom() to receive recvsize bytes
+	int				headersize; 	// Size of the E2E Header
+	int				maxmit;			// Maximum TCP transmission size
+	nclk_t 			e2e_wait_1st_msg_start_time; // This is the time stamp of when the first message arrived
+	int				errno_save;		// A copy of the errno
 
 
 	tdp = wdp->wd_tdp;
@@ -170,11 +166,8 @@ xdd_e2e_dest_recv(worker_data_t *wdp) {
 	 */
 	for (wdp->wd_e2ep->e2e_current_csd = 0; wdp->wd_e2ep->e2e_current_csd < FD_SETSIZE; wdp->wd_e2ep->e2e_current_csd++) { // Process all CSDs that are ready
 		if (FD_ISSET(wdp->wd_e2ep->e2e_csd[wdp->wd_e2ep->e2e_current_csd], &wdp->wd_e2ep->e2e_readset)) { /* Process this csd */
-#ifdef ndef
-			// FIXME
-			if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
-				p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_processor_start = xdd_get_processor();
-#endif
+			if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
+				tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_processor_start = xdd_get_processor();
 			rcvd_so_far = 0;
                         recvcalls = 0;
 			nclk_now(&wdp->wd_current_net_start_time);
@@ -208,15 +201,12 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 				wdp->wd_e2ep->e2e_wait_1st_msg = wdp->wd_current_net_end_time - e2e_wait_1st_msg_start_time;
 
 			// Timestamp this operation if requested
-#ifdef ndef
-			// FIXME
-			if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-				p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_start = wdp->wd_current_net_start_time;
-				p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_end = wdp->wd_current_net_end_time;
-				p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_processor_end = xdd_get_processor();
-				p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_xfer_calls = recvcalls;
+			if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
+				tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_start = wdp->wd_current_net_start_time;
+				tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_end = wdp->wd_current_net_end_time;
+				tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_processor_end = xdd_get_processor();
+				tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_xfer_calls = recvcalls;
 			}
-#endif
 
 			// If this is the first packet received by this QThread then record the *end* of this operation as the
 			// *start* of this pass. The reason is that the initial recvfrom() may have been issued long before the
@@ -291,18 +281,15 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 			} 
 
    			// If time stamping is on then we need to reset these values
-#ifdef ndef
-			// FIXME
-   			if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-				p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_xfer_size = wdp->wd_e2ep->e2e_recv_status;
-				p->ttp->tte[wdp->wd_tsp->ts_current_entry].byte_location = wdp->wd_e2ep->e2e_header.location;
-				p->ttp->tte[wdp->wd_tsp->ts_current_entry].disk_xfer_size = wdp->wd_e2ep->e2e_header.length;
-				p->ttp->tte[wdp->wd_tsp->ts_current_entry].op_number = wdp->wd_e2ep->e2e_header.sequence;
+   			if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
+				tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_xfer_size = wdp->wd_e2ep->e2e_recv_status;
+				tdp->td_ttp->tte[wdp->wd_ts_current_entry].byte_location = wdp->wd_e2ep->e2e_header.location;
+				tdp->td_ttp->tte[wdp->wd_ts_current_entry].disk_xfer_size = wdp->wd_e2ep->e2e_header.length;
+				tdp->td_ttp->tte[wdp->wd_ts_current_entry].op_number = wdp->wd_e2ep->e2e_header.sequence;
 				if (wdp->wd_e2ep->e2e_header.magic == PTDS_E2E_MAGIQ)
-					 p->ttp->tte[wdp->wd_tsp->ts_current_entry].op_type = SO_OP_EOF;
-				else p->ttp->tte[wdp->wd_tsp->ts_current_entry].op_type = SO_OP_WRITE;
+					 tdp->td_ttp->tte[wdp->wd_ts_current_entry].op_type = SO_OP_EOF;
+				else tdp->td_ttp->tte[wdp->wd_ts_current_entry].op_type = SO_OP_WRITE;
 			}
-#endif
 			return(0);
 
 		} // End of IF stmnt that processes a CSD 
@@ -320,12 +307,14 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
  */
 int32_t
 xdd_e2e_eof_source_side(worker_data_t *wdp) {
-	int 		sent;		// Cumulative number of bytes sent if multiple sendto() invocations are necessary
-	int 		sentcalls;	// Cumulative number of calls      if multiple sendto() invocations are necessary
-	int		sendsize; 	// The number of bytes to send for this invocation of sendto()
-	int		maxmit;		// Maximum TCP transmission size
+	target_data_t	*tdp;
+	int 			sent;		// Cumulative number of bytes sent if multiple sendto() invocations are necessary
+	int 			sentcalls;	// Cumulative number of calls      if multiple sendto() invocations are necessary
+	int				sendsize; 	// The number of bytes to send for this invocation of sendto()
+	int				maxmit;		// Maximum TCP transmission size
 
 
+	tdp = wdp->wd_tdp;
 	maxmit = MAXMIT_TCP;
 
 	nclk_now(&wdp->wd_current_net_start_time);
@@ -340,11 +329,8 @@ xdd_e2e_eof_source_side(worker_data_t *wdp) {
 	// now it must be placed at the end to conform with data message protocol
 	memcpy(wdp->wd_current_rwbuf+wdp->wd_current_io_size, &wdp->wd_e2ep->e2e_header, sizeof(wdp->wd_e2ep->e2e_header));
 
-#ifdef ndef
-//FIXME
-	if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_processor_start = xdd_get_processor();
-#endif
+	if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_processor_start = xdd_get_processor();
 	// This will send the E2E Header to the Destination
 	sent = 0;
 	sentcalls = 0;
@@ -365,20 +351,17 @@ fprintf(stderr,"E2E_EOF_SOURCE_SIDE: Sent %d bytes\n",wdp->wd_e2ep->e2e_send_sta
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
 	wdp->wd_e2ep->e2e_sr_time = (wdp->wd_current_net_end_time - wdp->wd_current_net_start_time);
 	// If time stamping is on then we need to reset these values
-#ifdef ndef
-//FIXME
-   	if ((p->tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_start = wdp->wd_current_net_start_time;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_end = wdp->wd_current_net_end_time;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_processor_end = xdd_get_processor();
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_xfer_size = sent;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].net_xfer_calls = sentcalls;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].byte_location = -1;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].disk_xfer_size = 0;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].op_number = wdp->wd_e2ep->e2e_header.sequence;
-		p->ttp->tte[wdp->wd_tsp->ts_current_entry].op_type = OP_TYPE_EOF;
+   	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_start = wdp->wd_current_net_start_time;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_end = wdp->wd_current_net_end_time;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_processor_end = xdd_get_processor();
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_xfer_size = sent;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].net_xfer_calls = sentcalls;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].byte_location = -1;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].disk_xfer_size = 0;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].op_number = wdp->wd_e2ep->e2e_header.sequence;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].op_type = OP_TYPE_EOF;
 	}
-#endif
 
 
 	if (sent != wdp->wd_e2ep->e2e_io_size) {

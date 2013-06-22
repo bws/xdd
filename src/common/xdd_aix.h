@@ -78,7 +78,7 @@ typedef int  sd_t;  /* A socket descriptor */
 #define DFL_FL_ADDR INADDR_ANY /* Any address */  /* server only */
 #define closesocket(sd) close(sd)
 
-#include "restart.h"
+#include "xint_restart.h"
 
 #include "ptds.h"
  

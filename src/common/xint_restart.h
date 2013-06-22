@@ -31,7 +31,7 @@
 #ifndef RESTART_H
 #define RESTART_H
 
-struct restart {
+struct xint_restart {
 	FILE			*fp;					// File pointer for the restart file
 	char			*restart_filename;		// Name of the restart file
 	char			*source_host;			// Name of the source host
@@ -48,7 +48,7 @@ struct restart {
 	uint64_t		flags;					// Flags with various information as defined below
 	pthread_mutex_t	restart_lock;			// Lock on this structure to serialize updates 
 };
-typedef struct restart restart_t;
+typedef struct xint_restart xint_restart_t;
 // Restart.h flag bit definitions
 #define	RESTART_FLAG_ISSOURCE					0x0000000000000001		// Indicates this is the source side of a copy
 #define	RESTART_FLAG_RESUME_COPY				0x0000000000000002		// Indicates that this is a resumption of a previous copy

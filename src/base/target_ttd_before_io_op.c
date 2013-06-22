@@ -65,8 +65,8 @@ xdd_syncio_before_io_op(target_data_t *tdp) {
 int32_t
 xdd_start_trigger_before_io_op(target_data_t *tdp) {
 	target_data_t			*tdp2;	// Ptr to the Target Data that we need to trigger
-	xdd_triggers_t	*trigp1;
-	xdd_triggers_t	*trigp2;
+	xint_triggers_t	*trigp1;
+	xint_triggers_t	*trigp2;
 	nclk_t			tt;	// Trigger Time
 
 

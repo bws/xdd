@@ -37,8 +37,8 @@
 #endif
 
 // Prototypes
-int xdd_restart_create_restart_file(restart_t *rp);
-int xdd_restart_write_restart_file(restart_t *rp);
+int xdd_restart_create_restart_file(xint_restart_t *rp);
+int xdd_restart_write_restart_file(xint_restart_t *rp);
 
 /*----------------------------------------------------------------------------*/
 // This routine is called to create a new restart file when a new copy 
@@ -59,7 +59,7 @@ int xdd_restart_write_restart_file(restart_t *rp);
 //       $ext is the file extension which is ".rst" for this type of file
 //
 int 
-xdd_restart_create_restart_file(restart_t *rp) {
+xdd_restart_create_restart_file(xint_restart_t *rp) {
 
 	time_t	t;				// Time structure
 	struct 	tm	*tm;		// Pointer to the broken-down time struct that lives in the restart struct
@@ -123,7 +123,7 @@ xdd_restart_create_restart_file(restart_t *rp) {
 // 
 // 
 int
-xdd_restart_write_restart_file(restart_t *rp) {
+xdd_restart_write_restart_file(xint_restart_t *rp) {
 	int		status;
 
 	// Seek to the beginning of the file 
@@ -174,7 +174,7 @@ xdd_restart_monitor(void *data) {
 	target_data_t			*current_tdp;			// The current Target Thread PTDS
 	int64_t 		check_counter;			// The current number of times that we have checked on the progress of a copy
 	xdd_occupant_t	barrier_occupant;		// Used by the xdd_barrier() function to track who is inside a barrier
-	restart_t		*rp;
+	xint_restart_t		*rp;
 	int				status;					// Status of mutex init/lock/unlock calls
 	tot_entry_t		*tep;					// Pointer to an entry in the Target Offset Table
 	int				te;						// TOT Entry number

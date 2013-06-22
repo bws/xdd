@@ -379,20 +379,20 @@ xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t 
 /*----------------------------------------------------------------------------*/
 /* xdd_get_tgtstp() - return a pointer to the State Info Struct 
  */
-xdd_target_state_t * 
-xdd_get_tgtstp(void) {
-	xdd_target_state_t *tgtstp;
+xint_target_state_t * 
+xdd_get_tgtstp(target_data_t *tdp) {
+
 	// Allocate and initialize the target state structure
-	tgtstp = (struct xdd_target_state *)malloc(sizeof(struct xdd_target_state));
-	if (tgtstp == NULL) {
+	tdp->td_tgtstp = (xint_target_state_t *)malloc(sizeof(xint_target_state_t));
+	if (tdp->td_tgtstp == NULL) {
 	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure\n",
-		    xgp->progname, (int)sizeof(struct xdd_target_state));
+		    xgp->progname, (int)sizeof(xint_target_state_t));
 	    return(NULL);
 	}
-	memset((unsigned char *)tgtstp, 0, sizeof(struct xdd_target_state));
-	return(tgtstp);
+	memset((unsigned char *)tdp->td_tgtstp, 0, sizeof(xint_target_state_t));
+	return(tdp->td_tgtstp);
 
-} // Endo f xdd_get_tgtstp()
+} // End of xdd_get_tgtstp()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_get_target_datap() - return a pointer to the PTDS for the specified target
@@ -415,18 +415,18 @@ fprintf(stderr,"GET_PTDSP: Enter: planp=%p, target_number=%d, op=%s\n",planp,tar
 	tdp = planp->target_datap[target_number];
 
 	// Allocate and initialize the target state structure
-	tdp->td_tgtstp = xdd_get_tgtstp();
+	tdp->td_tgtstp = xdd_get_tgtstp(tdp);
 	if (tdp->td_tgtstp == NULL) {
 	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for target %d\n",
-		    xgp->progname, (int)sizeof(struct xdd_target_state), target_number);
+		    xgp->progname, (int)sizeof(xint_target_state_t), target_number);
 	    return(NULL);
 	}
 
 	// Allocate and initialize the data pattern structure
-	tdp->td_dpp = (struct xdd_data_pattern *)malloc(sizeof(struct xdd_data_pattern));
+	tdp->td_dpp = (xint_data_pattern_t *)malloc(sizeof(xint_data_pattern_t));
 	if (tdp->td_dpp == NULL) {
 	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS Data Pattern Structure for target %d\n",
-		    xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
+		    xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
 	    return(NULL);
 	}
 	xdd_data_pattern_init(tdp->td_dpp);
@@ -439,7 +439,7 @@ fprintf(stderr,"GET_PTDSP: Enter: planp=%p, target_number=%d, op=%s\n",planp,tar
 	    	tdp->td_e2ep = xdd_get_e2ep();
 			if (NULL == tdp->td_e2ep) {
 	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
-		    		xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
+		    		xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
 	    		return(NULL);
 			}
 		}
@@ -461,14 +461,14 @@ fprintf(stderr,"GET_PTDSP: Exit: planp=%p, target_number=%d, op=%s, tdp=%p, plan
 /* xdd_get_restartp() - return a pointer to the RESTART structure 
  * for the specified target
  */
-restart_t *
+xint_restart_t *
 xdd_get_restartp(target_data_t *tdp) {
 	
 	if (tdp->td_restartp == 0) { // Since there is no existing Restart Structure, allocate a new one for this target, initialize it, and move on...
-		tdp->td_restartp = malloc(sizeof(struct restart));
+		tdp->td_restartp = malloc(sizeof(xint_restart_t));
 		if (tdp->td_restartp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESTART structure for target %d\n",
-			xgp->progname, (int)sizeof(struct restart), tdp->td_target_number);
+			xgp->progname, (int)sizeof(xint_restart_t), tdp->td_target_number);
 			return(NULL);
 		}
 		memset(tdp->td_restartp, 0, sizeof(*tdp->td_restartp));
@@ -480,14 +480,14 @@ xdd_get_restartp(target_data_t *tdp) {
 /* xdd_get_rawp() - return a pointer to the ReadAfterWrite Data Structure 
  * for the specified target
  */
-xdd_raw_t *
+xint_raw_t *
 xdd_get_rawp(target_data_t *tdp) {
 	
 	if (tdp->td_rawp == 0) { // Since there is no existing RAW structure, allocate a new one for this target, initialize it, and move on...
-		tdp->td_rawp = malloc(sizeof(struct xdd_raw));
+		tdp->td_rawp = malloc(sizeof(xint_raw_t));
 		if (tdp->td_rawp == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RAW structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_raw), tdp->td_target_number);
+			xgp->progname, (int)sizeof(xint_raw_t), tdp->td_target_number);
 			return(NULL);
 		}
 	}
@@ -498,14 +498,14 @@ xdd_get_rawp(target_data_t *tdp) {
 /* xdd_get_trigp() - return a pointer to the Triggers Data Structure 
  * for the specified target
  */
-xdd_triggers_t *
+xint_triggers_t *
 xdd_get_trigp(target_data_t *tdp) {
 	
 	if (tdp->td_trigp == 0) { // Since there is no existing triggers structure, allocate a new one for this target, initialize it, and move on...
-		tdp->td_trigp = malloc(sizeof(struct xdd_triggers));
+		tdp->td_trigp = malloc(sizeof(xint_triggers_t));
 		if (tdp->td_trigp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for xdd_triggers structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_triggers), tdp->td_target_number);
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for TRIGGERS variables for target %d\n",
+			xgp->progname, (int)sizeof(xint_triggers_t), tdp->td_target_number);
 			return(NULL);
 		}
 	}
@@ -516,14 +516,14 @@ xdd_get_trigp(target_data_t *tdp) {
 /* xdd_get_esp() - return a pointer to the Extended Stats Data Structure 
  * for the specified target
  */
-xdd_extended_stats_t *
+xint_extended_stats_t *
 xdd_get_esp(target_data_t *tdp) {
 	
 	if (tdp->td_esp == 0) { // Since there is no existing Extended Stats structure, allocate a new one for this target, initialize it, and move on...
-		tdp->td_esp = malloc(sizeof(struct xdd_extended_stats));
+		tdp->td_esp = malloc(sizeof(xint_extended_stats_t));
 		if (tdp->td_esp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Extended Stats structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_extended_stats), tdp->td_target_number);
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for EXTENDED STATS variables for target %d\n",
+			xgp->progname, (int)sizeof(xint_extended_stats_t), tdp->td_target_number);
 			return(NULL);
 		}
 	}
@@ -531,39 +531,41 @@ xdd_get_esp(target_data_t *tdp) {
 } /* End of xdd_get_esp() */
 
 /*----------------------------------------------------------------------------*/
-/* xdd_get_e2ep() - return a pointer to the xdd_e2e Data Structure 
+/* xdd_get_throtp() - return a pointer to the XDD Throttle Data Structure 
  */
-xdd_e2e_t *
-xdd_get_e2ep(void) {
-	xdd_e2e_t	*e2ep;
-	
-	e2ep = malloc(sizeof(struct xdd_e2e));
-	if (e2ep == NULL) {
-		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for xdd_e2e data structure \n",
-		xgp->progname, (int)sizeof(struct xdd_e2e));
-		return(NULL);
-	}
-	memset(e2ep, 0, sizeof(struct xdd_e2e));
+xint_throttle_t *
+xdd_get_throtp(target_data_t *tdp) {
 
-	return(e2ep);
-} /* End of xdd_get_esp() */
+	if (tdp->td_throtp == 0) { // If there is no existing Time Stamp structure, allocate a new one 
+		tdp->td_throtp = malloc(sizeof(xint_throttle_t));
+		if (tdp->td_throtp == NULL) {
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for THROTTLE variables for target %d\n",
+			xgp->progname, (int)sizeof(xint_throttle_t), tdp->td_target_number);
+			return(NULL);
+		}
+	}
+	return(tdp->td_throtp);
+
+} /* End of xdd_get_throtp() */
 
 /*----------------------------------------------------------------------------*/
-/* xdd_get_tsp() - return a pointer to the timestamp Data Structure 
+/* xdd_get_tsp() - return a pointer to the Time Stamp Variables
  * for the specified target
  */
-xdd_timestamp_t *
+xint_timestamp_t *
 xdd_get_tsp(target_data_t *tdp) {
-	if (tdp->td_tsp == 0) { // Since there is no existing Extended Stats structure, allocate a new one for this target, initialize it, and move on...
-		tdp->td_tsp = malloc(sizeof(struct xdd_timestamp));
+
+	if (tdp->td_tsp == 0) { // If there is no existing Time Stamp structure, allocate a new one 
+		tdp->td_tsp = malloc(sizeof(xint_timestamp_t));
 		if (tdp->td_tsp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for xdd_e2e data structure for target %d\n",
-			xgp->progname, (int)sizeof(struct xdd_timestamp), tdp->td_target_number);
+			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for TIMESTAMP variables for target %d\n",
+			xgp->progname, (int)sizeof(xint_timestamp_t), tdp->td_target_number);
 			return(NULL);
 		}
 	}
 	return(tdp->td_tsp);
-} /* End of xdd_get_esp() */
+
+} /* End of xdd_get_tsp() */
 #if (LINUX)
 /*----------------------------------------------------------------------------*/
 /* xdd_linux_cpu_count() - return the number of CPUs on  this system

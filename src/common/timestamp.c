@@ -67,7 +67,7 @@ xdd_ts_overhead(struct xdd_tthdr *ttp) {
  */
 void
 xdd_ts_setup(target_data_t *tdp) {
-	xdd_timestamp_t	*tsp;
+	xint_timestamp_t	*tsp;
 	nclk_t		cycleval; /* resolution of the clock in nanoseconds per ticl */
 	time_t 		t;  /* Time */
 	int64_t 	tt_entries; /* number of entries inthe time stamp table */
@@ -195,7 +195,7 @@ xdd_ts_setup(target_data_t *tdp) {
  */
 void
 xdd_ts_write(target_data_t *tdp) {
-	xdd_timestamp_t	*tsp;
+	xint_timestamp_t	*tsp;
 	int32_t i;   /* working variable */
 	int32_t ttfd;   /* file descriptor for the timestamp file */
 	int64_t newsize;  /* new size of the time stamp table */
@@ -246,7 +246,7 @@ xdd_ts_cleanup(struct xdd_tthdr *ttp) {
  */
 void
 xdd_ts_reports(target_data_t *tdp) {
-	xdd_timestamp_t	*tsp;
+	xint_timestamp_t	*tsp;
     int32_t  i;  /* working variable */
     int32_t  count;  /* counter for the number of seeks performed */
     int64_t  hi_dist, lo_dist; /* high and low distances traveled */

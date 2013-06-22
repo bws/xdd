@@ -48,7 +48,7 @@
 #define DP_NAME_PATTERN                0x0000000000004000ULL  // Use the specified name at the beginning of the data pattern
 #define DP_RANDOM_BY_TARGET_PATTERN    0x0000000000008000ULL  // Use random data pattern for write operations, seed by target number
 
-struct xdd_data_pattern {
+struct xint_data_pattern {
     // Type of data pattern options to use
     unsigned long long	data_pattern_options;
     // Data pattern for write operations for each target
@@ -66,7 +66,7 @@ struct xdd_data_pattern {
     char *data_pattern_filename; 	// Name of a file that contains a data pattern to use 
     int64_t data_pattern_compare_errors;	// Number of content/sequence compare errors from the verify() subroutines
 }; 
-typedef struct xdd_data_pattern xdd_data_pattern_t;
+typedef struct xint_data_pattern xint_data_pattern_t;
 #ifdef XDD_DATA_PATTERN
 /*----------------------------------------------------------------------------*/
 /* 
@@ -302,7 +302,7 @@ unsigned char cspat[] =  { 0xbc,0x95,0xb5,0xb5, 0xbc,0x95,0xb5,0xb5, 0xbc,0x95,0
  * Initialize memory associated with the data pattern
  * @return 0 on success, otherwise non-zero
  */
-int xdd_data_pattern_init(xdd_data_pattern_t* xdp);
+int xdd_data_pattern_init(xint_data_pattern_t* xdp);
 
 #endif
 /*

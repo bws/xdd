@@ -143,6 +143,7 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 // for an I/O operation to complete before moving on to the next. 
 //
 	while (tdp->td_bytes_remaining) {
+fprintf(stderr,"target_pass_loop: top of loop: target %d, bytes_remaining: %lld\n", tdp->td_target_number, (long long int)tdp->td_bytes_remaining);
 		// Lock Step Processing (located in lockstep.c)
 		// When the -lockstep option is specified, the xdd_lockstep()subroutine 
 		// will perform all I/O operations for a pass. Thus, when xdd_lockstep()
@@ -156,6 +157,7 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 
 		// Get pointer to next Worker Thread to issue a task to
 		wdp = xdd_get_any_available_worker_thread(tdp);
+fprintf(stderr,"target_pass_loop: Getting a worker thread: target %d, wdp=%p\n", tdp->td_target_number, wdp);
 
 		// Things to do before an I/O is issued
 		status = xdd_target_ttd_before_io_op(tdp, wdp);
@@ -167,11 +169,13 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 			break;
 		}
 
+fprintf(stderr,"target_pass_loop: Setting up the task...: target %d, wdp=%p\n", tdp->td_target_number, wdp);
 		// Set up the task for the Worker Thread
 		xdd_targetpass_task_setup(wdp);
 
 		// Release the Worker Thread to let it start working on this task.
 		// This effectively causes the I/O operation to be issued.
+fprintf(stderr,"target_pass_loop: Waking up the worker thread...: target %d, wdp=%p\n", tdp->td_target_number, wdp);
 		xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&tdp->td_occupant,0);
 
 	} // End of WHILE loop that transfers data for a single pass
@@ -236,7 +240,7 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 
    	// If time stamping is on then assign a time stamp entry to this Worker Thread
    	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-		wdp->wd_tsp->ts_current_entry = tdp->td_tsp->ts_current_entry;	
+		wdp->wd_ts_current_entry = tdp->td_tsp->ts_current_entry;	
 		tdp->td_tsp->ts_current_entry++;
 		if (tdp->td_tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
 			if (tdp->td_tsp->ts_current_entry == tdp->td_tsp->ts_size)
@@ -244,12 +248,12 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 		} else if (tdp->td_tsp->ts_options & TS_WRAP) {
 			tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
-		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].pass_number = tdp->td_tgtstp->my_current_pass_number;
-		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].worker_thread_number = wdp->wd_thread_number;
-		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].thread_id     = wdp->wd_thread_id;
-		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].op_type = tdp->td_tgtstp->my_current_op_type;
-		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].op_number = tdp->td_tgtstp->target_op_number;
-		wdp->wd_ttp->tte[wdp->wd_tsp->ts_current_entry].byte_location = tdp->td_tgtstp->my_current_byte_location;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].pass_number = tdp->td_tgtstp->my_current_pass_number;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].worker_thread_number = wdp->wd_thread_number;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].thread_id = wdp->wd_thread_id;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].op_type = tdp->td_tgtstp->my_current_op_type;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].op_number = tdp->td_tgtstp->target_op_number;
+		tdp->td_ttp->tte[wdp->wd_ts_current_entry].byte_location = tdp->td_tgtstp->my_current_byte_location;
 	}
 	// Update the pointers/counters in the Target PTDS to get 
 	// ready for the next I/O operation

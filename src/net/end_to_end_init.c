@@ -44,7 +44,7 @@
  */
 int32_t
 xdd_e2e_target_init(target_data_t *tdp) {
-	restart_t	*rp;	// pointer to a restart structure
+	xint_restart_t	*rp;	// pointer to a restart structure
 	int status;
 
 	// Init the sockets - This is actually just for Windows that requires some additional initting
@@ -520,6 +520,24 @@ xdd_sockets_init(void) {
 	return(0);
 
 } /* end of xdd_sockets_init() */
+
+/*----------------------------------------------------------------------------*/
+/* xdd_get_e2ep() - return a pointer to the xdd_e2e Data Structure 
+ */
+xint_e2e_t *
+xdd_get_e2ep(void) {
+	xint_e2e_t	*e2ep;
+	
+	e2ep = malloc(sizeof(xint_e2e_t));
+	if (e2ep == NULL) {
+		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for E2E data structure \n",
+		xgp->progname, (int)sizeof(xint_e2e_t));
+		return(NULL);
+	}
+	memset(e2ep, 0, sizeof(xint_e2e_t));
+
+	return(e2ep);
+} /* End of xdd_get_e2ep() */
 
 /*
  * Local variables:

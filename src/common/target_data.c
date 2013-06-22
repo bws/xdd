@@ -125,7 +125,7 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 	}
 
 	if (tdp->td_tgtstp) 
-		memset((unsigned char *)tdp->td_tgtstp, 0, sizeof(struct xdd_target_state));
+		memset((unsigned char *)tdp->td_tgtstp, 0, sizeof(xint_target_state_t));
 
 	sprintf(tdp->td_occupant_name,"TARGET%04d",tdp->td_target_number);
 	xdd_init_barrier_occupant(&tdp->td_occupant, tdp->td_occupant_name, XDD_OCCUPANT_TYPE_TARGET, tdp);
@@ -211,27 +211,24 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
 			xgp->progname, tdp->td_target_number, q);
 		return(NULL);
 	}
+	memset((unsigned char *)wdp, 0, sizeof(struct xint_worker_data));
 	wdp->wd_tdp = tdp;
 	wdp->wd_next_wdp = NULL; 
 	wdp->wd_thread_number = q;
-	wdp->wd_sgiop = xdd_get_sgiop(wdp);
-	// Allocate and initialize the Target_State structure
-	wdp->wd_tgtstp = xdd_get_tgtstp();
-	if (wdp->wd_tgtstp == NULL) {
-	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for qthread %d\n",
-		    xgp->progname, (int)sizeof(struct xdd_target_state), q);
-	    return(NULL);
-	}
+	if (tdp->td_target_options & TO_SGIO)
+		wdp->wd_sgiop = xdd_get_sgiop(wdp);
+	else wdp->wd_sgiop = NULL;
+
 	// Allocate and initialize the End-to-End structure if needed
 	if (tdp->td_target_options & TO_ENDTOEND) {
 	   	wdp->wd_e2ep = xdd_get_e2ep();
 		if (NULL == wdp->wd_e2ep) {
 	   		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for WORKER_DATA END TO END Data Structure for worker %d\n",
-	    		xgp->progname, (int)sizeof(struct xdd_data_pattern), q);
+	    		xgp->progname, (int)sizeof(xint_data_pattern_t), q);
 	   		return(NULL);
 		}
 		if (tdp->td_e2ep)
-			memcpy(wdp->wd_e2ep, tdp->td_e2ep, sizeof(struct xdd_e2e));
+			memcpy(wdp->wd_e2ep, tdp->td_e2ep, sizeof(xint_e2e_t));
 	}
 
 	sprintf(wdp->wd_occupant_name,"TARGET%04d_WORKER%04d",tdp->td_target_number,wdp->wd_thread_number); 
@@ -286,6 +283,7 @@ xdd_build_target_data_substructure(xdd_plan_t* planp) {
 	int32_t 		target_number;	// working variable 
 	target_data_t	*tdp;			// Target Data pointer
 	worker_data_t	*wdp;			// Worker Data pointer
+	worker_data_t	*prev_wdp;		// Previous Worker Data pointer
 
 	
 	/* For each target check to see if we need to add worker_data structures for queue-depths greater than 1 */
@@ -307,16 +305,17 @@ xdd_build_target_data_substructure(xdd_plan_t* planp) {
 		xdd_calculate_xfer_info(tdp);
 
 		// Allocate a shiney new PTDS for each qthread 
+		prev_wdp = NULL;
 		for (q = 0; q < tdp->td_queue_depth; q++ ) {
 			// Increament the number of iothreads
             planp->number_of_iothreads++;
                     
 			// Get a new Worker Data and have the previous Worker Data point to it.
 			wdp = xdd_create_worker_data(tdp,q);
-			if (wdp->wd_next_wdp == NULL) break;
 			if (q == 0) // The first worker_data struct is anchored in the target_data struct
 				 tdp->td_next_wdp = wdp;
-			else wdp->wd_next_wdp = wdp;
+			else prev_wdp->wd_next_wdp = wdp; // Chain this wdp off the previous wdp
+			prev_wdp = wdp;
 		} // End of FOR loop that adds all Worker_Datas to a Target_Data linked list
 
 	} // End of FOR loop that builds Worker_Datas for each Target_Data

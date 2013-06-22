@@ -236,7 +236,7 @@ xdd_target_info(FILE *out, target_data_t *tdp) {
 	int 				i;
 	//ptds_t 				*masterp, *slavep;
 	//lockstep_t			*master_lsp, *slave_lsp;
-	xdd_data_pattern_t	*dpp;
+	xint_data_pattern_t	*dpp;
 
 
 	fprintf(out,"\tTarget number, %d\n",tdp->td_target_number);
@@ -260,8 +260,12 @@ xdd_target_info(FILE *out, target_data_t *tdp) {
 	else if (tdp->td_target_options & TO_ORDERING_STORAGE_LOOSE) 
 		fprintf(out,"loose\n");
 	else fprintf(out,"none\n");
-	fprintf(out,"\t\tThrottle in %s is, %6.2f\n",
-		(tdp->td_throtp->throttle_type & XINT_THROTTLE_OPS)?"ops/sec":((tdp->td_throtp->throttle_type & XINT_THROTTLE_BW)?"MB/sec":"Delay"), tdp->td_throtp->throttle);
+	if (tdp->td_throtp) {
+		fprintf(out,"\t\tThrottle in %s is, %6.2f\n",
+			(tdp->td_throtp->throttle_type & XINT_THROTTLE_OPS)?"ops/sec":((tdp->td_throtp->throttle_type & XINT_THROTTLE_BW)?"MB/sec":"Delay"), tdp->td_throtp->throttle);
+	} else {
+		fprintf(out,"\t\tThrottle is unrestricted\n");
+	}
 	fprintf(out,"\t\tPer-pass time limit in seconds, %f\n",tdp->td_time_limit);
 	fprintf(out,"\t\tPass seek randomization, %s", (tdp->td_target_options & TO_PASS_RANDOMIZE)?"enabled\n":"disabled\n");
 	fprintf(out,"\t\tFile write synchronization, %s", (tdp->td_target_options & TO_SYNCWRITE)?"enabled\n":"disabled\n");

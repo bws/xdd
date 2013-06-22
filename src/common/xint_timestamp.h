@@ -122,7 +122,7 @@ typedef struct xdd_tthdr xdd_tthdr_t;
 #define DEFAULT_TS_OPTIONS 0x00000000
 
 // The timestamp structure is pointed to from the ptds. 
-struct xdd_timestamp {
+struct xint_timestamp {
 	uint64_t			ts_options;  			// Time Stamping Options 
 	int64_t				ts_current_entry; 		// Index into the Timestamp Table of the current entry
 	int64_t				ts_size;  				// Time Stamping Size in number of entries 
@@ -131,7 +131,7 @@ struct xdd_timestamp {
 	char				*ts_binary_filename; 	// Timestamp filename for the binary output file for this Target
 	char				*ts_output_filename; 	// Timestamp report output filename for this Target
 };
-typedef struct xdd_timestamp xdd_timestamp_t;
+typedef struct xint_timestamp xint_timestamp_t;
 
 /*
  * Local variables:

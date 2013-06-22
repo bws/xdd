@@ -32,7 +32,7 @@
 #define TRIGGER_STARTOP      0x00000002				// Trigger type of "op" 
 #define TRIGGER_STARTPERCENT 0x00000004				// Trigger type of "percent" 
 #define TRIGGER_STARTBYTES   0x00000008				// Trigger type of "bytes" 
-struct	xdd_triggers	{
+struct	xint_triggers	{
     // -------------------------------------------------------------------
 	// The following variables are used to implement the various trigger options 
 	nclk_t        		start_trigger_time; 		// Time to trigger another target to start 
@@ -49,7 +49,7 @@ struct	xdd_triggers	{
 	char				run_status;					// 0= this thread is not running, 1=running
 	xdd_barrier_t		target_target_starttrigger_barrier;	// Start Trigger Barrier 
 };
-typedef struct xdd_triggers xdd_triggers_t;
+typedef struct xint_triggers xint_triggers_t;
 
 /*
  * Local variables:

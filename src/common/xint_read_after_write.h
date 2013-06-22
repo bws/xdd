@@ -41,7 +41,7 @@ struct xdd_raw_msg {
 }; 
 typedef struct xdd_raw_msg xdd_raw_msg_t;
 
-struct	xdd_raw	{
+struct	xint_raw	{
 	char				*raw_myhostname; 		// Hostname of the reader machine as seen by the reader 
 	char				*raw_hostname; 			// Name of the host doing the reading in a read-after-write 
 	struct hostent 		*raw_hostent; 			// for the reader/writer host information 
@@ -70,7 +70,7 @@ struct	xdd_raw	{
 	int64_t				raw_data_ready; 		// The amount of data that is ready to be read in an RAW op 
 	int64_t				raw_data_length; 		// The amount of data that is ready to be read for this operation 
 }; 
-typedef struct xdd_raw xdd_raw_t;
+typedef struct xint_raw xint_raw_t;
 /*
  * Local variables:
  *  indent-tabs-mode: t

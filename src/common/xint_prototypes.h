@@ -31,7 +31,7 @@
 #ifndef XINT_PROTOTYPES_H
 #define XINT_PROTOTYPES_H
 
-#include "restart.h"
+#include "xint_restart.h"
 #include "xint_plan.h"
 #include "xint_global_data.h"
 
@@ -148,23 +148,24 @@ void	xdd_unlock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 int32_t	xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result);
 
 // parse.c
-void				xdd_parse_args(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags);
-void				xdd_parse(xdd_plan_t* planp, int32_t argc, char *argv[]);
-void				xdd_usage(int32_t fullhelp);
-int 				xdd_check_option(char *op);
-int32_t				xdd_process_paramfile(xdd_plan_t* planp, char *fnp);
-int 				xdd_parse_target_number(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags, int *target_number);
-xdd_target_state_t 	*xdd_get_tgtstp(void);
+void					xdd_parse_args(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags);
+void					xdd_parse(xdd_plan_t* planp, int32_t argc, char *argv[]);
+void					xdd_usage(int32_t fullhelp);
+int 					xdd_check_option(char *op);
+int32_t					xdd_process_paramfile(xdd_plan_t* planp, char *fnp);
+int 					xdd_parse_target_number(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags, int *target_number);
+xint_target_state_t 	*xdd_get_tgtstp(target_data_t *tdp);
 target_data_t 		*xdd_get_target_datap(xdd_plan_t* planp, int32_t target_number, char *op);
-restart_t 			*xdd_get_restartp(target_data_t *p);
-xdd_raw_t			*xdd_get_rawp(target_data_t *p);
-xdd_e2e_t 			*xdd_get_e2ep(void);
-xdd_timestamp_t		*xdd_get_tsp(target_data_t *p);
-xdd_triggers_t 		*xdd_get_trigp(target_data_t *p);
-xdd_extended_stats_t *xdd_get_esp(target_data_t *p);
-int32_t				xdd_linux_cpu_count(void);
-int32_t				xdd_cpu_count(void);
-int32_t				xdd_atohex(unsigned char *destp, char *sourcep);
+xint_restart_t 			*xdd_get_restartp(target_data_t *tdp);
+xint_raw_t				*xdd_get_rawp(target_data_t *tdp);
+xint_e2e_t 				*xdd_get_e2ep(void);
+xint_throttle_t 		*xdd_get_throtp(target_data_t *tdp);
+xint_timestamp_t		*xdd_get_tsp(target_data_t *tdp);
+xint_triggers_t 		*xdd_get_trigp(target_data_t *tdp);
+xint_extended_stats_t 	*xdd_get_esp(target_data_t *tdp);
+int32_t					xdd_linux_cpu_count(void);
+int32_t					xdd_cpu_count(void);
+int32_t					xdd_atohex(unsigned char *destp, char *sourcep);
 
 // parse_func.c
 int32_t	xdd_parse_arg_count_check(int32_t args, int32_t argc, char *option);
@@ -239,8 +240,8 @@ int32_t	xdd_raw_writer_init(target_data_t *tdp);
 int32_t	xdd_raw_writer_send_msg(worker_data_t *wdp);
 
 // restart.c
-int	xdd_restart_create_restart_file(restart_t *rp);
-int	xdd_restart_write_restart_file(restart_t *rp);
+int	xdd_restart_create_restart_file(xint_restart_t *rp);
+int	xdd_restart_write_restart_file(xint_restart_t *rp);
 void 	*xdd_restart_monitor(void *junk);
 
 // results_display.c

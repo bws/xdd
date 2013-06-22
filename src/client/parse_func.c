@@ -766,7 +766,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	    	tdp->td_e2ep = xdd_get_e2ep();
 			if (NULL == tdp->td_e2ep) {
 	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
-		    		xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
+		    		xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
 	    		return(-1);
 			}
 		}
@@ -778,7 +778,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	    		tdp->td_e2ep = xdd_get_e2ep();
 				if (NULL == tdp->td_e2ep) {
 	    			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
-		    			xgp->progname, (int)sizeof(struct xdd_data_pattern), target_number);
+		    			xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
 	    			return(-1);
 				}
 			}
@@ -2714,11 +2714,11 @@ xddfunc_randomize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_readafterwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
-    int			 i;
-    int			args; 
-    int			target_number;
-	xdd_raw_t	*rawp;
-    target_data_t		*tdp;
+    int			 	i;
+    int				args; 
+    int				target_number;
+	xint_raw_t		*rawp;
+    target_data_t	*tdp;
 
 	i = 1;
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
@@ -2952,12 +2952,12 @@ xddfunc_reqsize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
-    int 		i; 
-    int 		args; 
-    int 		args_index;
-    int 		target_number;
-    target_data_t 		*tdp;
-	restart_t	*rp;
+    int 			i; 
+    int 			args; 
+    int 			args_index;
+    int 			target_number;
+    target_data_t 	*tdp;
+	xint_restart_t	*rp;
 
 
 	args_index = 1;
@@ -3777,7 +3777,7 @@ xddfunc_starttrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fla
 {
     int 			t1,t2;				// Target numbers
     target_data_t 			*tdp1, *tdp2;			// PTDS pointers for the two targets involved
-    xdd_triggers_t 	*trigp;				// Trigger Stucture pointers for the this target
+    xint_triggers_t 	*trigp;				// Trigger Stucture pointers for the this target
     char 			*when;				// The "When" to perform a trigger
     double 			tmpf;				// temp
 
@@ -3872,8 +3872,8 @@ int
 xddfunc_stoptrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int 			t1,  t2;			// Target numbers
-    target_data_t 			*tdp1;				// PTDS pointers for the target 
-    xdd_triggers_t 	*trigp;				// Trigger Stucture pointers for the this target
+    target_data_t 	*tdp1;				// PTDS pointers for the target 
+    xint_triggers_t	*trigp;				// Trigger Stucture pointers for the this target
     char 			*when;				// The "When" to perform a trigger
     double 			tmpf;				// temp
 
@@ -4399,7 +4399,7 @@ xddfunc_timestamp(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	int args, args_index; 
 	int target_number;
 	target_data_t *tdp;
-	xdd_timestamp_t *tsp;
+	xint_timestamp_t *tsp;
 
 
 	args_index = 1;

@@ -30,7 +30,7 @@
  */
 #include "xint_nclk.h"
 #include "xint_plan.h"
-struct xdd_target_state {
+struct xint_target_state {
 	// Time stamps and timing information - RESET AT THE START OF EACH PASS (or Operation on some)
 	nclk_t				my_pass_start_time; 		// The time stamp that this pass started but before the first operation is issued
 	nclk_t				my_pass_end_time; 			// The time stamp that this pass ended 
@@ -98,7 +98,7 @@ struct xdd_target_state {
 #define	CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO		0x0000000000000800	// Waiting on the previous I/O op semaphore
 
 };
-typedef struct xdd_target_state xdd_target_state_t;
+typedef struct xint_target_state xint_target_state_t;
 
 /*
  * Local variables:

@@ -270,7 +270,7 @@ xdd_e2e_after_io_op(worker_data_t *wdp) {
  */
 void 
 xdd_extended_stats(worker_data_t *wdp) {
-	xdd_extended_stats_t	*esp;
+	xint_extended_stats_t	*esp;
 	target_data_t	*tdp;
 
 

@@ -154,7 +154,7 @@ xdd_start_delay_before_pass(target_data_t *tdp) {
  */
 void
 xdd_raw_before_pass(target_data_t *tdp) {
-	xdd_raw_t		*rawp;
+	xint_raw_t		*rawp;
 
 	if ((tdp->td_target_options & TO_READAFTERWRITE) == 0)
 		return;
