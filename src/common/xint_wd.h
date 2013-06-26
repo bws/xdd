@@ -61,6 +61,7 @@ struct xint_worker_data {
 	char						*wd_current_op_str; 		// Pointer to an ASCII string of the I/O operation type - "READ", "WRITE", or "NOOP"
 	int32_t						wd_current_op_type; 		// Current I/O operation type - OP_TYPE_READ or OP_TYPE_WRITE
 	int64_t						wd_current_error_count;		// The number of I/O errors for this qthread
+	int32_t						wd_current_io_errno; 		// The errno associated with the status of this I/O for this thread
 	unsigned char 				*wd_current_rwbuf;   		// Pointer to the current read/write buffer
 	int32_t						wd_rwbuf_shmid; 			// Shared Memory ID
 	int64_t						wd_ts_current_entry;		// The TimeStamp entry to use when time-stamping an operation

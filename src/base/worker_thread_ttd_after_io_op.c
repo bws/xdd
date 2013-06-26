@@ -83,30 +83,30 @@ xdd_status_after_io_op(worker_data_t *wdp) {
 	tdp = wdp->wd_tdp;
 
 	/* Check for errors in the last operation */
-	if ((tdp->td_tgtstp->my_current_error_count > 0) && (xgp->global_options & GO_STOP_ON_ERROR)) {
+	if ((wdp->wd_current_error_count > 0) && (xgp->global_options & GO_STOP_ON_ERROR)) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d Worker Thread %d: ERROR: Error on this target caused a Stop_On_Error Event\n",
 			xgp->progname,
 			tdp->td_target_number, 
 			wdp->wd_thread_number);
 	}
 
-	if (tdp->td_tgtstp->my_current_error_count >= xgp->max_errors) {
+	if (wdp->wd_current_error_count >= xgp->max_errors) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d Worker Thread %d: WARNING: Maximum error threshold reached on target - current error count is %lld, maximum count is %lld\n",
 			xgp->progname,
 			tdp->td_target_number,
 			wdp->wd_thread_number,
-			(long long int)tdp->td_tgtstp->my_current_error_count,
+			(long long int)wdp->wd_current_error_count,
 			(long long int)xgp->max_errors);
 	}
 
-	if ((tdp->td_tgtstp->my_current_io_status == 0) && (tdp->td_tgtstp->my_current_io_errno == 0)) {
+	if ((wdp->wd_current_io_status == 0) && (wdp->wd_current_io_errno == 0)) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d Worker Thread %d: WARNING: End-Of-File reached on target named '%s' status=%d, errno=%d\n",
 			xgp->progname,
 			tdp->td_target_number,
 			wdp->wd_thread_number,
 			tdp->td_target_full_pathname,
-			tdp->td_tgtstp->my_current_io_status, 
-			tdp->td_tgtstp->my_current_io_errno);
+			wdp->wd_current_io_status, 
+			wdp->wd_current_io_errno);
 	}
 
 } // End of xdd_status_after_io_op(wdp) 

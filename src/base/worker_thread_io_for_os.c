@@ -51,6 +51,7 @@ xdd_io_for_os(worker_data_t *wdp) {
 	tsp = tdp->td_tsp;		// Get pointer to the Time Stamp Variables 
 	ttp = tdp->td_ttp;		// Get pointer to the Time Stamp Table
 
+fprintf(xgp->errout,"\n%s: xdd_io_for_os: Target %d Worker Thread %d: ENTER: tdp=%p, wdp=%p, target_options=0x%016llx, wd_current_op_type=%x\n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp, (long long int)tdp->td_target_options,wdp->wd_current_op_type);
 	// Record the starting time for this write op
 	nclk_now(&wdp->wd_current_op_start_time);
 	// Time stamp if requested
@@ -72,7 +73,7 @@ xdd_io_for_os(worker_data_t *wdp) {
 			if ((tdp->td_target_options & TO_SGIO)) 
 			 	wdp->wd_current_io_status = xdd_sg_io(wdp,'w'); // Issue the SGIO operation 
 			else if (!(tdp->td_target_options & TO_NULL_TARGET)) {
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: WRITE target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,tdp->td_target_number,(long long int)wdp->wd_current_byte_location);
+fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: WRITE target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,tdp->td_target_number,(long long int)wdp->wd_current_byte_location);
                 wdp->wd_current_io_status = pwrite(wdp->wd_file_desc,
                                                           wdp->wd_current_rwbuf,
                                                           wdp->wd_current_io_size,
@@ -91,7 +92,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p
 			if ((tdp->td_target_options & TO_SGIO)) 
 			 	wdp->wd_current_io_status = xdd_sg_io(wdp,'r'); // Issue the SGIO operation 
 			else if (!(tdp->td_target_options & TO_NULL_TARGET)) {
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: READ target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,tdp->td_target_number,(long long int)wdp->wd_current_byte_location);
+fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: READ target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,tdp->td_target_number,(long long int)wdp->wd_current_byte_location);
                             wdp->wd_current_io_status = pread(wdp->wd_file_desc,
                                                                wdp->wd_current_rwbuf,
                                                                wdp->wd_current_io_size,
@@ -101,7 +102,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p
                                                               wdp->wd_current_io_size);// Issue a normal read() operation
 		}
 	
-// TMR _ NEED TO FIX THIS FIXME
+// FIXME _ NEED TO FIX THIS 
 //		if (p->td_target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
 //			wdp->dpp->data_pattern_compare_errors += xdd_verify(wdp, wdp->wdrget_op_number);
 //		}
@@ -123,6 +124,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p
 		ttp->tte[tsp->ts_current_entry].disk_xfer_size = wdp->wd_current_io_status;
 		ttp->tte[tsp->ts_current_entry].disk_processor_end = xdd_get_processor();
 	}
+fprintf(xgp->errout,"\n%s: xdd_io_for_os: Target %d Worker Thread %d: EXIT: tdp=%p, wdp=%p, wd_current_io_status=%d\n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp,wdp->wd_current_io_status);
 
 } // End of xdd_io_for_linux()
 #endif 
