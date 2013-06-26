@@ -5066,6 +5066,20 @@ fi
 done
 
 
+for ac_header in scsi/sg.h
+do :
+  ac_fn_c_check_header_compile "$LINENO" "scsi/sg.h" "ac_cv_header_scsi_sg_h" "/usr/include
+"
+if test "x$ac_cv_header_scsi_sg_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_SCSI_SG_H 1
+_ACEOF
+
+fi
+
+done
+
+
 install_prefix='/opt/xdd'
 
 

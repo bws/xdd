@@ -374,6 +374,11 @@ dnl
 AC_CHECK_HEADERS([gtest/gtest.h], [], [], [/opt/local/includes])
 
 dnl
+dnl Search for the SCSI Generic I/O interface
+dnl
+AC_CHECK_HEADERS([scsi/sg.h], [], [], [/usr/include])
+
+dnl
 dnl Set the default installation prefix
 dnl
 install_prefix='/opt/xdd'

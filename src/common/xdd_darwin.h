@@ -81,6 +81,6 @@ typedef int  sd_t;  /* A socket descriptor */
 #define DFL_FL_ADDR INADDR_ANY /* Any address */  /* server only */
 #define closesocket(sd) close(sd)
 //static bool  sockets_init(void);
-#include "ptds.h"
+#include "xint_plan.h"
 
 #endif

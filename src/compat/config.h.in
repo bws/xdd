@@ -103,6 +103,12 @@
 /* Define to 1 if you have the <sched.h> header file. */
 #undef HAVE_SCHED_H
 
+/* Define to 1 if you have the <sched.h> header file. */
+#undef HAVE_SCSI_SG_H
+
+/* Define to 1 if you have the <sched.h> header file. */
+#undef HAVE_GTEST_GTEST_H
+
 /********************************************************************************
  * Defines for functions
  *******************************************************************************/

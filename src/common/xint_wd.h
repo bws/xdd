@@ -28,6 +28,8 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef XINT_WD_H
+#define XINT_WD_H
 
 // Worker Thread Data Structure - one for each worker thread 
 struct xint_worker_data {
@@ -97,6 +99,8 @@ struct xint_buf_mgt {
 	int32_t						bm_iobuffersize; 	// Size of the I/O buffer in bytes 
 };
 typedef struct xint_buf_mgt xint_buf_mgt_t;
+
+#endif
 /*
  * Local variables:
  *  indent-tabs-mode: t

@@ -215,10 +215,17 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
 	wdp->wd_tdp = tdp;
 	wdp->wd_next_wdp = NULL; 
 	wdp->wd_thread_number = q;
-	if (tdp->td_target_options & TO_SGIO)
-		wdp->wd_sgiop = xdd_get_sgiop(wdp);
-	else wdp->wd_sgiop = NULL;
-
+        wdp->wd_sgiop = NULL;
+        
+	if (tdp->td_target_options & TO_SGIO) {
+#if HAVE_SCSI_SG_H
+            wdp->wd_sgiop = xdd_get_sgiop(wdp);
+#else
+            fprintf(xgp->errout, "%s: ERROR: Cannot use SCSI Generic I/O\n", xgp->progname);
+            return(NULL);
+        }
+#endif
+        
 	// Allocate and initialize the End-to-End structure if needed
 	if (tdp->td_target_options & TO_ENDTOEND) {
 	   	wdp->wd_e2ep = xdd_get_e2ep();

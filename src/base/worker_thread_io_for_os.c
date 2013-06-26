@@ -32,6 +32,7 @@
  * This file contains the subroutines that support the Target threads.
  */
 #include "xint.h"
+#include "xint_wd.h"
 
 #if defined LINUX
 /*----------------------------------------------------------------------------*/
@@ -100,7 +101,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p
                                                               wdp->wd_current_io_size);// Issue a normal read() operation
 		}
 	
-// TMR _ NEED TO FIX THIS 
+// TMR _ NEED TO FIX THIS FIXME
 //		if (p->td_target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
 //			wdp->dpp->data_pattern_compare_errors += xdd_verify(wdp, wdp->wdrget_op_number);
 //		}
@@ -133,7 +134,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p
  * and any error recovery or post processing necessary.
  */
 void
-xdd_io_for_os(xint_wd_t *wdp) {
+xdd_io_for_os(worker_data_t *wdp) {
 	target_data_t		*tdp;		// Pointer to the parent Target Data Structure
 	xint_timestamp_t	*tsp;		// Time Stamp pointer
 	xdd_tthdr_t			*ttp;		// Time Stamp Table Header pointer
@@ -184,11 +185,11 @@ xdd_io_for_os(xint_wd_t *wdp) {
                                                               wdp->wd_current_rwbuf,
                                                               wdp->wd_current_io_size);// Issue a normal read() operation
 		}
-	
-		if (p->td_target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
-			wdp->dpp->data_pattern_compare_errors += xdd_verify(wdp, wdp->wdrget_op_number);
+/* FIXME	
+		if (tdp->td_target_options & (TO_VERIFY_CONTENTS | TO_VERIFY_LOCATION)) {
+			wdp->wd_tdp->data_pattern_compare_errors += xdd_verify(wdp, wdp->wdrget_op_number);
 		}
-	
+*/	
 	} else {  // Must be a NOOP
 		// The NOOP is used to test the overhead usage of XDD when no actual I/O is done
 		wdp->wd_current_op_str = "NOOP";
