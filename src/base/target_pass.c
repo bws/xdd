@@ -212,6 +212,7 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	target_data_t	*tdp;
 
 	tdp = wdp->wd_tdp;
+fprintf(stderr,"targetpass_target_setup: ENTER: target %d, bytes_remaining: %lld, current_byte_location=%lld, op#=%lld, op=%x, \n", tdp->td_target_number, (long long int)tdp->td_bytes_remaining, (long long int)tdp->td_tgtstp->my_current_byte_location, (long long int)tdp->td_tgtstp->my_current_op_number, tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation);
 	// Assign an IO task to this worker thread
 	wdp->wd_task_request = TASK_REQ_IO;
 
@@ -219,12 +220,13 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	wdp->wd_file_desc = tdp->td_file_desc;
 
 	// Set the Operation Type
-	if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_WRITE) // Write Operation
+	if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_WRITE)  // Write Operation
 		tdp->td_tgtstp->my_current_op_type = OP_TYPE_WRITE;
-	else if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_READ) // READ Operation
+	else if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_READ)  // READ Operation
 		tdp->td_tgtstp->my_current_op_type = OP_TYPE_READ;
-	else tdp->td_tgtstp->my_current_op_type = OP_TYPE_NOOP;
-
+	else  
+		tdp->td_tgtstp->my_current_op_type = OP_TYPE_NOOP;
+	 
 	// Figure out the transfer size to use for this I/O
 	if (tdp->td_bytes_remaining < tdp->td_io_size)
 		tdp->td_tgtstp->my_current_io_size = tdp->td_bytes_remaining;
@@ -237,6 +239,11 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	tdp->td_tgtstp->target_op_number = tdp->td_tgtstp->my_current_op_number;
 	if (tdp->td_tgtstp->my_current_op_number == 0) 
 		nclk_now(&tdp->td_tgtstp->my_first_op_start_time);
+
+	// Put these values into the Worker Data structure 
+	wdp->wd_current_op_type = tdp->td_tgtstp->my_current_op_type;
+	wdp->wd_current_io_size = tdp->td_tgtstp->my_current_io_size;
+	wdp->wd_current_op_number = tdp->td_tgtstp->my_current_op_number;
 
    	// If time stamping is on then assign a time stamp entry to this Worker Thread
    	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {

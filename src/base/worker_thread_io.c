@@ -56,6 +56,7 @@ xdd_worker_thread_io(worker_data_t *wdp) {
 	// Get the pointer to the Target's PTDS
 	tdp = wdp->wd_tdp;
 
+fprintf(xgp->errout,"\n%s: xdd_worker_thread_io: Target %d Worker Thread %d: ENTER: tdp=%p, wdp=%p\n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp);
 	// Do the things that need to get done before the I/O is started
 	// If this is the Destination Side of an End-to-End (E2E) operation, the xdd_worker_thread_ttd_before_io_op()
 	// subroutine will perform the "recvfrom()" operation to get the data from the Source Side
@@ -262,6 +263,62 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 	// Get the pointer to the Target's PTDS
 	tdp = wdp->wd_tdp;
 
+//	wdp->wd_current_op_elapsed_time = (wdp->wd_current_op_end_time - wdp->wd_current_op_start_time);
+//	wdp->wd_accumulated_op_time += wdp->wd_current_op_elapsed_time;
+	wdp->wd_current_io_errno = errno;
+	wdp->wd_current_error_count = 0;
+	if (wdp->wd_current_io_status == wdp->wd_current_io_size) { // Status is GOOD - update counters
+fprintf(xgp->errout,"\n%s: xdd_worker_thread_update_local_counters: Target %d Worker Thread %d: STATUS GOOD: tdp=%p, wdp=%p\n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp);
+//		tdp->td_tgtstp->my_current_bytes_xfered_this_op = tdp->td_tgtstp->my_current_io_size;
+//		tdp->td_tgtstp->my_current_bytes_xfered += tdp->td_tgtstp->my_current_io_size;
+//		tdp->td_tgtstp->my_current_op_count++;
+		// Operation-specific counters
+//		switch (wdp->wd_current_op_type) { 
+//			case OP_TYPE_READ: 
+//				tdp->td_tgtstp->my_accumulated_read_op_time += tdp->td_tgtstp->my_current_op_elapsed_time;
+//				tdp->td_tgtstp->my_current_bytes_read += tdp->td_tgtstp->my_current_io_size;
+//				tdp->td_tgtstp->my_current_read_op_count++;
+//				break;
+//			case OP_TYPE_WRITE: 
+//				tdp->td_tgtstp->my_accumulated_write_op_time += tdp->td_tgtstp->my_current_op_elapsed_time;
+//				tdp->td_tgtstp->my_current_bytes_written += tdp->td_tgtstp->my_current_io_size;
+//				tdp->td_tgtstp->my_current_write_op_count++;
+//				break;
+//			case OP_TYPE_NOOP: 
+//				tdp->td_tgtstp->my_accumulated_noop_op_time += tdp->td_tgtstp->my_current_op_elapsed_time;
+//				tdp->td_tgtstp->my_current_bytes_noop += tdp->td_tgtstp->my_current_io_size;
+//				tdp->td_tgtstp->my_current_noop_op_count++;
+//				break;
+//		} // End of SWITCH
+	} else {// Something went wrong - issue error message
+		if (xgp->global_options & GO_STOP_ON_ERROR) {
+			tdp->td_tgtstp->abort = 1; // Remember to abort this Worker Thread
+			tdp->td_tgtstp->abort = 1; // This tells all the other Worker Threads and the Target Thread to abort
+//			xgp->abort = 1; // This tells all the other Targets to abort
+		}
+		fprintf(xgp->errout, "%s: I/O ERROR on Target %d Worker Thread %d: ERROR: Status %d, I/O Transfer Size [expected status] %d, %s Operation Number %lld\n",
+			xgp->progname,
+			tdp->td_target_number,
+			wdp->wd_thread_number,
+			wdp->wd_current_io_status,
+			wdp->wd_current_io_size,
+			wdp->wd_current_op_str,
+			(long long)wdp->wd_current_op_number);
+		if (!(tdp->td_target_options & TO_SGIO)) {
+			if ((wdp->wd_current_io_status == 0) && (errno == 0)) { // Indicate this is an end-of-file condition
+				fprintf(xgp->errout, "%s: Target %d Worker Thread %d: WARNING: END-OF-FILE Reached during %s Operation Number %lld\n",
+					xgp->progname,
+					tdp->td_target_number,
+					wdp->wd_thread_number,
+					wdp->wd_current_op_str,
+					(long long)wdp->wd_current_op_number);
+			} else {
+				perror("reason"); // Only print the reason (aka errno text) if this is not an SGIO request
+			}
+		}
+		wdp->wd_current_error_count = 1;
+	} // Done checking status
+#ifdef ndef
 	tdp->td_tgtstp->my_current_op_elapsed_time = (tdp->td_tgtstp->my_current_op_end_time - tdp->td_tgtstp->my_current_op_start_time);
 	tdp->td_tgtstp->my_accumulated_op_time += tdp->td_tgtstp->my_current_op_elapsed_time;
 	tdp->td_tgtstp->my_current_io_errno = errno;
@@ -316,6 +373,7 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 		}
 		tdp->td_tgtstp->my_current_error_count = 1;
 	} // Done checking status
+#endif
 } // End of xdd_worker_thread_update_local_counters()
 
 /*----------------------------------------------------------------------------*/
