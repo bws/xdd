@@ -39,7 +39,6 @@ struct xint_worker_data {
 	int32_t   					wd_thread_number;	// My queue number within this target 
 	int32_t   					wd_thread_id;  		// My system thread ID (like a process ID) 
 	int32_t   					wd_pid;   			// My process ID 
-	unsigned char 				*wd_rwbuf;   		// Pointer to the current read/write buffer
 	int32_t						wd_rwbuf_shmid; 	// Shared Memory ID
 	int64_t						wd_ts_entry;		// The TimeStamp entry to use when time-stamping an operation
 	struct xint_task			wd_task;			// Task Structure

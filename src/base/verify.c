@@ -74,7 +74,7 @@ xdd_verify_hex(worker_data_t *wdp, int64_t current_op) {
 	else remaining = tdp->td_dpp->data_pattern_length;
 
 	offset = 0;
-	bufferp = wdp->wd_rwbuf;
+	bufferp = wdp->wd_task.task_bufp;
 	errors = 0;
 	while (remaining) {
 		patternp = tdp->td_dpp->data_pattern;
@@ -123,7 +123,7 @@ xdd_verify_sequence(worker_data_t *wdp, int64_t current_op) {
 
 	tdp = wdp->wd_tdp;
 
-	uint64p = (uint64_t *)wdp->wd_rwbuf;
+	uint64p = (uint64_t *)wdp->wd_task.task_bufp;
 	errors = 0;
 	for (i = 0; i < wdp->wd_task.task_xfer_size; i+=(sizeof(wdp->wd_task.task_byte_offset))) {
 		expected_data = wdp->wd_task.task_byte_offset + i;
@@ -186,7 +186,7 @@ xdd_verify_singlechar(worker_data_t *wdp, int64_t current_op) {
 
 	tdp = wdp->wd_tdp;
 
-	ucp = wdp->wd_rwbuf;
+	ucp = wdp->wd_task.task_bufp;
 	errors = 0;
 	for (i = 0; i < wdp->wd_task.task_xfer_size; i++) {
 		if (*ucp != *(tdp->td_dpp->data_pattern)) {
@@ -269,7 +269,7 @@ xdd_verify_location(worker_data_t *wdp, int64_t current_op) {
 	tdp = wdp->wd_tdp;
 
 	errors = 0;
-	current_position = *(uint64_t *)wdp->wd_rwbuf;
+	current_position = *(uint64_t *)wdp->wd_task.task_bufp;
 	if (current_position != tdp->td_current_byte_offset) {
 		errors++;
 		fprintf(xgp->errout,"%s: xdd_verify_location: Target %d Worker Thread %d: ERROR: op number %lld: Data Buffer Sequence mismatch - expected %lld, got %lld\n",

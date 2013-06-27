@@ -61,7 +61,7 @@ xdd_e2e_src_send(worker_data_t *wdp) {
 	wdp->wd_e2ep->e2e_header.length = wdp->wd_task.task_xfer_size;
 
 	// The message header for this data packet is placed after the user data in the buffer
-	memcpy(wdp->wd_rwbuf+wdp->wd_task.task_xfer_size,&wdp->wd_e2ep->e2e_header, sizeof(wdp->wd_e2ep->e2e_header));
+	memcpy(wdp->wd_task.task_bufp+wdp->wd_task.task_xfer_size,&wdp->wd_e2ep->e2e_header, sizeof(wdp->wd_e2ep->e2e_header));
 	if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
 		tdp->td_ttp->tte[wdp->wd_ts_entry].net_processor_start = xdd_get_processor();
 
@@ -72,7 +72,7 @@ xdd_e2e_src_send(worker_data_t *wdp) {
 	nclk_now(&wdp->wd_counters.tc_current_net_start_time);
 	while (sent < wdp->wd_e2ep->e2e_xfer_size) {
 		sendsize = (wdp->wd_e2ep->e2e_xfer_size-sent) > maxmit ? maxmit : (wdp->wd_e2ep->e2e_xfer_size-sent);
-		wdp->wd_e2ep->e2e_send_status = sendto(wdp->wd_e2ep->e2e_sd,(char *)wdp->wd_rwbuf+sent, sendsize, 0, (struct sockaddr *)&wdp->wd_e2ep->e2e_sname, sizeof(struct sockaddr_in));
+		wdp->wd_e2ep->e2e_send_status = sendto(wdp->wd_e2ep->e2e_sd,(char *)wdp->wd_task.task_bufp+sent, sendsize, 0, (struct sockaddr *)&wdp->wd_e2ep->e2e_sname, sizeof(struct sockaddr_in));
 		sent += wdp->wd_e2ep->e2e_send_status;
                 sentcalls++;
 fprintf(stderr,"E2E_SOURCE_SIDE_SEND: Sent %d bytes\n",wdp->wd_e2ep->e2e_send_status);
@@ -173,7 +173,7 @@ xdd_e2e_dest_recv(worker_data_t *wdp) {
 			nclk_now(&wdp->wd_counters.tc_current_net_start_time);
 			while (rcvd_so_far < wdp->wd_e2ep->e2e_xfer_size) {
 				recvsize = (wdp->wd_e2ep->e2e_xfer_size-rcvd_so_far) > maxmit ? maxmit : (wdp->wd_e2ep->e2e_xfer_size-rcvd_so_far);
-				wdp->wd_e2ep->e2e_recv_status = recvfrom(wdp->wd_e2ep->e2e_csd[wdp->wd_e2ep->e2e_current_csd], (char *) wdp->wd_rwbuf+rcvd_so_far, recvsize, 0, NULL,NULL);
+				wdp->wd_e2ep->e2e_recv_status = recvfrom(wdp->wd_e2ep->e2e_csd[wdp->wd_e2ep->e2e_current_csd], (char *) wdp->wd_task.task_bufp+rcvd_so_far, recvsize, 0, NULL,NULL);
 				// Check for other conditions that will get us out of this loop
 fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: Recv %d bytes\n",wdp->wd_e2ep->e2e_recv_status);
 				if (wdp->wd_e2ep->e2e_recv_status <= 0)
@@ -186,8 +186,8 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: Recv %d bytes\n",wdp->wd_e2ep->e2e_recv_s
 			// bws: BAND-AID PATCH: EOF message padded to io_size, header must be sent at end;
 			// however, later code expects the header to be at the beginning of the buffer for EOF
 			if (rcvd_so_far == wdp->wd_e2ep->e2e_xfer_size && 
-				((struct xdd_e2e_header*)(wdp->wd_rwbuf+wdp->wd_task.task_xfer_size))->magic == PTDS_E2E_MAGIQ) {
-				memmove(wdp->wd_rwbuf, wdp->wd_rwbuf+wdp->wd_task.task_xfer_size, sizeof(struct xdd_e2e_header));
+				((struct xdd_e2e_header*)(wdp->wd_task.task_bufp+wdp->wd_task.task_xfer_size))->magic == PTDS_E2E_MAGIQ) {
+				memmove(wdp->wd_task.task_bufp, wdp->wd_task.task_bufp+wdp->wd_task.task_xfer_size, sizeof(struct xdd_e2e_header));
 fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 				wdp->wd_e2ep->e2e_recv_status = headersize;
 			} else if (wdp->wd_e2ep->e2e_recv_status > 0) {
@@ -226,10 +226,10 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 			//        and will have the header.magic number set to MAGIQ indicating that it is an EOF packet.
 			if (wdp->wd_e2ep->e2e_recv_status == wdp->wd_e2ep->e2e_xfer_size) {  // This is the total amount of data we should have received (data+header)
 				/* Copy meta data into destinations e2e_header struct */
-				memcpy(&wdp->wd_e2ep->e2e_header, wdp->wd_rwbuf+wdp->wd_task.task_xfer_size, sizeof(wdp->wd_e2ep->e2e_header));
+				memcpy(&wdp->wd_e2ep->e2e_header, wdp->wd_task.task_bufp+wdp->wd_task.task_xfer_size, sizeof(wdp->wd_e2ep->e2e_header));
 	 			wdp->wd_e2ep->e2e_header.recvtime = wdp->wd_counters.tc_current_net_end_time; // This needs to be the net_end_time from this side of the operation
 			} else if (wdp->wd_e2ep->e2e_recv_status == headersize) { // This should be an EOF packet from the Source Side but check the magic number to be certain
-				memcpy(&wdp->wd_e2ep->e2e_header, wdp->wd_rwbuf, sizeof(wdp->wd_e2ep->e2e_header)); // In this case the header is at the very beginning of the RW Buffer because there is no data
+				memcpy(&wdp->wd_e2ep->e2e_header, wdp->wd_task.task_bufp, sizeof(wdp->wd_e2ep->e2e_header)); // In this case the header is at the very beginning of the RW Buffer because there is no data
 	 			wdp->wd_e2ep->e2e_header.recvtime = wdp->wd_counters.tc_current_net_end_time; // This needs to be the net_end_time from this side of the operation
 			} else if (wdp->wd_e2ep->e2e_recv_status == 0) { // A status of 0 means that the source side shut down unexpectedly - essentially and Enf-Of-File
 				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: ERROR: Connection closed prematurely by Source, op number %lld, location %lld\n",
@@ -326,7 +326,7 @@ xdd_e2e_eof_source_side(worker_data_t *wdp) {
 	// bws: BAND-AID PATCH: convert application protocol to use fixed-size messages
 	// previously an EOF message was exactly the size of a header,
 	// now it must be placed at the end to conform with data message protocol
-	memcpy(wdp->wd_rwbuf+wdp->wd_task.task_xfer_size, &wdp->wd_e2ep->e2e_header, sizeof(wdp->wd_e2ep->e2e_header));
+	memcpy(wdp->wd_task.task_bufp+wdp->wd_task.task_xfer_size, &wdp->wd_e2ep->e2e_header, sizeof(wdp->wd_e2ep->e2e_header));
 
 	if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
 		tdp->td_ttp->tte[wdp->wd_ts_entry].net_processor_start = xdd_get_processor();
@@ -336,7 +336,7 @@ xdd_e2e_eof_source_side(worker_data_t *wdp) {
 	while (sent < wdp->wd_e2ep->e2e_xfer_size) {
 		sendsize = (wdp->wd_e2ep->e2e_xfer_size-sent) > maxmit ? maxmit : (wdp->wd_e2ep->e2e_xfer_size-sent);
 
-		wdp->wd_e2ep->e2e_send_status = sendto(wdp->wd_e2ep->e2e_sd,((char *)wdp->wd_rwbuf)+sent, sendsize, 0, (struct sockaddr *)&wdp->wd_e2ep->e2e_sname, sizeof(struct sockaddr_in));
+		wdp->wd_e2ep->e2e_send_status = sendto(wdp->wd_e2ep->e2e_sd,((char *)wdp->wd_task.task_bufp)+sent, sendsize, 0, (struct sockaddr *)&wdp->wd_e2ep->e2e_sname, sizeof(struct sockaddr_in));
 		if (wdp->wd_e2ep->e2e_send_status <= 0) {
 			xdd_e2e_err(wdp,"xdd_e2e_eof_source_side","ERROR: error sending EOF to destination\n");
 			return(-1);
