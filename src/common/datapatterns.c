@@ -62,30 +62,30 @@ xdd_datapattern_buffer_init(worker_data_t *wdp) {
 	tdp = wdp->wd_tdp;
     dpp = tdp->td_dpp;
     if (dpp->data_pattern_options & DP_RANDOM_PATTERN) { // A nice random pattern
-		lp = (uint32_t *)wdp->wd_current_rwbuf;
+		lp = (uint32_t *)wdp->wd_rwbuf;
 		xgp->random_initialized = 0;
 		xgp->random_init_seed = 72058; // Backward compatibility with older xdd versions
 		/* Set each four-byte field in the I/O buffer to a random integer */
-		for(i = 0; i < (int32_t)(wdp->wd_current_io_size / sizeof(int32_t)); i++ ) {
+		for(i = 0; i < (int32_t)(wdp->wd_task.task_xfer_size / sizeof(int32_t)); i++ ) {
 	    	*lp=xdd_random_int();
 	    	lp++;
 		}
     } else if (dpp->data_pattern_options & DP_RANDOM_BY_TARGET_PATTERN) { // A nice random pattern, unique by target number
-		lp = (uint32_t *)wdp->wd_current_rwbuf;
+		lp = (uint32_t *)wdp->wd_rwbuf;
 		xgp->random_initialized = 0;
 		xgp->random_init_seed = (tdp->td_target_number+1); 
 		/* Set each four-byte field in the I/O buffer to a random integer */
-		for(i = 0; i < (int32_t)(wdp->wd_current_io_size / sizeof(int32_t)); i++ ) {
+		for(i = 0; i < (int32_t)(wdp->wd_task.task_xfer_size / sizeof(int32_t)); i++ ) {
 	    	*lp=xdd_random_int();
 	    	lp++;
 		}
     } else if ((dpp->data_pattern_options & DP_ASCII_PATTERN) ||
 	     (dpp->data_pattern_options & DP_HEX_PATTERN)) { // put the pattern that is in the pattern buffer into the io buffer
 		// Clear out the buffer before putting in the string so there are no strange characters in it.
-		memset(wdp->wd_current_rwbuf,'\0',wdp->wd_current_io_size);
+		memset(wdp->wd_rwbuf,'\0',wdp->wd_task.task_xfer_size);
 		if (dpp->data_pattern_options & DP_REPLICATE_PATTERN) { // Replicate the pattern throughout the buffer
-	    	ucp = (unsigned char *)wdp->wd_current_rwbuf;
-	    	remaining_length = wdp->wd_current_io_size;
+	    	ucp = (unsigned char *)wdp->wd_rwbuf;
+	    	remaining_length = wdp->wd_task.task_xfer_size;
 	    	while (remaining_length) { 
 				if (dpp->data_pattern_length < remaining_length) 
 		    		pattern_length = dpp->data_pattern_length;
@@ -96,18 +96,18 @@ xdd_datapattern_buffer_init(worker_data_t *wdp) {
 				ucp += pattern_length;
 	    	}
 		} else { // Just put the pattern at the beginning of the buffer once 
-	    	if (dpp->data_pattern_length < (size_t)wdp->wd_current_io_size) 
+	    	if (dpp->data_pattern_length < (size_t)wdp->wd_task.task_xfer_size) 
 				pattern_length = dpp->data_pattern_length;
-	    	else pattern_length = wdp->wd_current_io_size;
-	    	memcpy(wdp->wd_current_rwbuf,dpp->data_pattern,pattern_length);
+	    	else pattern_length = wdp->wd_task.task_xfer_size;
+	    	memcpy(wdp->wd_rwbuf,dpp->data_pattern,pattern_length);
 		}
     } else if (dpp->data_pattern_options & DP_LFPAT_PATTERN) {
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
 		dpp->data_pattern_length = sizeof(lfpat);
 		fprintf(stderr,"LFPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
-		remaining_length = wdp->wd_current_io_size;
-		ucp = (unsigned char *)wdp->wd_current_rwbuf;
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
+		remaining_length = wdp->wd_task.task_xfer_size;
+		ucp = (unsigned char *)wdp->wd_rwbuf;
 		while (remaining_length) { 
 	    	if (dpp->data_pattern_length < remaining_length) 
 				pattern_length = dpp->data_pattern_length;
@@ -117,12 +117,12 @@ xdd_datapattern_buffer_init(worker_data_t *wdp) {
 	    	ucp += pattern_length;
 		}
     } else if (dpp->data_pattern_options & DP_LTPAT_PATTERN) {
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
 		dpp->data_pattern_length = sizeof(ltpat);
 		fprintf(stderr,"LTPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
-		remaining_length = wdp->wd_current_io_size;
-		ucp = (unsigned char *)wdp->wd_current_rwbuf;
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
+		remaining_length = wdp->wd_task.task_xfer_size;
+		ucp = (unsigned char *)wdp->wd_rwbuf;
 		while (remaining_length) { 
 	    	if (dpp->data_pattern_length < remaining_length) 
 				pattern_length = dpp->data_pattern_length;
@@ -132,12 +132,12 @@ xdd_datapattern_buffer_init(worker_data_t *wdp) {
 	    	ucp += pattern_length;
 		}
     } else if (dpp->data_pattern_options & DP_CJTPAT_PATTERN) {
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
 		dpp->data_pattern_length = sizeof(cjtpat);
 		fprintf(stderr,"CJTPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
-		remaining_length = wdp->wd_current_io_size;
-		ucp = (unsigned char *)wdp->wd_current_rwbuf;
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
+		remaining_length = wdp->wd_task.task_xfer_size;
+		ucp = (unsigned char *)wdp->wd_rwbuf;
 		while (remaining_length) { 
 	    	if (dpp->data_pattern_length < remaining_length) 
 				pattern_length = dpp->data_pattern_length;
@@ -147,12 +147,12 @@ xdd_datapattern_buffer_init(worker_data_t *wdp) {
 	    	ucp += pattern_length;
 		}
     } else if (dpp->data_pattern_options & DP_CRPAT_PATTERN) {
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
 		dpp->data_pattern_length = sizeof(crpat);
 		fprintf(stderr,"CRPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
-		remaining_length = wdp->wd_current_io_size;
-		ucp = (unsigned char *)wdp->wd_current_rwbuf;
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
+		remaining_length = wdp->wd_task.task_xfer_size;
+		ucp = (unsigned char *)wdp->wd_rwbuf;
 		while (remaining_length) { 
 	    	if (dpp->data_pattern_length < remaining_length) 
 				pattern_length = dpp->data_pattern_length;
@@ -162,12 +162,12 @@ xdd_datapattern_buffer_init(worker_data_t *wdp) {
 	    	ucp += pattern_length;
 		}
     } else if (dpp->data_pattern_options & DP_CSPAT_PATTERN) {
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
 		dpp->data_pattern_length = sizeof(cspat);
 		fprintf(stderr,"CSPAT length is %d\n", (int)dpp->data_pattern_length);
-		memset(wdp->wd_current_rwbuf,0x00,wdp->wd_current_io_size);
-		remaining_length = wdp->wd_current_io_size;
-		ucp = (unsigned char *)wdp->wd_current_rwbuf;
+		memset(wdp->wd_rwbuf,0x00,wdp->wd_task.task_xfer_size);
+		remaining_length = wdp->wd_task.task_xfer_size;
+		ucp = (unsigned char *)wdp->wd_rwbuf;
 		while (remaining_length) { 
 	    	if (dpp->data_pattern_length < remaining_length) 
 				pattern_length = dpp->data_pattern_length;
@@ -177,7 +177,7 @@ xdd_datapattern_buffer_init(worker_data_t *wdp) {
 	    	ucp += pattern_length;
 		}
     } else { // Otherwise set the entire buffer to the character in "dpp->data_pattern"
-		memset(wdp->wd_current_rwbuf,*(dpp->data_pattern),tdp->td_io_size);
+		memset(wdp->wd_rwbuf,*(dpp->data_pattern),tdp->td_xfer_size);
    	}
 		
     return;
@@ -201,9 +201,9 @@ xdd_datapattern_fill(worker_data_t *wdp) {
 	/* Sequenced Data Pattern */
 	if (tdp->td_dpp->data_pattern_options & DP_SEQUENCED_PATTERN) {
 		nclk_now(&start_time);
-		posp = (uint64_t *)wdp->wd_current_rwbuf;
-		for (j=0; j<(wdp->wd_current_io_size/sizeof(wdp->wd_current_byte_location)); j++) {
-			*posp = wdp->wd_current_byte_location + (j * sizeof(wdp->wd_current_byte_location));
+		posp = (uint64_t *)wdp->wd_rwbuf;
+		for (j=0; j<(wdp->wd_task.task_xfer_size/sizeof(wdp->wd_task.task_byte_offset)); j++) {
+			*posp = wdp->wd_task.task_byte_offset + (j * sizeof(wdp->wd_task.task_byte_offset));
 			*posp |= tdp->td_dpp->data_pattern_prefix_binary;
 			if (tdp->td_dpp->data_pattern_options & DP_INVERSE_PATTERN)
 				*posp ^= 0xffffffffffffffffLL; // 1's compliment of the pattern

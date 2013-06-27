@@ -28,7 +28,6 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#include "xint_target_state.h"
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the Target_Data Struct
 #define TO_READAFTERWRITE              0x0000000000000001ULL  // Read-After-Write - the -raw option 
@@ -66,7 +65,7 @@
 // Per Thread Data Structure - one for each thread 
 struct xint_target_data {
     struct xdd_plan 	*td_planp;
-	struct xint_worker_data		*td_next_wdp;		// Pointer to the first worker_data struct in the list
+	struct xint_worker_data	*td_next_wdp;	// Pointer to the first worker_data struct in the list
 	pthread_t  			td_thread;			// Handle for this Target Thread 
 	int32_t   			td_thread_id;  		// My system thread ID (like a process ID) 
 	int32_t   			td_pid;   			// My process ID 
@@ -78,7 +77,7 @@ struct xint_target_data {
 	int32_t   			td_file_desc;		// File Descriptor for the target device/file 
 #endif
 	int32_t				td_open_flags;		// Flags used during open processing of a target
-	int32_t				td_io_size;   		// Number of bytes per request 
+	int32_t				td_xfer_size;  		// Number of bytes per request 
 	int32_t				td_filetype;  		// Type of file: regular, device, socket, ... 
 	int64_t				td_filesize;  		// Size of target file in bytes 
 	int64_t				td_target_ops;  	// Total number of ops to perform on behalf of a "target"
@@ -95,11 +94,30 @@ struct xint_target_data {
 	xdd_barrier_t		td_targetpass_worker_thread_passcomplete_barrier;// The barrier used to sync targetpass() with all the QThreads at the end of a pass
 	xdd_barrier_t		td_targetpass_worker_thread_eofcomplete_barrier;// The barrier used to sync targetpass_eof_desintation_side() with a QThread trying to recv an EOF packet
 
-	pthread_mutex_t 	td_counter_mutex;  					// Mutex for locking when updating counters
 
-	uint64_t			td_bytes_issued;						// The amount of data for all transfer requests that has been issued so far 
-	uint64_t			td_bytes_completed;					// The amount of data for all transfer requests that has been completed so far
-	uint64_t			td_bytes_remaining;					// Bytes remaining to be transferred 
+	uint64_t			td_current_op_number;		// Current operation number
+	uint64_t			td_current_byte_offset;		// Current offset into target
+	uint64_t			td_current_bytes_issued;	// The amount of data for all transfer requests that has been issued so far 
+	uint64_t			td_current_bytes_completed;	// The amount of data for all transfer requests that has been completed so far
+	uint64_t			td_current_bytes_remaining;	// Bytes remaining to be transferred 
+
+	char				td_abort;					// Abort this operation (either a Worker Thread or a Target Thread)
+	char				td_time_limit_expired;		// The time limit for this target has expired
+	pthread_mutex_t 	td_current_state_mutex; 	// Mutex for locking when checking or updating the state info
+	int32_t				td_current_state;			// State of this thread at any given time (see Current State definitions below)
+	// State Definitions for "my_current_state"
+#define	CURRENT_STATE_INIT								0x0000000000000001	// Initialization 
+#define	CURRENT_STATE_IO								0x0000000000000002	// Waiting for an I/O operation to complete
+#define	CURRENT_STATE_DEST_RECEIVE						0x0000000000000004	// Waiting to receive data - Destination side of an E2E operation
+#define	CURRENT_STATE_SRC_SEND							0x0000000000000008	// Waiting for "send" to send data - Source side of an E2E operation
+#define	CURRENT_STATE_BARRIER							0x0000000000000010	// Waiting inside a barrier
+#define	CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE	0x0000000000000020	// Waiting on the "any Worker Thread available" semaphore
+#define	CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE	0x0000000000000040	// Waiting on the "This Worker Thread Available" semaphore
+#define	CURRENT_STATE_PASS_COMPLETE						0x0000000000000080	// Indicates that this Target Thread has completed a pass
+#define	CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE	0x0000000000000100	// Worker Thread is waiting for the TOT lock in order to update the block number
+#define	CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE	0x0000000000000200	// Worker Thread is waiting for the TOT lock in order to release the next I/O
+#define	CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS		0x0000000000000400	// Worker Thread is waiting for the TOT lock to set the "wait" time stamp
+#define	CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO		0x0000000000000800	// Waiting on the previous I/O op semaphore
 
     // Target-specific semaphores and associated pointers
     tot_t				*td_totp;								// Pointer to the target_offset_table for this target
@@ -168,9 +186,9 @@ struct xint_target_data {
 	// The following variables are used by the "-reopen" option
 	nclk_t        		td_open_start_time; 		// Time just before the open is issued for this target 
 	nclk_t        		td_open_end_time; 			// Time just after the open completes for this target 
-
+	pthread_mutex_t 	td_counters_mutex; 			// Mutex for locking when updating td_counters
+	struct xint_target_counters	td_counters;		// Pointer to the target counters
 	struct xint_throttle		*td_throtp;			// Pointer to the throttle sturcture
-	struct xint_target_state	*td_tgtstp;			// Pointer to the target state struct
 	struct xint_timestamp		*td_tsp;			// Pointer to the time stamp stuff
 	struct xdd_tthdr			*td_ttp;			// Pointer to the time stamp stuff
 	struct xint_e2e				*td_e2ep;			// Pointer to the e2e struct when needed

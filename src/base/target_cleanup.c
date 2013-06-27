@@ -45,7 +45,7 @@ xdd_target_thread_cleanup(target_data_t *tdp) {
 	
 	wdp = tdp->td_next_wdp;
 	while (wdp) {
-		wdp->wd_task_request = TASK_REQ_STOP;
+		wdp->wd_task.task_request = TASK_REQ_STOP;
 		tdp->td_occupant.occupant_type |= XDD_OCCUPANT_TYPE_CLEANUP;
 		// Release this QThread
 		xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&tdp->td_occupant,0);

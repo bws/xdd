@@ -75,18 +75,18 @@ xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp) {
 
 	// Get the next available worker thread and give it a task to perform
 	// We stay in the following loop for a single PASS
-	tdp->td_tgtstp->my_current_byte_location = 0;
-	tdp->td_tgtstp->my_current_op_number = 0;
-	tdp->td_bytes_issued = 0;
-	tdp->td_bytes_completed = 0;
-	tdp->td_bytes_remaining = tdp->td_target_bytes_to_xfer_per_pass;
+	tdp->td_counters.tc_current_byte_offset = 0;
+	tdp->td_counters.tc_current_op_number = 0;
+	tdp->td_current_bytes_issued = 0;
+	tdp->td_current_bytes_completed = 0;
+	tdp->td_current_bytes_remaining = tdp->td_target_bytes_to_xfer_per_pass;
 
 /////////////////////////////// PSEUDO-Loop Starts Here ////////////////////////
 // The PSEUDO-Loop just means that the actual "looping" in done in 
 // the xdd_targetpass_loop() subroutine (or the e2e equivalent).
 	// The pass loops are handled by one of two subroutines depending on 
 	// whether this is the Destination Side of an E2E operation or not. 
-	tdp->td_tgtstp->my_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
+	tdp->td_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
 	if (tdp->td_target_options & TO_ENDTOEND) { // E2E operations are *different*
 		if (tdp->td_target_options & TO_E2E_SOURCE)
 		    xdd_targetpass_e2e_loop_src(planp, tdp);
@@ -94,7 +94,7 @@ xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp) {
 	} else { // Normal operations (other than E2E)
 	    xdd_targetpass_loop(planp, tdp);
 	}
-	tdp->td_tgtstp->my_current_state |= CURRENT_STATE_PASS_COMPLETE;
+	tdp->td_current_state |= CURRENT_STATE_PASS_COMPLETE;
 /////////////////////////////// PSEUDO-Loop Ends  Here /////////////////////////
 	// If this is an E2E operation and we had gotten canceled - just return
 	if ((tdp->td_target_options & TO_ENDTOEND) && (xgp->canceled))
@@ -142,8 +142,8 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 // only ever be able to issue one I/O operation at a time and will have to wait
 // for an I/O operation to complete before moving on to the next. 
 //
-	while (tdp->td_bytes_remaining) {
-fprintf(stderr,"target_pass_loop: top of loop: target %d, bytes_remaining: %lld\n", tdp->td_target_number, (long long int)tdp->td_bytes_remaining);
+	while (tdp->td_current_bytes_remaining) {
+fprintf(stderr,"target_pass_loop: top of loop: target %d, bytes_remaining: %lld\n", tdp->td_target_number, (long long int)tdp->td_current_bytes_remaining);
 		// Lock Step Processing (located in lockstep.c)
 		// When the -lockstep option is specified, the xdd_lockstep()subroutine 
 		// will perform all I/O operations for a pass. Thus, when xdd_lockstep()
@@ -151,7 +151,7 @@ fprintf(stderr,"target_pass_loop: top of loop: target %d, bytes_remaining: %lld\
 		// it looks like a normal completion.
 		if (tdp->td_lsp) {
 			status = xdd_lockstep(tdp);
-			tdp->td_bytes_remaining = 0;
+			tdp->td_current_bytes_remaining = 0;
 			break;
 		}
 
@@ -198,7 +198,7 @@ fprintf(stderr,"target_pass_loop: Waking up the worker thread...: target %d, wdp
 		wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
 		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 	}
-	if (tdp->td_tgtstp->my_current_io_status != 0) 
+	if (tdp->td_counters.tc_current_io_status != 0) 
 		planp->target_errno[tdp->td_target_number] = XDD_RETURN_VALUE_IOERROR;
 
 	return;
@@ -212,42 +212,39 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	target_data_t	*tdp;
 
 	tdp = wdp->wd_tdp;
-fprintf(stderr,"targetpass_target_setup: ENTER: target %d, bytes_remaining: %lld, current_byte_location=%lld, op#=%lld, op=%x, \n", tdp->td_target_number, (long long int)tdp->td_bytes_remaining, (long long int)tdp->td_tgtstp->my_current_byte_location, (long long int)tdp->td_tgtstp->my_current_op_number, tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation);
+fprintf(stderr,"targetpass_target_setup: ENTER: target %d, bytes_remaining: %lld, current_byte_offset=%lld, op#=%lld, op=%x, \n", tdp->td_target_number, (long long int)tdp->td_current_bytes_remaining, (long long int)tdp->td_current_byte_offset, (long long int)tdp->td_current_op_number, tdp->td_seekhdr.seeks[tdp->td_current_op_number].operation);
 	// Assign an IO task to this worker thread
-	wdp->wd_task_request = TASK_REQ_IO;
+	wdp->wd_task.task_request = TASK_REQ_IO;
 
 	// Get the most recent File Descriptor in case it changed...
-	wdp->wd_file_desc = tdp->td_file_desc;
+	wdp->wd_task.task_file_desc = tdp->td_file_desc;
 
 	// Set the Operation Type
-	if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_WRITE)  // Write Operation
-		tdp->td_tgtstp->my_current_op_type = OP_TYPE_WRITE;
-	else if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_READ)  // READ Operation
-		tdp->td_tgtstp->my_current_op_type = OP_TYPE_READ;
-	else  
-		tdp->td_tgtstp->my_current_op_type = OP_TYPE_NOOP;
+	if (tdp->td_seekhdr.seeks[tdp->td_current_op_number].operation == SO_OP_WRITE) { // Write Operation
+		wdp->wd_task.task_op_type = TASK_OP_TYPE_WRITE;
+		wdp->wd_task.task_op_string = "WRITE";
+	} else if (tdp->td_seekhdr.seeks[tdp->td_current_op_number].operation == SO_OP_READ) { // READ Operation
+		wdp->wd_task.task_op_type = TASK_OP_TYPE_READ;
+		wdp->wd_task.task_op_string = "READ";
+	} else { 
+		wdp->wd_task.task_op_type = TASK_OP_TYPE_NOOP;
+		wdp->wd_task.task_op_string = "NOOP";
+	}
 	 
 	// Figure out the transfer size to use for this I/O
-	if (tdp->td_bytes_remaining < tdp->td_io_size)
-		tdp->td_tgtstp->my_current_io_size = tdp->td_bytes_remaining;
-	else tdp->td_tgtstp->my_current_io_size = tdp->td_io_size;
+	if (tdp->td_current_bytes_remaining < tdp->td_xfer_size)
+		wdp->wd_task.task_xfer_size = tdp->td_current_bytes_remaining;
+	else wdp->wd_task.task_xfer_size = tdp->td_xfer_size;
 
 	// Set the location to seek to 
-	tdp->td_tgtstp->my_current_byte_location = tdp->td_tgtstp->my_current_byte_location;
+	wdp->wd_task.task_byte_offset = tdp->td_current_byte_offset;
 
 	// Remember the operation number for this target
-	tdp->td_tgtstp->target_op_number = tdp->td_tgtstp->my_current_op_number;
-	if (tdp->td_tgtstp->my_current_op_number == 0) 
-		nclk_now(&tdp->td_tgtstp->my_first_op_start_time);
-
-	// Put these values into the Worker Data structure 
-	wdp->wd_current_op_type = tdp->td_tgtstp->my_current_op_type;
-	wdp->wd_current_io_size = tdp->td_tgtstp->my_current_io_size;
-	wdp->wd_current_op_number = tdp->td_tgtstp->my_current_op_number;
+	wdp->wd_task.task_op_number = tdp->td_current_op_number;
 
    	// If time stamping is on then assign a time stamp entry to this Worker Thread
    	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-		wdp->wd_ts_current_entry = tdp->td_tsp->ts_current_entry;	
+		wdp->wd_ts_entry = tdp->td_tsp->ts_current_entry;	
 		tdp->td_tsp->ts_current_entry++;
 		if (tdp->td_tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
 			if (tdp->td_tsp->ts_current_entry == tdp->td_tsp->ts_size)
@@ -255,19 +252,19 @@ fprintf(stderr,"targetpass_target_setup: ENTER: target %d, bytes_remaining: %lld
 		} else if (tdp->td_tsp->ts_options & TS_WRAP) {
 			tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
-		tdp->td_ttp->tte[wdp->wd_ts_current_entry].pass_number = tdp->td_tgtstp->my_current_pass_number;
-		tdp->td_ttp->tte[wdp->wd_ts_current_entry].worker_thread_number = wdp->wd_thread_number;
-		tdp->td_ttp->tte[wdp->wd_ts_current_entry].thread_id = wdp->wd_thread_id;
-		tdp->td_ttp->tte[wdp->wd_ts_current_entry].op_type = tdp->td_tgtstp->my_current_op_type;
-		tdp->td_ttp->tte[wdp->wd_ts_current_entry].op_number = tdp->td_tgtstp->target_op_number;
-		tdp->td_ttp->tte[wdp->wd_ts_current_entry].byte_location = tdp->td_tgtstp->my_current_byte_location;
+		tdp->td_ttp->tte[wdp->wd_ts_entry].pass_number = tdp->td_counters.tc_pass_number;
+		tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_thread_number;
+		tdp->td_ttp->tte[wdp->wd_ts_entry].thread_id = wdp->wd_thread_id;
+		tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = wdp->wd_task.task_op_type;
+		tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = wdp->wd_task.task_op_number;
+		tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = wdp->wd_task.task_byte_offset;
 	}
 	// Update the pointers/counters in the Target PTDS to get 
 	// ready for the next I/O operation
-	tdp->td_tgtstp->my_current_byte_location += tdp->td_tgtstp->my_current_io_size;
-	tdp->td_tgtstp->my_current_op_number++;
-	tdp->td_bytes_issued += tdp->td_tgtstp->my_current_io_size;
-	tdp->td_bytes_remaining -= tdp->td_tgtstp->my_current_io_size;
+	tdp->td_current_byte_offset += wdp->wd_task.task_xfer_size;
+	tdp->td_current_op_number++;
+	tdp->td_current_bytes_issued += wdp->wd_task.task_xfer_size;
+	tdp->td_current_bytes_remaining -= wdp->wd_task.task_xfer_size;
 
 } // End of xdd_targetpass_task_setup()
 

@@ -53,7 +53,7 @@ struct tte {
 // 192 bits 24 bytes
     int64_t		 	op_number; 	// Operation number
 // 256 bits 32 bytes
-    int64_t		 	byte_location; 	// Location in bytes - aka Offset into the device/file
+    int64_t		 	byte_offset; 	// Location in bytes - aka Offset into the device/file
 // 320 bits 40 bytes
     nclk_t 			disk_start;  	// The starting time stamp of the disk operation
     nclk_t 			disk_start_k;  	// The starting time stamp of the disk operation kernel

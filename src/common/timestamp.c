@@ -140,7 +140,7 @@ xdd_ts_setup(target_data_t *tdp) {
 	/* init entries in the trace table header */
 	tdp->td_ttp->target_thread_id = tdp->td_pid;
 	tdp->td_ttp->res = cycleval;
-	tdp->td_ttp->reqsize = tdp->td_io_size;
+	tdp->td_ttp->reqsize = tdp->td_xfer_size;
 	tdp->td_ttp->blocksize = tdp->td_block_size;
 	strcpy(tdp->td_ttp->id, xgp->id); 
 	tdp->td_ttp->range = tdp->td_seekhdr.seek_range;
@@ -284,7 +284,7 @@ xdd_ts_reports(target_data_t *tdp) {
 #endif
     if(tsp->ts_options & TS_SUPPRESS_OUTPUT)
 	return;
-    if (!(tdp->td_tgtstp->my_current_state & CURRENT_STATE_PASS_COMPLETE)) {
+    if (!(tdp->td_current_state & CURRENT_STATE_PASS_COMPLETE)) {
 	fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d has not yet completed! Results beyond this point are unpredictable!\n",
 		xgp->progname, tdp->td_target_number);
 	fflush(xgp->errout);
@@ -415,13 +415,13 @@ xdd_ts_reports(target_data_t *tdp) {
 		fflush(xgp->errout);
 		ttp->blocksize = tdp->td_block_size;
 	    }
-	    if (ttp->tte[i].byte_location  > ttp->tte[i-1].byte_location) {
-		distance[i] = (ttp->tte[i].byte_location - 
-			       (ttp->tte[i-1].byte_location + 
+	    if (ttp->tte[i].byte_offset  > ttp->tte[i-1].byte_offset) {
+		distance[i] = (ttp->tte[i].byte_offset - 
+			       (ttp->tte[i-1].byte_offset + 
 				(ttp->reqsize)));
 	    } else {
-		distance[i] = (ttp->tte[i-1].byte_location - 
-			       (ttp->tte[i].byte_location + 
+		distance[i] = (ttp->tte[i-1].byte_offset - 
+			       (ttp->tte[i].byte_offset + 
 				(ttp->reqsize)));
 	    }
 	    loop_time = ttp->tte[i].disk_end - ttp->tte[i-1].disk_end;
@@ -459,23 +459,23 @@ xdd_ts_reports(target_data_t *tdp) {
 	    net_end_ts = ttp->tte[i].net_end + ttp->delta;
 	    switch (ttp->tte[i].op_type) {
 		case SO_OP_READ: 
-		case OP_TYPE_READ: 
+		case TASK_OP_TYPE_READ: 
 		    opc="r"; 
 		    break;
 		    
 		case SO_OP_WRITE: 
-		case OP_TYPE_WRITE: 
+		case TASK_OP_TYPE_WRITE: 
 		    opc="w"; 
 		    break;
 		case SO_OP_WRITE_VERIFY: 
 		    opc="v"; 
 		    break;
 		case SO_OP_NOOP: 
-		case OP_TYPE_NOOP: 
+		case TASK_OP_TYPE_NOOP: 
 		    opc="n"; 
 		    break;
 		case SO_OP_EOF: 
-		case OP_TYPE_EOF: 
+		case TASK_OP_TYPE_EOF: 
 		    opc="e"; 
 		    break;
 		default: 
@@ -489,7 +489,7 @@ xdd_ts_reports(target_data_t *tdp) {
 	    fprintf(tdp->td_tsfp,"%s,",opc);
 	    fprintf(tdp->td_tsfp,"%d,",ttp->tte[i].pass_number); 
 	    fprintf(tdp->td_tsfp,"%lld,",(long long)ttp->tte[i].op_number); 
-	    fprintf(tdp->td_tsfp,"%lld,",(long long)ttp->tte[i].byte_location); 
+	    fprintf(tdp->td_tsfp,"%lld,",(long long)ttp->tte[i].byte_offset); 
 	    fprintf(tdp->td_tsfp,"%lld,",(long long)distance[i]);  
 	    fprintf(tdp->td_tsfp,"%lld,",(long long)ttp->tte[i].disk_xfer_size); 
 	    fprintf(tdp->td_tsfp,"%d,",  ttp->tte[i].disk_processor_start); 

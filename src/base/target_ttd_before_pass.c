@@ -127,7 +127,7 @@ xdd_start_delay_before_pass(target_data_t *tdp) {
 #else
 	req.tv_sec = tdp->td_start_delay; // Whole seconds
 	req.tv_nsec = (tdp->td_start_delay - req.tv_sec) * BILLION; // Fraction of a second
-	fprintf(xgp->output, "\nTarget %d Beginning requested Start Delay for %f seconds before pass %d...\n",tdp->td_target_number, tdp->td_start_delay, tdp->td_tgtstp->my_current_pass_number);
+	fprintf(xgp->output, "\nTarget %d Beginning requested Start Delay for %f seconds before pass %d...\n",tdp->td_target_number, tdp->td_start_delay, tdp->td_counters.tc_pass_number);
 	fflush(xgp->output);
 	rem.tv_sec = 0; // zero this out just to make sure
 	rem.tv_nsec = 0; // zero this out just to make sure
@@ -139,7 +139,7 @@ xdd_start_delay_before_pass(target_data_t *tdp) {
 		rem.tv_nsec = 0; // zero this out just to make sure
 		status = nanosleep(&req, &rem);
 	} 
-	fprintf(xgp->output, "\nTarget %d Starting pass %d after requested delay of %f seconds\n",tdp->td_target_number,tdp->td_tgtstp->my_current_pass_number, tdp->td_start_delay);
+	fprintf(xgp->output, "\nTarget %d Starting pass %d after requested delay of %f seconds\n",tdp->td_target_number,tdp->td_counters.tc_pass_number, tdp->td_start_delay);
 	fflush(xgp->output);
 #endif
 } // End of xdd_start_delay_before_pass()
@@ -198,34 +198,34 @@ xdd_e2e_before_pass(target_data_t *tdp) {
 } // End of xdd_e2e_before_pass()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_init_ptds_before_pass() - Reset variables to known state
+/* xdd_init_target_data_before_pass() - Reset variables to known state
  * 
  * This subroutine is called within the context of a Target Thread.
  *
  */
 void 
-xdd_init_ptds_before_pass(target_data_t *tdp) {
+xdd_init_target_data_before_pass(target_data_t *tdp) {
     
 	// Init all the pass-related variables to 0
-	tdp->td_tgtstp->my_elapsed_pass_time = 0;
-	tdp->td_tgtstp->my_first_op_start_time = 0;
-	tdp->td_tgtstp->my_accumulated_op_time = 0; 
-	tdp->td_tgtstp->my_accumulated_read_op_time = 0;
-	tdp->td_tgtstp->my_accumulated_write_op_time = 0;
-	tdp->td_tgtstp->my_accumulated_pattern_fill_time = 0;
-	tdp->td_tgtstp->my_accumulated_flush_time = 0;
+	tdp->td_counters.tc_pass_elapsed_time = 0;
+	tdp->td_counters.tc_first_op_start_time = 0;
+	tdp->td_counters.tc_accumulated_op_time = 0; 
+	tdp->td_counters.tc_accumulated_read_op_time = 0;
+	tdp->td_counters.tc_accumulated_write_op_time = 0;
+	tdp->td_counters.tc_accumulated_pattern_fill_time = 0;
+	tdp->td_counters.tc_accumulated_flush_time = 0;
+	tdp->td_counters.tc_accumulated_op_count = 0; 		// The number of read+write operations that have completed so far
+	tdp->td_counters.tc_accumulated_read_op_count = 0;	// The number of read operations that have completed so far 
+	tdp->td_counters.tc_accumulated_write_op_count = 0;	// The number of write operations that have completed so far 
+	tdp->td_counters.tc_accumulated_bytes_xfered = 0;		// Total number of bytes transferred to far (to storage device, not network)
+	tdp->td_counters.tc_accumulated_bytes_read = 0;		// Total number of bytes read to far (from storage device, not network)
+	tdp->td_counters.tc_accumulated_bytes_written = 0;	// Total number of bytes written to far (to storage device, not network)
 	//
-	tdp->td_tgtstp->my_current_op_number = 0; 		// The current operation number init to 0
-	tdp->td_tgtstp->my_current_op_count = 0; 		// The number of read+write operations that have completed so far
-	tdp->td_tgtstp->my_current_read_op_count = 0;	// The number of read operations that have completed so far 
-	tdp->td_tgtstp->my_current_write_op_count = 0;	// The number of write operations that have completed so far 
-	tdp->td_tgtstp->my_current_bytes_xfered = 0;		// Total number of bytes transferred to far (to storage device, not network)
-	tdp->td_tgtstp->my_current_bytes_read = 0;		// Total number of bytes read to far (from storage device, not network)
-	tdp->td_tgtstp->my_current_bytes_written = 0;	// Total number of bytes written to far (to storage device, not network)
-	tdp->td_tgtstp->my_current_byte_location = 0; 	// Current byte location for this I/O operation 
-	tdp->td_tgtstp->my_current_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
-	tdp->td_tgtstp->my_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
-	tdp->td_tgtstp->my_current_error_count = 0;		// The number of I/O errors for this qthread
+	tdp->td_counters.tc_current_op_number = 0; 		// The current operation number init to 0
+	tdp->td_counters.tc_current_byte_offset = 0; 	// Current byte offset for this I/O operation 
+	tdp->td_counters.tc_current_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
+	tdp->td_counters.tc_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
+	tdp->td_counters.tc_current_error_count = 0;		// The number of I/O errors for this qthread
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS
 	if (tdp->td_esp) {
@@ -243,9 +243,10 @@ xdd_init_ptds_before_pass(target_data_t *tdp) {
 		tdp->td_esp->my_shortest_write_op_number = 0;	// Number of the write operation where the shortest op time occured during this pass
 	}
 
-	tdp->td_tgtstp->my_time_limit_expired = 0;		// The time limit expiration indicator
+	tdp->td_time_limit_expired = 0;		// The time limit expiration indicator
+	tdp->td_abort = 0;	
 
-} // End of xdd_init_ptds_before_pass()
+} // End of xdd_init_target_data_before_pass()
  
 /*----------------------------------------------------------------------------*/
 /* xdd_target_ttd_before_pass() - This subroutine is called by targetpass()
@@ -275,51 +276,48 @@ xdd_target_ttd_before_pass(target_data_t *tdp) {
 	// End-to-End setup
 	xdd_e2e_before_pass(tdp);
 
-	xdd_init_ptds_before_pass(tdp);
+	xdd_init_target_data_before_pass(tdp);
 
 	/* Initialize counters, barriers, clocks, ...etc */
-	tdp->td_io_size = tdp->td_reqsize * tdp->td_block_size;
+	tdp->td_xfer_size = tdp->td_reqsize * tdp->td_block_size;
 
 	/* Get the starting time stamp */
-	if (tdp->td_tgtstp->my_current_pass_number == 1) { // For the *first* pass...
+	if (tdp->td_counters.tc_pass_number == 1) { // For the *first* pass...
 		if ((tdp->td_target_options & TO_ENDTOEND) && (tdp->td_target_options & TO_E2E_DESTINATION)) {  
 			// Since the Destination Side starts and *waits* for the Source Side, the
 			// actual "first pass start time" is set to a LARGE number so that it later
 			// gets set to the time that the first packet of data was actually received.
 			// That is done by the Results Manager at the end of a pass.
 			tdp->td_first_pass_start_time = NCLK_MAX;
-			tdp->td_tgtstp->my_pass_start_time = NCLK_MAX;
+			tdp->td_counters.tc_pass_start_time = NCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
 			nclk_now(&tdp->td_first_pass_start_time);
-			tdp->td_tgtstp->my_pass_start_time = tdp->td_first_pass_start_time;
+			tdp->td_counters.tc_pass_start_time = tdp->td_first_pass_start_time;
 		}
 		// Get the current CPU user and system times 
-		times(&tdp->td_tgtstp->my_starting_cpu_times_this_run);
-		memcpy(&tdp->td_tgtstp->my_starting_cpu_times_this_pass,&tdp->td_tgtstp->my_starting_cpu_times_this_run, sizeof(struct tms));
+		times(&tdp->td_counters.tc_starting_cpu_times_this_run);
 	} else { // For pass number greater than 1
 		if ((tdp->td_target_options & TO_ENDTOEND) && (tdp->td_target_options & TO_E2E_DESTINATION)) {
 			// Same as above... Pass numbers greater than one will be used when the
 			// multi-file copy support is added
-			tdp->td_tgtstp->my_pass_start_time = NCLK_MAX;
+			tdp->td_counters.tc_pass_start_time = NCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
-			nclk_now(&tdp->td_tgtstp->my_pass_start_time);
+			nclk_now(&tdp->td_counters.tc_pass_start_time);
 		}
-		times(&tdp->td_tgtstp->my_starting_cpu_times_this_pass);
+		times(&tdp->td_counters.tc_starting_cpu_times_this_pass);
 	}
 
 	wdp = tdp->td_next_wdp;
 	while (wdp) { // Set up the pass_start_times for all the QThreads 
-		if (tdp->td_tgtstp->my_current_pass_number == 1) {
-			wdp->wd_first_pass_start_time = tdp->td_first_pass_start_time;
-			wdp->wd_pass_start_time = wdp->wd_first_pass_start_time;
+		if (tdp->td_counters.tc_pass_number == 1) {
+			wdp->wd_counters.tc_pass_start_time = tdp->td_first_pass_start_time;
 			// Get the current CPU user and system times 
-			times(&wdp->wd_starting_cpu_times_this_run);
-			memcpy(&wdp->wd_starting_cpu_times_this_pass,&wdp->wd_starting_cpu_times_this_run, sizeof(struct tms));
+			times(&wdp->wd_counters.tc_starting_cpu_times_this_run);
 		} else { 
-			wdp->wd_pass_start_time = tdp->td_tgtstp->my_pass_start_time;
-			times(&wdp->wd_starting_cpu_times_this_pass);
+			wdp->wd_counters.tc_pass_start_time = tdp->td_counters.tc_pass_start_time;
+			times(&wdp->wd_counters.tc_starting_cpu_times_this_pass);
 		}
-		xdd_init_ptds_before_pass(tdp);
+		xdd_init_target_data_before_pass(tdp);
 		wdp = wdp->wd_next_wdp;
 	}
 

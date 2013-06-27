@@ -181,7 +181,7 @@ xdd_target_name(target_data_t *tdp) {
 
 	/* Set the extension to correspond with the current pass number */
 	if (tdp->td_target_options & TO_CREATE_NEW_FILES) { // Create a new file name for this target
-		sprintf(tdp->td_target_extension,"%08d",tdp->td_tgtstp->my_current_pass_number);
+		sprintf(tdp->td_target_extension,"%08d",tdp->td_counters.tc_pass_number);
 	}
 	
 	/* create the fully qualified target name */

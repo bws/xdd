@@ -90,8 +90,8 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 	sgiop = wdp->wd_sgiop;			// The xdd_sgio struct contains all the info for this I/O
 	// Set up the sg-specific variables in the PTDS
 	sgiop->sg_blocksize = 512; // This is because sg uses a sector size block size
-	sgiop->sg_from_block = (wdp->wd_current_byte_location / sgiop->sg_blocksize);
-	sgiop->sg_blocks = wdp->wd_current_io_size / sgiop->sg_blocksize;
+	sgiop->sg_from_block = (wdp->wd_task.task_byte_offset / sgiop->sg_blocksize);
+	sgiop->sg_blocks = wdp->wd_task.task_xfer_size / sgiop->sg_blocksize;
 	
 	// Init the CDB
 	if (rw == 'w') 
@@ -126,7 +126,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 		io_hdr.dxfer_direction = SG_DXFER_TO_DEV; // Write op
 	else io_hdr.dxfer_direction = SG_DXFER_FROM_DEV; // Read op
 	io_hdr.dxfer_len = sgiop->sg_blocksize * sgiop->sg_blocks;
-	io_hdr.dxferp = wdp->wd_current_rwbuf;
+	io_hdr.dxferp = wdp->wd_rwbuf;
 	io_hdr.mx_sb_len = SENSE_BUFF_LEN;
 	io_hdr.sbp = sgiop->sg_sense;
 	io_hdr.timeout = DEF_TIMEOUT;
@@ -149,7 +149,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 			(rw == 'w')?"Write":"Read",
 			tdp->td_target_full_pathname,
 			status,
-			(long long)wdp->wd_current_op_number);
+			(long long)wdp->wd_task.task_op_number);
 		fflush(xgp->errout);
 		return(status);
 	}
@@ -171,7 +171,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 			(rw == 'w')?"Write":"Read",
 			tdp->td_target_full_pathname,
 			status,
-			(long long)wdp->wd_current_op_number,
+			(long long)wdp->wd_task.task_op_number,
 			(unsigned long long)sgiop->sg_from_block, 
 			sgiop->sg_blocks);
 		fflush(xgp->errout);
@@ -187,7 +187,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 					(rw == 'w')?"Write":"Read",
 					tdp->td_target_full_pathname,
 					status,
-					(long long)wdp->wd_current_op_number,
+					(long long)wdp->wd_task.task_op_number,
 					(unsigned long long)sgiop->sg_from_block, 
 					sgiop->sg_blocks);
 				break;
@@ -200,7 +200,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 							xgp->progname,
 							tdp->td_target_number,
 							wdp->wd_thread_number,
-							(long long)wdp->wd_current_op_number,
+							(long long)wdp->wd_task.task_op_number,
 							(unsigned long long)sgiop->sg_from_block, 
 							sgiop->sg_blocks);
 					}
@@ -212,7 +212,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 					(rw == 'w')?"Write":"Read",
 					tdp->td_target_full_pathname,
 					status,
-					(long long)wdp->wd_current_op_number,
+					(long long)wdp->wd_task.task_op_number,
 					(unsigned long long)sgiop->sg_from_block, 
 					sgiop->sg_blocks);
 				return(0);
@@ -274,7 +274,7 @@ xdd_sg_read_capacity(worker_data_t *wdp) {
 			xgp->progname,
 			tdp->td_target_full_pathname,
 			status,
-			(long long)wdp->wd_current_op_number);
+			(long long)wdp->wd_task.task_op_number);
 		fflush(xgp->errout);
 		perror("reason");
 		return(FAILED);

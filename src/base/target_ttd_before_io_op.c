@@ -48,7 +48,7 @@ xdd_syncio_before_io_op(target_data_t *tdp) {
 
 	if ((tdp->td_planp->syncio > 0) && 
 	    (tdp->td_planp->number_of_targets > 1) && 
-	    (tdp->td_tgtstp->my_current_op_number % tdp->td_planp->syncio == 0)) {
+	    (tdp->td_current_op_number % tdp->td_planp->syncio == 0)) {
 		xdd_barrier(&tdp->td_planp->main_targets_syncio_barrier,&tdp->td_occupant,0);
 	}
 
@@ -94,13 +94,13 @@ xdd_start_trigger_before_io_op(target_data_t *tdp) {
 			if (trigp1->trigger_types & TRIGGER_STARTTIME) {
 			/* If we are past the start time then signal the specified target to start */
 				nclk_now(&tt);
-				if (tt > (trigp1->start_trigger_time + tdp->td_tgtstp->my_pass_start_time)) {
+				if (tt > (trigp1->start_trigger_time + tdp->td_counters.tc_pass_start_time)) {
 					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&tdp->td_occupant,0);
 				}
 			}
 			if (trigp1->trigger_types & TRIGGER_STARTOP) {
 				/* If we are past the specified operation, then signal the specified target to start */
-				if (tdp->td_tgtstp->my_current_op_number > trigp1->start_trigger_op) {
+				if (tdp->td_current_op_number > trigp1->start_trigger_op) {
 					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&tdp->td_occupant,0);
 				}
 			}
@@ -108,7 +108,7 @@ xdd_start_trigger_before_io_op(target_data_t *tdp) {
 				/* If we have completed transferring the specified number of bytes, then signal the 
 				* specified target to start 
 				*/
-				if (tdp->td_tgtstp->my_current_bytes_xfered > trigp1->start_trigger_bytes) {
+				if (tdp->td_current_bytes_completed > trigp1->start_trigger_bytes) {
 					xdd_barrier(&trigp2->target_target_starttrigger_barrier,&tdp->td_occupant,0);
 				}
 			}
@@ -138,9 +138,9 @@ xdd_timelimit_before_io_op(target_data_t *tdp) {
  	*/
 	if (tdp->td_time_limit_ticks) { 
 		nclk_now(&current_time);
-		elapsed_time = current_time - tdp->td_tgtstp->my_pass_start_time;
+		elapsed_time = current_time - tdp->td_counters.tc_pass_start_time;
 		if (elapsed_time >= tdp->td_time_limit_ticks) {
-			tdp->td_tgtstp->my_time_limit_expired = 1;
+			tdp->td_time_limit_expired = 1;
 			fprintf(xgp->output,"\n%s: xdd_timelimit_before_io_op: Target %d: Specified time limit of %f seconds exceeded.\n",
 		 		xgp->progname,
 			 	tdp->td_target_number,
@@ -219,11 +219,11 @@ xdd_target_ttd_before_io_op(target_data_t *tdp, worker_data_t *wdp) {
 	errno = 0;
 	/* Get the location to seek to */
 	if (tdp->td_seekhdr.seek_options & SO_SEEK_NONE) /* reseek to starting offset if noseek is set */
-		tdp->td_tgtstp->my_current_byte_location = (uint64_t)((tdp->td_target_number * tdp->td_planp->target_offset) + 
+		tdp->td_current_byte_offset = (uint64_t)((tdp->td_target_number * tdp->td_planp->target_offset) + 
 											tdp->td_seekhdr.seeks[0].block_location) * 
 											tdp->td_block_size;
-	else tdp->td_tgtstp->my_current_byte_location = (uint64_t)((tdp->td_target_number * tdp->td_planp->target_offset) + 
-											tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].block_location) * 
+	else tdp->td_current_byte_offset = (uint64_t)((tdp->td_target_number * tdp->td_planp->target_offset) + 
+											tdp->td_seekhdr.seeks[tdp->td_current_op_number].block_location) * 
 											tdp->td_block_size;
 
 	if (xgp->global_options & GO_INTERACTIVE)	
@@ -231,12 +231,12 @@ xdd_target_ttd_before_io_op(target_data_t *tdp, worker_data_t *wdp) {
 
 	// Check to see if either the pass or run time limit has 
 	// expired - if so, we need to leave this loop
-	if ((tdp->td_tgtstp->my_time_limit_expired) || (xgp->run_time_expired)) 
+	if ((tdp->td_time_limit_expired) || (xgp->run_time_expired)) 
 		return(XDD_RC_BAD);
 
 	// Check to see if we've been canceled - if so, we need 
 	// to set the WTSYNC_BUSY flag and leave this loop
-	if ((xgp->canceled) || (xgp->abort) || (tdp->td_tgtstp->abort)) {
+	if ((xgp->canceled) || (xgp->abort) || (tdp->td_abort)) {
 		// When we got this Worker Thread the WTSYNC_BUSY flag was 
 		// set by get_any_available_worker_thread()
 		// We need to reset it so that the subsequent loop 

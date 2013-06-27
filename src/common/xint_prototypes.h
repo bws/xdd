@@ -154,7 +154,6 @@ void					xdd_usage(int32_t fullhelp);
 int 					xdd_check_option(char *op);
 int32_t					xdd_process_paramfile(xdd_plan_t* planp, char *fnp);
 int 					xdd_parse_target_number(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags, int *target_number);
-xint_target_state_t 	*xdd_get_tgtstp(target_data_t *tdp);
 target_data_t 		*xdd_get_target_datap(xdd_plan_t* planp, int32_t target_number, char *op);
 xint_restart_t 			*xdd_get_restartp(target_data_t *tdp);
 xint_raw_t				*xdd_get_rawp(target_data_t *tdp);
@@ -368,7 +367,7 @@ void	xdd_timer_calibration_before_pass(void);
 void	xdd_start_delay_before_pass(target_data_t *p);
 void	xdd_raw_before_pass(target_data_t *p);
 void	xdd_e2e_before_pass(target_data_t *p);
-void	xdd_init_ptds_before_pass(target_data_t *p);
+void	xdd_init_target_data_before_pass(target_data_t *p);
 int32_t	xdd_target_ttd_before_pass(target_data_t *p);
 
 // timestamp.c

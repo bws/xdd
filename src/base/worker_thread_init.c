@@ -70,7 +70,7 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 #endif
 
 	// The "my_current_state_mutex" is used by the WorkerThreads when checking or updating the state info
-	status = pthread_mutex_init(&tdp->td_tgtstp->my_current_state_mutex, 0);
+	status = pthread_mutex_init(&tdp->td_current_state_mutex, 0);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Cannot init my_current_state_mutex \n",
 			xgp->progname, 
@@ -108,8 +108,8 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 	}
         
 	// Get a RW buffer
-	wdp->wd_current_rwbuf = xdd_init_io_buffers(wdp);
-	if (wdp->wd_current_rwbuf == 0) {
+	wdp->wd_rwbuf = xdd_init_io_buffers(wdp);
+	if (wdp->wd_rwbuf == 0) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Failed to allocate I/O buffer.\n",
 			xgp->progname,
 			tdp->td_target_number,
