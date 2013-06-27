@@ -61,6 +61,8 @@ struct xint_worker_data {
 	xdd_sgio_t		*wd_sgiop;			// SGIO Structure Pointer
 };
 typedef struct xint_worker_data worker_data_t;
+
+#endif
 /*
  * Local variables:
  *  indent-tabs-mode: t
