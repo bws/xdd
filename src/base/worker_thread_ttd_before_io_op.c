@@ -173,7 +173,7 @@ xdd_raw_before_io_op(worker_data_t *wdp) {
 							(long long)tdp->td_rawp->raw_msg.length, 
 							(long long)tdp->td_rawp->raw_data_length, 
 							(long long)tdp->td_rawp->raw_data_ready, 
-							wdp->wd_task.task_xfer_size );
+							(int)wdp->wd_task.task_xfer_size );
 					tdp->td_rawp->raw_prev_loc = tdp->td_rawp->raw_msg.location;
 					tdp->td_rawp->raw_prev_len = tdp->td_rawp->raw_data_length;
 				}

@@ -70,7 +70,6 @@ xdd_target_open(target_data_t *tdp) {
 	xdd_target_open_for_os(tdp);
 
 	nclk_now(&tdp->td_open_end_time); // Record the ending time of the open
-fprintf(stderr,"target_open: file_desc=%d, filename=%s\n",tdp->td_file_desc,tdp->td_target_full_pathname);
 	// Check the status of the OPEN operation to see if it worked
 	if (tdp->td_file_desc < 0) {
 			fprintf(xgp->errout,"%s: xdd_target_open: ERROR: Could not open target number %d name %s\n",

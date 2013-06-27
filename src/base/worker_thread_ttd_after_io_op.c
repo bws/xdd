@@ -105,7 +105,7 @@ xdd_status_after_io_op(worker_data_t *wdp) {
 			tdp->td_target_number,
 			wdp->wd_thread_number,
 			tdp->td_target_full_pathname,
-			wdp->wd_task.task_io_status, 
+			(int)wdp->wd_task.task_io_status, 
 			wdp->wd_task.task_errno);
 	}
 
