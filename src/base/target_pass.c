@@ -175,7 +175,7 @@ fprintf(stderr,"target_pass_loop: Setting up the task...: target %d, wdp=%p\n", 
 
 		// Release the Worker Thread to let it start working on this task.
 		// This effectively causes the I/O operation to be issued.
-fprintf(stderr,"target_pass_loop: Waking up the worker thread...: target %d, wdp=%p\n", tdp->td_target_number, wdp);
+fprintf(stderr,"target_pass_loop: Waking up the worker thread...: target %d, tdp->file_desc=%d,  wdp=%p, wdp->task.task_file_desc=%d\n", tdp->td_target_number, tdp->td_file_desc, wdp, wdp->wd_task.task_file_desc);
 		xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&tdp->td_occupant,0);
 
 	} // End of WHILE loop that transfers data for a single pass
@@ -212,7 +212,7 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	target_data_t	*tdp;
 
 	tdp = wdp->wd_tdp;
-fprintf(stderr,"targetpass_target_setup: ENTER: target %d, bytes_remaining: %lld, current_byte_offset=%lld, op#=%lld, op=%x, \n", tdp->td_target_number, (long long int)tdp->td_current_bytes_remaining, (long long int)tdp->td_current_byte_offset, (long long int)tdp->td_current_op_number, tdp->td_seekhdr.seeks[tdp->td_current_op_number].operation);
+fprintf(stderr,"targetpass_task_setup: ENTER: target %d, file_desc=%d, bytes_remaining: %lld, current_byte_offset=%lld, op#=%lld, op=%x, \n", tdp->td_target_number, tdp->td_file_desc, (long long int)tdp->td_current_bytes_remaining, (long long int)tdp->td_current_byte_offset, (long long int)tdp->td_current_op_number, tdp->td_seekhdr.seeks[tdp->td_current_op_number].operation);
 	// Assign an IO task to this worker thread
 	wdp->wd_task.task_request = TASK_REQ_IO;
 

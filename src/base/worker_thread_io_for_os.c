@@ -50,7 +50,7 @@ xdd_io_for_os(worker_data_t *wdp) {
 	tsp = tdp->td_tsp;		// Get pointer to the Time Stamp Variables 
 	ttp = tdp->td_ttp;		// Get pointer to the Time Stamp Table
 
-fprintf(xgp->errout,"\n%s: xdd_io_for_os: Target %d Worker Thread %d: ENTER: tdp=%p, wdp=%p, target_options=0x%016llx, wd_task.task_op_type=%x\n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp, (long long int)tdp->td_target_options,wdp->wd_task.task_op_type);
+fprintf(xgp->errout,"\n%s: xdd_io_for_os: Target %d Worker Thread %d: ENTER: tdp=%p, wdp=%p, target_options=0x%016llx, wd_task.task_op_type=%x, file_desc=%d \n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp, (long long int)tdp->td_target_options,wdp->wd_task.task_op_type, wdp->wd_task.task_file_desc);
 	// Record the starting time for this write op
 	nclk_now(&wdp->wd_counters.tc_current_op_start_time);
 	// Time stamp if requested
@@ -72,13 +72,14 @@ fprintf(xgp->errout,"\n%s: xdd_io_for_os: Target %d Worker Thread %d: ENTER: tdp
 			if ((tdp->td_target_options & TO_SGIO)) 
 			 	wdp->wd_task.task_io_status = xdd_sg_io(wdp,'w'); // Issue the SGIO operation 
 			else if (!(tdp->td_target_options & TO_NULL_TARGET)) {
-fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: WRITE target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,tdp->td_target_number,(long long int)wdp->wd_task.task_byte_offset);
-                wdp->wd_task.task_io_status = pwrite(wdp->wd_file_desc,
-                                                          wdp->wd_rwbuf,
-                                                          wdp->wd_task.task_xfer_size,
-                                                   (off_t)wdp->wd_task.task_byte_offset); // Issue a positioned write operation
+fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: WRITE target_number %d, filedesc=%d, xfer_size=%d, rwbuf=%p, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,tdp->td_target_number,wdp->wd_task.task_file_desc, (int)wdp->wd_task.task_xfer_size, wdp->wd_rwbuf,(long long int)wdp->wd_task.task_byte_offset);
+                wdp->wd_task.task_io_status = pwrite(wdp->wd_task.task_file_desc,
+                                                        wdp->wd_rwbuf,
+                                                        wdp->wd_task.task_xfer_size,
+                                                   		wdp->wd_task.task_byte_offset); // Issue a positioned write operation
+fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: WRITE target_number %d, offset %lld, status=%d, errno=%d\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,tdp->td_target_number,(long long int)wdp->wd_task.task_byte_offset, (int)wdp->wd_task.task_io_status, errno);
 			} else { 
-				wdp->wd_task.task_io_status = write(wdp->wd_file_desc, wdp->wd_rwbuf, wdp->wd_task.task_xfer_size); // Issue a normal write() op
+				wdp->wd_task.task_io_status = write(wdp->wd_task.task_file_desc, wdp->wd_rwbuf, wdp->wd_task.task_xfer_size); // Issue a normal write() op
 			}
 
 		}
@@ -92,11 +93,11 @@ fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: WRITE target_number %d, offset %ll
 			 	wdp->wd_task.task_io_status = xdd_sg_io(wdp,'r'); // Issue the SGIO operation 
 			else if (!(tdp->td_target_options & TO_NULL_TARGET)) {
 fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: READ target_number %d, offset %lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,tdp->td_target_number,(long long int)wdp->wd_task.task_byte_offset);
-                            wdp->wd_task.task_io_status = pread(wdp->wd_file_desc,
+                            wdp->wd_task.task_io_status = pread(wdp->wd_task.task_file_desc,
                                                                wdp->wd_rwbuf,
                                                                wdp->wd_task.task_xfer_size,
                                                                (off_t)wdp->wd_task.task_byte_offset);// Issue a positioned read operation
-			} else wdp->wd_task.task_io_status = read(wdp->wd_file_desc,
+			} else wdp->wd_task.task_io_status = read(wdp->wd_task.task_file_desc,
                                                               wdp->wd_rwbuf,
                                                               wdp->wd_task.task_xfer_size);// Issue a normal read() operation
 		}
@@ -123,7 +124,7 @@ fprintf(stdout,"%lld:io_for_os:tdp:%p:wdp:%p: READ target_number %d, offset %lld
 		ttp->tte[tsp->ts_current_entry].disk_xfer_size = wdp->wd_task.task_io_status;
 		ttp->tte[tsp->ts_current_entry].disk_processor_end = xdd_get_processor();
 	}
-fprintf(xgp->errout,"\n%s: xdd_io_for_os: Target %d Worker Thread %d: EXIT: tdp=%p, wdp=%p, wd_task.task_io_status=%d\n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp,wdp->wd_task.task_io_status);
+fprintf(xgp->errout,"\n%s: xdd_io_for_os: Target %d Worker Thread %d: EXIT: tdp=%p, wdp=%p, wd_task.task_io_status=%d\n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp,(int)wdp->wd_task.task_io_status);
 
 } // End of xdd_io_for_linux()
 #endif 
@@ -164,11 +165,11 @@ xdd_io_for_os(xint_wd_t *wdp) {
 			wdp->wd_task.task_io_status = wdp->wd_task.task_xfer_size;
 		} else { // Issue the actual operation
 			if (!(tdp->td_target_options & TO_NULL_TARGET))
-                            wdp->wd_task.task_io_status = pwrite(wdp->wd_file_desc,
+                            wdp->wd_task.task_io_status = pwrite(wdp->wd_task.task_file_desc,
                                                                wdp->wd_rwbuf,
                                                                wdp->wd_task.task_xfer_size,
                                                                (off_t)wdp->wd_task.task_byte_offset); // Issue a positioned write operation
-                        else wdp->wd_task.task_io_status = write(wdp->wd_file_desc, wdp->wd_rwbuf, wdp->wd_task.task_xfer_size); // Issue a normal write() op
+                        else wdp->wd_task.task_io_status = write(wdp->wd_task.task_file_desc, wdp->wd_rwbuf, wdp->wd_task.task_xfer_size); // Issue a normal write() op
 
 		}
 	} else if (wdp->wd_task.task_op_type == TASK_OP_TYPE_READ) {  // READ Operation
@@ -178,11 +179,11 @@ xdd_io_for_os(xint_wd_t *wdp) {
 			wdp->wd_task.task_io_status = wdp->wd_task.task_xfer_size;
 		} else { // Issue the actual operation
 			if (!(tdp->td_target_options & TO_NULL_TARGET))
-                            wdp->wd_task.task_io_status = pread(wdp->wd_file_desc,
+                            wdp->wd_task.task_io_status = pread(wdp->wd_task.task_file_desc,
 							     wdp->wd_rwbuf,
 							     wdp->wd_task.task_xfer_size,
 							     (off_t)wdp->wd_task.task_byte_offset);// Issue a positioned read operation
-			else wdp->wd_task.task_io_status = read(wdp->wd_file_desc,
+			else wdp->wd_task.task_io_status = read(wdp->wd_task.task_file_desc,
                                                               wdp->wd_rwbuf,
                                                               wdp->wd_task.task_xfer_size);// Issue a normal read() operation
 		}

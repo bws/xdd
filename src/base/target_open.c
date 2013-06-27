@@ -70,7 +70,7 @@ xdd_target_open(target_data_t *tdp) {
 	xdd_target_open_for_os(tdp);
 
 	nclk_now(&tdp->td_open_end_time); // Record the ending time of the open
-
+fprintf(stderr,"target_open: file_desc=%d, filename=%s\n",tdp->td_file_desc,tdp->td_target_full_pathname);
 	// Check the status of the OPEN operation to see if it worked
 	if (tdp->td_file_desc < 0) {
 			fprintf(xgp->errout,"%s: xdd_target_open: ERROR: Could not open target number %d name %s\n",
@@ -140,18 +140,11 @@ xdd_target_shallow_open(worker_data_t *wdp) {
 	if (tdp->td_target_options & TO_NULL_TARGET)
 		return(0);
 
-	/* Ensure the invoking client is a qthread with an already opened target thread */
-//	if (0 == tdp->td_target_ptds)
-//		return(-1);
-        
 	/* create the fully qualified target name */
 	xdd_target_name(tdp);
 
 	nclk_now(&tdp->td_open_start_time); // Record the starting time of the open
 
-    /* Retrieve the settings from the parent thread */
-//    wdp->wd_file_desc = tdp->td_file_desc;
-//    wdp->wd_open_flags = tdp->td_ds->open_flags;
 
 	nclk_now(&tdp->td_open_end_time); // Record the ending time of the open
 
