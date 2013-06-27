@@ -32,53 +32,53 @@
 #include "xint_plan.h"
 struct xint_target_state {
 	// Time stamps and timing information - RESET AT THE START OF EACH PASS (or Operation on some)
-	nclk_t				my_pass_start_time; 		// The time stamp that this pass started but before the first operation is issued
-	nclk_t				my_pass_end_time; 			// The time stamp that this pass ended 
-	struct	tms			my_starting_cpu_times_this_run;	// CPU times from times() at the start of this run
-	struct	tms			my_starting_cpu_times_this_pass;// CPU times from times() at the start of this pass
-	struct	tms			my_current_cpu_times;		// CPU times from times()
+	nclk_t				tc_pass_start_time; 		// The time stamp that this pass started but before the first operation is issued
+	nclk_t				tc_pass_end_time; 			// The time stamp that this pass ended 
+	struct	tms			tc_starting_cpu_times_this_run;	// CPU times from times() at the start of this run
+	struct	tms			tc_starting_cpu_times_this_pass;// CPU times from times() at the start of this pass
+	struct	tms			tc_current_cpu_times;		// CPU times from times()
 	//
 	// Updated by xdd_issue() at at the start of a Task IO request to a Worker Thread
-	int32_t				my_current_pass_number; 	// Current pass number 
-	int64_t				my_current_byte_location; 	// Current byte location for this I/O operation 
-	int32_t				my_current_io_size; 		// Size of the I/O to be performed
-	char				*my_current_op_str; 		// Pointer to an ASCII string of the I/O operation type - "READ", "WRITE", or "NOOP"
-	int32_t				my_current_op_type; 		// Current I/O operation type - OP_TYPE_READ or OP_TYPE_WRITE
+	int32_t				tc_current_pass_number; 	// Current pass number 
+	int64_t				tc_current_byte_location; 	// Current byte location for this I/O operation 
+	int32_t				tc_current_io_size; 		// Size of the I/O to be performed
+	char				*tc_current_op_str; 		// Pointer to an ASCII string of the I/O operation type - "READ", "WRITE", or "NOOP"
+	int32_t				tc_current_op_type; 		// Current I/O operation type - OP_TYPE_READ or OP_TYPE_WRITE
 #define OP_TYPE_READ	0x01						// used with my_current_op_type
 #define OP_TYPE_WRITE	0x02						// used with my_current_op_type
 #define OP_TYPE_NOOP	0x03						// used with my_current_op_type
 #define OP_TYPE_EOF		0x04						// used with my_current_op_type - indicates End-of-File processing when present in the Time Stamp Table
 	// Updated by the Worker Thread upon completion of an I/O operation
-	int64_t				target_op_number;			// The operation number for the target that this I/O represents
-	int64_t				my_current_op_number;		// Current I/O operation number 
-	int64_t				my_current_op_count; 		// The number of read+write operations that have completed so far
-	int64_t				my_current_read_op_count;	// The number of read operations that have completed so far 
-	int64_t				my_current_write_op_count;	// The number of write operations that have completed so far 
-	int64_t				my_current_noop_op_count;	// The number of noops that have completed so far 
-	int64_t				my_current_bytes_xfered_this_op; // Total number of bytes transferred for the most recent completed I/O operation
-	int64_t				my_current_bytes_xfered;	// Total number of bytes transferred so far (to storage device, not network)
-	int64_t				my_current_bytes_read;		// Total number of bytes read so far (from storage device, not network)
-	int64_t				my_current_bytes_written;	// Total number of bytes written so far (to storage device, not network)
-	int64_t				my_current_bytes_noop;		// Total number of bytes processed by noops so far
-	int32_t				my_current_io_status; 		// I/O Status of the last I/O operation for this Worker Thread
-	int32_t				my_current_io_errno; 		// The errno associated with the status of this I/O for this thread
-	int64_t				my_current_error_count;		// The number of I/O errors for this Worker Thread
-	nclk_t				my_elapsed_pass_time; 		// Rime between the start and end of this pass
-	nclk_t				my_first_op_start_time;		// Time this Worker Thread was able to issue its first operation for this pass
-	nclk_t				my_current_op_start_time; 	// Start time of the current op
-	nclk_t				my_current_op_end_time; 	// End time of the current op
-	nclk_t				my_current_op_elapsed_time;	// Elapsed time of the current op
-	nclk_t				my_current_net_start_time; 	// Start time of the current network op (e2e only)
-	nclk_t				my_current_net_end_time; 	// End time of the current network op (e2e only)
-	nclk_t				my_current_net_elapsed_time;// Elapsed time of the current network op (e2e only)
-	nclk_t				my_accumulated_op_time; 	// Accumulated time spent in I/O 
-	nclk_t				my_accumulated_read_op_time; // Accumulated time spent in read 
-	nclk_t				my_accumulated_write_op_time;// Accumulated time spent in write 
-	nclk_t				my_accumulated_noop_op_time;// Accumulated time spent in noops 
-	nclk_t				my_accumulated_pattern_fill_time; // Accumulated time spent in data pattern fill before all I/O operations 
-	nclk_t				my_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
+	int64_t				tc_target_op_number;			// The operation number for the target that this I/O represents
+	int64_t				tc_current_op_number;		// Current I/O operation number 
+	int64_t				tc_current_op_count; 		// The number of read+write operations that have completed so far
+	int64_t				tc_current_read_op_count;	// The number of read operations that have completed so far 
+	int64_t				tc_current_write_op_count;	// The number of write operations that have completed so far 
+	int64_t				tc_current_noop_op_count;	// The number of noops that have completed so far 
+	int64_t				tc_current_bytes_xfered_this_op; // Total number of bytes transferred for the most recent completed I/O operation
+	int64_t				tc_current_bytes_xfered;	// Total number of bytes transferred so far (to storage device, not network)
+	int64_t				tc_current_bytes_read;		// Total number of bytes read so far (from storage device, not network)
+	int64_t				tc_current_bytes_written;	// Total number of bytes written so far (to storage device, not network)
+	int64_t				tc_current_bytes_noop;		// Total number of bytes processed by noops so far
+	int32_t				tc_current_io_status; 		// I/O Status of the last I/O operation for this Worker Thread
+	int32_t				tc_current_io_errno; 		// The errno associated with the status of this I/O for this thread
+	int64_t				tc_current_error_count;		// The number of I/O errors for this Worker Thread
+	nclk_t				tc_elapsed_pass_time; 		// Rime between the start and end of this pass
+	nclk_t				tc_first_op_start_time;		// Time this Worker Thread was able to issue its first operation for this pass
+	nclk_t				tc_current_op_start_time; 	// Start time of the current op
+	nclk_t				tc_current_op_end_time; 	// End time of the current op
+	nclk_t				tc_current_op_elapsed_time;	// Elapsed time of the current op
+	nclk_t				tc_current_net_start_time; 	// Start time of the current network op (e2e only)
+	nclk_t				tc_current_net_end_time; 	// End time of the current network op (e2e only)
+	nclk_t				tc_current_net_elapsed_time;// Elapsed time of the current network op (e2e only)
+	nclk_t				tc_accumulated_op_time; 	// Accumulated time spent in I/O 
+	nclk_t				tc_accumulated_read_op_time; // Accumulated time spent in read 
+	nclk_t				tc_accumulated_write_op_time;// Accumulated time spent in write 
+	nclk_t				tc_accumulated_noop_op_time;// Accumulated time spent in noops 
+	nclk_t				tc_accumulated_pattern_fill_time; // Accumulated time spent in data pattern fill before all I/O operations 
+	nclk_t				tc_accumulated_flush_time; 	// Accumulated time spent doing flush (fsync) operations
 	// Updated by the Worker Thread at different times
-	char				my_time_limit_expired;		// Time limit expired indicator
+	char				tc_time_limit_expired;		// Time limit expired indicator
 	char				abort;						// Abort this operation (either a Worker Thread or a Target Thread)
 	char				run_complete;				// Indicates that the entire RUN of all PASSES has completed
 	pthread_mutex_t 	my_current_state_mutex; 	// Mutex for locking when checking or updating the state info

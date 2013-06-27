@@ -124,9 +124,6 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 		tdp->td_e2ep->e2e_address_table_next_entry=0;
 	}
 
-	if (tdp->td_tgtstp) 
-		memset((unsigned char *)tdp->td_tgtstp, 0, sizeof(xint_target_state_t));
-
 	sprintf(tdp->td_occupant_name,"TARGET%04d",tdp->td_target_number);
 	xdd_init_barrier_occupant(&tdp->td_occupant, tdp->td_occupant_name, XDD_OCCUPANT_TYPE_TARGET, tdp);
 
@@ -144,8 +141,8 @@ xdd_calculate_xfer_info(target_data_t *tdp) {
 	// The following calculates the number of I/O requests (numreqs) to issue to a "target"
 	// This value represents the total number of I/O operations that will be performed on this target.
 	/* Now lets get down to business... */
-	tdp->td_io_size = tdp->td_reqsize * tdp->td_block_size;
-	if (tdp->td_io_size == 0) {
+	tdp->td_xfer_size = tdp->td_reqsize * tdp->td_block_size;
+	if (tdp->td_xfer_size == 0) {
 		fprintf(xgp->errout,"%s: io_thread_init: ALERT! iothread for target %d has an iosize of 0, reqsize of %d, blocksize of %d\n",
 			xgp->progname, tdp->td_target_number, tdp->td_reqsize, tdp->td_block_size);
 		fflush(xgp->errout);
@@ -153,7 +150,7 @@ xdd_calculate_xfer_info(target_data_t *tdp) {
 		return;
 	}
 	if (tdp->td_numreqs) 
-		tdp->td_target_bytes_to_xfer_per_pass = (uint64_t)(tdp->td_numreqs * tdp->td_io_size);
+		tdp->td_target_bytes_to_xfer_per_pass = (uint64_t)(tdp->td_numreqs * tdp->td_xfer_size);
 	else if (tdp->td_bytes)
 		tdp->td_target_bytes_to_xfer_per_pass = (uint64_t)tdp->td_bytes;
 	else { // Yikes - something was not specified
@@ -179,12 +176,12 @@ xdd_calculate_xfer_info(target_data_t *tdp) {
 	}
 
 	// This calculates the number of iosize (or smaller) operations that need to be performed. 
-	tdp->td_target_ops = tdp->td_target_bytes_to_xfer_per_pass / tdp->td_io_size;
+	tdp->td_target_ops = tdp->td_target_bytes_to_xfer_per_pass / tdp->td_xfer_size;
 
  	// In the event the number of bytes to transfer is not an integer multiple of iosized requests then 
  	// the total number of ops is incremented by 1 and the last I/O op will be the something less than
 	// than the normal iosize.
-	if (tdp->td_target_bytes_to_xfer_per_pass % tdp->td_io_size) 
+	if (tdp->td_target_bytes_to_xfer_per_pass % tdp->td_xfer_size) 
 		tdp->td_target_ops++;
 	
 } // End of xdd_calculate_xfer_info()

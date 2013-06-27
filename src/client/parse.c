@@ -377,24 +377,6 @@ xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t 
 }/* end of xdd_parse_target_number() */
 
 /*----------------------------------------------------------------------------*/
-/* xdd_get_tgtstp() - return a pointer to the State Info Struct 
- */
-xint_target_state_t * 
-xdd_get_tgtstp(target_data_t *tdp) {
-
-	// Allocate and initialize the target state structure
-	tdp->td_tgtstp = (xint_target_state_t *)malloc(sizeof(xint_target_state_t));
-	if (tdp->td_tgtstp == NULL) {
-	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure\n",
-		    xgp->progname, (int)sizeof(xint_target_state_t));
-	    return(NULL);
-	}
-	memset((unsigned char *)tdp->td_tgtstp, 0, sizeof(xint_target_state_t));
-	return(tdp->td_tgtstp);
-
-} // End of xdd_get_tgtstp()
-
-/*----------------------------------------------------------------------------*/
 /* xdd_get_target_datap() - return a pointer to the PTDS for the specified target
  */
 target_data_t * 
@@ -413,14 +395,6 @@ fprintf(stderr,"GET_PTDSP: Enter: planp=%p, target_number=%d, op=%s\n",planp,tar
 		memset((unsigned char *)planp->target_datap[target_number], 0, sizeof(target_data_t));
 	}
 	tdp = planp->target_datap[target_number];
-
-	// Allocate and initialize the target state structure
-	tdp->td_tgtstp = xdd_get_tgtstp(tdp);
-	if (tdp->td_tgtstp == NULL) {
-	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target State Structure for target %d\n",
-		    xgp->progname, (int)sizeof(xint_target_state_t), target_number);
-	    return(NULL);
-	}
 
 	// Allocate and initialize the data pattern structure
 	tdp->td_dpp = (xint_data_pattern_t *)malloc(sizeof(xint_data_pattern_t));

@@ -69,7 +69,7 @@ xdd_target_init(target_data_t *tdp) {
 #endif
 
 	// Set the pass number
-	tdp->td_tgtstp->my_current_pass_number = 1;
+	tdp->td_counters.tc_pass_number = 1;
 
 	// Check to see that the target is valid and can be opened properly
 	status = xdd_target_open(tdp);
@@ -210,11 +210,11 @@ xdd_target_init_barriers(target_data_t *tdp) {
 		status += xdd_init_barrier(tdp->td_planp, &tdp->td_trigp->target_target_starttrigger_barrier,2,tmpname);
 	}
 
-	// The "counter_mutex" is used by the WorkerThreads when updating the counter information in the Target Thread PTDS
-	status += pthread_mutex_init(&tdp->td_counter_mutex, 0);
+	// The "td_counters_mutex" is used by the WorkerThreads when updating the counter information in the Target Thread Data
+	status += pthread_mutex_init(&tdp->td_counters_mutex, 0);
 
 	if (status) {
-		fprintf(xgp->errout,"%s: xdd_target_init_barriers: ERROR: Cannot create barriers/mutex for target number %d name '%s'\n",
+		fprintf(xgp->errout,"%s: xdd_target_init_barriers: ERROR: Cannot create td_counters_mutex for target number %d name '%s'\n",
 			xgp->progname, 
 			tdp->td_target_number,
 			tdp->td_target_full_pathname);

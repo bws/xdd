@@ -64,13 +64,13 @@ xdd_dio_before_io_op(worker_data_t *wdp) {
 	// If the current I/O transfer size is an integer multiple of the page size *AND*
 	// if the current byte location (aka offset into the file/device) is an integer multiple
 	// of the page size then this I/O operation is fine - just return.
-	if ((tdp->td_tgtstp->my_current_io_size % pagesize == 0) && 
-		(tdp->td_tgtstp->my_current_byte_location % pagesize) == 0) {
+	if ((wdp->wd_task.task_xfer_size % pagesize == 0) && 
+		(wdp->wd_task.task_byte_offset % pagesize) == 0) {
 		return;
 	}
 
 	// Otherwise, it is necessary to open this target file with DirectIO disabaled
-//FIXME?	tdp->td_tgtstp->my_current_pass_number = wdp->target_ptds->tgtstp->my_current_pass_number;
+//FIXME?	tdp->td_current_pass_number = wdp->target_ptds->current_pass_number;
 	tdp->td_target_options &= ~TO_DIO;
 #if (SOLARIS || WIN32)
 	// In this OS it is necessary to close the file descriptor before reopening in BUFFERED I/O Mode
@@ -115,7 +115,7 @@ xdd_raw_before_io_op(worker_data_t *wdp) {
 // fprintf(stderr,"Reader: RAW check - dataready=%lld, trigger=%x\n",(long long)data_ready,p->rawp->raw_trigger);
 			/* Check to see if we can read more data - if not see where we are at */
 			if (tdp->td_rawp->raw_trigger & RAW_STAT) { /* This section will continually poll the file status waiting for the size to increase so that it can read more data */
-				while (tdp->td_rawp->raw_data_ready < wdp->wd_current_io_size) {
+				while (tdp->td_rawp->raw_data_ready < wdp->wd_task.task_xfer_size) {
 					/* Stat the file so see if there is data to read */
 #if (LINUX || DARWIN || FREEBSD)
 					status = fstat(wdp->wd_file_desc,&statbuf);
@@ -124,24 +124,24 @@ xdd_raw_before_io_op(worker_data_t *wdp) {
 #endif
 					if (status < 0) {
 						fprintf(xgp->errout,"%s: RAW: Error getting status on file\n", xgp->progname);
-						tdp->td_rawp->raw_data_ready = wdp->wd_current_io_size;
+						tdp->td_rawp->raw_data_ready = wdp->wd_task.task_xfer_size;
 					} else { /* figure out how much more data we can read */
-						tdp->td_rawp->raw_data_ready = statbuf.st_size - tdp->td_tgtstp->my_current_byte_location;
+						tdp->td_rawp->raw_data_ready = statbuf.st_size - tdp->td_current_byte_offset;
 						if (tdp->td_rawp->raw_data_ready < 0) {
 							/* The result of this should be positive, otherwise, the target file
 							* somehow got smaller and there is a problem. 
 							* So, fake it and let this loop exit 
 							*/
 							fprintf(xgp->errout,"%s: RAW: Something is terribly wrong with the size of the target file...\n",xgp->progname);
-							tdp->td_rawp->raw_data_ready = wdp->wd_current_io_size;
+							tdp->td_rawp->raw_data_ready = wdp->wd_task.task_xfer_size;
 						}
 					}
 				}
 			} else { /* This section uses a socket connection to the Destination and waits for the Source to tell it to receive something from its socket */
-				while (tdp->td_rawp->raw_data_ready < wdp->wd_current_io_size) {
+				while (tdp->td_rawp->raw_data_ready < wdp->wd_task.task_xfer_size) {
 					/* xdd_raw_read_wait() will block until there is data to read */
 					status = xdd_raw_read_wait(wdp);
-					if (tdp->td_rawp->raw_msg.length != wdp->wd_current_io_size) 
+					if (tdp->td_rawp->raw_msg.length != wdp->wd_task.task_xfer_size) 
 
 						fprintf(stderr,"error on msg recvd %d loc %lld, length %lld\n",
 							tdp->td_rawp->raw_msg_recv-1, 
@@ -166,14 +166,14 @@ xdd_raw_before_io_op(worker_data_t *wdp) {
 					/* calculate the amount of data to be read between the end of the last location and the end of the current one */
 					tdp->td_rawp->raw_data_length = ((tdp->td_rawp->raw_msg.location + tdp->td_rawp->raw_msg.length) - (tdp->td_rawp->raw_prev_loc + tdp->td_rawp->raw_prev_len));
 					tdp->td_rawp->raw_data_ready += tdp->td_rawp->raw_data_length;
-					if (tdp->td_rawp->raw_data_length > wdp->wd_current_io_size) 
+					if (tdp->td_rawp->raw_data_length > wdp->wd_task.task_xfer_size) 
 						fprintf(stderr,"msgseq=%lld, loc=%lld, len=%lld, data_length is %lld, data_ready is now %lld, iosize=%d\n",
 							(long long)tdp->td_rawp->raw_msg.sequence, 
 							(long long)tdp->td_rawp->raw_msg.location, 
 							(long long)tdp->td_rawp->raw_msg.length, 
 							(long long)tdp->td_rawp->raw_data_length, 
 							(long long)tdp->td_rawp->raw_data_ready, 
-							wdp->wd_current_io_size );
+							wdp->wd_task.task_xfer_size );
 					tdp->td_rawp->raw_prev_loc = tdp->td_rawp->raw_msg.location;
 					tdp->td_rawp->raw_prev_len = tdp->td_rawp->raw_data_length;
 				}
@@ -221,13 +221,13 @@ xdd_e2e_before_io_op(worker_data_t *wdp) {
 
 	// Lets read a packet of data from the Source side
 	// xdd_e2e_dest_recv() will block until there is data to read 
-	tdp->td_tgtstp->my_current_state |= CURRENT_STATE_DEST_RECEIVE;
+	tdp->td_current_state |= CURRENT_STATE_DEST_RECEIVE;
 
 fprintf(stderr,"E2E_BEFORE_IO_OP: wdp=%p, calling xdd_e2e_dest_recv...\n",wdp);
 	status = xdd_e2e_dest_recv(wdp);
 fprintf(stderr,"E2E_BEFORE_IO_OP: wdp=%p, returned from xdd_e2e_dest_recv...\n",wdp);
 
-	tdp->td_tgtstp->my_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
+	tdp->td_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
 
 	// If status is "-1" then soemthing happened to the connection - time to leave
 	if (status == -1) 
@@ -238,11 +238,11 @@ fprintf(stderr,"E2E_BEFORE_IO_OP: wdp=%p, returned from xdd_e2e_dest_recv...\n",
 		return(0);
 	}
 
-	// Use the hearder.location as the new my_current_byte_location and the e2e_header.length as the new my_current_io_size for this op
+	// Use the hearder.location as the new my_current_byte_offset and the e2e_header.length as the new my_current_xfer_size for this op
 	// This will allow for the use of "no ordering" on the source side of an e2e operation
-	tdp->td_tgtstp->my_current_byte_location = wdp->wd_e2ep->e2e_header.location;
-	tdp->td_tgtstp->my_current_io_size = wdp->wd_e2ep->e2e_header.length;
-	tdp->td_tgtstp->my_current_op_number = wdp->wd_e2ep->e2e_header.sequence;
+	wdp->wd_task.task_byte_offset = wdp->wd_e2ep->e2e_header.location;
+	wdp->wd_task.task_xfer_size = wdp->wd_e2ep->e2e_header.length;
+	wdp->wd_task.task_op_number = wdp->wd_e2ep->e2e_header.sequence;
 	// Record the amount of data received 
 	wdp->wd_e2ep->e2e_data_recvd = wdp->wd_e2ep->e2e_header.length;
 
@@ -278,9 +278,9 @@ xdd_throttle_before_io_op(worker_data_t *wdp) {
 		if (tdp->td_throtp->throttle_type & XINT_THROTTLE_DELAY) {
 			sleep_time = tdp->td_throtp->throttle*1000000;
 		} else { // Process the throttle for IOPS or BW
-			now -= tdp->td_tgtstp->my_pass_start_time;
-			if (now < tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].time1) { /* Then we may need to sleep */
-				sleep_time = (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].time1 - now) / BILLION; /* sleep time in milliseconds */
+			now -= wdp->wd_counters.tc_pass_start_time;
+			if (now < tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1) { /* Then we may need to sleep */
+				sleep_time = (tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1 - now) / BILLION; /* sleep time in milliseconds */
 				if (sleep_time > 0) {
 					sleep_time_dw = sleep_time;
 #ifdef WIN32

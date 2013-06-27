@@ -121,24 +121,24 @@ xdd_heartbeat(void *data) {
 			total_bytes_xferred = 0;
 			earliest_start_time = NCLK_MAX;
 			total_ops_issued = 0;
-			if (tdp->td_tgtstp->my_pass_start_time == NCLK_MAX) { // Haven't started yet...
+			if (tdp->td_counters.tc_pass_start_time == NCLK_MAX) { // Haven't started yet...
 				fprintf(tdp->td_hb.hb_file_pointer," + WAITING");
 				continue; 
 			}
 			// Get the number of bytes xferred by all QThreads for this Target
-			total_bytes_xferred = tdp->td_tgtstp->my_current_bytes_xfered;
-			total_ops_issued = tdp->td_tgtstp->my_current_op_count;
+			total_bytes_xferred = tdp->td_counters.tc_accumulated_bytes_xfered;
+			total_ops_issued = tdp->td_counters.tc_accumulated_op_count;
 			// Determine if this is the earliest start time
-			if (earliest_start_time > tdp->td_tgtstp->my_pass_start_time) 
-				earliest_start_time = tdp->td_tgtstp->my_pass_start_time;
+			if (earliest_start_time > tdp->td_counters.tc_pass_start_time) 
+				earliest_start_time = tdp->td_counters.tc_pass_start_time;
 
 			// At this point we have the total number of bytes transferred for this target
 			// as well as the time the first qthread started and the most recent op number issued.
 			// From that we can calculate the estimated BW for the target as a whole 
 
 			tdp = planp->target_datap[i];
-			if (tdp->td_tgtstp->my_current_state & CURRENT_STATE_PASS_COMPLETE) {
-				now = tdp->td_tgtstp->my_pass_end_time;
+			if (tdp->td_current_state & CURRENT_STATE_PASS_COMPLETE) {
+				now = tdp->td_counters.tc_pass_end_time;
 				prior_activity_index = activity_index;
 				activity_index = 4;
 			} else nclk_now(&now);
@@ -183,7 +183,7 @@ xdd_heartbeat_legend(xdd_plan_t* planp, target_data_t *tdp) {
 		 fprintf(tdp->td_hb.hb_file_pointer,"\n"); // Put a LineFeed character at the end of this line
 	else fprintf(tdp->td_hb.hb_file_pointer,"\r"); // Otherwise just a carriage return
 
-	fprintf(tdp->td_hb.hb_file_pointer,"Pass,%04d,",tdp->td_tgtstp->my_current_pass_number);
+	fprintf(tdp->td_hb.hb_file_pointer,"Pass,%04d,",tdp->td_counters.tc_pass_number);
 	if (tdp->td_hb.hb_options & HB_HOST)  // Display Current number of OPS performed 
 		fprintf(tdp->td_hb.hb_file_pointer,"/HOST,%s,",planp->hostname.nodename);
 
@@ -276,9 +276,9 @@ xdd_heartbeat_values(target_data_t *tdp, int64_t bytes, int64_t ops, double elap
 			// Adjust the number of bytes completed so far - add in the start offset
 			adjusted_bytes = bytes + (tdp->td_start_offset * tdp->td_block_size);
 			// Adjust the number of ops completed so far
-			adjusted_ops = adjusted_bytes / tdp->td_io_size;
+			adjusted_ops = adjusted_bytes / tdp->td_xfer_size;
 			// Adjust the number of target_ops needed to complete the entire copy
-			adjusted_target_ops = (tdp->td_target_bytes_to_xfer_per_pass + (tdp->td_start_offset*tdp->td_block_size))/tdp->td_io_size; 
+			adjusted_target_ops = (tdp->td_target_bytes_to_xfer_per_pass + (tdp->td_start_offset*tdp->td_block_size))/tdp->td_xfer_size; 
 		} // End of making adjustments for a restart operation
 	}
 	if (tdp->td_hb.hb_options & HB_TARGET)  // Display Target Number of this information 
@@ -322,7 +322,7 @@ xdd_heartbeat_values(target_data_t *tdp, int64_t bytes, int64_t ops, double elap
 	}
 	// Estimated time is based on "unadjusted bytes" otherwise the ETC would be skewed
 	if (tdp->td_hb.hb_options & HB_ET) {  // Display Estimated Time to Completion
-		if (tdp->td_tgtstp->my_current_state & CURRENT_STATE_PASS_COMPLETE) 
+		if (tdp->td_current_state & CURRENT_STATE_PASS_COMPLETE) 
 			d = 0.0;
 		else if (ops > 0) {
 			// Estimate the time to completion -> ((total_ops/ops_completed)*elapsed_time - elapsed)

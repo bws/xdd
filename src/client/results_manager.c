@@ -219,7 +219,7 @@ xdd_process_pass_results(xdd_plan_t *planp) {
         memset(tarp, 0, sizeof(*tarp));
         tarp->format_string = planp->format_string;
         tarp->what = "TARGET_AVERAGE";
-        if (tdp->td_tgtstp->my_current_pass_number == 1) {
+        if (tdp->td_counters.tc_pass_number == 1) {
             tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
             tarp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
             tarp->shortest_op_time = (double)DOUBLE_MAX;
@@ -297,7 +297,7 @@ xdd_process_run_results(xdd_plan_t *planp) {
 		tdp = planp->target_datap[target_number]; /* Get the target_datap for this target */
 		tarp = planp->target_average_resultsp[target_number];
 
-		if (tdp->td_tgtstp->abort) 
+		if (tdp->td_abort) 
 			xgp->abort = 1; // Indicate that this run ended with errors of some sort
 			
 		tarp->flags = (RESULTS_PASS_INFO | RESULTS_TARGET_AVG);
@@ -698,16 +698,16 @@ xdd_extract_pass_results(results_t *rp, target_data_t *tdp, xdd_plan_t *planp) {
 	memset(rp, 0, sizeof(results_t));
 
 	// Basic parameters
-	rp->pass_number = tdp->td_tgtstp->my_current_pass_number;	// int32
+	rp->pass_number = tdp->td_counters.tc_pass_number;	// int32
 	rp->my_target_number = tdp->td_target_number;		// int32
 	rp->queue_depth = tdp->td_queue_depth;				// int32
-	rp->bytes_xfered = tdp->td_tgtstp->my_current_bytes_xfered;	// int64
-	rp->bytes_read = tdp->td_tgtstp->my_current_bytes_read;		// int64
-	rp->bytes_written = tdp->td_tgtstp->my_current_bytes_written;// int64
-	rp->op_count = tdp->td_tgtstp->my_current_op_count;			// int64
-	rp->read_op_count = tdp->td_tgtstp->my_current_read_op_count;// int64
-	rp->write_op_count = tdp->td_tgtstp->my_current_write_op_count;// int64
-	rp->error_count = tdp->td_tgtstp->my_current_error_count;	// int64
+	rp->bytes_xfered = tdp->td_counters.tc_accumulated_bytes_xfered;	// int64
+	rp->bytes_read = tdp->td_counters.tc_accumulated_bytes_read;		// int64
+	rp->bytes_written = tdp->td_counters.tc_accumulated_bytes_written;// int64
+	rp->op_count = tdp->td_counters.tc_accumulated_op_count;			// int64
+	rp->read_op_count = tdp->td_counters.tc_accumulated_read_op_count;// int64
+	rp->write_op_count = tdp->td_counters.tc_accumulated_write_op_count;// int64
+	rp->error_count = tdp->td_counters.tc_current_error_count;	// int64
 	rp->reqsize = tdp->td_reqsize;						// int32
 
 	// Operation type
@@ -718,25 +718,25 @@ xdd_extract_pass_results(results_t *rp, target_data_t *tdp, xdd_plan_t *planp) {
 	else rp->optype = "mixed";
 
 	// These next values get converted from raw nanoseconds to seconds or miliseconds 
-	rp->accumulated_op_time = (double)((double)tdp->td_tgtstp->my_accumulated_op_time / FLOAT_BILLION); // nano to seconds
-	rp->accumulated_read_op_time = (double)((double)tdp->td_tgtstp->my_accumulated_read_op_time / FLOAT_BILLION); // nano to seconds
-	rp->accumulated_write_op_time = (double)((double)tdp->td_tgtstp->my_accumulated_write_op_time / FLOAT_BILLION); // nano to seconds
-	rp->accumulated_pattern_fill_time = (double)((double)tdp->td_tgtstp->my_accumulated_pattern_fill_time / FLOAT_BILLION); // nano to milli
-	rp->accumulated_flush_time = (double)((double)tdp->td_tgtstp->my_accumulated_flush_time / FLOAT_BILLION); // nano to milli
+	rp->accumulated_op_time = (double)((double)tdp->td_counters.tc_accumulated_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_read_op_time = (double)((double)tdp->td_counters.tc_accumulated_read_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_write_op_time = (double)((double)tdp->td_counters.tc_accumulated_write_op_time / FLOAT_BILLION); // nano to seconds
+	rp->accumulated_pattern_fill_time = (double)((double)tdp->td_counters.tc_accumulated_pattern_fill_time / FLOAT_BILLION); // nano to milli
+	rp->accumulated_flush_time = (double)((double)tdp->td_counters.tc_accumulated_flush_time / FLOAT_BILLION); // nano to milli
 	rp->earliest_start_time_this_run = (double)(tdp->td_first_pass_start_time); // nanoseconds
-	rp->earliest_start_time_this_pass = (double)(tdp->td_tgtstp->my_pass_start_time); // nanoseconds
-	rp->latest_end_time_this_run = (double)(tdp->td_tgtstp->my_pass_end_time); // nanoseconds
-	rp->latest_end_time_this_pass = (double)(tdp->td_tgtstp->my_pass_end_time); // nanoseconds
-	rp->elapsed_pass_time = (double)((double)(tdp->td_tgtstp->my_pass_end_time - tdp->td_tgtstp->my_pass_start_time) / FLOAT_BILLION); // nano to seconds
+	rp->earliest_start_time_this_pass = (double)(tdp->td_counters.tc_pass_start_time); // nanoseconds
+	rp->latest_end_time_this_run = (double)(tdp->td_counters.tc_pass_end_time); // nanoseconds
+	rp->latest_end_time_this_pass = (double)(tdp->td_counters.tc_pass_end_time); // nanoseconds
+	rp->elapsed_pass_time = (double)((double)(tdp->td_counters.tc_pass_end_time - tdp->td_counters.tc_pass_start_time) / FLOAT_BILLION); // nano to seconds
 	if (rp->elapsed_pass_time == 0.0) 
 		rp->elapsed_pass_time = -1.0; // This is done to prevent and divide-by-zero problems
 	rp->accumulated_elapsed_time += rp->elapsed_pass_time; 
 
 	// These get calculated here
-	rp->xfer_size_bytes = tdp->td_io_size;				// bytes
-	rp->xfer_size_blocks = tdp->td_io_size/tdp->td_block_size;	// blocks
-	rp->xfer_size_kbytes = tdp->td_io_size/1024;			// kbytes
-	rp->xfer_size_mbytes = tdp->td_io_size/(1024*1024);	// mbytes
+	rp->xfer_size_bytes = tdp->td_xfer_size;				// bytes
+	rp->xfer_size_blocks = tdp->td_xfer_size/tdp->td_block_size;	// blocks
+	rp->xfer_size_kbytes = tdp->td_xfer_size/1024;			// kbytes
+	rp->xfer_size_mbytes = tdp->td_xfer_size/(1024*1024);	// mbytes
 
 	// Bandwidth
 	rp->bandwidth = (double)(((double)rp->bytes_xfered / (double)rp->elapsed_pass_time) / FLOAT_MILLION);  // MB/sec
@@ -752,8 +752,8 @@ xdd_extract_pass_results(results_t *rp, target_data_t *tdp, xdd_plan_t *planp) {
 	else rp->latency = (double)((1.0/rp->iops) * 1000.0);  // milliseconds
 
 	// Times
-	rp->user_time =   (double)(tdp->td_tgtstp->my_current_cpu_times.tms_utime  - tdp->td_tgtstp->my_starting_cpu_times_this_pass.tms_utime)/(double)(xgp->clock_tick); // Seconds
-	rp->system_time = (double)(tdp->td_tgtstp->my_current_cpu_times.tms_stime  - tdp->td_tgtstp->my_starting_cpu_times_this_pass.tms_stime)/(double)(xgp->clock_tick); // Seconds
+	rp->user_time =   (double)(tdp->td_counters.tc_current_cpu_times.tms_utime  - tdp->td_counters.tc_starting_cpu_times_this_pass.tms_utime)/(double)(xgp->clock_tick); // Seconds
+	rp->system_time = (double)(tdp->td_counters.tc_current_cpu_times.tms_stime  - tdp->td_counters.tc_starting_cpu_times_this_pass.tms_stime)/(double)(xgp->clock_tick); // Seconds
 	rp->us_time = (double)(rp->user_time + rp->system_time); // MilliSeconds
 	if (rp->elapsed_pass_time == 0.0) {
 		rp->percent_user = 0.0;

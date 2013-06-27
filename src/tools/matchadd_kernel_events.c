@@ -13,10 +13,10 @@
 #define DEBUG 0
 
 /* returns 1 if x is expected operation... 0 if not */
-#define READ_OP(x)  (x==OP_TYPE_READ||x==SO_OP_READ)
-#define WRITE_OP(x) (x==OP_TYPE_WRITE||x==SO_OP_WRITE||x==SO_OP_WRITE_VERIFY)
-#define NO_OP(x)    (x==OP_TYPE_NOOP||x==SO_OP_NOOP)
-#define EOF_OP(x)   (x==OP_TYPE_EOF||x==SO_OP_EOF)
+#define READ_OP(x)  (x==TASK_OP_TYPE_READ||x==SO_OP_READ)
+#define WRITE_OP(x) (x==TASK_OP_TYPE_WRITE||x==SO_OP_WRITE||x==SO_OP_WRITE_VERIFY)
+#define NO_OP(x)    (x==TASK_OP_TYPE_NOOP||x==SO_OP_NOOP)
+#define EOF_OP(x)   (x==TASK_OP_TYPE_EOF||x==SO_OP_EOF)
 
 //
 //

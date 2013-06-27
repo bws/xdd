@@ -142,12 +142,12 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p
 
 		for (i = 0; i < ops_this_interval; i++) {
 			// Get pointer to next Worker Thread to issue a task to
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::::GET_ANY_AVAILABLE_WORKER_THREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,(long long int)tdp->td_bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::::GET_ANY_AVAILABLE_WORKER_THREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,(long long int)tdp->td_current_bytes_remaining);
 			wdp = xdd_get_any_available_worker_thread(tdp);
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:GOT_A_WORKER_THREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp, (long long int)tdp->td_bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:GOT_A_WORKER_THREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp, (long long int)tdp->td_current_bytes_remaining);
 	
 			// Things to do before an I/O is issued
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp, (long long int)tdp->td_bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp, (long long int)tdp->td_current_bytes_remaining);
 			status = xdd_target_ttd_before_io_op(tdp, wdp);
 			if (status != XDD_RC_GOOD) {
 				// Mark this worker_thread NOT BUSY and break out of this loop
@@ -157,15 +157,15 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p
 				break;
 			}
 
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:DONE_WITH_THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp, (long long int)tdp->td_bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:DONE_WITH_THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp, (long long int)tdp->td_current_bytes_remaining);
 			// Set up the task for the WORKER_Thread
 			xdd_targetpass_task_setup(wdp);
 	
 			// Release the WORKER_Thread to let it start working on this task.
 			// This effectively causes the I/O operation to be issued.
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:RELEASING_WORKER_THREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,(long long int)tdp->td_bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:RELEASING_WORKER_THREAD bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,(long long int)tdp->td_current_bytes_remaining);
 			xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&tdp->td_occupant,0);
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:WORKER_THREAD_RELEASED bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,(long long int)tdp->td_bytes_remaining);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:WORKER_THREAD_RELEASED bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp,(long long int)tdp->td_current_bytes_remaining);
 			ops_remaining--;
 		}
 
@@ -262,7 +262,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers
 		lsp->ls_ops_completed_this_interval++;
 		lsp->ls_ops_completed_this_pass++;
 		// If we are past the specified operation, then signal the SLAVE to start.
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:INTERVAL_OP - ls_interval_value=%lld, ls_ops_completed_this_interval=%lld, tdp->tgtstp->my_current_op_number=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,lsp,lsp->ls_state,(long long int)lsp->ls_interval_value, (long long int)lsp->ls_ops_completed_this_interval, (long long int)tdp->td_tgtstp->my_current_op_number);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:INTERVAL_OP - ls_interval_value=%lld, ls_ops_completed_this_interval=%lld, tdp->td_current_op_number=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,lsp,lsp->ls_state,(long long int)lsp->ls_interval_value, (long long int)lsp->ls_ops_completed_this_interval, (long long int)tdp->td_current_op_number);
 		if (lsp->ls_ops_completed_this_interval >= lsp->ls_interval_value) {
 			status=TRUE;
 			lsp->ls_ops_completed_this_interval= 0;
@@ -271,13 +271,13 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers
 	if (lsp->ls_interval_type & LS_INTERVAL_PERCENT) {
 		lsp->ls_task_counter++;
 		// If we have completed percentage of operations then signal the SLAVE to start.
-		if (tdp->td_tgtstp->my_current_op_number >= lsp->ls_task_counter) {
+		if (tdp->td_current_op_number >= lsp->ls_task_counter) {
 			status=TRUE;
 			lsp->ls_task_counter = 0;
 		}
 	}
 	if (lsp->ls_interval_type & LS_INTERVAL_BYTES) {
-		lsp->ls_bytes_completed += wdp->wd_current_io_status;
+		lsp->ls_bytes_completed += wdp->wd_counters.tc_current_io_status;
 		// If we have completed transferring the specified number of bytes, then signal the SLAVE to start.
 		if (lsp->ls_bytes_completed>= lsp->ls_interval_value) {
 			status=TRUE;

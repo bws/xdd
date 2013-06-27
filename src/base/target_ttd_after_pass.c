@@ -56,21 +56,21 @@ xdd_target_ttd_after_pass(target_data_t *tdp) {
 #endif
         }
 	/* Get the ending time stamp */
-	nclk_now(&tdp->td_tgtstp->my_pass_end_time);
-	tdp->td_tgtstp->my_elapsed_pass_time = tdp->td_tgtstp->my_pass_end_time - tdp->td_tgtstp->my_pass_start_time;
+	nclk_now(&tdp->td_counters.tc_pass_end_time);
+	tdp->td_counters.tc_pass_elapsed_time = tdp->td_counters.tc_pass_end_time - tdp->td_counters.tc_pass_start_time;
 
 	/* Get the current CPU user and system times and the effective current wall clock time using nclk_now() */
-	times(&tdp->td_tgtstp->my_current_cpu_times);
+	times(&tdp->td_counters.tc_current_cpu_times);
 
 	// Loop through all the Worker Threads to put the Earliest Start Time and Latest End Time into this Target PTDS
 	wdp = tdp->td_next_wdp;
 	while (wdp) {
-		if (wdp->wd_first_pass_start_time <= tdp->td_first_pass_start_time) 
-			tdp->td_first_pass_start_time = wdp->wd_first_pass_start_time;
-		if (wdp->wd_pass_start_time <= tdp->td_tgtstp->my_pass_start_time) 
-			tdp->td_tgtstp->my_pass_start_time = wdp->wd_pass_start_time;
-		if (wdp->wd_pass_end_time >= tdp->td_tgtstp->my_pass_end_time) 
-			tdp->td_tgtstp->my_pass_end_time = wdp->wd_pass_end_time;
+		if (wdp->wd_counters.tc_pass_start_time <= tdp->td_first_pass_start_time) 
+			tdp->td_first_pass_start_time = wdp->wd_counters.tc_pass_start_time;
+		if (wdp->wd_counters.tc_pass_start_time <= tdp->td_counters.tc_pass_start_time) 
+			tdp->td_counters.tc_pass_start_time = wdp->wd_counters.tc_pass_start_time;
+		if (wdp->wd_counters.tc_pass_end_time >= tdp->td_counters.tc_pass_end_time) 
+			tdp->td_counters.tc_pass_end_time = wdp->wd_counters.tc_pass_end_time;
 		wdp = wdp->wd_next_wdp;
 	}
 	if (tdp->td_target_options & TO_ENDTOEND) { 

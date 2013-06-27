@@ -50,6 +50,8 @@
 #include "xint_throttle.h"
 #include "xint_common.h"
 #include "xint_nclk.h"
+#include "xint_task.h"
+#include "xint_target_counters.h"
 #include "xint_td.h"
 #include "xint_wd.h"
 // REMOVE LATER struct ptds;

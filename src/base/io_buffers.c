@@ -57,11 +57,11 @@ xdd_init_io_buffers(worker_data_t *wdp) {
 
 	tdp = wdp->wd_tdp;
 
-	buffer_size = tdp->td_io_size;
+	buffer_size = tdp->td_xfer_size;
 	/* allocate slightly larger buffer for meta data for end-to-end ops */
 	if ((tdp->td_target_options & TO_ENDTOEND)) {
 		buffer_size += sizeof(wdp->wd_e2ep->e2e_header);
-		wdp->wd_e2ep->e2e_io_size = buffer_size;
+		wdp->wd_e2ep->e2e_xfer_size = buffer_size;
 	}
 	/* Check to see if we want to use a shared memory segment and allocate it using shmget() and shmat().
 	 * NOTE: This is not supported by all operating systems. 

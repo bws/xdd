@@ -81,7 +81,7 @@ xdd_worker_thread(void *pin) {
 
 		nclk_now(&checktime);
 		// Look at Task request 
-		switch (wdp->wd_task_request) {
+		switch (wdp->wd_task.task_request) {
 			case TASK_REQ_IO:
 				// Perform the requested I/O operation
 		nclk_now(&checktime);
@@ -104,7 +104,7 @@ xdd_worker_thread(void *pin) {
 				// E2E Source Side only - send EOF packets to Destination 
 				status = xdd_e2e_eof_source_side(wdp);
 				if (status) // Only set the status in the target PTDS if it is non-zero
-					tdp->td_tgtstp->my_current_io_status = status;
+					tdp->td_counters.tc_current_io_status = status;
 				break;
 			default:
 				// Technically, we should never see this....
@@ -113,7 +113,7 @@ xdd_worker_thread(void *pin) {
 					tdp->td_target_number,
 					tdp->td_target_full_pathname,
 					wdp->wd_thread_number,
-					wdp->wd_task_request);
+					wdp->wd_task.task_request);
 				break;
 		} // End of SWITCH stmnt that determines the TASK
 		

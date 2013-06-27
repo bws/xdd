@@ -53,16 +53,16 @@ xdd_threshold_after_io_op(worker_data_t *wdp) {
 
 	tdp = wdp->wd_tdp;
 	if (tdp->td_report_threshold) {
-		if (tdp->td_tgtstp->my_current_op_elapsed_time > tdp->td_report_threshold) {
-			excess_time = (tdp->td_tgtstp->my_current_op_elapsed_time - tdp->td_report_threshold)/MILLION;
+		if (tdp->td_counters.tc_current_op_elapsed_time > tdp->td_report_threshold) {
+			excess_time = (tdp->td_counters.tc_current_op_elapsed_time - tdp->td_report_threshold)/MILLION;
 			fprintf(xgp->output, "%s: Target number %d Worker Thread %d: INFO: Threshold, %lld, exceeded by, %lld, microseconds, IO time was, %lld, usec on block, %lld\n",
 				xgp->progname, 
 				tdp->td_target_number, 
 				wdp->wd_thread_number,
 				(long long)tdp->td_report_threshold/MILLION, 
 				(long long)excess_time, 
-				(long long)tdp->td_tgtstp->my_current_op_elapsed_time/MILLION, 
-				(long long)tdp->td_tgtstp->my_current_byte_location);
+				(long long)tdp->td_counters.tc_current_op_elapsed_time/MILLION, 
+				(long long)tdp->td_counters.tc_current_byte_offset);
 		}
 	}
 } // End of xdd_threshold_after_io_op(wdp)
@@ -83,30 +83,30 @@ xdd_status_after_io_op(worker_data_t *wdp) {
 	tdp = wdp->wd_tdp;
 
 	/* Check for errors in the last operation */
-	if ((wdp->wd_current_error_count > 0) && (xgp->global_options & GO_STOP_ON_ERROR)) {
+	if ((wdp->wd_counters.tc_current_error_count > 0) && (xgp->global_options & GO_STOP_ON_ERROR)) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d Worker Thread %d: ERROR: Error on this target caused a Stop_On_Error Event\n",
 			xgp->progname,
 			tdp->td_target_number, 
 			wdp->wd_thread_number);
 	}
 
-	if (wdp->wd_current_error_count >= xgp->max_errors) {
+	if (wdp->wd_counters.tc_current_error_count >= xgp->max_errors) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d Worker Thread %d: WARNING: Maximum error threshold reached on target - current error count is %lld, maximum count is %lld\n",
 			xgp->progname,
 			tdp->td_target_number,
 			wdp->wd_thread_number,
-			(long long int)wdp->wd_current_error_count,
+			(long long int)wdp->wd_counters.tc_current_error_count,
 			(long long int)xgp->max_errors);
 	}
 
-	if ((wdp->wd_current_io_status == 0) && (wdp->wd_current_io_errno == 0)) {
+	if ((wdp->wd_task.task_io_status == 0) && (wdp->wd_task.task_errno == 0)) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d Worker Thread %d: WARNING: End-Of-File reached on target named '%s' status=%d, errno=%d\n",
 			xgp->progname,
 			tdp->td_target_number,
 			wdp->wd_thread_number,
 			tdp->td_target_full_pathname,
-			wdp->wd_current_io_status, 
-			wdp->wd_current_io_errno);
+			wdp->wd_task.task_io_status, 
+			wdp->wd_task.task_errno);
 	}
 
 } // End of xdd_status_after_io_op(wdp) 
@@ -136,14 +136,14 @@ xdd_dio_after_io_op(worker_data_t *wdp) {
 	if (tdp->td_target_options & TO_SGIO) {
 		return;
 	}
-	// Check to see if this I/O location is aligned on the proper boundary
+	// Check to see if this I/O offset is aligned on the proper boundary
 	pagesize = getpagesize();
 
 	// If the current I/O transfer size is an integer multiple of the page size *AND*
-	// if the current byte location (aka offset into the file/device) is an integer multiple
+	// if the current byte offset (aka offset into the file/device) is an integer multiple
 	// of the page size then this I/O operation is fine - just return.
-	if ((tdp->td_tgtstp->my_current_io_size % pagesize == 0) && 
-		(tdp->td_tgtstp->my_current_byte_location % pagesize) == 0) {
+	if ((wdp->wd_task.task_xfer_size % pagesize == 0) && 
+		(wdp->wd_task.task_byte_offset % pagesize) == 0) {
 	    return;
 	}
 
@@ -196,17 +196,17 @@ xdd_raw_after_io_op(worker_data_t *wdp) {
 		/* Since I am the writer in a read-after-write operation, and if 
 		 * we are using a socket connection to the reader for write-completion 
 		 * messages then I need to send the reader a message of what I just 
-		 * wrote - starting location and length of write.
+		 * wrote - starting offset and length of write.
 		 */
 	}
-	if ( (tdp->td_tgtstp->my_current_io_status > 0) && (tdp->td_target_options & TO_READAFTERWRITE) ) {
+	if ( (tdp->td_counters.tc_current_io_status > 0) && (tdp->td_target_options & TO_READAFTERWRITE) ) {
 		if (tdp->td_target_options & TO_RAW_READER) { 
-			tdp->td_rawp->raw_data_ready -= tdp->td_tgtstp->my_current_io_status;
+			tdp->td_rawp->raw_data_ready -= tdp->td_counters.tc_current_io_status;
 		} else { /* I must be the writer, send a message to the reader if requested */
 			if (tdp->td_rawp->raw_trigger & RAW_MP) {
 				tdp->td_rawp->raw_msg.magic = RAW_MAGIC;
-				tdp->td_rawp->raw_msg.length = tdp->td_tgtstp->my_current_io_status;
-				tdp->td_rawp->raw_msg.location = tdp->td_tgtstp->my_current_byte_location;
+				tdp->td_rawp->raw_msg.length = tdp->td_counters.tc_current_io_status;
+				tdp->td_rawp->raw_msg.location = tdp->td_counters.tc_current_byte_offset;
 				xdd_raw_writer_send_msg(wdp);
 			}
 		}
@@ -227,7 +227,7 @@ xdd_e2e_after_io_op(worker_data_t *wdp) {
 
 
 	tdp = wdp->wd_tdp;
-	if ( (tdp->td_tgtstp->my_current_io_status > 0) && (tdp->td_target_options & TO_ENDTOEND) ) {
+	if ( (wdp->wd_counters.tc_current_io_status > 0) && (tdp->td_target_options & TO_ENDTOEND) ) {
 		if (tdp->td_target_options & TO_E2E_SOURCE) {
 			// For Serial Ordering, wait for the Previous I/O to complete before the associated Worker Thread releases this Worker Thread. 
 			// It is important to note that for Srial Ordering, when we get released by the Previous Worker Thread
@@ -241,11 +241,11 @@ xdd_e2e_after_io_op(worker_data_t *wdp) {
 
 			// Send the data to the Destination machine
 			wdp->wd_e2ep->e2e_header.magic = PTDS_E2E_MAGIC;
-			tdp->td_tgtstp->my_current_state |= CURRENT_STATE_SRC_SEND;
+			tdp->td_current_state |= CURRENT_STATE_SRC_SEND;
 
 			xdd_e2e_src_send(wdp);
 
-			tdp->td_tgtstp->my_current_state &= ~CURRENT_STATE_SRC_SEND;
+			tdp->td_current_state &= ~CURRENT_STATE_SRC_SEND;
 
 			
 // If Loose Ordering is in effect then we need to wait for the Previous Worker Thread to complete
@@ -288,44 +288,44 @@ xdd_extended_stats(worker_data_t *wdp) {
 	}
 	esp = tdp->td_esp;
 	// Longest op time
-	if (tdp->td_tgtstp->my_current_op_elapsed_time > esp->my_longest_op_time) {
-		esp->my_longest_op_time = tdp->td_tgtstp->my_current_op_elapsed_time;
-		esp->my_longest_op_number = tdp->td_tgtstp->my_current_op_number;
-		if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
-			if (tdp->td_tgtstp->my_current_op_elapsed_time > esp->my_longest_write_op_time) {
-				esp->my_longest_write_op_time = tdp->td_tgtstp->my_current_op_elapsed_time;
-				esp->my_longest_write_op_number = tdp->td_tgtstp->my_current_op_number;
+	if (tdp->td_counters.tc_current_op_elapsed_time > esp->my_longest_op_time) {
+		esp->my_longest_op_time = tdp->td_counters.tc_current_op_elapsed_time;
+		esp->my_longest_op_number = tdp->td_counters.tc_current_op_number;
+		if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
+			if (tdp->td_counters.tc_current_op_elapsed_time > esp->my_longest_write_op_time) {
+				esp->my_longest_write_op_time = tdp->td_counters.tc_current_op_elapsed_time;
+				esp->my_longest_write_op_number = tdp->td_counters.tc_current_op_number;
 			}
-		} else if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_READ) {  // READ Operation
-			if (tdp->td_tgtstp->my_current_op_elapsed_time > esp->my_longest_read_op_time) {
-				esp->my_longest_read_op_time = tdp->td_tgtstp->my_current_op_elapsed_time;
-				esp->my_longest_read_op_number = tdp->td_tgtstp->my_current_op_number;
+		} else if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_READ) {  // READ Operation
+			if (tdp->td_counters.tc_current_op_elapsed_time > esp->my_longest_read_op_time) {
+				esp->my_longest_read_op_time = tdp->td_counters.tc_current_op_elapsed_time;
+				esp->my_longest_read_op_number = tdp->td_counters.tc_current_op_number;
 			}
 		} else { 																		// NOOP 
-			if (tdp->td_tgtstp->my_current_op_elapsed_time > esp->my_longest_noop_op_time) {
-				esp->my_longest_noop_op_time = tdp->td_tgtstp->my_current_op_elapsed_time;
-				esp->my_longest_noop_op_number = tdp->td_tgtstp->my_current_op_number;
+			if (tdp->td_counters.tc_current_op_elapsed_time > esp->my_longest_noop_op_time) {
+				esp->my_longest_noop_op_time = tdp->td_counters.tc_current_op_elapsed_time;
+				esp->my_longest_noop_op_number = tdp->td_counters.tc_current_op_number;
 			}
 		}
 	}
 	// Shortest op time
-	if (tdp->td_tgtstp->my_current_op_elapsed_time < esp->my_shortest_op_time) {
-		esp->my_shortest_op_time = tdp->td_tgtstp->my_current_op_elapsed_time;
-		esp->my_shortest_op_number = tdp->td_tgtstp->my_current_op_number;
-		if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
-			if (tdp->td_tgtstp->my_current_op_elapsed_time < esp->my_shortest_write_op_time) {
-				esp->my_shortest_write_op_time = tdp->td_tgtstp->my_current_op_elapsed_time;
-				esp->my_shortest_write_op_number = tdp->td_tgtstp->my_current_op_number;
+	if (tdp->td_counters.tc_current_op_elapsed_time < esp->my_shortest_op_time) {
+		esp->my_shortest_op_time = tdp->td_counters.tc_current_op_elapsed_time;
+		esp->my_shortest_op_number = tdp->td_counters.tc_current_op_number;
+		if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_WRITE) {  		// Write Operation
+			if (tdp->td_counters.tc_current_op_elapsed_time < esp->my_shortest_write_op_time) {
+				esp->my_shortest_write_op_time = tdp->td_counters.tc_current_op_elapsed_time;
+				esp->my_shortest_write_op_number = tdp->td_counters.tc_current_op_number;
 			}
-		} else if (tdp->td_seekhdr.seeks[tdp->td_tgtstp->my_current_op_number].operation == SO_OP_READ) {  // READ Operation
-			if (tdp->td_tgtstp->my_current_op_elapsed_time < esp->my_shortest_read_op_time) {
-				esp->my_shortest_read_op_time = tdp->td_tgtstp->my_current_op_elapsed_time;
-				esp->my_shortest_read_op_number = tdp->td_tgtstp->my_current_op_number;
+		} else if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_READ) {  // READ Operation
+			if (tdp->td_counters.tc_current_op_elapsed_time < esp->my_shortest_read_op_time) {
+				esp->my_shortest_read_op_time = tdp->td_counters.tc_current_op_elapsed_time;
+				esp->my_shortest_read_op_number = tdp->td_counters.tc_current_op_number;
 			}
 		} else { 																		// NOOP 
-			if (tdp->td_tgtstp->my_current_op_elapsed_time < esp->my_shortest_noop_op_time) {
-				esp->my_shortest_noop_op_time = tdp->td_tgtstp->my_current_op_elapsed_time;
-				esp->my_shortest_noop_op_number = tdp->td_tgtstp->my_current_op_number;
+			if (tdp->td_counters.tc_current_op_elapsed_time < esp->my_shortest_noop_op_time) {
+				esp->my_shortest_noop_op_time = tdp->td_counters.tc_current_op_elapsed_time;
+				esp->my_shortest_noop_op_number = tdp->td_counters.tc_current_op_number;
 			}
 		}
 	}
@@ -348,7 +348,7 @@ xdd_worker_thread_ttd_after_io_op(worker_data_t *wdp) {
 	// I/O Operation Status Checking
 	xdd_status_after_io_op(wdp);
 
-	if (tdp->td_tgtstp->abort)
+	if (tdp->td_abort)
 		return;
 
 	// Threshold Checking
