@@ -108,8 +108,8 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 	}
         
 	// Get a RW buffer
-	wdp->wd_rwbuf = xdd_init_io_buffers(wdp);
-	if (wdp->wd_rwbuf == 0) {
+	wdp->wd_task.task_bufp = xdd_init_io_buffers(wdp);
+	if (wdp->wd_task.task_bufp == 0) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Failed to allocate I/O buffer.\n",
 			xgp->progname,
 			tdp->td_target_number,

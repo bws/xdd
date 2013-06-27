@@ -126,7 +126,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 		io_hdr.dxfer_direction = SG_DXFER_TO_DEV; // Write op
 	else io_hdr.dxfer_direction = SG_DXFER_FROM_DEV; // Read op
 	io_hdr.dxfer_len = sgiop->sg_blocksize * sgiop->sg_blocks;
-	io_hdr.dxferp = wdp->wd_rwbuf;
+	io_hdr.dxferp = wdp->wd_task.task_bufp;
 	io_hdr.mx_sb_len = SENSE_BUFF_LEN;
 	io_hdr.sbp = sgiop->sg_sense;
 	io_hdr.timeout = DEF_TIMEOUT;
