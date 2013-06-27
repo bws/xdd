@@ -38,7 +38,7 @@
 #define	E2E_ADDRESS_TABLE_ENTRIES 16
 struct xdd_e2e_header {
 	uint32_t 	magic;  			/**< Magic number */
-	int32_t  	sendqnum;  			/**< Sender's QThread Number  */
+	int32_t  	sendqnum;  			/**< Sender's Worker Thread Number  */
 	int64_t  	sequence; 			/**< Sequence number */
 	nclk_t  	sendtime; 			/**< Time this packet was sent in global nano seconds */
 	nclk_t  	recvtime; 			/**< Time this packet was received in global nano seconds */
@@ -73,7 +73,7 @@ typedef struct xdd_e2e_address_table xdd_e2e_at_t;
 
 // -------------------------------------------------------------------
 // The xdd_e2e structure contains variables that are referenced by the 
-// target thread and qthreads. 
+// target thread and worker threads. 
 //
 struct xint_e2e {
 	char				*e2e_dest_hostname; 	// Name of the Destination machine 
@@ -96,8 +96,8 @@ struct xint_e2e {
 	int32_t				e2e_xfer_size; 			// Number of bytes per End to End request - size of data buffer plus size of E2E Header
 	int32_t				e2e_send_status; 		// Current Send Status
 	int32_t				e2e_recv_status; 		// Current Recv status
-#define PTDS_E2E_MAGIC 	0x07201959 				// The magic number that should appear at the beginning of each message 
-#define PTDS_E2E_MAGIQ 	0x07201960 				// The magic number that should appear in a message signaling destination to quit 
+#define XDD_E2E_MAGIC 	0x07201959 				// The magic number that should appear at the beginning of each message 
+#define XDD_E2E_MAGIQ 	0x07201960 				// The magic number that should appear in a message signaling destination to quit 
 	xdd_e2e_header_t 	e2e_header;				// Header (actually a trailer) in the data packet of each message sent/received
 	int64_t				e2e_msg_sequence_number;// The Message Sequence Number of the most recent message sent or to be received
 	int32_t				e2e_msg_sent; 			// The number of messages sent 

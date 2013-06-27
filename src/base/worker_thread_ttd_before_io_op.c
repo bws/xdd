@@ -234,7 +234,7 @@ fprintf(stderr,"E2E_BEFORE_IO_OP: wdp=%p, returned from xdd_e2e_dest_recv...\n",
 		return(-1);
 		
 	// Check to see of this is the last message in the transmission
-	if (wdp->wd_e2ep->e2e_header.magic == PTDS_E2E_MAGIQ)  { // This must be the End of the File
+	if (wdp->wd_e2ep->e2e_header.magic == XDD_E2E_MAGIQ)  { // This must be the End of the File
 		return(0);
 	}
 

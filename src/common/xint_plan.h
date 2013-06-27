@@ -170,8 +170,8 @@ struct xdd_plan {
 #endif
 
 	/* Target Specific variables */
-	target_data_t	*target_datap[MAX_TARGETS];				/* Pointers to the active PTDSs - Per Target Data Structures */
-	results_t		*target_average_resultsp[MAX_TARGETS];/* Results area for the "target" which is a composite of all its qthreads */
+	target_data_t	*target_datap[MAX_TARGETS];			/* Pointers to the active Target Data Structs */
+	results_t		*target_average_resultsp[MAX_TARGETS];/* Results area for the "target" which is a composite of all its worker threads */
 	int64_t			target_errno[MAX_TARGETS];			// Is set by each target to indicate its final return code
 
 #ifdef LINUX

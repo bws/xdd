@@ -69,9 +69,9 @@ xdd_results_fmt_target_number(results_t *rp) {
 }
 /*----------------------------------------------------------------------------*/
 // For a RESULTS_QUEUE_PASS then the queue number is the specific number
-// of that qthread (i.e. 0, 1, 2, ...)
+// of that Worker Thread (i.e. 0, 1, 2, ...)
 // Otherwise, the queue number should be the queue_depth (i.e. the total
-// number of qthreads for this target).
+// number of Worker Threads for this target).
 void 
 xdd_results_fmt_queue_number(results_t *rp) {
 	if (rp->flags & RESULTS_HEADER_TAG) {
@@ -80,7 +80,7 @@ xdd_results_fmt_queue_number(results_t *rp) {
 		fprintf(rp->output,"%7s"," Number");
 	} else if (rp->flags & RESULTS_PASS_INFO) {
 		if (rp->flags & RESULTS_QUEUE_PASS) 
-			fprintf(rp->output,"%7d",rp->my_qthread_number);
+			fprintf(rp->output,"%7d",rp->my_worker_thread_number);
 		else fprintf(rp->output,"%7d",rp->queue_depth);
 	}
 
@@ -605,8 +605,8 @@ static	xdd_results_fmt_t	xdd_results_fmt_table[] = {
 /*----------------------------------------------------------------------------*/
 // This routine will take an input format line and call the appropriate functions 
 // to process each of the format identifiers in the line
-// This routine is called by the display_manager() once for each qthread.
-// The display_manager() passes a pointer to the PTDS for the qthread to be
+// This routine is called by the display_manager() once for each Worker Thread.
+// The display_manager() passes a pointer to the Data Struct for the Worker Thread to be
 // processed. 
 // A variable in the results structure contains flags that indicate different
 // behaviors.
@@ -621,7 +621,7 @@ static	xdd_results_fmt_t	xdd_results_fmt_table[] = {
 //                       results for a specific target averaged over a pass or run
 // RESULTS_COMBINED     - will cause each routine called to display
 //                       results for all targets over the entire run
-// Each qthread has a single results structure pointed to by its PTDS.
+// Each Worker Thread has a single results structure pointed to by its Worker Data Struct.
 // The results structure contains all the relevant information that will be
 // used by the individual routines in this file.
 // The results structure also contains a pointer to the "format" string to
@@ -638,13 +638,13 @@ static	xdd_results_fmt_t	xdd_results_fmt_table[] = {
 //     xdd_results_delimeter()
 //     xdd_results_fmt_target_number()
 //     xdd_results_delimeter()
-//     xdd_results_fmt_qthread_number()
+//     xdd_results_fmt_worker_thread_number()
 //     xdd_results_delimeter()
 //     xdd_results_fmt_bandwidth()
 //
 // The output like might look something like:
 //   1,0,0,37.2
-// For pass 1, target 0, qthread 0, and a bandwidth of 37.2 MB/sec.
+// For pass 1, target 0, Worker Thread 0, and a bandwidth of 37.2 MB/sec.
 // Note that the "delimiter" is set to a comma.
 //
 void *

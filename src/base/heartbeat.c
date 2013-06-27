@@ -37,9 +37,9 @@
 /*----------------------------------------------------------------------------*/
 /* xdd_heartbeat() 
  * Heartbeat runs as a separate thread that will periodically interogate the
- * PTDS of each running qthread and display the:
+ * Worker Data Struct of each running Worker Thread and display the:
  *    - Current pass number
- *    - Ops completed or issued so far across all qthreads  
+ *    - Ops completed or issued so far across all Worker Threads  
  *    - Estimated BW
  * 
  * A global variable called "heartbeat_holdoff" is used by the results_manager
@@ -52,11 +52,11 @@ void *
 xdd_heartbeat(void *data) {
 	int32_t 	i;						// If it is not obvious what "i" is then you should not be reading this
 	nclk_t 		now;					// Current time
-	nclk_t 		earliest_start_time;	// The earliest start time of the qthreads for a target
-	int64_t		total_bytes_xferred;	// The total number of bytes xferred for all qthreads for a target
+	nclk_t 		earliest_start_time;	// The earliest start time of the Worker Threads for a target
+	int64_t		total_bytes_xferred;	// The total number of bytes xferred for all Worker Threads for a target
 	int64_t		total_ops_issued;		// This is the total number of ops issued/completed up til now
-	double		elapsed;				// Elapsed time for this qthread
-	target_data_t 		*tdp;						// Pointer to the Target's PTDS
+	double		elapsed;				// Elapsed time for this Worker Thread
+	target_data_t 		*tdp;			// Pointer to the Target's Data Struct
 	int			activity_index;			// A number from 0 to 4 to index into the activity indicators table
 	int			prior_activity_index;	// Used to save the state of the activity index 
 	int			scattered_output;		// When set to something other than 0 it means that the output is directed to mutliple files
@@ -125,7 +125,7 @@ xdd_heartbeat(void *data) {
 				fprintf(tdp->td_hb.hb_file_pointer," + WAITING");
 				continue; 
 			}
-			// Get the number of bytes xferred by all QThreads for this Target
+			// Get the number of bytes xferred by all Worker Threads for this Target
 			total_bytes_xferred = tdp->td_counters.tc_accumulated_bytes_xfered;
 			total_ops_issued = tdp->td_counters.tc_accumulated_op_count;
 			// Determine if this is the earliest start time
@@ -133,7 +133,7 @@ xdd_heartbeat(void *data) {
 				earliest_start_time = tdp->td_counters.tc_pass_start_time;
 
 			// At this point we have the total number of bytes transferred for this target
-			// as well as the time the first qthread started and the most recent op number issued.
+			// as well as the time the first Worker Thread started and the most recent op number issued.
 			// From that we can calculate the estimated BW for the target as a whole 
 
 			tdp = planp->target_datap[i];
@@ -228,7 +228,7 @@ xdd_heartbeat_legend(xdd_plan_t* planp, target_data_t *tdp) {
 /* xdd_heartbeat_values() 
  * This will calculate and display the the actual values for a specific target
  * Arguments to this subroutine are:
- *    - pointer tot he PTDS of this target
+ *    - pointer to the Target Data Struct of this target
  *    - Number of bytes transfered by this target
  *    - Number of ops completed by this target
  *    - Elapsed time in seconds used by this target

@@ -242,7 +242,7 @@ int32_t
 xdd_lockstep_check_triggers(worker_data_t *wdp, lockstep_t *lsp) {
 	int32_t		status;			// Status to return to caller
 	nclk_t   	time_now;		// Used by the lock step functions 
-	target_data_t		*tdp;				// Pointer to the PTDS of the TARGET
+	target_data_t		*tdp;				// Pointer to the Target Data Struct
 
 
 	tdp = wdp->wd_tdp;

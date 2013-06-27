@@ -221,9 +221,9 @@ xdd_init_target_data_before_pass(target_data_t *tdp) {
 	//
 	tdp->td_counters.tc_current_op_number = 0; 		// The current operation number init to 0
 	tdp->td_counters.tc_current_byte_offset = 0; 	// Current byte offset for this I/O operation 
-	tdp->td_counters.tc_current_io_status = 0; 				// I/O Status of the last I/O operation for this qthread
+	tdp->td_counters.tc_current_io_status = 0; 				// I/O Status of the last I/O operation for this Worker Thread
 	tdp->td_counters.tc_current_io_errno = 0; 				// The errno associated with the status of this I/O for this thread
-	tdp->td_counters.tc_current_error_count = 0;		// The number of I/O errors for this qthread
+	tdp->td_counters.tc_current_error_count = 0;		// The number of I/O errors for this Worker Thread
 	//
 	// Longest and shortest op times - RESET AT THE START OF EACH PASS
 	if (tdp->td_esp) {
@@ -247,6 +247,17 @@ xdd_init_target_data_before_pass(target_data_t *tdp) {
 } // End of xdd_init_target_data_before_pass()
  
 /*----------------------------------------------------------------------------*/
+/* xdd_init_worker_data_before_pass() - Reset variables to known state
+ * 
+ * This subroutine is called within the context of a Target Thread.
+ *
+ */
+void 
+xdd_init_worker_data_before_pass(worker_data_t *wdp) {
+    
+} // End of xdd_init_worker_data_before_pass()
+ 
+/*----------------------------------------------------------------------------*/
 /* xdd_target_ttd_before_pass() - This subroutine is called by targetpass()
  * inside the Target Thread and will do all the things to do (ttd)  
  * before entering the inner-most loop that does all the I/O operations
@@ -256,7 +267,7 @@ xdd_init_target_data_before_pass(target_data_t *tdp) {
  */
 int32_t
 xdd_target_ttd_before_pass(target_data_t *tdp) {
-	worker_data_t	*wdp;	// Pointer to a QThread PTDS
+	worker_data_t	*wdp;	// Pointer to Worker Thread Data Struct 
 
 
 	// Timer Calibration and Information
@@ -306,7 +317,7 @@ xdd_target_ttd_before_pass(target_data_t *tdp) {
 	}
 
 	wdp = tdp->td_next_wdp;
-	while (wdp) { // Set up the pass_start_times for all the QThreads 
+	while (wdp) { // Set up the pass_start_times for all the Worker Threads 
 		if (tdp->td_counters.tc_pass_number == 1) {
 			wdp->wd_counters.tc_pass_start_time = tdp->td_first_pass_start_time;
 			// Get the current CPU user and system times 
@@ -315,7 +326,7 @@ xdd_target_ttd_before_pass(target_data_t *tdp) {
 			wdp->wd_counters.tc_pass_start_time = tdp->td_counters.tc_pass_start_time;
 			times(&wdp->wd_counters.tc_starting_cpu_times_this_pass);
 		}
-		xdd_init_target_data_before_pass(tdp);
+		xdd_init_worker_data_before_pass(wdp);
 		wdp = wdp->wd_next_wdp;
 	}
 

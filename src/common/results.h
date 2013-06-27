@@ -53,13 +53,13 @@ struct results {
 	// Fundamental Variables
 	char		*format_string;			// Format String for the xdd_results_display_processor() 
 	int32_t		my_target_number; 		// Target number of instance 
-	int32_t		my_qthread_number; 		// Qthread number of this instance 
+	int32_t		my_worker_thread_number; 		// Qthread number of this instance 
 	int32_t		queue_depth;		 	// The queue depth of this target
 	double		xfer_size_bytes;		// Transfer size in bytes 
 	double		xfer_size_blocks;		// Transfer size in blocks 
 	double		xfer_size_kbytes;		// Transfer size in Kbytes 
 	double		xfer_size_mbytes;		// Transfer size in Mbytes 
-	int32_t		reqsize; 				// RequestSize from the ptds 
+	int32_t		reqsize; 				// RequestSize from the Target Data Struct 
 	int32_t		pass_number; 			// Pass number of this set of results 
 	char		*optype;	 			// operation type - read, write, or mixed 
 
@@ -80,11 +80,11 @@ struct results {
 	double		accumulated_flush_time;		// Total Accumulated Time in seconds doing buffer flushes 
 	double		accumulated_elapsed_time;	// Total Accumulated Time in seconds for all "elapsed" times 
 	double		accumulated_latency;		// Total Accumulated Latency Used to calculate average latency
-	double		earliest_start_time_this_run;	// The earliest recorded start time for any qthread in pass 1 of the run
-	double		earliest_start_time_this_pass;	// The earliest recorded start time for any qthread in a given pass
+	double		earliest_start_time_this_run;	// The earliest recorded start time for any worker_thread in pass 1 of the run
+	double		earliest_start_time_this_pass;	// The earliest recorded start time for any worker_thread in a given pass
 	double		pass_delay_accumulated_time;	// The accumulated time from inter-pass delay (from the -passdelay option)
-	double		latest_end_time_this_run;		// For a qthread this is the end time of the last pass, for a target it is the latest end time of all qthreads
-	double		latest_end_time_this_pass;		// For a qthread this is the end time of the last pass, for a target it is the latest end time of all qthreads
+	double		latest_end_time_this_run;		// For a worker_thread this is the end time of the last pass, for a target it is the latest end time of all worker_threads
+	double		latest_end_time_this_pass;		// For a worker_thread this is the end time of the last pass, for a target it is the latest end time of all worker_threads
 	double		elapsed_pass_time;		// usec, Total time from start of pass to the end of the last operation 
 	double		elapsed_pass_time_from_first_op; // usec, Total time from start of first op in pass to the end of the last operation 
 	double		pass_start_lag_time; 	// usec, Lag time from start of pass to the start of the first operation 

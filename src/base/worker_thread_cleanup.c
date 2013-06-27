@@ -31,7 +31,7 @@
 #include "xint.h"
 
 /*----------------------------------------------------------------------------*/
-/* xdd_worker_thread_cleanup() - Termination cleanup routine for a QThread
+/* xdd_worker_thread_cleanup() - Termination cleanup routine for a Worker Thread
  */
 void
 xdd_worker_thread_cleanup(worker_data_t *wdp) {

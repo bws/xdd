@@ -154,7 +154,7 @@ int tot_update(tot_t* table,
     if (tep->tot_op_number >= req_number) {
 	rc = -1;
 	fprintf(xgp->errout,
-		"%s: tot_update: QThread %d: "
+		"%s: tot_update: Worker Thread %d: "
 		"WARNING: TOT Collision at entry %d, op number %"PRId64", "
 		"byte location is %"PRId64" [block %"PRId64"], "
 		"my current op number is %"PRId64", "

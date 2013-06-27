@@ -76,7 +76,7 @@ xdd_worker_thread_io(worker_data_t *wdp) {
 	// done receiving data from the Source Side.
 	// If there is Loose or Serial Ordering in effect then we need to release the Next Worker Thread
 	// before returning.
-	if ((tdp->td_target_options & TO_E2E_DESTINATION) && (wdp->wd_e2ep->e2e_header.magic == PTDS_E2E_MAGIQ)) { 
+	if ((tdp->td_target_options & TO_E2E_DESTINATION) && (wdp->wd_e2ep->e2e_header.magic == XDD_E2E_MAGIQ)) { 
 		// Indicate that this Worker Thread has received its EOF Packet
 		pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
 		wdp->wd_worker_thread_target_sync |= WTSYNC_EOF_RECEIVED;

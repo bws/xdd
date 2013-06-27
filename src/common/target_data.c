@@ -43,7 +43,7 @@ void
 xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 
 
-	tdp->td_next_wdp = 0; // set upon creation, used when other qthreads are created
+	tdp->td_next_wdp = 0; // set upon creation, used when other Worker Threads are created
 	tdp->td_target_number = n; // set upon creation of this Target_Data
 	tdp->td_pid = getpid(); // Set upon creation
 	tdp->td_thread_id = 0; // This is set later by the actual thread 
@@ -170,7 +170,7 @@ xdd_calculate_xfer_info(target_data_t *tdp) {
 			// Change the startoffset to reflect the shift in starting point
 			tdp->td_start_offset = tdp->td_restartp->byte_offset / tdp->td_block_size;
 			// Change the bytes-to-be-transferred to reflect the shift in starting point
-			// Since qthreads transfer 1/qd*totalbytes we need to recalculate this carefully
+			// Since Worker Threads transfer 1/qd*totalbytes we need to recalculate this carefully
 			tdp->td_target_bytes_to_xfer_per_pass -= tdp->td_restartp->byte_offset;
 		}
 	}
@@ -192,7 +192,7 @@ xdd_calculate_xfer_info(target_data_t *tdp) {
  * This subroutine is also passed the queue number which is a number from 0 to
  * queue depth minus 1.
  * This subroutine is only called by xdd_build_target_data_substructure as part of the
- * loop that creates all the qthreads for a target. 
+ * loop that creates all the Worker Threads for a target. 
  * 
  *  
  */
@@ -308,7 +308,7 @@ xdd_build_target_data_substructure(xdd_plan_t* planp) {
 		// Calcualte the data transfer information - number of ops, bytes, starting offset, ...etc.
 		xdd_calculate_xfer_info(tdp);
 
-		// Allocate a shiney new PTDS for each qthread 
+		// Allocate a shiney new Worker Data Struct for each Worker Thread 
 		prev_wdp = NULL;
 		for (q = 0; q < tdp->td_queue_depth; q++ ) {
 			// Increament the number of iothreads

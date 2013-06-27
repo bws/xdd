@@ -135,7 +135,7 @@ xdd_parse(xdd_plan_t *planp, int32_t argc, char *argv[]) {
 		exit(XDD_RETURN_VALUE_INVALID_ARGUMENT);
 	}
 
-	// Build the PTDS substructure for all targets
+	// Build the Target Data Struct substructure for all targets
 	xdd_build_target_data_substructure(planp);
 
 } /* end of xdd_parse() */
@@ -350,21 +350,21 @@ xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t 
                 return(-1);
 			}
 		}
-		// Make sure the PTDS for this target exists - if it does not, the xdd_get_target_data() subroutine will create one
+		// Make sure the Target Data Struct for this target exists - if it does not, the xdd_get_target_data() subroutine will create one
 		tdp = xdd_get_target_datap(planp, tn, "xdd_parse_target_number, target");
 		if (tdp == NULL) return(-1);
 
-		// At this point the target number is valid and a PTDS exists for this target
+		// At this point the target number is valid and a Target Data Struct exists for this target
 		*target_number = tn;
         return(2);
 	} else { // The user could have specified the word "previous" to indicate the current target number minus 1
 		if ((strcmp(argv[0], "previous") == 0) || (strcmp(argv[0], "prev") == 0) || (strcmp(argv[0], "p") == 0)) {
 			tn = planp->number_of_targets - 1;
-			// Make sure the PTDS for this target exists - if it does not, the xdd_get_target_data() subroutine will create one
+			// Make sure the Target Data Struct for this target exists - if it does not, the xdd_get_target_data() subroutine will create one
 			tdp = xdd_get_target_datap(planp, tn, "xdd_parse_target_number, previous");
 			if (tdp == NULL) return(-1);
 
-		    // At this point the target number is valid and a PTDS exists for this target
+		    // At this point the target number is valid and a Target Data Struct exists for this target
             *target_number = tn;
             return(1);
 		} else { // Apparently the user did not specify a target number for this option.
@@ -375,7 +375,7 @@ xdd_parse_target_number(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t 
 }/* end of xdd_parse_target_number() */
 
 /*----------------------------------------------------------------------------*/
-/* xdd_get_target_datap() - return a pointer to the PTDS for the specified target
+/* xdd_get_target_datap() - return a pointer to the Target Data Struct for the specified target
  */
 target_data_t * 
 xdd_get_target_datap(xdd_plan_t *planp, int32_t target_number, char *op) {
@@ -384,7 +384,7 @@ xdd_get_target_datap(xdd_plan_t *planp, int32_t target_number, char *op) {
     if (0 == planp->target_datap[target_number]) {
 		planp->target_datap[target_number] = malloc(sizeof(target_data_t));
 		if (planp->target_datap[target_number] == NULL) {
-	    	fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a PTDS for target number %d for option %s\n",
+	    	fprintf(xgp->errout,"%s: ERROR: Could not get a pointer to a Target Data Struct for target number %d for option %s\n",
 		    	xgp->progname, target_number, op);
 	    	return(NULL);
 		}
@@ -396,7 +396,7 @@ xdd_get_target_datap(xdd_plan_t *planp, int32_t target_number, char *op) {
 	// Allocate and initialize the data pattern structure
 	tdp->td_dpp = (xint_data_pattern_t *)malloc(sizeof(xint_data_pattern_t));
 	if (tdp->td_dpp == NULL) {
-	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS Data Pattern Structure for target %d\n",
+	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct Data Pattern Structure for target %d\n",
 		    xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
 	    return(NULL);
 	}
@@ -409,14 +409,14 @@ xdd_get_target_datap(xdd_plan_t *planp, int32_t target_number, char *op) {
 		if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
 	    	tdp->td_e2ep = xdd_get_e2ep();
 			if (NULL == tdp->td_e2ep) {
-	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
+	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct END TO END Data Structure for target %d\n",
 		    		xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
 	    		return(NULL);
 			}
 		}
 	}
 
-	// Initialize the new PTDS and lets rock and roll!
+	// Initialize the new Target Data Struct and lets rock and roll!
 	xdd_init_new_target_data(tdp, target_number);
 	planp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
 	if (planp->target_average_resultsp[target_number] == NULL) {

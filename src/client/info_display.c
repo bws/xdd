@@ -431,7 +431,7 @@ xdd_target_info(FILE *out, target_data_t *tdp) {
 
 		// Check for RESTART and setup restart structure if required
 		if (tdp->td_target_options & TO_RESTART_ENABLE) { 
-			// Set up the restart structure in this PTDS
+			// Set up the restart structure in this Data Struct
 			if (tdp->td_restartp == NULL) {
 				fprintf(out,"\t\tRESTART - Internal Error - no restart structure assigned to this target!\n");
 				tdp->td_target_options &= ~TO_RESTART_ENABLE; // turn off restart

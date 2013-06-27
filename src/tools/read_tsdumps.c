@@ -37,9 +37,9 @@
 /* magic number to make sure we can read the file */
 #define BIN_MAGIC_NUMBER 0xDEADBEEF
 
-#define MAX_QTHREADS 1024
-int thread_id_src[MAX_QTHREADS];
-int thread_id_dst[MAX_QTHREADS];
+#define MAX_WORKER_THREADS 1024
+int thread_id_src[MAX_WORKER_THREADS];
+int thread_id_dst[MAX_WORKER_THREADS];
 int total_threads_src = 0;
 int total_threads_dst = 0;
 double op_mix = 0.0;
@@ -281,7 +281,7 @@ xdd_getthreads(xdd_tthdr_t *tsdata, int *total_threads, int thread_id[], double 
         /* how many qthreads are there? */
         for (i = 0; i < tsdata->tt_size; i++) {
                 tothreads = MAX(tsdata->tte[i].worker_thread_number,tothreads);
-                if (k < tothreads && k < MAX_QTHREADS)
+                if (k < tothreads && k < MAX_WORKER_THREADS)
                 {
                             k = tothreads;
                   thread_id[k] = tsdata->tte[i].thread_id;

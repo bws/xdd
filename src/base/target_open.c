@@ -39,9 +39,9 @@
 /* xdd_target_open() - open the target device and do all necessary 
  * sanity checks.  This routine simply calls the appropriate open routine
  * for the given operating system it is compiled for.
- * Each of the open routines will set the file descriptor in the PTDS to
- * an appropriate value. If the open routine succeeds then a successful status
- * of 0 (zero) is returned. 
+ * Each of the open routines will set the file descriptor in the Target Data 
+ * Struct to an appropriate value. If the open routine succeeds then a 
+ * successful status of 0 (zero) is returned. 
  * Otherwise, a -1 returned to indicate there was an error. 
  * The OS-specific open routine will issue the appropriate error messages. 
  */
@@ -88,7 +88,7 @@ xdd_target_open(target_data_t *tdp) {
 
 /*----------------------------------------------------------------------------*/
 /* xdd_target_reopen() - This subroutine will close and reopen a new target
- * file and then request that all qthreads do the same.
+ * file and then request that all Worker Threads do the same.
  */
 void
 xdd_target_reopen(target_data_t *tdp) {
@@ -125,7 +125,7 @@ xdd_target_reopen(target_data_t *tdp) {
 /*----------------------------------------------------------------------------*/
 /* xdd_target_shallow_open() - Do all necessary sanity checks, but instead of
  * doing the open, simply copy the file dscriptor from the target thread.
- * Only works for qthreads spwned from a target thread that has already
+ * Only works for Worker Threads spwned from a target thread that has already
  * opened the file, and OS that support pread/pwrite.
  * Otherwise, a -1 returned to indicate there was an error. 
  */
@@ -163,7 +163,7 @@ xdd_target_shallow_open(worker_data_t *wdp) {
 } // End of xdd_target_shallow_open()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_target_name() - Generate the name of the target for the given PTDS
+/* xdd_target_name() - Generate the name of the target 
  */
 void
 xdd_target_name(target_data_t *tdp) {
@@ -289,8 +289,8 @@ xdd_target_existence_check(target_data_t *tdp) {
 /*----------------------------------------------------------------------------*/
 /* xdd_target_open_for_linux() - Open routine for linux
  * This routine currently always returns 0. 
- * The "fd" member of the PTDS is the actual return value from the open() 
- * system call and will indicate if there was an error.
+ * The "td_file_desc" member of the Target Data Struct is the actual return 
+ * value from the open() system call and will indicate if there was an error.
  * The errno should also be valid upon return from this subroutine.
  */
 int32_t

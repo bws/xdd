@@ -364,11 +364,12 @@ int32_t	xdd_target_ttd_after_io_op(target_data_t *tdp, worker_data_t *wdp);
 
 // target_ttd_before_pass.c
 void	xdd_timer_calibration_before_pass(void);
-void	xdd_start_delay_before_pass(target_data_t *p);
-void	xdd_raw_before_pass(target_data_t *p);
-void	xdd_e2e_before_pass(target_data_t *p);
-void	xdd_init_target_data_before_pass(target_data_t *p);
-int32_t	xdd_target_ttd_before_pass(target_data_t *p);
+void	xdd_start_delay_before_pass(target_data_t *tdp);
+void	xdd_raw_before_pass(target_data_t *tdp);
+void	xdd_e2e_before_pass(target_data_t *tdp);
+void	xdd_init_target_data_before_pass(target_data_t *tdp);
+void	xdd_init_worker_data_before_pass(worker_data_t *wdp);
+int32_t	xdd_target_ttd_before_pass(target_data_t *tdp);
 
 // timestamp.c
 void	xdd_ts_overhead(struct xdd_tthdr *ttp); 

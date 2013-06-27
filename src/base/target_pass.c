@@ -254,7 +254,7 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 		tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = wdp->wd_task.task_op_number;
 		tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = wdp->wd_task.task_byte_offset;
 	}
-	// Update the pointers/counters in the Target PTDS to get 
+	// Update the pointers/counters in the Target Data Struct to get 
 	// ready for the next I/O operation
 	tdp->td_current_byte_offset += wdp->wd_task.task_xfer_size;
 	tdp->td_current_op_number++;

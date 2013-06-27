@@ -36,13 +36,13 @@
 
 /*----------------------------------------------------------------------------*/
 /* xdd_worker_thread_init() - Initialization routine for a WorkerThread
- * This routine is passed a pointer to the PTDS for this WorkerThread.
+ * This routine is passed a pointer to the Data Struct for this WorkerThread.
  * Return values: 0 is good, -1 is bad
  */
 int32_t
 xdd_worker_thread_init(worker_data_t *wdp) {
     int32_t  	status;
-    target_data_t		*tdp;			// Pointer to this worker_thread's target PTDS
+    target_data_t		*tdp;			// Pointer to this worker_thread's target Data Struct
     char		tmpname[XDD_BARRIER_MAX_NAME_LENGTH];	// Used to create unique names for the barriers
 
 #if defined(HAVE_CPUSET_T) && defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
@@ -58,7 +58,7 @@ xdd_worker_thread_init(worker_data_t *wdp) {
     printf("\n");
 #endif
 
-    // Get the target Thread PTDS address as well
+    // Get the Target Data Struct address as well
     tdp = wdp->wd_tdp;
 
 #if (AIX)

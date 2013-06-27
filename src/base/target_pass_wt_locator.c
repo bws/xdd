@@ -41,7 +41,7 @@
  */
 worker_data_t *
 xdd_get_specific_worker_thread(target_data_t *tdp, int32_t q) {
-	worker_data_t *wdp;					// Pointer to a Worker Thread PTDS
+	worker_data_t *wdp;					// Pointer to a Worker Thread Data Struct
 	int i;
 	nclk_t checktime;
 
@@ -56,8 +56,8 @@ xdd_get_specific_worker_thread(target_data_t *tdp, int32_t q) {
 		exit(1);
 	}
 	
-	// Locate the pointer to the requested Worker Thread PTDS
-	// The Worker Threads are on an ordered linked list anchored on the Target Thread PTDS with Worker Thread being the first one on the list
+	// Locate the pointer to the requested Worker Thread Data Struct
+	// The Worker Threads are on an ordered linked list anchored on the Target Thread Data Struct 
 	wdp = tdp->td_next_wdp;
 	for (i=0; i<q; i++) 
 		wdp = wdp->wd_next_wdp;
@@ -95,7 +95,7 @@ xdd_get_specific_worker_thread(target_data_t *tdp, int32_t q) {
  */
 worker_data_t *
 xdd_get_any_available_worker_thread(target_data_t *tdp) {
-    worker_data_t		*wdp; // Pointer to a Worker Thread PTDS
+    worker_data_t		*wdp; // Pointer to a Worker Thread Data Struct
     int eof;	// Number of Worker Threads that have reached End-of-File on the destination side of an E2E operation        
 
     // Use a polling strategy to find available worker_threads -- this might be a good

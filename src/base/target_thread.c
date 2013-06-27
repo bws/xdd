@@ -43,12 +43,12 @@
  * to perform (read or write), the amount of data to transfer, and the global clock
  * time at which to start the operation if throttling is being used. 
  * When the Worker Thread has completed its operation it will report its status, 
- * update counters in the Target PTDS, and make itself Available.
+ * update counters in the Target Data Struct, and make itself Available.
  */
 void *
 xdd_target_thread(void *pin) {
 	int32_t  	status;		// Status of various function calls
-	target_data_t		*tdp;			// Pointer to this Target's PTDS
+	target_data_t		*tdp;			// Pointer to this Target's Data Struct
 	xdd_plan_t* planp;
 
 	tdp = (target_data_t *)pin;

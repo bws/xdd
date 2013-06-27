@@ -338,8 +338,8 @@ xdd_ts_reports(target_data_t *tdp) {
 		(long long)ttp->delta);
 	
 	// Print a header line with the Quantities as they appear across the page
-	fprintf(tdp->td_tsfp,"QThread");
-	fprintf(tdp->td_tsfp,"ThreadID");
+	fprintf(tdp->td_tsfp,"WorkerThread");
+	fprintf(tdp->td_tsfp,"WorkerThreadID");
 	fprintf(tdp->td_tsfp,",Op");
 	fprintf(tdp->td_tsfp,",Pass");
 	fprintf(tdp->td_tsfp,",OP");

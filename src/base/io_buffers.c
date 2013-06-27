@@ -30,7 +30,7 @@
  */
 /*
  * This file contains the subroutines that allocate and initialize the io buffers
- * used by the QThreads.
+ * used by the Worker Threads.
  */
 #include "xint.h"
 #ifdef DARWIN

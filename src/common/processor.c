@@ -30,7 +30,7 @@
  */
 /*
  * This file contains the subroutines that figure out how many CPUs are on a
- * system and how to assign those processors to specific Target or QThreads.
+ * system and how to assign those processors to specific Target or Worker Threads.
  */
 #include "xint.h"
 /*----------------------------------------------------------------------------*/

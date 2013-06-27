@@ -40,15 +40,11 @@
  * 
  * It will then start all WorkerThreads that are responsible for doing the actual I/O.
  *
- * It is important to note that upon entering this subroutine, the PTDS substructure
+ * It is important to note that upon entering this subroutine, the Worker Data substructure
  * has already been built. This routine will simply create each WorkerThread and 
- * pass it the address of the PTDS that unique to each WorkerThread.
- * The PTDS that each WorkerThread receives has its target number and WorkerThread number.
+ * pass it the address of the Worker Data that is unique to each WorkerThread.
+ * The Worker Data Struct that each WorkerThread receives has its WorkerThread number.
  * 
- * The WorkerThreadIssue threads is started after all WorkerThreads
- * have been successfully initialized. As part of the WorkerThread initialization
- * routine each WorkerThread will place itself on the WorkerThreadAvailable Queue.
- *
  * Return Values: 0 is good, -1 indicates an error.
  * 
  */
@@ -246,7 +242,7 @@ xdd_target_init_barriers(target_data_t *tdp) {
  */
 int32_t
 xdd_target_init_start_worker_threads(target_data_t *tdp) {
-	worker_data_t	*wdp;					// Pointer to the WorkerThread PTDS
+	worker_data_t	*wdp;					// Pointer to the WorkerThread Data Struct
 	int32_t			q;						// WorkerThread Number
 	int32_t			status;					// Status of subtroutine calls
 	int32_t			e2e_addr_index;			// index into the e2e address table

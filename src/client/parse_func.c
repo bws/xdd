@@ -62,14 +62,14 @@ extern	xdd_func_t xdd_func[];
 // will cause only target number 3 (relative to target 0) to have the write operation set.
 // 
 // Now, because of the order that command line options can be specified and the way
-// that the PTDSs (per target data structures) are allocated in memory, there is a multi-phase
+// that the Target Data are allocated in memory, there is a multi-phase
 // approach to applying command line options to each target. 
 // Phase 1 is the initial pass through all the command line options in order to determine how many targets there will be
-//     and to allocate one PTDS for each of those targets during this phase.
+//     and to allocate one Target Data struct for each of those targets during this phase.
 // Phase 2 is when all the command line options and their arguments are actually processed and the associated values are
-//     put into the proper PTDS's. This is because some options may be for a specific target whereas other options will
-//     be for all the targets. Since Phase 1 allocated all the PTDS's then the options for any target can be set without
-//     worrying about whether or not a PTDS has been allocated.
+//     put into the proper Target Data structs. This is because some options may be for a specific target whereas other options will
+//     be for all the targets. Since Phase 1 allocated all the Target Data Struct's then the options for any target can be set without
+//     worrying about whether or not a Target Data Struct has been allocated.
 //
 // Precedence: The target-specific options have precedence over the global options which have precedence over the default options. 
 // Man I hope this works....
@@ -116,7 +116,7 @@ xddfunc_blocksize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			return(0);
 		}
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -161,7 +161,7 @@ xddfunc_bytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		tdp->td_bytes = bytes;
 		tdp->td_numreqs = 0;
 		return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -214,7 +214,7 @@ xddfunc_createnewfiles(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 		tdp->td_target_options |= TO_CREATE_NEW_FILES;
 
         return(args+1);
-    } else { // Put this option into all PTDSs 
+    } else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -285,7 +285,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	if (strcmp(pattern_type, "random") == 0) {  /* make it random data  */
 		if (tdp)  /* set option for the specific target */
             tdp->td_dpp->data_pattern_options |= DP_RANDOM_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -299,7 +299,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
     } else if (strcmp(pattern_type, "randbytarget") == 0) {  /* make it random data seeded by target number  */
 		if (tdp)  /* set option for the specific target */
             tdp->td_dpp->data_pattern_options |= DP_RANDOM_BY_TARGET_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -323,7 +323,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 			tdp->td_dpp->data_pattern = (unsigned char *)argv[args+2];
 			tdp->td_dpp->data_pattern_length = strlen((char *)tdp->td_dpp->data_pattern);
 		}
-		else  {// Put this option into all PTDSs 
+		else  {// Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -377,7 +377,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 			tdp->td_dpp->data_pattern = pattern_value; // The actual 64-bit value left-justtified
 			tdp->td_dpp->data_pattern_length = pattern_length; // length in nibbles 
 		}
-		else  {// Put this option into all PTDSs 
+		else  {// Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -443,7 +443,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 			tdp->td_dpp->data_pattern_prefix_value = pattern_value; // Pointer to the  N-bit value in BIG endian (left justified)
 			tdp->td_dpp->data_pattern_prefix_binary = pattern_binary; // The actual 64-bit binary value left-justtified
 			tdp->td_dpp->data_pattern_prefix_length = pattern_length; // Length in nibbles
-		} else  {// Put this option into all PTDSs 
+		} else  {// Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -467,7 +467,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 		if (tdp) {/* set option for specific target */
 			tdp->td_dpp->data_pattern_options |= DP_FILE_PATTERN;
 			tdp->td_dpp->data_pattern_filename = (char *)argv[args+2];
-		} else {// Put this option into all PTDSs 
+		} else {// Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -482,7 +482,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	} else if (strcmp(pattern_type, "sequenced") == 0) {
 		if (tdp) /* set option for specific target */
 			tdp->td_dpp->data_pattern_options |= DP_SEQUENCED_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -496,7 +496,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	} else if (strcmp(pattern_type, "inverse") == 0) {
 		if (tdp) /* set option for specific target */
 			tdp->td_dpp->data_pattern_options |= DP_INVERSE_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -510,7 +510,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	} else if (strncmp(pattern_type, "replicate", 9) == 0) {
 		if (tdp) /* set option for specific target */
 			tdp->td_dpp->data_pattern_options |= DP_REPLICATE_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -524,7 +524,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	} else if (strcmp(pattern_type, "lfpat") == 0) {
 		if (tdp) /* set option for specific target */
 			tdp->td_dpp->data_pattern_options |= DP_LFPAT_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -538,7 +538,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	} else if (strcmp(pattern_type, "ltpat") == 0) {
 		if (tdp) /* set option for specific target */
 			tdp->td_dpp->data_pattern_options |= DP_LTPAT_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -552,7 +552,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	} else if (strcmp(pattern_type, "cjtpat") == 0) {
 		if (tdp) /* set option for specific target */
 			tdp->td_dpp->data_pattern_options |= DP_CJTPAT_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -566,7 +566,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	} else if (strcmp(pattern_type, "crpat") == 0) {
 		if (tdp) /* set option for specific target */
 			tdp->td_dpp->data_pattern_options |= DP_CRPAT_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -580,7 +580,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	} else if (strcmp(pattern_type, "cspat") == 0) {
 		if (tdp) /* set option for specific target */
 			tdp->td_dpp->data_pattern_options |= DP_CSPAT_PATTERN;
-		else { // Put this option into all PTDSs 
+		else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -595,7 +595,7 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 		if (tdp) { /* set option for a specific target */ 
 			tdp->td_dpp->data_pattern_options |= DP_SINGLECHAR_PATTERN;
 			tdp->td_dpp->data_pattern = (unsigned char *)pattern_type;
-		} else {// Put this option into all PTDSs 
+		} else {// Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -638,7 +638,7 @@ xddfunc_deletefile(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 
 		tdp->td_target_options |= TO_DELETEFILE;
         return(args+1);
-    } else { // Put this option into all PTDSs 
+    } else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -670,7 +670,7 @@ xddfunc_devicefile(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 
 		tdp->td_target_options |= TO_DEVICEFILE;
         return(args+1);
-    } else { // Put this option into all PTDSs 
+    } else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -704,7 +704,7 @@ xddfunc_dio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 		tdp->td_target_options |= TO_DIO;
         return(args+1);
-    } else {// Put this option into all PTDSs 
+    } else {// Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -758,14 +758,14 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
 
-	// Make sure that the PTDS exists and that the E2E structures have been allocated
+	// Make sure that the Target Data Structs exists and that the E2E structures have been allocated
 	if (target_number >= 0) {
     	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
 	   	if (tdp == NULL) return(-1);
 		if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
 	    	tdp->td_e2ep = xdd_get_e2ep();
 			if (NULL == tdp->td_e2ep) {
-	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
+	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct END TO END Data Structure for target %d\n",
 		    		xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
 	    		return(-1);
 			}
@@ -777,7 +777,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
 	    		tdp->td_e2ep = xdd_get_e2ep();
 				if (NULL == tdp->td_e2ep) {
-	    			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for PTDS END TO END Data Structure for target %d\n",
+	    			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct END TO END Data Structure for target %d\n",
 		    			xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
 	    			return(-1);
 				}
@@ -932,7 +932,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		///////////// Done parsing the address:base_port,port_count,numa_node
 		
 
-		// Now we need to put the address and base_port and number of ports into the PTDS for this Target or all Targets
+		// Now we need to put the address and base_port and number of ports into the Target Data Struct for this Target or all Targets
 		if (target_number >= 0) {
 	    	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
 	    	if (tdp == NULL) return(-1);
@@ -1244,7 +1244,7 @@ xddfunc_flushwrite(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 		tdp->td_flushwrite = flushwrite;
 
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -1289,7 +1289,7 @@ xddfunc_heartbeat(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int 		args, i; // Number of args and a counter
     int 		target_number; // The specific target number to update
-    target_data_t 		*tdp;		// Current PTDS being updated
+    target_data_t 		*tdp;		// Current Target Data Struct being updated
 	char		*sp;	// String pointer
 	int			c1,c2;	// A single character
 	char		*cp;	// A single Character pointer
@@ -1398,7 +1398,7 @@ xddfunc_heartbeat(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		return(-1);
 	}
 
-	// At this point we have figured out what was specified. Now we just have to put it into the proper PTDS.
+	// At this point we have figured out what was specified. Now we just have to put it into the proper Target Data Struct.
 	xgp->global_options |= GO_HEARTBEAT;
     // At this point the "target_number" is valid
 	if (target_number >= 0) { /* Set this option for a specific target */
@@ -1422,7 +1422,7 @@ xddfunc_heartbeat(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		if (tdp->td_hb.hb_interval == 0)
 			tdp->td_hb.hb_interval = 1;
         return(args+return_value);
-    } else {// Put this option into all PTDSs 
+    } else {// Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -1556,7 +1556,7 @@ xddfunc_kbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		tdp->td_bytes = kbytes * 1024;
 		tdp->td_numreqs = 0;
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -1627,8 +1627,8 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     int 		mt;						// Master Target number
     int			st;						// Slave Target number
     double 		tmpf;
-    target_data_t 		*master_target_datap;				// Pointer to the Master PTDS
-    target_data_t		*slave_target_datap;				// Pointer to the Slave PTDS
+    target_data_t 		*master_target_datap;	// Pointer to the Master Target Data Struct
+    target_data_t		*slave_target_datap;	// Pointer to the Slave Target Data Struct
     int 		retval;					// Return value at any give time
     int 		lsmode;					// Lockstep mode
     char 		*when;					// Indicates WHEN to do something
@@ -1829,7 +1829,7 @@ xddfunc_lockstep(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     return(retval);
 } // End of xddfunc_lockstep()
 /*----------------------------------------------------------------------------*/
-// Loose Ordering - Allow loose ordering of QThread I/O
+// Loose Ordering - Allow loose ordering of Worker Thread I/O
 // Note that Loose Ordering for a Target is mutually exclusive with Serial Ordering
 // Arguments: -looseordering [target #] 
 // aka -lo 
@@ -1852,7 +1852,7 @@ xddfunc_looseordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fl
 		tdp->td_target_options |= TO_ORDERING_STORAGE_LOOSE;
 		tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
         return(args+1);
-    } else {// Put this option into all PTDSs 
+    } else {// Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -1963,7 +1963,7 @@ xddfunc_mbytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		tdp->td_bytes = mbytes * 1024 * 1024;
 		tdp->td_numreqs = 0;
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -2001,7 +2001,7 @@ xddfunc_memalign(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 		tdp->td_mem_align = align;
 		return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2057,7 +2057,7 @@ xddfunc_nomemlock(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     return(1);
 }
 /*----------------------------------------------------------------------------*/
-// No Ordering - Turn off Loose and Serial ordering of QThread I/O
+// No Ordering - Turn off Loose and Serial ordering of Worker Thread I/O
 // aka -no 
 int
 xddfunc_noordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
@@ -2079,7 +2079,7 @@ xddfunc_noordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 		tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
 		tdp->td_target_options &= ~TO_ORDERING_STORAGE_SERIAL;
         return(args+1);
-    } else {// Put this option into all PTDSs 
+    } else {// Put this option into all Targets 
 			/* Unset the Loose and Serial Ordering Opetions for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
@@ -2139,7 +2139,7 @@ xddfunc_numreqs(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		tdp->td_bytes = 0; // reset tdp->td_bytes
 		return(args+2);
 
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2182,7 +2182,7 @@ xddfunc_operationdelay(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 		tdp->td_op_delay = operationdelay;
         return(args+2);
 
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2234,7 +2234,7 @@ xddfunc_operation(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 		tdp->td_rwratio = rwratio;
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2338,7 +2338,7 @@ xddfunc_ordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			tdp->td_target_options &= ~TO_ORDERING_NETWORK_LOOSE;
 		}
         return(args+3);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2488,7 +2488,7 @@ xddfunc_passoffset(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 
 		tdp->td_pass_offset = pass_offset;
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2566,7 +2566,7 @@ xddfunc_preallocate(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 		
 		tdp->td_preallocate = preallocate;
 		return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2619,7 +2619,7 @@ xddfunc_processor(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		if (tdp == NULL) return(-1);
 			tdp->td_processor = processor_number;
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2655,7 +2655,7 @@ xddfunc_queuedepth(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 
 		tdp->td_queue_depth = queue_depth;
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2690,7 +2690,7 @@ xddfunc_randomize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 	    tdp->td_target_options |= TO_PASS_RANDOMIZE;
 	    return(args+1);
-    } else { // Put this option into all PTDSs 
+    } else { // Put this option into all Targets 
 	    if (flags & XDD_PARSE_PHASE2) {
 		    tdp = planp->target_datap[0];
 		    i = 0;
@@ -2818,7 +2818,7 @@ xddfunc_recreatefiles(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fl
 
 	    tdp->td_target_options |= TO_RECREATE;
         return(args+1);
-    } else { // Put this option into all PTDSs 
+    } else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2850,7 +2850,7 @@ xddfunc_reopen(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 	    tdp->td_target_options |= TO_REOPEN;
         return(args+1);
-    } else { // Put this option into all PTDSs 
+    } else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2892,7 +2892,7 @@ xddfunc_report_threshold(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t
 
 		tdp->td_report_threshold = (nclk_t)(threshold * BILLION);
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -2934,7 +2934,7 @@ xddfunc_reqsize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 		tdp->td_reqsize = reqsize;
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -3099,7 +3099,7 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 } // End of xddfunc_restart()
 /*----------------------------------------------------------------------------*/
 // Set the retry count for each target. The retry count gets inherited by any
-// nsubsequent QThreads for the target.
+// nsubsequent Worker Threads for the target.
 int
 xddfunc_retry(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
@@ -3126,7 +3126,7 @@ xddfunc_retry(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 		tdp->td_retry_count = retry_count;
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -3218,7 +3218,7 @@ xddfunc_rwratio(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 
 		tdp->td_rwratio = rwratio;
         return(args+2);
-	} else { // Put this option into all PTDSs 
+	} else { // Put this option into all Targets 
 		if (flags & XDD_PARSE_PHASE2) {
 			tdp = planp->target_datap[0];
 			i = 0;
@@ -3469,7 +3469,7 @@ xddfunc_seek(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     } /* End of the -seek sub options */
 }
 /*----------------------------------------------------------------------------*/
-// Serial Ordering - Enforce Serial Ordering on QThread I/O
+// Serial Ordering - Enforce Serial Ordering on Worker Thread I/O
 // Note that Serial Ordering for a Target is mutually exclusive with Loose Ordering
 // Arguments: -serialordering [target #] 
 // aka -nso 
@@ -3492,7 +3492,7 @@ xddfunc_serialordering(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 		tdp->td_target_options |= TO_ORDERING_STORAGE_SERIAL;
 		tdp->td_target_options &= ~TO_ORDERING_STORAGE_LOOSE;
         return(args+1);
-    } else {// Put this option into all PTDSs 
+    } else {// Put this option into all Targets 
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
@@ -3776,7 +3776,7 @@ int
 xddfunc_starttrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int 			t1,t2;				// Target numbers
-    target_data_t 			*tdp1, *tdp2;			// PTDS pointers for the two targets involved
+    target_data_t 			*tdp1, *tdp2;			// Target Data pointers for the two targets involved
     xint_triggers_t 	*trigp;				// Trigger Stucture pointers for the this target
     char 			*when;				// The "When" to perform a trigger
     double 			tmpf;				// temp
@@ -3790,7 +3790,7 @@ xddfunc_starttrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fla
 
 	t1 = atoi(argv[1]); /* T1 is the target that does the triggering */
 	t2 = atoi(argv[2]); /* T2 is the target that gets triggered by T1 */
-	// Get the PTDS and Trigger Structures for each target
+	// Get the Target Data and Trigger Structures for each target
 	tdp1 = xdd_get_target_datap(planp, t1, argv[0]);
 	if (tdp1 == NULL) return(-1); 
 	trigp = xdd_get_trigp(tdp1);
@@ -3872,7 +3872,7 @@ int
 xddfunc_stoptrigger(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
     int 			t1,  t2;			// Target numbers
-    target_data_t 	*tdp1;				// PTDS pointers for the target 
+    target_data_t 	*tdp1;				// Target Data pointers for the target 
     xint_triggers_t	*trigp;				// Trigger Stucture pointers for the this target
     char 			*when;				// The "When" to perform a trigger
     double 			tmpf;				// temp
@@ -4078,20 +4078,20 @@ xddfunc_targets(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			planp->number_of_targets *= -1; // make this a positive number 
 			planp->number_of_targets += k;  // add in the previous number of targets 
 			for (j=k; j<planp->number_of_targets; j++) { // This will add targets to the end of the current list of targets 
-				// Call xdd_get_ptds() for each target and put the same target name in each PTDS
-				// Make sure the PTDS for this target exists - if it does not, the xdd_get_ptds() subroutine will create one
+				// Call xdd_get_target_datap() for each target and put the same target name in each Target Data
+				// Make sure the Target Data for this target exists - if it does not, the xdd_get_target_datap() subroutine will create one
 				tdp = xdd_get_target_datap(planp, j, argv[0]);
 				if (tdp == NULL) return(-1);
 				
 				tdp->td_target_basename = argv[2];
 				if (strcmp(tdp->td_target_basename,"null") == 0) 
 					tdp->td_target_options |= TO_NULL_TARGET;
-			} // end of FOR loop that places a single target name on each of the associated PTDSs
+			} // end of FOR loop that places a single target name on each of the associated Target Data
 		} else { // Set all target names to the appropriate name
 			i = 2; // start with the third argument  
 			planp->number_of_targets += k;  // add in the previous number of targets 
 			for (j=k; j<planp->number_of_targets; j++) { // This will add targets to the end of the current list of targets 
-				// Make sure the PTDS for this target exists - if it does not, the xdd_get_ptds() subroutine will create one
+				// Make sure the Target Data for this target exists - if it does not, the xdd_get_target_datap() subroutine will create one
 				tdp = xdd_get_target_datap(planp, j, argv[0]);
 				if (tdp == NULL) return(-1);
 				tdp->td_target_basename = argv[i];

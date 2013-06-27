@@ -62,7 +62,7 @@ xdd_target_ttd_after_pass(target_data_t *tdp) {
 	/* Get the current CPU user and system times and the effective current wall clock time using nclk_now() */
 	times(&tdp->td_counters.tc_current_cpu_times);
 
-	// Loop through all the Worker Threads to put the Earliest Start Time and Latest End Time into this Target PTDS
+	// Loop through all the Worker Threads to put the Earliest Start Time and Latest End Time into this Target Data Struct
 	wdp = tdp->td_next_wdp;
 	while (wdp) {
 		if (wdp->wd_counters.tc_pass_start_time <= tdp->td_first_pass_start_time) 

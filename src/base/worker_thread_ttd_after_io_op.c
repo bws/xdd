@@ -240,7 +240,7 @@ xdd_e2e_after_io_op(worker_data_t *wdp) {
 // release us *after* it completes its sendto(). 
 
 			// Send the data to the Destination machine
-			wdp->wd_e2ep->e2e_header.magic = PTDS_E2E_MAGIC;
+			wdp->wd_e2ep->e2e_header.magic = XDD_E2E_MAGIC;
 			tdp->td_current_state |= CURRENT_STATE_SRC_SEND;
 
 			xdd_e2e_src_send(wdp);

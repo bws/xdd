@@ -41,11 +41,11 @@ void
 xdd_show_target_data(target_data_t *tdp) {
 	fprintf(stderr,"********* Start of TARGET_DATA **********\n");
 #ifdef ndef
-	fprintf(xgp->output,"next_qp         %p Pointer to the next QThread PTDS in the PTDS Substructure \n",p->next_qp); 		
+	fprintf(xgp->output,"next_qp         %p Pointer to the next Worker Thread Data Struct \n",p->next_qp); 		
 	//pthread_t  			target_thread;		// Handle for this Target Thread 
-	//pthread_t  			qthread;			// Handle for this QThread 
+	//pthread_t  			worker thread;			// Handle for this Worker Thread 
 	fprintf(xgp->output,"my_target_number, %d My target number \n",p->my_target_number);	
-	fprintf(xgp->output,"my_qthread_number,%d My queue number within this target \n",p->my_qthread_number);	
+	fprintf(xgp->output,"my_worker_thread_number,%d My queue number within this target \n",p->my_worker_thread_number);	
 	fprintf(xgp->output,"my_thread_id,     %d My system thread ID (like a process ID) \n",p->my_thread_id);  	
 	fprintf(xgp->output,"my_pid,           %d My process ID \n",p->my_pid);   			
 	fprintf(xgp->output,"fd,               %d File Descriptor for the target device/file \n",p->fd);
@@ -61,7 +61,7 @@ xdd_show_target_data(target_data_t *tdp) {
 	fprintf(xgp->output,"op_delay,         %d Number of seconds to delay between operations \n",p->op_delay);
 	fprintf(xgp->output,"filetype,       0x%8x Type of file: regular, device, socket, ...  \n",(unsigned int)p->filetype);
 	fprintf(xgp->output,"filesize,         %lld Size of target file in bytes \n",(long long)p->filesize);
-	fprintf(xgp->output,"qthread_ops,      %lld Total number of ops to perform per qthread \n",(long long)p->qthread_ops);
+	fprintf(xgp->output,"worker_thread_ops,      %lld Total number of ops to perform per worker_thread \n",(long long)p->worker_thread_ops);
 	fprintf(xgp->output,"target_ops,       %lld Total number of ops to perform on behalf of a target \n",(long long)p->target_ops);
 //	seekhdr_t			seekhdr;  			// For all the seek information 
 //	FILE				*tsfp;   			// Pointer to the time stamp output file 
@@ -81,7 +81,7 @@ xdd_show_target_data(target_data_t *tdp) {
 	fprintf(xgp->output,"flushwrite                     %lld number of write operations to perform between flushes \n",(long long int)p->flushwrite);
 	fprintf(xgp->output,"flushwrite_current_count       %lld Running number of write operations - used to trigger a flush operation \n",(long long int)p->flushwrite_current_count);
 	fprintf(xgp->output,"bytes                          %lld number of bytes to process overall \n",(long long int)p->bytes);
-	fprintf(xgp->output,"numreqs                        %lld Number of requests to perform per pass per qthread\n",(long long int)p->numreqs);
+	fprintf(xgp->output,"numreqs                        %lld Number of requests to perform per pass per worker_thread\n",(long long int)p->numreqs);
 	fprintf(xgp->output,"rwratio                        %f read/write ratios \n",p->rwratio);
 	fprintf(xgp->output,"report_threshold               %lld reporting threshold for long operations \n",(long long int)p->report_threshold);
 	fprintf(xgp->output,"reqsize                        %d number of *blocksize* byte blocks per operation for each target \n",p->reqsize);
@@ -97,7 +97,7 @@ xdd_show_target_data(target_data_t *tdp) {
     fprintf(xgp->output,"Stuff REFERENCED during run time\n");
 	fprintf(xgp->output,"run_start_time                 %lld This is time t0 of this run - set by xdd_main \n",(long long int)p->run_start_time);
 	fprintf(xgp->output,"first_pass_start_time          %lld Time the first pass started but before the first operation is issued \n",(long long int)p->first_pass_start_time);
-	fprintf(xgp->output,"target_bytes_to_xfer_per_pass  %lld Number of bytes to xfer per pass for the entire target (all qthreads) \n",(long long int)p->target_bytes_to_xfer_per_pass);
+	fprintf(xgp->output,"target_bytes_to_xfer_per_pass  %lld Number of bytes to xfer per pass for the entire target (all worker_threads) \n",(long long int)p->target_bytes_to_xfer_per_pass);
 	fprintf(xgp->output,"block_size                     %d Size of a block in bytes for this target \n",p->block_size);
 	fprintf(xgp->output,"queue_depth                    %d Command queue depth for each target \n",p->queue_depth);
 	fprintf(xgp->output,"preallocate                    %lld File preallocation value \n",(long long int)p->preallocate);
@@ -116,13 +116,13 @@ xdd_show_target_data(target_data_t *tdp) {
 
 	fprintf(xgp->output,"Counters  - RESET AT THE START OF EACH PASS\n");
 
-	fprintf(xgp->output,"Updated by xdd_issue() at at the start of a Task IO request to a QThread\n");
+	fprintf(xgp->output,"Updated by xdd_issue() at at the start of a Task IO request to a Worker Thread\n");
 	fprintf(xgp->output,"my_current_byte_location       %lld Current byte location for this I/O operation \n",(long long int)p->tgtstp->my_current_byte_location);
 	fprintf(xgp->output,"my_current_io_size             %d Size of the I/O to be performed \n",p->tgtstp->my_current_io_size);
 	 fprintf(xgp->output,"my_current_op_str             '%s' - ASCII string of the I/O operation type - 'READ', 'WRITE', or 'NOOP' \n",(p->tgtstp->my_current_op_str != NULL)?p->tgtstp->my_current_op_str:"NA");
 	fprintf(xgp->output,"my_current_op_type             %d Current I/O operation type READ=%d, WRITE=%d, NOOP=%d\n",p->tgtstp->my_current_op_type, OP_TYPE_READ, OP_TYPE_WRITE, OP_TYPE_NOOP);
 
-	fprintf(xgp->output,"Updated by the QThread upon completion of an I/O operation\n");
+	fprintf(xgp->output,"Updated by the Worker Thread upon completion of an I/O operation\n");
 	fprintf(xgp->output,"target_op_number                    %lld Operation number for the target represented by this I/O \n",(long long int)p->tgtstp->target_op_number);
 	fprintf(xgp->output,"my_current_op_number                %lld Current I/O operation number \n",(long long int)p->tgtstp->my_current_op_number);
 	fprintf(xgp->output,"my_current_op_count                 %lld The number of read+write operations that have completed so far \n",(long long int)p->tgtstp->my_current_op_count);
@@ -134,11 +134,11 @@ xdd_show_target_data(target_data_t *tdp) {
 	fprintf(xgp->output,"my_current_bytes_read               %lld Total number of bytes read so far (from storage device, not network) \n",(long long int)p->tgtstp->my_current_bytes_read);
 	fprintf(xgp->output,"my_current_bytes_written            %lld Total number of bytes written so far (to storage device, not network) \n",(long long int)p->tgtstp->my_current_bytes_written);
 	fprintf(xgp->output,"my_current_bytes_noop               %lld Total number of bytes processed by noops so far \n",(long long int)p->tgtstp->my_current_bytes_noop);
-	fprintf(xgp->output,"my_current_io_status                %d I/O Status of the last I/O operation for this qthread \n",p->tgtstp->my_current_io_status);
+	fprintf(xgp->output,"my_current_io_status                %d I/O Status of the last I/O operation for this worker thread \n",p->tgtstp->my_current_io_status);
 	fprintf(xgp->output,"my_current_errno                    %d The errno associated with the status of this I/O for this thread \n",p->tgtstp->my_current_io_errno);
-	fprintf(xgp->output,"my_current_error_count              %lld The number of I/O errors for this qthread \n",(long long int)p->tgtstp->my_current_error_count);
+	fprintf(xgp->output,"my_current_error_count              %lld The number of I/O errors for this worker thread \n",(long long int)p->tgtstp->my_current_error_count);
 	fprintf(xgp->output,"my_elapsed_pass_time                %lld Rime between the start and end of this pass \n",(long long int)p->tgtstp->my_elapsed_pass_time);
-	fprintf(xgp->output,"my_first_op_start_time              %lld Time this qthread was able to issue its first operation for this pass \n",(long long int)p->tgtstp->my_first_op_start_time);
+	fprintf(xgp->output,"my_first_op_start_time              %lld Time this worker thread was able to issue its first operation for this pass \n",(long long int)p->tgtstp->my_first_op_start_time);
 	fprintf(xgp->output,"my_current_op_start_time            %lld Start time of the current op \n",(long long int)p->tgtstp->my_current_op_start_time);
 	fprintf(xgp->output,"my_current_op_end_time              %lld End time of the current op \n",(long long int)p->tgtstp->my_current_op_end_time);
 	fprintf(xgp->output,"my_current_elapsed_time             %lld Elapsed time of the current op \n",(long long int)p->tgtstp->my_current_op_elapsed_time);

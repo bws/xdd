@@ -91,8 +91,8 @@ struct xint_target_data {
 	// Target-specific variables
 	xdd_barrier_t		td_target_worker_thread_init_barrier;		// Where the Target Thread waits for the Worker Thread to initialize
 
-	xdd_barrier_t		td_targetpass_worker_thread_passcomplete_barrier;// The barrier used to sync targetpass() with all the QThreads at the end of a pass
-	xdd_barrier_t		td_targetpass_worker_thread_eofcomplete_barrier;// The barrier used to sync targetpass_eof_desintation_side() with a QThread trying to recv an EOF packet
+	xdd_barrier_t		td_targetpass_worker_thread_passcomplete_barrier;// The barrier used to sync targetpass() with all the Worker Threads at the end of a pass
+	xdd_barrier_t		td_targetpass_worker_thread_eofcomplete_barrier;// The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
 
 
 	uint64_t			td_current_op_number;		// Current operation number
@@ -125,17 +125,17 @@ struct xint_target_data {
     pthread_mutex_t 	td_any_worker_thread_available_mutex;
     int 				td_any_worker_thread_available;
 
-	// QThread-specific semaphores and associated pointers
-	pthread_mutex_t		td_worker_thread_target_sync_mutex;			// Used to serialize access to the QThread-Target Synchronization flags
-	int32_t				td_worker_thread_target_sync;				// Flags used to synchronize a QThread with its Target
-#define	WTSYNC_AVAILABLE			0x00000001				// This QThread is available for a task, set by qthread, reset by xdd_get_specific_qthread.
-#define	WTSYNC_BUSY					0x00000002				// This QThread is busy
-#define	WTSYNC_TARGET_WAITING		0x00000004				// The parent Target is waiting for this QThread to become available, set by xdd_get_specific_qthread, reset by qthread.
-#define	WTSYNC_EOF_RECEIVED			0x00000008				// This QThread received an EOF packet from the Source Side of an E2E Operation
-    //sem_t				this_qthread_is_available_sem;		// xdd_get_specific_qthread() routine waits on this for any QThread to become available
+	// Worker Thread-specific semaphores and associated pointers
+	pthread_mutex_t		td_worker_thread_target_sync_mutex;			// Used to serialize access to the Worker Thread-Target Synchronization flags
+	int32_t				td_worker_thread_target_sync;				// Flags used to synchronize a Worker Thread with its Target
+#define	WTSYNC_AVAILABLE			0x00000001				// This Worker Thread is available for a task, set by qthread, reset by xdd_get_specific_qthread.
+#define	WTSYNC_BUSY					0x00000002				// This Worker Thread is busy
+#define	WTSYNC_TARGET_WAITING		0x00000004				// The parent Target is waiting for this Worker Thread to become available, set by xdd_get_specific_qthread, reset by qthread.
+#define	WTSYNC_EOF_RECEIVED			0x00000008				// This Worker Thread received an EOF packet from the Source Side of an E2E Operation
+    //sem_t				this_qthread_is_available_sem;		// xdd_get_specific_qthread() routine waits on this for any Worker Thread to become available
     pthread_cond_t 		td_this_wthread_is_available_condition;
     
-//	xdd_barrier_t		wthread_targetpass_wait_for_task_barrier;	// The barrier where the QThread waits for targetpass() to release it with a task to perform
+//	xdd_barrier_t		wthread_targetpass_wait_for_task_barrier;	// The barrier where the Worker Thread waits for targetpass() to release it with a task to perform
 
 	// command line option values 
 	int64_t				td_start_offset; 			// starting block offset value 

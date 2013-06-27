@@ -166,7 +166,7 @@ xdd_e2e_src_init(worker_data_t *wdp) {
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_setup_src_socket() - set up the source side
  * This subroutine is called by xdd_e2e_src_init() and is passed a
- * pointer to the PTDS of the requesting Worker Thread.
+ * pointer to the Data Struct of the requesting Worker Thread.
  *
  * Return values: 0 is good, -1 is bad
  *
@@ -232,7 +232,7 @@ xdd_e2e_setup_src_socket(worker_data_t *wdp) {
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_dest_init() - init the destination side 
  * This routine is called by a Worker Thread on the "destination" side of an
- * end_to_end operation and is passed a pointer to the PTDS of the 
+ * end_to_end operation and is passed a pointer to the Data Struct of the 
  * requesting Worker Thread.
  *
  * Return values: 0 is good, -1 is bad
@@ -303,7 +303,7 @@ xdd_e2e_dest_init(worker_data_t *wdp) {
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_setup_dest_socket() - Set up the socket on the Destination side
  * This subroutine is called by xdd_e2e_dest_init() and is passed a
- * pointer to the PTDS of the requesting Worker Thread.
+ * pointer to the Data Struct of the requesting Worker Thread.
  *
  * Return values: 0 is good, -1 is bad
  *

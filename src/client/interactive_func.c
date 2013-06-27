@@ -67,12 +67,12 @@ xdd_interactive_help(int32_t tokens, char *cmdline, uint32_t flags) {
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show()
  * Display any one of a number of things including:
- *  PTDS for a specific Target
- *  PTDS for a specific QThread on a specific Target
+ *  Data Struct for a specific Target
+ *  Data Struct for a specific Worker Thread on a specific Target
  *  The trace table
  *  XDD Global Data 
- *  Data in the buffer of specific QThread
- *  QThread Available Queue
+ *  Data in the buffer of specific Worker Thread
+ *  Worker Thread Available Queue
  *  Barrier Chain
  *
  */
@@ -135,7 +135,7 @@ xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags) {
 } // End of xdd_interactive_step()
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_stop()
- * Cause all Target QThreads to stop issuing I/O tasks and wait for either
+ * Cause all Target Worker Threads to stop issuing I/O tasks and wait for either
  * a "run" or "step" command
  *
  */
@@ -166,7 +166,7 @@ xdd_interactive_goto(int32_t tokens, char *cmdline, uint32_t flags) {
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show_rwbuf()
- * Display the data in the rw buffer of a specific QThread
+ * Display the data in the rw buffer of a specific Worker Thread
  */
 void
 xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags) {
@@ -190,7 +190,7 @@ xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags) 
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show_target_data()
- * Display the PTDS of a specific QThread or Target Thread
+ * Display the Data Struct of a specific Worker Thread or Target Thread
  */
 void
 xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags) {
@@ -211,7 +211,7 @@ xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags) 
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show_worker_state()
- * Display the state of each QThread
+ * Display the state of each Worker Thread
  */
 void
 xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags) {
@@ -228,12 +228,12 @@ xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags)
 			xdd_interactive_display_state_info(p);
 			wdp = tdp->td_next_wdp;
 			while (wdp) {
-				fprintf(xgp->output,"Target %d Qthread %d\n",tdp->td_target_number, wdp->wd_thread_number);
+				fprintf(xgp->output,"Target %d Worker thread %d\n",tdp->td_target_number, wdp->wd_thread_number);
 				xdd_interactive_display_state_info(wdp);
 				wdp = wdp->wd_next_wdp;
 			}
 		} else {
-		fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
+		fprintf(xgp->output,"ERROR: Target %d does not seem to have a Data Struct\n", target_number);
 		}
 	}
 #endif
@@ -250,7 +250,7 @@ xdd_interactive_display_state_info(worker_data_t *wdp) {
 	nclk_t			now;		// Current time
 	int32_t			tot_offset; // Offset into TOT
 	tot_entry_t		*tep;
-	target_data_t	*tdp;	// Pointer to the parent Target Thread's PTDS
+	target_data_t	*tdp;	// Pointer to the parent Target Thread's Data Struct
 
 
 	tdp = wdp->wd_tdp;
@@ -281,13 +281,13 @@ xdd_interactive_display_state_info(worker_data_t *wdp) {
 			qp->e2ep->e2e_send_status);
 	if (qp->tgtstp->my_current_state & CURRENT_STATE_BARRIER)
 		fprintf(xgp->output,"    Inside barrier '%s'\n",qp->current_barrier->name);
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_WAITING_ANY_QTHREAD_AVAILABLE)
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE)
 		fprintf(xgp->output,"    Waiting on the any_qthread_available semaphore\n");
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_WAITING_THIS_QTHREAD_AVAILABLE)
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE)
 		fprintf(xgp->output,"    Waiting on the sem_this_qthread_is_available semaphore\n");
-	if (qp->qthread_target_sync & QTSYNC_BUSY)
-		fprintf(xgp->output,"    This QThread is BUSY\n");
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE) {
+	if (qp->qthread_target_sync & WORKER_THREAD_SYNC_BUSY)
+		fprintf(xgp->output,"    This Worker Thread is BUSY\n");
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_WORKER_THREAD_WAITING_FOR_TOT_LOCK_UPDATE) {
 		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 		tep = &p->totp->tot_entry[tot_offset];
 		fprintf(xgp->output,"    Waiting for TOT lock to update TOT Offset %d: \n",tot_offset);
@@ -298,7 +298,7 @@ xdd_interactive_display_state_info(worker_data_t *wdp) {
 			(long long int)(tep->tot_byte_location / p->iosize),
 			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
 	}
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_RELEASE) {
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_WORKER_THREAD_WAITING_FOR_TOT_LOCK_RELEASE) {
 		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
 		tep = &p->totp->tot_entry[tot_offset];
 		fprintf(xgp->output,"    Waiting for TOT lock to release TOT Offset %d: \n",tot_offset);
@@ -309,7 +309,7 @@ xdd_interactive_display_state_info(worker_data_t *wdp) {
 			(long long int)(tep->tot_byte_location / p->iosize),
 			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
 	}
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_TS) {
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_WORKER_THREAD_WAITING_FOR_TOT_LOCK_TS) {
 		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
 		if (tot_offset < 0) 
 			tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
@@ -322,7 +322,7 @@ xdd_interactive_display_state_info(worker_data_t *wdp) {
 			(long long int)(tep->tot_byte_location / p->iosize),
 			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
 	}
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_QT_WAITING_FOR_PREVIOUS_IO) {
+	if (qp->tgtstp->my_current_state & CURRENT_STATE_WORKER_THREAD_WAITING_FOR_PREVIOUS_IO) {
 		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
 		if (tot_offset < 0) 
 			tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
@@ -360,14 +360,14 @@ xdd_interactive_show_worker_data(int32_t tokens, char *cmdline, uint32_t flags) 
 		if (p) {
 			qp = p->next_qp;
 			while (qp) {
-				fprintf(xgp->output,"Target %d Qthread %d current barrier is %p",qp->my_target_number, qp->my_qthread_number, qp->current_barrier);
+				fprintf(xgp->output,"Target %d Worker thread %d current barrier is %p",qp->my_target_number, qp->my_qthread_number, qp->current_barrier);
 				if (qp->current_barrier) 
 					fprintf(xgp->output," name is '%s'",qp->current_barrier->name);
 				fprintf(xgp->output,"\n");
 				qp = qp->next_qp;
 			}
 		} else {
-		fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
+		fprintf(xgp->output,"ERROR: Target %d does not seem to have a Worker Data Struct\n", target_number);
 		}
 	}
 #endif
@@ -376,8 +376,8 @@ xdd_interactive_show_worker_data(int32_t tokens, char *cmdline, uint32_t flags) 
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show_trace()
- * Display the data in the trace buffer of a specific QThread or a
- * 'composite' view of the trace buffers from all QThreads for a specific Target
+ * Display the data in the trace buffer of a specific Worker Thread or a
+ * 'composite' view of the trace buffers from all Worker Threads for a specific Target
  */
 void
 xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags) {
@@ -399,7 +399,7 @@ xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags) {
 		if (p)  {
 			xdd_interactive_show_tot_display_fields(p,xgp->output);
 		} else {
-			fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
+			fprintf(xgp->output,"ERROR: Target %d does not seem to have a Data Struct\n", target_number);
 		}
 	}
 #endif
@@ -425,7 +425,7 @@ xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags) {
 				xdd_interactive_show_tot_display_fields(p,xgp->csvoutput);
 			}
 		} else {
-			fprintf(xgp->output,"ERROR: Target %d does not seem to have a PTDS\n", target_number);
+			fprintf(xgp->output,"ERROR: Target %d does not seem to have a Data Struct\n", target_number);
 		}
 	}
 #endif
@@ -453,7 +453,7 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 		p->my_target_number, 
 		p->totp->tot_entries, 
 		p->queue_depth);
-	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitQT,PostQT,UpdateQT,SemVal,Mutex State\n");
+	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitWorkerThread,PostWorkerThread,UpdateWorkerThread,SemVal,Mutex State\n");
 	for (tot_offset = 0; tot_offset < p->totp->tot_entries; tot_offset++) {
 		tep = &p->totp->tot_entry[tot_offset];
 		//status = sem_getvalue(&tep->tot_sem, &sem_val);
@@ -504,7 +504,7 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show_barrier()
- * Display the PTDS of a specific QThread or Target Thread
+ * Display the Data Struct of a specific Worker Thread or Target Thread
  */
 void
 xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags) {

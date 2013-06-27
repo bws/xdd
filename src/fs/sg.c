@@ -71,7 +71,7 @@ xdd_get_sgiop(worker_data_t *wdp) {
  * Will return a -1 if the command fails, 0 for EOF, or the number of 
  * bytes transferred if everything works. 
  * This ruotine takes two parameters:
- *   - Pointer to the PTDS of this target
+ *   - Pointer to the Data Struct of this target
  *   - A character that is either 'r' or 'w' to indicate a 'read' or 'write' 
  *       operation respectively.
  */
@@ -88,7 +88,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 
 	tdp = wdp->wd_tdp;
 	sgiop = wdp->wd_sgiop;			// The xdd_sgio struct contains all the info for this I/O
-	// Set up the sg-specific variables in the PTDS
+	// Set up the sg-specific variables in the Data Struct
 	sgiop->sg_blocksize = 512; // This is because sg uses a sector size block size
 	sgiop->sg_from_block = (wdp->wd_task.task_byte_offset / sgiop->sg_blocksize);
 	sgiop->sg_blocks = wdp->wd_task.task_xfer_size / sgiop->sg_blocksize;
@@ -228,7 +228,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 
 /*----------------------------------------------------------------------------*/
 /* xdd_sg_read_capacity() - Issue a "Read Capacity" SCSI command to the target
- * and store the results in the associated PTDS
+ * and store the results in the associated Data Struct
  * Will return SUCCESS or FAILED depending on the outcome of the command.
  */
 int32_t 

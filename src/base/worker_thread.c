@@ -41,12 +41,12 @@
 void *
 xdd_worker_thread(void *pin) {
 	int32_t  		status; 	// Status of various system calls
-	worker_data_t	*wdp;		// Pointer to this WorkerThread's PTDS
-	target_data_t	*tdp;			// Pointer to this WorkerThread's Target PTDS
+	worker_data_t	*wdp;		// Pointer to this WorkerThread's Data Struct
+	target_data_t	*tdp;			// Pointer to this WorkerThread's Target Data Struct
 	nclk_t			checktime;
 
 	wdp = (worker_data_t *)pin; 
-	tdp = wdp->wd_tdp;	// This is the pointer to this WorkerThread's Target PTDS
+	tdp = wdp->wd_tdp;	// This is the pointer to this WorkerThread's Target Data Struct
 
 //fprintf(stderr,"Qthread: dest_hostname=%s\n",wdp->e2ep->e2e_dest_hostname);
 	status = xdd_worker_thread_init(wdp);
@@ -103,7 +103,7 @@ xdd_worker_thread(void *pin) {
 			case TASK_REQ_EOF:
 				// E2E Source Side only - send EOF packets to Destination 
 				status = xdd_e2e_eof_source_side(wdp);
-				if (status) // Only set the status in the target PTDS if it is non-zero
+				if (status) // Only set the status in the Target Data Struct if it is non-zero
 					tdp->td_counters.tc_current_io_status = status;
 				break;
 			default:

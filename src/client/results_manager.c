@@ -38,22 +38,22 @@
 /*----------------------------------------------------------------------------*/
 // xdd_results_manager runs as a separate thread.
 // When started, this thread will initialize itself and enter the 
-// "results_barrier" and wait for all the other target qthreads to enter
+// "results_barrier" and wait for all the other target Worker Threads to enter
 // the "results_barrier". 
 // When the other threads enter the "results_barrier", this thread will be
-// released and will gather results information from all the qthreads
+// released and will gather results information from all the Worker Threads
 // and will display the appropriate information.
 // All of the target threads will have re-enterd the "results_barrier" 
 // waiting for the results_manager to process and display the results.
 // After the results have been processed and displayed, the results_manager
-// will re-enter the "results_barrier" and release all the qthreads to continue
+// will re-enter the "results_barrier" and release all the Worker Threads to continue
 // with the next pass or termination. Re-entering the "results_barrier" will
 // cause the results_manager to fall through as well at which time it will
 // re-enter the primary waiting barrier.
 //
 void *
 xdd_results_manager(void *data) {
-	results_t	*tmprp;				// Pointer to the results struct in each qthread PTDS
+	results_t	*tmprp;				// Pointer to the results struct in each Worker Thread Data Struct
 	int32_t		status;				// Status of the initialization subroutine
 	int			tmp_errno;			// Save the errno
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
@@ -106,7 +106,7 @@ xdd_results_manager(void *data) {
 			planp->results_header_displayed = 1;
 		}
 
-		// At this point all the target qthreads should have entered the results_display_barrier
+		// At this point all the target Worker Threads should have entered the results_display_barrier
 		// or the results_display_fnial_barrier and will wait for the pass or run results to be displayed
 
 		if (xgp->run_complete) {
@@ -200,7 +200,7 @@ xdd_results_header_display(results_t *tmprp, xdd_plan_t *planp) {
 void *
 xdd_process_pass_results(xdd_plan_t *planp) {
     int			target_number;
-    target_data_t		*tdp;		// PTDS pointer of the Target PTDS
+    target_data_t		*tdp;		// pointer of the Target Data Struct
     results_t	*tarp;	// Pointer to the Target Average results structure
     results_t	*trp;	// Pointer to the Temporary Target Pass results
     results_t	targetpass_results = {0}; // Temporary for target pass results
@@ -230,7 +230,7 @@ xdd_process_pass_results(xdd_plan_t *planp) {
         // Init the Target Pass Results struct
         trp = &targetpass_results;
 
-        // Get the results from this Target's PTDS and
+        // Get the results from this Target's Data Struct and
         // stuff them into a results struct for display
         xdd_extract_pass_results(trp, tdp, planp);
 
@@ -263,13 +263,13 @@ xdd_process_pass_results(xdd_plan_t *planp) {
 
 /*----------------------------------------------------------------------------*/
 // xdd_process_run_results() 
-// Calculate results for each qthread
-// Called by xdd_results_manager() with a pointer to the qthread PTDS
+// Calculate results for each Worker Thread
+// Called by xdd_results_manager() with a pointer to the Worker Thread Data Struct
 //
 void *
 xdd_process_run_results(xdd_plan_t *planp) {
 	int			target_number;	// Current target number
-	target_data_t		*tdp;		// PTDS pointer to a Target PTDS
+	target_data_t		*tdp;		// pointer to a Target Data Struct
 	results_t	*tarp;	// Pointer to the Target Average results structure
 	results_t	*crp;	// Pointer to the temporary combined run results
 	results_t	combined_results; // Temporary for target combined results
@@ -357,13 +357,13 @@ xdd_process_run_results(xdd_plan_t *planp) {
 
 /*----------------------------------------------------------------------------*/
 // xdd_combine_results() 
-// Called by xdd_results_manager() to combine results from a qthread pass 
+// Called by xdd_results_manager() to combine results from a Worker Thread pass 
 // results struct into a target_average results struct (the "to" pointer)
-// This is different than combining results from multiple qthread pass results
-// into a qthread_average results structure mainly in the way the timing
+// This is different than combining results from multiple Worker Thread pass results
+// into a Worker Thread_average results structure mainly in the way the timing
 // information is processed. In a target_average results structure the
-// timing information for a pass is taken as the earliest start time qthread
-// and the latest ending time qthread which makes the overall elapsed time for
+// timing information for a pass is taken as the earliest start time Worker Thread
+// and the latest ending time Worker Thread which makes the overall elapsed time for
 // that pass.
 //
 void 
@@ -374,10 +374,10 @@ xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp) {
 	to->format_string = from->format_string;		// Format String for the xdd_results_display_processor() 
 	if (to->flags & RESULTS_COMBINED) {				// For the COMBINED output...
 		to->my_target_number = planp->number_of_targets; 	// This is the number of targets
-		to->my_qthread_number = from->queue_depth; 	// This is the number of QThreads for this Target
+		to->my_worker_thread_number = from->queue_depth; 	// This is the number of Worker Threads for this Target
 	} else {										// For a queue or target pass then...
 		to->my_target_number = from->my_target_number; 	// Target number of instance 
-		to->my_qthread_number = from->my_qthread_number;// QThread number of instance 
+		to->my_worker_thread_number = from->my_worker_thread_number;// Worker Thread number of instance 
 	}
 	to->queue_depth = from->queue_depth;			// Queue Depth for this target
 	to->xfer_size_bytes = from->xfer_size_bytes;	// Transfer size in bytes 
@@ -412,9 +412,9 @@ xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp) {
 		if (to->latest_end_time_this_pass <= from->latest_end_time_this_pass)
 			to->latest_end_time_this_pass = from->latest_end_time_this_pass;
 		to->elapsed_pass_time = (to->latest_end_time_this_pass - to->earliest_start_time_this_pass)/FLOAT_BILLION;
-		to->accumulated_elapsed_time += to->elapsed_pass_time; 	// Accumulated elapsed time is "virtual" time since the qthreads run in parallel
-		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N qthreads
-		to->latency = to->accumulated_latency/(from->my_qthread_number + 1); // This is the "average" latency or milliseconds per op for this target
+		to->accumulated_elapsed_time += to->elapsed_pass_time; 	// Accumulated elapsed time is "virtual" time since the Worker Threads run in parallel
+		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N Worker Threads
+		to->latency = to->accumulated_latency/(from->my_worker_thread_number + 1); // This is the "average" latency or milliseconds per op for this target
 
 		// Time spent sending or receiving messages for E2E option 
 		to->e2e_sr_time_this_run += from->e2e_sr_time_this_pass; // SR Time in Seconds
@@ -449,8 +449,8 @@ xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp) {
 
 		to->latest_end_time_this_run = to->latest_end_time_this_pass;
 		to->elapsed_pass_time  += from->elapsed_pass_time;
-		to->accumulated_elapsed_time += to->elapsed_pass_time; // Accumulated elapsed time is "virtual" time since the qthreads run in parallel
-		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N qthreads
+		to->accumulated_elapsed_time += to->elapsed_pass_time; // Accumulated elapsed time is "virtual" time since the Worker Threads run in parallel
+		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N Worker Threads
 		to->latency = (to->accumulated_latency/to->queue_depth)/to->pass_number; // This is the "average" latency or milliseconds per op for this target over all passes
 
 		// Time spent sending or receiving messages for E2E option 
@@ -484,8 +484,8 @@ xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp) {
 		if (to->latest_end_time_this_run <= to->earliest_start_time_this_run) 
 			to->elapsed_pass_time = -1.0;
 		else to->elapsed_pass_time = (to->latest_end_time_this_run - to->earliest_start_time_this_run - to->pass_delay_accumulated_time)/FLOAT_BILLION;
-		to->accumulated_elapsed_time += to->elapsed_pass_time; // Accumulated elapsed time is "virtual" time since the qthreads run in parallel
-		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N qthreads
+		to->accumulated_elapsed_time += to->elapsed_pass_time; // Accumulated elapsed time is "virtual" time since the Worker Threads run in parallel
+		to->accumulated_latency += from->latency; 				// This is used to calculate the "average" latency of N Worker Threads
 		to->latency = to->accumulated_latency/(from->my_target_number + 1); // This is the "average" latency or milliseconds per op for this target
 
 		// Time spent sending or receiving messages for E2E option  
@@ -510,7 +510,7 @@ xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp) {
 			to->percent_cpu = -1.0; 
 		}
 
-	} else { // This is the QThread Cumulative Results
+	} else { // This is the Worker Thread Cumulative Results
 		to->elapsed_pass_time += from->elapsed_pass_time; // Total time from start of pass to the end of the last operation 
 		to->accumulated_elapsed_time += from->accumulated_elapsed_time; // Total virtual time from start of pass to the end of the last operation 
 		to->e2e_io_time_this_pass += from->e2e_io_time_this_pass; // Total I/O Seconds consumed this pass
@@ -690,7 +690,7 @@ xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp) {
 // This routine will extract the pass results from the specified target_data
 // and put them into the specified results structure.
 // Called by xdd_process_pass_results() with a pointer to the results structure
-// to fill in and a pointer to the qthread PTDS that contains the raw data.
+// to fill in and a pointer to the Worker Thread Data Struct that contains the raw data.
 //
 void *
 xdd_extract_pass_results(results_t *rp, target_data_t *tdp, xdd_plan_t *planp) {
@@ -841,7 +841,7 @@ xdd_results_dump(results_t *rp, char *dumptype, xdd_plan_t *planp) {
 	// Fundamental Variables
 	fprintf(xgp->output,"	*format_string = '%s'\n",rp->format_string);		// Format String for the xdd_results_display_processor() 
 	fprintf(xgp->output,"	my_target_number = %d\n",rp->my_target_number); 	// Target number of instance 
-	fprintf(xgp->output,"	my_qthread_number = %d\n",rp->my_qthread_number);	// Qthread number of this instance 
+	fprintf(xgp->output,"	my_worker_thread_number = %d\n",rp->my_worker_thread_number);	// Qthread number of this instance 
 	fprintf(xgp->output,"	queue_depth = %d\n",rp->queue_depth);		 	// The queue depth of this target
 	fprintf(xgp->output,"	xfer_size_bytes = %12.0f\n",rp->xfer_size_bytes);		// Transfer size in bytes 
 	fprintf(xgp->output,"	xfer_size_blocks = %12.3f\n",rp->xfer_size_blocks);		// Transfer size in blocks 
@@ -866,10 +866,10 @@ xdd_results_dump(results_t *rp, char *dumptype, xdd_plan_t *planp) {
 	fprintf(xgp->output,"	accumulated_write_op_time = %8.3f\n",rp->accumulated_write_op_time);	// Total Accumulated Time in seconds processing write I/O ops 
 	fprintf(xgp->output,"	accumulated_pattern_fill_time = %8.3f\n",rp->accumulated_pattern_fill_time);	// Total Accumulated Time in seconds doing pattern fills 
 	fprintf(xgp->output,"	accumulated_flush_time = %8.3f\n",rp->accumulated_flush_time);	// Total Accumulated Time in seconds doing buffer flushes 
-	fprintf(xgp->output,"	earliest_start_time_this_run = %8.3f\n",rp->earliest_start_time_this_run);	// usec, For a qthread this is simply the start time of pass 1, for a target it is the earliest start time of all threads
-	fprintf(xgp->output,"	earliest_start_time_this_pass = %8.3f\n",rp->earliest_start_time_this_pass);	// usec, For a qthread this is simply the start time of pass 1, for a target it is the earliest start time of all threads
-	fprintf(xgp->output,"	latest_end_time_this_run = %8.3f\n",rp->latest_end_time_this_run);			// usec, For a qthread this is the end time of the last pass, for a target it is the latest end time of all qthreads
-	fprintf(xgp->output,"	latest_end_time_this_pass = %8.3f\n",rp->latest_end_time_this_pass);			// usec, For a qthread this is the end time of the last pass, for a target it is the latest end time of all qthreads
+	fprintf(xgp->output,"	earliest_start_time_this_run = %8.3f\n",rp->earliest_start_time_this_run);	// usec, For a Worker Thread this is simply the start time of pass 1, for a target it is the earliest start time of all threads
+	fprintf(xgp->output,"	earliest_start_time_this_pass = %8.3f\n",rp->earliest_start_time_this_pass);	// usec, For a Worker Thread this is simply the start time of pass 1, for a target it is the earliest start time of all threads
+	fprintf(xgp->output,"	latest_end_time_this_run = %8.3f\n",rp->latest_end_time_this_run);			// usec, For a Worker Thread this is the end time of the last pass, for a target it is the latest end time of all Worker Threads
+	fprintf(xgp->output,"	latest_end_time_this_pass = %8.3f\n",rp->latest_end_time_this_pass);			// usec, For a Worker Thread this is the end time of the last pass, for a target it is the latest end time of all Worker Threads
 	fprintf(xgp->output,"	elapsed_pass_time = %8.3f\n",rp->elapsed_pass_time);		// usec, Total time from start of pass to the end of the last operation 
 	fprintf(xgp->output,"	elapsed_pass_time_from_first_op = %8.3f\n",rp->elapsed_pass_time_from_first_op); // usec, Total time from start of first op in pass to the end of the last operation 
 	fprintf(xgp->output,"	pass_start_lag_time = %8.3f\n",rp->pass_start_lag_time); 	// usec, Lag time from start of pass to the start of the first operation 

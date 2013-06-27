@@ -36,9 +36,9 @@
 
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_src_send() - send the data from source to destination 
- * This subroutine will take the message header from the PTDS and 
- * update it with:
- *     - senders QThread number
+ * This subroutine will take the message header from the Worker Data Struct
+ * and update it with:
+ *     - senders Worker Thread number
  *     - time stamp when this packet is being sent normalized to global time
  * The message header is placed after the end of the user data in the
  * message buffer (thus making it a trailer rather than a header).
@@ -152,7 +152,7 @@ xdd_e2e_dest_recv(worker_data_t *wdp) {
 			wdp->wd_e2ep->e2e_next_csd++;
 			if (wdp->wd_e2ep->e2e_next_csd == FD_SETSIZE) {
 				wdp->wd_e2ep->e2e_next_csd = 0;
-				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: ERROR: no csd entries left\n",
+				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d Worker Thread %d: ERROR: no csd entries left\n",
 					xgp->progname,
 					tdp->td_target_number,
 					wdp->wd_thread_number);
@@ -186,7 +186,7 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: Recv %d bytes\n",wdp->wd_e2ep->e2e_recv_s
 			// bws: BAND-AID PATCH: EOF message padded to io_size, header must be sent at end;
 			// however, later code expects the header to be at the beginning of the buffer for EOF
 			if (rcvd_so_far == wdp->wd_e2ep->e2e_xfer_size && 
-				((struct xdd_e2e_header*)(wdp->wd_task.task_bufp+wdp->wd_task.task_xfer_size))->magic == PTDS_E2E_MAGIQ) {
+				((struct xdd_e2e_header*)(wdp->wd_task.task_bufp+wdp->wd_task.task_xfer_size))->magic == XDD_E2E_MAGIQ) {
 				memmove(wdp->wd_task.task_bufp, wdp->wd_task.task_bufp+wdp->wd_task.task_xfer_size, sizeof(struct xdd_e2e_header));
 fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 				wdp->wd_e2ep->e2e_recv_status = headersize;
@@ -208,7 +208,7 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 				tdp->td_ttp->tte[wdp->wd_ts_entry].net_xfer_calls = recvcalls;
 			}
 
-			// If this is the first packet received by this QThread then record the *end* of this operation as the
+			// If this is the first packet received by this Worker Thread then record the *end* of this operation as the
 			// *start* of this pass. The reason is that the initial recvfrom() may have been issued long before the
 			// Source side started sending data and we need to ignore that startup delay. 
 			if (wdp->wd_counters.tc_pass_start_time == LONGLONG_MAX)  { // This is an indication that this is the fist recvfrom() that has completed
@@ -232,7 +232,7 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 				memcpy(&wdp->wd_e2ep->e2e_header, wdp->wd_task.task_bufp, sizeof(wdp->wd_e2ep->e2e_header)); // In this case the header is at the very beginning of the RW Buffer because there is no data
 	 			wdp->wd_e2ep->e2e_header.recvtime = wdp->wd_counters.tc_current_net_end_time; // This needs to be the net_end_time from this side of the operation
 			} else if (wdp->wd_e2ep->e2e_recv_status == 0) { // A status of 0 means that the source side shut down unexpectedly - essentially and Enf-Of-File
-				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: ERROR: Connection closed prematurely by Source, op number %lld, location %lld\n",
+				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d Worker Thread %d: ERROR: Connection closed prematurely by Source, op number %lld, location %lld\n",
 					xgp->progname,
 					tdp->td_target_number,
 					wdp->wd_thread_number,
@@ -245,7 +245,7 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 				return(-1);
 			} else if (wdp->wd_e2ep->e2e_recv_status < 0) { // A status less than 0 indicates some kind of error.
 				errno_save = errno;
-				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: ERROR: recvfrom returned -1, errno %d, op number %lld, location %lld\n",
+				fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d Worker Thread %d: ERROR: recvfrom returned -1, errno %d, op number %lld, location %lld\n",
 					xgp->progname,
 					tdp->td_target_number,
 					wdp->wd_thread_number,
@@ -266,16 +266,16 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 			} // End of processing a bad receive event
 
 			// Received data but let's check to see what we actually got...
-			if ((wdp->wd_e2ep->e2e_header.magic != PTDS_E2E_MAGIC) &&  
-				(wdp->wd_e2ep->e2e_header.magic != PTDS_E2E_MAGIQ)) { // Magic number is not correct!
-					fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d QThread %d: ERROR: Bad magic number 0x%08x on recv %d - should be either 0x%08x or 0x%08x\n",
+			if ((wdp->wd_e2ep->e2e_header.magic != XDD_E2E_MAGIC) &&  
+				(wdp->wd_e2ep->e2e_header.magic != XDD_E2E_MAGIQ)) { // Magic number is not correct!
+					fprintf(xgp->errout,"\n%s: xdd_e2e_dest_recv: Target %d Worker Thread %d: ERROR: Bad magic number 0x%08x on recv %d - should be either 0x%08x or 0x%08x\n",
 						xgp->progname,
 						tdp->td_target_number,
 						wdp->wd_thread_number,
 						wdp->wd_e2ep->e2e_header.magic, 
 						wdp->wd_e2ep->e2e_msg_recv,
-						PTDS_E2E_MAGIC, 
-						PTDS_E2E_MAGIQ);
+						XDD_E2E_MAGIC, 
+						XDD_E2E_MAGIQ);
 					return(-1);
 			} 
 
@@ -285,7 +285,7 @@ fprintf(stderr,"E2E_DEST_SIDE_RECEIVE: RECEIVED an E2E_MAGIQ\n");
 				tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = wdp->wd_e2ep->e2e_header.location;
 				tdp->td_ttp->tte[wdp->wd_ts_entry].disk_xfer_size = wdp->wd_e2ep->e2e_header.length;
 				tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = wdp->wd_e2ep->e2e_header.sequence;
-				if (wdp->wd_e2ep->e2e_header.magic == PTDS_E2E_MAGIQ)
+				if (wdp->wd_e2ep->e2e_header.magic == XDD_E2E_MAGIQ)
 					 tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = SO_OP_EOF;
 				else tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = SO_OP_WRITE;
 			}
@@ -321,7 +321,7 @@ xdd_e2e_eof_source_side(worker_data_t *wdp) {
 	wdp->wd_e2ep->e2e_header.sequence = (wdp->wd_task.task_op_number + wdp->wd_thread_number); // This is an EOF packet header
 	wdp->wd_e2ep->e2e_header.location = -1; // NA
 	wdp->wd_e2ep->e2e_header.length = 0;	// NA - no data being sent other than the header
-	wdp->wd_e2ep->e2e_header.magic = PTDS_E2E_MAGIQ;
+	wdp->wd_e2ep->e2e_header.magic = XDD_E2E_MAGIQ;
 
 	// bws: BAND-AID PATCH: convert application protocol to use fixed-size messages
 	// previously an EOF message was exactly the size of a header,

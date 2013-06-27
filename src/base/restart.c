@@ -148,7 +148,7 @@ xdd_restart_write_restart_file(xint_restart_t *rp) {
 /*----------------------------------------------------------------------------*/
 // This routine is created when xdd starts a copy operation (aka xddcp).
 // This routine will run in the background and waits for various xdd I/O
-// qthreads to update their respective counters and enter the barrier to 
+// Worker Threads to update their respective counters and enter the barrier to 
 // notify this routine that a block has been read/written.
 // This monitor runs on both the source and target machines during a copy
 // operation as is indicated in the name of the restart file. The information
@@ -171,7 +171,7 @@ xdd_restart_write_restart_file(xint_restart_t *rp) {
 void *
 xdd_restart_monitor(void *data) {
 	int				target_number;			// Used as a counter
-	target_data_t			*current_tdp;			// The current Target Thread PTDS
+	target_data_t			*current_tdp;	// The current Target Thread Data Struct
 	int64_t 		check_counter;			// The current number of times that we have checked on the progress of a copy
 	xdd_occupant_t	barrier_occupant;		// Used by the xdd_barrier() function to track who is inside a barrier
 	xint_restart_t		*rp;
@@ -217,12 +217,12 @@ xdd_restart_monitor(void *data) {
 	xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant,0);
 
 	check_counter = 0;
-	// This is the loop that periodically checks all the targets/qthreads 
+	// This is the loop that periodically checks all the targets/Worker Threads 
 	for (;;) {
 		// Sleep for the specified period of time
 		sleep(planp->restart_frequency);
 
-		// If it is time to leave then leave - the qthread cleanup will take care of closing the restart files
+		// If it is time to leave then leave - the Worker Thread cleanup will take care of closing the restart files
 		if (xgp->abort | xgp->canceled) 
 			break;
 
@@ -298,7 +298,7 @@ xdd_restart_monitor(void *data) {
 
 		} // End of FOR loop that checks all targets 
 
-		// If it is time to leave then leave - the qthread cleanup will take care of closing the restart files
+		// If it is time to leave then leave - the Worker Thread cleanup will take care of closing the restart files
 		if (xgp->abort | xgp->canceled) 
 			break;
 	} // End of FOREVER loop that checks stuff

@@ -178,7 +178,7 @@ xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, target_data_t *tdp) {
 		// Set up the task for the Worker Thread
 		xdd_targetpass_e2e_task_setup_src(wdp);
 
-		// Update the pointers/counters in the Target PTDS to get ready for the next I/O operation
+		// Update the pointers/counters in the Target Data Struct to get ready for the next I/O operation
 		tdp->td_current_byte_offset += wdp->wd_task.task_xfer_size;
 		tdp->td_current_op_number++;
 		tdp->td_current_bytes_issued += wdp->wd_task.task_xfer_size;
