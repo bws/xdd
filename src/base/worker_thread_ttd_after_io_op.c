@@ -152,8 +152,8 @@ xdd_dio_after_io_op(worker_data_t *wdp) {
 	// we need to close this file descriptor and reopen the file in Direct I/O mode.
 
 	// Close this Worker Thread's file descriptor
-	close(wdp->wd_file_desc);
-	wdp->wd_file_desc = 0;
+	close(wdp->wd_task.task_file_desc);
+	wdp->wd_task.task_file_desc = 0;
 
 	// Reopen the file descriptor for this Worker Thread
 #if (SOLARIS || WIN32)

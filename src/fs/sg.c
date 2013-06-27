@@ -136,9 +136,9 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 	// This "write" command will send the IO Header and CDB to the SG device Driver
 	// which will then send the CDB to the actual device
 	errno = 0;
-	status = write(wdp->wd_file_desc, &io_hdr, sizeof(io_hdr));
+	status = write(wdp->wd_task.task_file_desc, &io_hdr, sizeof(io_hdr));
 	while ((status  < 0) && (EINTR == errno)) {
-		status = write(wdp->wd_file_desc, &io_hdr, sizeof(io_hdr));
+		status = write(wdp->wd_task.task_file_desc, &io_hdr, sizeof(io_hdr));
 	}
 	// Check status of sending the IO Header to the SG driver
 	if (status < 0) {
@@ -156,9 +156,9 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 
 	// Read/block on the return status of the actual SCSI command
 	errno = 0;
-	status = read(wdp->wd_file_desc, &io_hdr, sizeof(io_hdr));
+	status = read(wdp->wd_task.task_file_desc, &io_hdr, sizeof(io_hdr));
 	while ((status < 0) && (EINTR == errno)) {
-		status = read(wdp->wd_file_desc, &io_hdr, sizeof(io_hdr));
+		status = read(wdp->wd_task.task_file_desc, &io_hdr, sizeof(io_hdr));
 	}
 
 	// Check status of sending the IO Header to the SG driver

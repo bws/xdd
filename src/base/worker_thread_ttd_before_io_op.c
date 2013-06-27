@@ -74,8 +74,8 @@ xdd_dio_before_io_op(worker_data_t *wdp) {
 	tdp->td_target_options &= ~TO_DIO;
 #if (SOLARIS || WIN32)
 	// In this OS it is necessary to close the file descriptor before reopening in BUFFERED I/O Mode
-	close(wdp->wd_file_desc);
-	wdp->wd_file_desc = 0;
+	close(wdp->wd_task.task_file_desc);
+	wdp->wd_task.task_file_desc = 0;
 #endif
 	status = xdd_target_open(tdp);
 	if (status != 0 ) { /* error opening target */
@@ -118,9 +118,9 @@ xdd_raw_before_io_op(worker_data_t *wdp) {
 				while (tdp->td_rawp->raw_data_ready < wdp->wd_task.task_xfer_size) {
 					/* Stat the file so see if there is data to read */
 #if (LINUX || DARWIN || FREEBSD)
-					status = fstat(wdp->wd_file_desc,&statbuf);
+					status = fstat(wdp->wd_task.task_file_desc,&statbuf);
 #else
-					status = fstat64(wdp->wd_file_desc,&statbuf);
+					status = fstat64(wdp->wd_task.task_file_desc,&statbuf);
 #endif
 					if (status < 0) {
 						fprintf(xgp->errout,"%s: RAW: Error getting status on file\n", xgp->progname);
