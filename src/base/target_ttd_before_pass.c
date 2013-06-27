@@ -68,7 +68,6 @@ xdd_timer_calibration_before_pass(void) {
 			Sleep(i);
 			nclk_now(&t3);
 			t3 -= t1;
-fprintf(xgp->output,"XDD Timer Calibration Info: Requested sleep time in microseconds=%d, Actual sleep time in microseconds=%llu\n",i*1000,t3/MILLION);
 		}
 #else // Do this for Systems other than Windows
 		for (i=1; i< 1000001; i*=10) {
@@ -87,7 +86,6 @@ fprintf(xgp->output,"XDD Timer Calibration Info: Requested sleep time in microse
 				continue;
 			}
 			t3 -= t1;
-fprintf(xgp->output,"XDD Timer Calibration Info: Requested sleep time in nanoseconds=%d, Actual sleep time in nanoseconds=%llu\n",i*1000,t3/MILLION);
 		}
 #endif
 	}

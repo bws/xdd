@@ -56,7 +56,6 @@ xdd_worker_thread_io(worker_data_t *wdp) {
 	// Get the pointer to the Target's Data
 	tdp = wdp->wd_tdp;
 
-fprintf(xgp->errout,"\n%s: xdd_worker_thread_io: Target %d Worker Thread %d: ENTER: tdp=%p, wdp=%p, task_file_desc=%d, task_xfer_size=%d, task_byte_offset=%lld\n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp, wdp->wd_task.task_file_desc, (int)wdp->wd_task.task_xfer_size, (long long int)wdp->wd_task.task_byte_offset );
 	// Do the things that need to get done before the I/O is started
 	// If this is the Destination Side of an End-to-End (E2E) operation, the xdd_worker_thread_ttd_before_io_op()
 	// subroutine will perform the "recvfrom()" operation to get the data from the Source Side
@@ -269,7 +268,6 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 	wdp->wd_counters.tc_current_io_errno = errno;
 	wdp->wd_counters.tc_current_error_count = 0;
 	if (wdp->wd_task.task_io_status == wdp->wd_task.task_xfer_size) { // Status is GOOD - update counters
-fprintf(xgp->errout,"\n%s: xdd_worker_thread_update_local_counters: Target %d Worker Thread %d: STATUS GOOD: tdp=%p, wdp=%p\n", xgp->progname, tdp->td_target_number, wdp->wd_thread_number,tdp,wdp);
 //		wdp->wd_current_bytes_xfered_this_op = wdp->wd_task.task_xfer_size;
 //		wdp->wd_current_bytes_xfered += wdp->wd_task.task_xfer_size;
 //		wdp->wd_current_op_count++;
@@ -299,8 +297,8 @@ fprintf(xgp->errout,"\n%s: xdd_worker_thread_update_local_counters: Target %d Wo
 			xgp->progname,
 			tdp->td_target_number,
 			wdp->wd_thread_number,
-			wdp->wd_task.task_io_status,
-			wdp->wd_task.task_xfer_size,
+			(int)wdp->wd_task.task_io_status,
+			(int)wdp->wd_task.task_xfer_size,
 			wdp->wd_task.task_op_string,
 			(long long)wdp->wd_task.task_op_number);
 		if (!(tdp->td_target_options & TO_SGIO)) {

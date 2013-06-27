@@ -89,10 +89,8 @@ xdd_parse_args(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags) {
             if ((strcmp(xdd_func[funci].func_name, (char *)((argv[argi])+1)) == 0) || 
                 (strcmp(xdd_func[funci].func_alt, (char *)((argv[argi])+1)) == 0)) {
                 argvp = &(argv[argi]);
-fprintf(stderr,"XDD_PARSE_ARGS: Calling... func_name=%s, planp=%p, planp->target_datap[0]=%p\n",xdd_func[funci].func_name,planp, planp->target_datap[0]);
                 status = (int)xdd_func[funci].func_ptr(planp, arg_count, argvp, flags);
 
-fprintf(stderr,"XDD_PARSE_ARGS: After... func_name=%s, planp=%p, planp->target_datap[0]=%p, status=%d\n",xdd_func[funci].func_name,planp,planp->target_datap[0],status);
                 if (status == 0) {
                     invalid = 1;
                     break;
@@ -383,7 +381,6 @@ target_data_t *
 xdd_get_target_datap(xdd_plan_t *planp, int32_t target_number, char *op) {
     target_data_t *tdp;
 
-fprintf(stderr,"GET_PTDSP: Enter: planp=%p, target_number=%d, op=%s\n",planp,target_number,op);
     if (0 == planp->target_datap[target_number]) {
 		planp->target_datap[target_number] = malloc(sizeof(target_data_t));
 		if (planp->target_datap[target_number] == NULL) {
@@ -427,7 +424,6 @@ fprintf(stderr,"GET_PTDSP: Enter: planp=%p, target_number=%d, op=%s\n",planp,tar
 		    xgp->progname, (int)sizeof(results_t), target_number);
 	    return(NULL);
 	}
-fprintf(stderr,"GET_PTDSP: Exit: planp=%p, target_number=%d, op=%s, tdp=%p, planp->target_datap[%d]=%p\n",planp,target_number,op,tdp,target_number,planp->target_datap[target_number]);
     return(tdp);
 } /* End of xdd_get_target_datap() */
 

@@ -76,10 +76,8 @@ xdd_target_init(target_data_t *tdp) {
 	if (status) 
 		return(-1);
 
-fprintf(stderr,"target_init: AFTER target_open: target %d, tdp->td_file_desc=%d, \n", tdp->td_target_number, tdp->td_file_desc);
 	/* Perform preallocation if needed */
 	xdd_target_preallocate(tdp);
-fprintf(stderr,"target_init: AFTER target_preallocate: target %d, tdp->td_file_desc=%d, \n", tdp->td_target_number, tdp->td_file_desc);
         
 	// The Seek List
 	// There is one Seek List per target.
@@ -100,11 +98,9 @@ fprintf(stderr,"target_init: AFTER target_preallocate: target %d, tdp->td_file_d
 	}
 
 	xdd_init_seek_list(tdp);
-fprintf(stderr,"target_init: AFTER init_seek_list: target %d, tdp->td_file_desc=%d, \n", tdp->td_target_number, tdp->td_file_desc);
 
 	// Set up the timestamp table - Note: This must be done *after* the seek list is initialized
 	xdd_ts_setup(tdp); 
-fprintf(stderr,"target_init: AFTER ts_setup: target %d, tdp->td_file_desc=%d, \n", tdp->td_target_number, tdp->td_file_desc);
 
 	// Set up for the big loop 
 	if (xgp->max_errors == 0) 
@@ -134,20 +130,17 @@ fprintf(stderr,"target_init: AFTER ts_setup: target %d, tdp->td_file_desc=%d, \n
 	status = xdd_lockstep_init(tdp); 
 	if (status != XDD_RC_GOOD)
 		return(status);
-fprintf(stderr,"target_init: AFTER lockstep_init: target %d, tdp->td_file_desc=%d, \n", tdp->td_target_number, tdp->td_file_desc);
 	
 	// Initialize the barriers and mutex
 	status = xdd_target_init_barriers(tdp);
 	if (status) 
 	    return(-1);
-fprintf(stderr,"target_init: AFTER target_init_barriers: target %d, tdp->td_file_desc=%d, \n", tdp->td_target_number, tdp->td_file_desc);
 	
 	// Initialize the Target Offset Table
 	status = tot_init(&(tdp->td_totp), tdp->td_queue_depth, tdp->td_target_ops);
 	if (status) {
 	    return(-1);
 	}
-fprintf(stderr,"target_init: AFTER tot_init: target %d, tdp->td_file_desc=%d, \n", tdp->td_target_number, tdp->td_file_desc);
 	
 
 	// Special setup for an End-to-End operation
@@ -162,12 +155,10 @@ fprintf(stderr,"target_init: AFTER tot_init: target %d, tdp->td_file_desc=%d, \n
 	if (status) 
 		return(-1);
 
-fprintf(stderr,"target_init: AFTER target_init_start_worker_threads: target %d, tdp->td_file_desc=%d, \n", tdp->td_target_number, tdp->td_file_desc);
 	// Display the information for this target
 	xdd_target_info(xgp->output, tdp);
 	if (xgp->csvoutput)
 		xdd_target_info(xgp->csvoutput, tdp);
-fprintf(stderr,"target_init: AFTER target_info: target %d, tdp->td_file_desc=%d, \n", tdp->td_target_number, tdp->td_file_desc);
 
 	return(0);
 } // End of xdd_target_init()
