@@ -49,7 +49,7 @@ xdd_display_kmgt(FILE *out, long long int n, int block_size) {
 		fprintf(out," 0\n");
 		return;
 	}
-	fprintf(out, "\n\t\t\t%lld, %d-byte Blocks", (long long int)(n), block_size);
+	fprintf(out, "\n\t\t\t%lld, %d-byte Blocks", (long long int)(n)/block_size, block_size);
 	fprintf(out, "\n\t\t\t%15lld,     Bytes", (long long int)(n));
 	fprintf(out, "\n\t\t\t%19.3f, KBytes", (double)(n/FLOAT_KILOBYTE));
 	fprintf(out, "\n\t\t\t%19.3f, MBytes", (double)(n/FLOAT_MEGABYTE));
