@@ -103,10 +103,10 @@
 /* Define to 1 if you have the <sched.h> header file. */
 #undef HAVE_SCHED_H
 
-/* Define to 1 if you have the <sched.h> header file. */
+/* Define to 1 if you have the <scsi/sg.h> header file. */
 #undef HAVE_SCSI_SG_H
 
-/* Define to 1 if you have the <sched.h> header file. */
+/* Define to 1 if you have the <gtest/gtest.h> header file. */
 #undef HAVE_GTEST_GTEST_H
 
 /********************************************************************************
@@ -134,8 +134,14 @@
 /* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_POSIX_MEMALIGN
 
+/* Define to 1 if you have the `pread' function. */
+#undef HAVE_PREAD
+
 /* Define to 1 if you have the `pthread_attr_setaffinity_np' function. */
 #undef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
+
+/* Define to 1 if you have the `pwrite' function. */
+#undef HAVE_PWRITE
 
 /* Define to 1 if you have the `random' function. */
 #undef HAVE_RANDOM

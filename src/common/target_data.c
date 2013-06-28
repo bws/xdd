@@ -205,22 +205,22 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
 	wdp = malloc(sizeof(worker_data_t));
 	if (wdp == NULL) {
 		fprintf(xgp->errout,"%s: error getting memory for Worker_Data Structure for target %d - worker number %d\n",
-			xgp->progname, tdp->td_target_number, q);
+				xgp->progname, tdp->td_target_number, q);
 		return(NULL);
 	}
 	memset((unsigned char *)wdp, 0, sizeof(struct xint_worker_data));
 	wdp->wd_tdp = tdp;
 	wdp->wd_next_wdp = NULL; 
 	wdp->wd_thread_number = q;
-        wdp->wd_sgiop = NULL;
+	wdp->wd_sgiop = NULL;
         
 	if (tdp->td_target_options & TO_SGIO) {
 #if HAVE_SCSI_SG_H
-            wdp->wd_sgiop = xdd_get_sgiop(wdp);
+		wdp->wd_sgiop = xdd_get_sgiop(wdp);
 #else
-            fprintf(xgp->errout, "%s: ERROR: Cannot use SCSI Generic I/O\n", xgp->progname);
-            return(NULL);
-        }
+		fprintf(xgp->errout, "%s: ERROR: Cannot use SCSI Generic I/O\n", xgp->progname);
+		return(NULL);
+	}
 #endif
         
 	// Allocate and initialize the End-to-End structure if needed
@@ -407,3 +407,14 @@ xdd_build_target_data_substructure_e2e(xdd_plan_t* planp, target_data_t *tdp) {
 		} // End of ELSE clause with port_count == 0 and queue_depth > host addresses
 	} // End of ELSE clause with port_count == 0
 } // End of xdd_build_target_data_substructure_e2e()
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  default-tab-width: 4
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

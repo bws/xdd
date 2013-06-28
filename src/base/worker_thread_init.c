@@ -91,12 +91,12 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 	}
 	tdp->td_worker_thread_target_sync = 0;
 
-#if (LINUX || AIX)
+#if (HAVE_PREAD && HAVE_PWRITE)
         // Copy the file descriptor from the target thread (requires pread/pwrite support)
         status = xdd_target_shallow_open(wdp);
 #else
 	// Open the target device/file
-	status = xdd_target_open(wdp);
+	status = xdd_target_open(wdp->wd_tdp);
 #endif
 	if (status < 0) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Failed to open Target named '%s'\n",
