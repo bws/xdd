@@ -39,119 +39,141 @@
  */
 void
 xdd_show_target_data(target_data_t *tdp) {
-	fprintf(stderr,"********* Start of TARGET_DATA **********\n");
-#ifdef ndef
-	fprintf(xgp->output,"next_qp         %p Pointer to the next Worker Thread Data Struct \n",p->next_qp); 		
-	//pthread_t  			target_thread;		// Handle for this Target Thread 
-	//pthread_t  			worker thread;			// Handle for this Worker Thread 
-	fprintf(xgp->output,"my_target_number, %d My target number \n",p->my_target_number);	
-	fprintf(xgp->output,"my_worker_thread_number,%d My queue number within this target \n",p->my_worker_thread_number);	
-	fprintf(xgp->output,"my_thread_id,     %d My system thread ID (like a process ID) \n",p->my_thread_id);  	
-	fprintf(xgp->output,"my_pid,           %d My process ID \n",p->my_pid);   			
-	fprintf(xgp->output,"fd,               %d File Descriptor for the target device/file \n",p->fd);
-	fprintf(xgp->output,"target_open_flags,0x%8x Flags used during open processing of a target \n",(unsigned int)p->target_open_flags);
-	fprintf(xgp->output,"rwbuf           0x%p The re-aligned I/O buffers \n",p->rwbuf);
-	fprintf(xgp->output,"rwbuf_shmid,    0x%8x  Shared Memeory ID for rwbuf \n",(unsigned int)p->rwbuf_shmid);
-	fprintf(xgp->output,"rwbuf_save      0x%p The original I/O buffers \n",p->rwbuf_save);
-	fprintf(xgp->output,"tthdr           0x%p Pointers to the timestamp table \n",p->ttp);
-	fprintf(xgp->output,"iobuffersize,     %d Size of the I/O buffer in bytes \n",p->iobuffersize);
-	fprintf(xgp->output,"iosize,           %d Number of bytes per request \n",p->iosize);
-	fprintf(xgp->output,"actual_iosize,    %d Number of bytes actually transferred for this request \n",p->actual_iosize);
-	fprintf(xgp->output,"last_iosize,      %d Number of bytes for the final request \n",p->last_iosize);
-	fprintf(xgp->output,"op_delay,         %d Number of seconds to delay between operations \n",p->op_delay);
-	fprintf(xgp->output,"filetype,       0x%8x Type of file: regular, device, socket, ...  \n",(unsigned int)p->filetype);
-	fprintf(xgp->output,"filesize,         %lld Size of target file in bytes \n",(long long)p->filesize);
-	fprintf(xgp->output,"worker_thread_ops,      %lld Total number of ops to perform per worker_thread \n",(long long)p->worker_thread_ops);
-	fprintf(xgp->output,"target_ops,       %lld Total number of ops to perform on behalf of a target \n",(long long)p->target_ops);
-//	seekhdr_t			seekhdr;  			// For all the seek information 
-//	FILE				*tsfp;   			// Pointer to the time stamp output file 
-	fprintf(xgp->output,"bytes_issued      %lld Bytes currently scheduled for I/O but not complete \n",(long long int)p->bytes_issued);
-	fprintf(xgp->output,"bytes_completed   %lld Bytes that have completed transfer \n",(long long int)p->bytes_completed);
-	fprintf(xgp->output,"bytes_remaining   %lld Bytes remaining to be transferred \n",(long long int)p->bytes_remaining);
+	fprintf(stderr,"********* Start of TARGET_DATA %p **********\n", tdp);
 
-	fprintf(xgp->output,"task_request      0x%02x Type of Task to perform \n",p->task_request);
-	fprintf(xgp->output,"task_op           0x%02x Operation to perform \n",p->task_op);
-	fprintf(xgp->output,"task_xfer_size     %d Number of bytes to transfer \n",p->task_xfer_size);
-	fprintf(xgp->output,"task_byte_location %lld The task variables \n",(long long int)p->task_byte_location);
-	fprintf(xgp->output,"task_time_to_issue %lld Time to issue the I/O operation or 0 if not used \n",(long long int)p->task_time_to_issue);
+    fprintf(stderr,"struct xdd_plan 	*td_planp=%p\n",tdp->td_planp);
+	fprintf(stderr,"struct xint_worker_data	*td_next_wdp=%p\n",tdp->td_next_wdp);	// Pointer to the first worker_data struct in the list
+	fprintf(stderr,"pthread_t  			td_thread\n");			// Handle for this Target Thread 
+	fprintf(stderr,"int32_t   			td_thread_id=%d\n",tdp->td_thread_id);  		// My system thread ID (like a process ID) 
+	fprintf(stderr,"int32_t   			td_pid=%d\n",tdp->td_pid);   			// My process ID 
+	fprintf(stderr,"int32_t   			td_target_number=%d\n",tdp->td_target_number);	// My target number 
+	fprintf(stderr,"uint64_t			td_target_options=%llx\n",(unsigned long long int)tdp->td_target_options); 			// I/O Options specific to each target 
+	fprintf(stderr,"int32_t   			td_file_desc=%d\n",tdp->td_file_desc);		// File Descriptor for the target device/file 
+	fprintf(stderr,"int32_t				td_open_flags=%x\n",tdp->td_open_flags);		// Flags used during open processing of a target
+	fprintf(stderr,"int32_t				td_xfer_size=%d\n",tdp->td_xfer_size);  		// Number of bytes per request 
+	fprintf(stderr,"int32_t				td_filetype=%d\n",tdp->td_filetype);  		// Type of file: regular, device, socket, ... 
+	fprintf(stderr,"int64_t				td_filesize=%lld\n",(long long int)tdp->td_filesize);  		// Size of target file in bytes 
+	fprintf(stderr,"int64_t				td_target_ops=%lld\n",(long long int)tdp->td_target_ops);  	// Total number of ops to perform on behalf of a "target"
+	fprintf(stderr,"seekhdr_t			td_seekhdr\n");  		// For all the seek information 
+	fprintf(stderr,"FILE				*td_tsfp=%p\n",tdp->td_planp);   		// Pointer to the time stamp output file 
+	// The Occupant Strcuture used by the barriers 
+	fprintf(stderr,"xdd_occupant_t		td_occupant\n");							// Used by the barriers to keep track of what is in a barrier at any given time
+	fprintf(stderr,"char				td_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH]='%s'\n",tdp->td_occupant_name);	// For a Target thread this is "TARGET####", for a Worker Thread it is "TARGET####WORKER####"
+	fprintf(stderr,"xdd_barrier_t		*td_current_barrier=%p\n",tdp->td_current_barrier);					// Pointer to the current barrier this Thread is in at any given time or NULL if not in a barrier
 
+	// Target-specific variables
+	fprintf(stderr,"xdd_barrier_t		td_target_worker_thread_init_barrier\n");		// Where the Target Thread waits for the Worker Thread to initialize
+
+	fprintf(stderr,"xdd_barrier_t		td_targetpass_worker_thread_passcomplete_barrier\n");// The barrier used to sync targetpass() with all the Worker Threads at the end of a pass
+	fprintf(stderr,"xdd_barrier_t		td_targetpass_worker_thread_eofcomplete_barrier\n");// The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
+
+
+	fprintf(stderr,"uint64_t			td_current_op_number=%lld\n",(long long int)tdp->td_current_op_number);		// Current operation number
+	fprintf(stderr,"uint64_t			td_current_byte_offset=%lld\n",(long long int)tdp->td_current_byte_offset);		// Current offset into target
+	fprintf(stderr,"uint64_t			td_current_bytes_issued=%lld\n",(long long int)tdp->td_current_bytes_issued);	// The amount of data for all transfer requests that has been issued so far 
+	fprintf(stderr,"uint64_t			td_current_bytes_completed=%lld\n",(long long int)tdp->td_current_bytes_completed);	// The amount of data for all transfer requests that has been completed so far
+	fprintf(stderr,"uint64_t			td_current_bytes_remaining=%lld\n",(long long int)tdp->td_current_bytes_remaining);	// Bytes remaining to be transferred 
+
+	fprintf(stderr,"char				td_abort=%d\n",tdp->td_abort);					// Abort this operation (either a Worker Thread or a Target Thread)
+	fprintf(stderr,"char				td_time_limit_expired=%d\n",tdp->td_time_limit_expired);		// The time limit for this target has expired
+	fprintf(stderr,"pthread_mutex_t 	td_current_state_mutex\n"); 	// Mutex for locking when checking or updating the state info
+	fprintf(stderr,"int32_t				td_current_state=%x\n",tdp->td_current_state);			// State of this thread at any given time (see Current State definitions below)
+	// State Definitions for "my_current_state"
+fprintf(stderr,"CURRENT_STATE_INIT                              0x0000000000000001\n");	// Initialization 
+fprintf(stderr,"CURRENT_STATE_IO                                0x0000000000000002\n");	// Waiting for an I/O operation to complete
+fprintf(stderr,"CURRENT_STATE_DEST_RECEIVE                      0x0000000000000004\n");	// Waiting to receive data - Destination side of an E2E operation
+fprintf(stderr,"CURRENT_STATE_SRC_SEND                          0x0000000000000008\n");	// Waiting for "send" to send data - Source side of an E2E operation
+fprintf(stderr,"CURRENT_STATE_BARRIER                           0x0000000000000010\n");	// Waiting inside a barrier
+fprintf(stderr,"CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE 0x0000000000000020\n");	// Waiting on the "any Worker Thread available" semaphore
+fprintf(stderr,"CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE 0x0000000000000040\n");	// Waiting on the "This Worker Thread Available" semaphore
+fprintf(stderr,"CURRENT_STATE_PASS_COMPLETE                     0x0000000000000080\n");	// Indicates that this Target Thread has completed a pass
+fprintf(stderr,"CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE    0x0000000000000100\n");	// Worker Thread is waiting for the TOT lock in order to update the block number
+fprintf(stderr,"CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE   0x0000000000000200\n");	// Worker Thread is waiting for the TOT lock in order to release the next I/O
+fprintf(stderr,"CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS        0x0000000000000400\n");	// Worker Thread is waiting for the TOT lock to set the "wait" time stamp
+fprintf(stderr,"CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO        0x0000000000000800\n");	// Waiting on the previous I/O op semaphore
+
+    // Target-specific semaphores and associated pointers
+    fprintf(stderr,"tot_t				*td_totp=%p\n",tdp->td_totp);								// Pointer to the target_offset_table for this target
+    fprintf(stderr,"pthread_cond_t 		td_any_worker_thread_available_condition\n");
+    fprintf(stderr,"pthread_mutex_t 	td_any_worker_thread_available_mutex\n");
+    fprintf(stderr,"int 				td_any_worker_thread_available=%d\n",tdp->td_any_worker_thread_available);
+
+	// Worker Thread-specific semaphores and associated pointers
+	fprintf(stderr,"pthread_mutex_t		td_worker_thread_target_sync_mutex\n");			// Used to serialize access to the Worker Thread-Target Synchronization flags
+	fprintf(stderr,"int32_t				td_worker_thread_target_sync=0x%x\n",tdp->td_worker_thread_target_sync);				// Flags used to synchronize a Worker Thread with its Target
+
+fprintf(stderr,"WTSYNC_AVAILABLE			0x00000001\n");				// This Worker Thread is available for a task, set by qthread, reset by xdd_get_specific_qthread.
+fprintf(stderr,"WTSYNC_BUSY					0x00000002\n");				// This Worker Thread is busy
+fprintf(stderr,"WTSYNC_TARGET_WAITING		0x00000004\n");				// The parent Target is waiting for this Worker Thread to become available, set by xdd_get_specific_qthread, reset by qthread.
+fprintf(stderr,"WTSYNC_EOF_RECEIVED			0x00000008\n");				// This Worker Thread received an EOF packet from the Source Side of an E2E Operation
+    //sem_t				this_qthread_is_available_sem;		// xdd_get_specific_qthread() routine waits on this for any Worker Thread to become available
+    fprintf(stderr,"pthread_cond_t 		td_this_wthread_is_available_condition\n");
+    
 	// command line option values 
-	fprintf(xgp->output,"start_offset                   %lld starting block offset value \n",(long long int)p->start_offset);
-	fprintf(xgp->output,"pass_offset                    %lld number of blocks to add to seek locations between passes \n",(long long int)p->pass_offset);
-	fprintf(xgp->output,"flushwrite                     %lld number of write operations to perform between flushes \n",(long long int)p->flushwrite);
-	fprintf(xgp->output,"flushwrite_current_count       %lld Running number of write operations - used to trigger a flush operation \n",(long long int)p->flushwrite_current_count);
-	fprintf(xgp->output,"bytes                          %lld number of bytes to process overall \n",(long long int)p->bytes);
-	fprintf(xgp->output,"numreqs                        %lld Number of requests to perform per pass per worker_thread\n",(long long int)p->numreqs);
-	fprintf(xgp->output,"rwratio                        %f read/write ratios \n",p->rwratio);
-	fprintf(xgp->output,"report_threshold               %lld reporting threshold for long operations \n",(long long int)p->report_threshold);
-	fprintf(xgp->output,"reqsize                        %d number of *blocksize* byte blocks per operation for each target \n",p->reqsize);
-	fprintf(xgp->output,"retry_count                    %d number of retries to issue on an error \n",p->retry_count);
-	fprintf(xgp->output,"time_limit                     %f timelimit in seconds for each thread \n",p->time_limit);
-	fprintf(xgp->output,"*target_directory             '%s' The target directory for the target \n",(p->target_directory != NULL)?p->target_directory:"NA");
-	fprintf(xgp->output,"*target_basename              '%s' devices to perform operation on \n",(p->target_basename != NULL)?p->target_basename:"NA");
-	fprintf(xgp->output,"*target_full_pathname         '%s' Fully qualified path name to the target device/file\n",(p->target_full_pathname != NULL)?p->target_full_pathname:"NA");
-	fprintf(xgp->output,"target_extension              '%s' The target extension number \n",p->target_extension);
-	fprintf(xgp->output,"processor                      %d Processor/target assignments \n",p->processor);
-	fprintf(xgp->output,"start_delay                    %f number of nanoseconds to delay the start  of this operation \n",p->start_delay);
+	fprintf(stderr,"int64_t				td_start_offset=%lld\n",(long long int)tdp->td_start_offset); 			// starting block offset value 
+	fprintf(stderr,"int64_t				td_pass_offset=%lld\n",(long long int)tdp->td_pass_offset); 			// number of blocks to add to seek locations between passes 
+	fprintf(stderr,"int64_t				td_flushwrite=%lld\n",(long long int)tdp->td_flushwrite);  			// number of write operations to perform between flushes 
+	fprintf(stderr,"int64_t				td_flushwrite_current_count=%lld\n",(long long int)tdp->td_flushwrite_current_count);  // Running number of write operations - used to trigger a flush (sync) operation 
+	fprintf(stderr,"int64_t				td_bytes=%lld\n",(long long int)tdp->td_bytes);   				// number of bytes to process overall 
+	fprintf(stderr,"int64_t				td_numreqs=%lld\n",(long long int)tdp->td_numreqs);  				// Number of requests to perform per pass per qthread
+	fprintf(stderr,"double				td_rwratio=%f\n",tdp->td_rwratio);  				// read/write ratios 
+	fprintf(stderr,"nclk_t				td_report_threshold=%lld\n",(long long int)tdp->td_report_threshold);		// reporting threshold for long operations 
+	fprintf(stderr,"int32_t				td_reqsize=%d\n",tdp->td_reqsize);  				// number of *blocksize* byte blocks per operation for each target 
+	fprintf(stderr,"int32_t				td_retry_count=%d\n",tdp->td_retry_count);  			// number of retries to issue on an error 
+	fprintf(stderr,"double				td_time_limit=%f\n",tdp->td_time_limit);				// Time of a single pass in seconds
+	fprintf(stderr,"nclk_t				td_time_limit_ticks=%lld\n",(long long int)tdp->td_time_limit_ticks);		// Time of a single pass in high-res clock ticks
+	fprintf(stderr,"char				*td_target_directory=%s\n",tdp->td_target_directory); 		// The target directory for the target 
+	fprintf(stderr,"char				*td_target_basename=%s\n",tdp->td_target_basename); 		// Basename of the target/device
+	fprintf(stderr,"char				*td_target_full_pathname=%s\n",tdp->td_target_full_pathname);	// Fully qualified path name to the target device/file
+	fprintf(stderr,"char				td_target_extension[32]=%s\n",tdp->td_target_extension); 	// The target extension number 
+	fprintf(stderr,"int32_t				td_processor=%d\n",tdp->td_processor);  				// Processor/target assignments 
+	fprintf(stderr,"double				td_start_delay=%f\n",tdp->td_start_delay); 			// number of seconds to delay the start  of this operation 
+	fprintf(stderr,"nclk_t				td_start_delay_psec=%lld\n",(long long int)tdp->td_start_delay_psec);		// number of nanoseconds to delay the start  of this operation 
+	fprintf(stderr,"char				td_random_init_state[256]\n"); 	// Random number generator state initalizer array 
+	fprintf(stderr,"int32_t				td_block_size=%d\n",tdp->td_block_size);  			// Size of a block in bytes for this target 
+	fprintf(stderr,"int32_t				td_queue_depth=%d\n",tdp->td_queue_depth); 			// Command queue depth for each target 
+	fprintf(stderr,"int64_t				td_preallocate=%lld\n",(long long int)tdp->td_preallocate); 			// File preallocation value 
+	fprintf(stderr,"int32_t				td_mem_align=%d\n",tdp->td_mem_align);   			// Memory read/write buffer alignment value in bytes 
+    //
+    // ------------------ Heartbeat stuff --------------------------------------------------
+	// The following heartbeat structure and data is for the -heartbeat option
+	fprintf(stderr,"struct heartbeat	td_hb=%p\n",tdp->td_planp);					// Heartbeat data
+    //
+    // ------------------ RUNTIME stuff --------------------------------------------------
+    // Stuff REFERENCED during runtime
+	//
+	fprintf(stderr,"nclk_t				td_run_start_time=%lld\n",(long long int)tdp->td_run_start_time); 			// This is time t0 of this run - set by xdd_main
+	fprintf(stderr,"nclk_t				td_first_pass_start_time=%lld\n",(long long int)tdp->td_first_pass_start_time); 	// Time the first pass started but before the first operation is issued
+	fprintf(stderr,"uint64_t			td_target_bytes_to_xfer_per_pass=%lld\n",(long long int)tdp->td_target_bytes_to_xfer_per_pass); 	// Number of bytes to xfer per pass for the entire target (all qthreads)
+	fprintf(stderr,"int64_t				td_last_committed_op=%lld\n",(long long int)tdp->td_last_committed_op);		// Operation number of last r/w operation relative to zero
+	fprintf(stderr,"uint64_t			td_last_committed_location=%lld\n",(long long int)tdp->td_last_committed_location);	// Byte offset into target of last r/w operation
+	fprintf(stderr,"int32_t				td_last_committed_length=%d\n",tdp->td_last_committed_length);	// Number of bytes transferred to/from last_committed_location
+	//
+    // Stuff UPDATED during each pass 
+	fprintf(stderr,"int32_t				td_syncio_barrier_index=%d\n",tdp->td_syncio_barrier_index); 		// Used to determine which syncio barrier to use at any given time
+	fprintf(stderr,"int32_t				td_results_pass_barrier_index=%d\n",tdp->td_results_pass_barrier_index); // Where a Target thread waits for all other Target threads to complete a pass
+	fprintf(stderr,"int32_t				td_results_display_barrier_index=%d\n",tdp->td_results_display_barrier_index); // Where threads wait for the results_manager()to display results
+	fprintf(stderr,"int32_t				td_results_run_barrier_index=%d\n",tdp->td_results_run_barrier_index); 	// Where threads wait for all other threads at the completion of the run
 
-    fprintf(xgp->output,"Stuff REFERENCED during run time\n");
-	fprintf(xgp->output,"run_start_time                 %lld This is time t0 of this run - set by xdd_main \n",(long long int)p->run_start_time);
-	fprintf(xgp->output,"first_pass_start_time          %lld Time the first pass started but before the first operation is issued \n",(long long int)p->first_pass_start_time);
-	fprintf(xgp->output,"target_bytes_to_xfer_per_pass  %lld Number of bytes to xfer per pass for the entire target (all worker_threads) \n",(long long int)p->target_bytes_to_xfer_per_pass);
-	fprintf(xgp->output,"block_size                     %d Size of a block in bytes for this target \n",p->block_size);
-	fprintf(xgp->output,"queue_depth                    %d Command queue depth for each target \n",p->queue_depth);
-	fprintf(xgp->output,"preallocate                    %lld File preallocation value \n",(long long int)p->preallocate);
-	fprintf(xgp->output,"mem_align                      %d Memory read/write buffer alignment value in bytes \n",p->mem_align);
-	fprintf(xgp->output,"target_options               0x%016x I/O Options specific to each target \n",(unsigned int)p->target_options);
-	fprintf(xgp->output,"last_committed_op              %lld Operation number of last r/w operation relative to zero \n",(long long int)p->last_committed_op);
-	fprintf(xgp->output,"last_committed_location        %lld Byte offset into target of last r/w operation \n",(long long int)p->last_committed_location);
-	fprintf(xgp->output,"last_committed_length          %d Number of bytes transferred to/from last_committed_location \n",p->last_committed_length);
-	
-    fprintf(xgp->output,"Stuff UPDATED during each pass\n"); 
-	fprintf(xgp->output,"my_current_pass_number         %d Current pass number \n",p->tgtstp->my_current_pass_number);
-
-	fprintf(xgp->output,"Time stamps and timing information - RESET AT THE START OF EACH PASS \n");
-	fprintf(xgp->output,"my_pass_start_time             %lld The time stamp that this pass started but before the first operation is issued \n",(long long int)p->tgtstp->my_pass_start_time);
-	fprintf(xgp->output,"my_pass_end_time               %lld The time stamp that this pass ended \n",(long long int)p->tgtstp->my_pass_end_time);
-
-	fprintf(xgp->output,"Counters  - RESET AT THE START OF EACH PASS\n");
-
-	fprintf(xgp->output,"Updated by xdd_issue() at at the start of a Task IO request to a Worker Thread\n");
-	fprintf(xgp->output,"my_current_byte_location       %lld Current byte location for this I/O operation \n",(long long int)p->tgtstp->my_current_byte_location);
-	fprintf(xgp->output,"my_current_io_size             %d Size of the I/O to be performed \n",p->tgtstp->my_current_io_size);
-	 fprintf(xgp->output,"my_current_op_str             '%s' - ASCII string of the I/O operation type - 'READ', 'WRITE', or 'NOOP' \n",(p->tgtstp->my_current_op_str != NULL)?p->tgtstp->my_current_op_str:"NA");
-	fprintf(xgp->output,"my_current_op_type             %d Current I/O operation type READ=%d, WRITE=%d, NOOP=%d\n",p->tgtstp->my_current_op_type, OP_TYPE_READ, OP_TYPE_WRITE, OP_TYPE_NOOP);
-
-	fprintf(xgp->output,"Updated by the Worker Thread upon completion of an I/O operation\n");
-	fprintf(xgp->output,"target_op_number                    %lld Operation number for the target represented by this I/O \n",(long long int)p->tgtstp->target_op_number);
-	fprintf(xgp->output,"my_current_op_number                %lld Current I/O operation number \n",(long long int)p->tgtstp->my_current_op_number);
-	fprintf(xgp->output,"my_current_op_count                 %lld The number of read+write operations that have completed so far \n",(long long int)p->tgtstp->my_current_op_count);
-	fprintf(xgp->output,"my_current_read_op_count            %lld The number of read operations that have completed so far \n",(long long int)p->tgtstp->my_current_read_op_count);
-	fprintf(xgp->output,"my_current_write_op_count           %lld The number of write operations that have completed so far \n",(long long int)p->tgtstp->my_current_write_op_count);
-	fprintf(xgp->output,"my_current_noop_op_count            %lld The number of noops that have completed so far \n",(long long int)p->tgtstp->my_current_noop_op_count);
-	fprintf(xgp->output,"my_current_bytes_xfered             %lld Total number of bytes transferred so far (to storage device, not network) \n",(long long int)p->tgtstp->my_current_bytes_xfered);
-	fprintf(xgp->output,"my_current_bytes_xfered_this_op     %lld Total number of bytes transferred on the most recent I/O operation \n",(long long int)p->tgtstp->my_current_bytes_xfered_this_op);
-	fprintf(xgp->output,"my_current_bytes_read               %lld Total number of bytes read so far (from storage device, not network) \n",(long long int)p->tgtstp->my_current_bytes_read);
-	fprintf(xgp->output,"my_current_bytes_written            %lld Total number of bytes written so far (to storage device, not network) \n",(long long int)p->tgtstp->my_current_bytes_written);
-	fprintf(xgp->output,"my_current_bytes_noop               %lld Total number of bytes processed by noops so far \n",(long long int)p->tgtstp->my_current_bytes_noop);
-	fprintf(xgp->output,"my_current_io_status                %d I/O Status of the last I/O operation for this worker thread \n",p->tgtstp->my_current_io_status);
-	fprintf(xgp->output,"my_current_errno                    %d The errno associated with the status of this I/O for this thread \n",p->tgtstp->my_current_io_errno);
-	fprintf(xgp->output,"my_current_error_count              %lld The number of I/O errors for this worker thread \n",(long long int)p->tgtstp->my_current_error_count);
-	fprintf(xgp->output,"my_elapsed_pass_time                %lld Rime between the start and end of this pass \n",(long long int)p->tgtstp->my_elapsed_pass_time);
-	fprintf(xgp->output,"my_first_op_start_time              %lld Time this worker thread was able to issue its first operation for this pass \n",(long long int)p->tgtstp->my_first_op_start_time);
-	fprintf(xgp->output,"my_current_op_start_time            %lld Start time of the current op \n",(long long int)p->tgtstp->my_current_op_start_time);
-	fprintf(xgp->output,"my_current_op_end_time              %lld End time of the current op \n",(long long int)p->tgtstp->my_current_op_end_time);
-	fprintf(xgp->output,"my_current_elapsed_time             %lld Elapsed time of the current op \n",(long long int)p->tgtstp->my_current_op_elapsed_time);
-	fprintf(xgp->output,"my_accumulated_op_time              %lld Accumulated time spent in I/O \n",(long long int)p->tgtstp->my_accumulated_op_time);
-	fprintf(xgp->output,"my_accumulated_read_op_time         %lld Accumulated time spent in read \n",(long long int)p->tgtstp->my_accumulated_read_op_time);
-	fprintf(xgp->output,"my_accumulated_write_op_time        %lld Accumulated time spent in write \n",(long long int)p->tgtstp->my_accumulated_write_op_time);
-	fprintf(xgp->output,"my_accumulated_noop_op_time         %lld Accumulated time spent in noops \n",(long long int)p->tgtstp->my_accumulated_noop_op_time);
-	fprintf(xgp->output,"my_accumulated_pattern_fill_time    %lld Accumulated time spent in data pattern fill before all I/O operations \n",(long long int)p->tgtstp->my_accumulated_pattern_fill_time);
-	fprintf(xgp->output,"my_accumulated_flush_time           %lld Accumulated time spent doing flush (fsync) operations \n",(long long int)p->tgtstp->my_accumulated_flush_time);
-	fprintf(xgp->output,"my_current_state                  0x%08x State of this thread at any given time \n",(unsigned int)p->tgtstp->my_current_state);
-
+	// The following variables are used by the "-reopen" option
+	fprintf(stderr,"nclk_t        		td_open_start_time=%lld\n",(long long int)tdp->td_open_start_time); 		// Time just before the open is issued for this target 
+	fprintf(stderr,"nclk_t        		td_open_end_time=%lld\n",(long long int)tdp->td_open_end_time); 			// Time just after the open completes for this target 
+	fprintf(stderr,"pthread_mutex_t 	td_counters_mutex\n"); 			// Mutex for locking when updating td_counters
+	fprintf(stderr,"struct xint_target_counters	td_counters\n");		// Pointer to the target counters
+	fprintf(stderr,"struct xint_throttle		*td_throtp=%p\n",tdp->td_throtp);			// Pointer to the throttle sturcture
+	fprintf(stderr,"struct xint_timestamp		*td_tsp=%p\n",tdp->td_tsp);			// Pointer to the time stamp stuff
+	fprintf(stderr,"struct xdd_tthdr			*td_ttp=%p\n",tdp->td_ttp);			// Pointer to the time stamp stuff
+	fprintf(stderr,"struct xint_e2e				*td_e2ep=%p\n",tdp->td_e2ep);			// Pointer to the e2e struct when needed
+	fprintf(stderr,"struct xint_extended_stats	*td_esp=%p\n",tdp->td_esp);			// Extended Stats Structure Pointer
+	fprintf(stderr,"struct xint_triggers		*td_trigp=%p\n",tdp->td_trigp);			// Triggers Structure Pointer
+	fprintf(stderr,"struct xint_data_pattern	*td_dpp=%p\n",tdp->td_dpp);			// Data Pattern Structure Pointer
+	fprintf(stderr,"struct xint_raw				*td_rawp=%p\n",tdp->td_rawp);          	// RAW Data Structure Pointer
+	fprintf(stderr,"struct lockstep				*td_lsp=%p\n",tdp->td_lsp);			// Pointer to the lockstep structure used by the lockstep option
+	fprintf(stderr,"struct xint_restart			*td_restartp=%p\n",tdp->td_restartp);		// Pointer to the restart structure used by the restart monitor
+	fprintf(stderr,"struct ptds					*td_tdpm1=%p\n",tdp->td_tdpm1);			// Target_Data minus  1 - used for report print queueing - don't ask 
+	fprintf(stderr,"struct stat					td_statbuf\n");			// Target File Stat buffer used by xdd_target_open()
+	fprintf(stderr,"int32_t						td_op_delay=%d\n",tdp->td_op_delay); 		// Number of seconds to delay between operations 
 	fprintf(stderr,"+++++++++++++ End of TARGET_DATA +++++++++++++\n");
-#endif
 } /* end of xdd_show_target_data() */ 
  
  
