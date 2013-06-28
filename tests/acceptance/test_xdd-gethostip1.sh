@@ -4,7 +4,7 @@
 #
 # Validate the gethostip program
 #
-
+# Description - Get the IP address of the local host
 #
 # Source the test configuration environment
 #

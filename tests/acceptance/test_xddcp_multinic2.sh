@@ -2,11 +2,11 @@
 #
 # Acceptance test for XDD.
 #
-# See if xddcp/xdd works robustly on a simple file transfer with 
-# resume flag set -a to invoke an additional thread (restart thread)
+# Description - See if xddcp/xdd works robustly on a simple file transfer 
+# with resume flag set -a to invoke an additional thread (restart thread)
 # and over more than one network interface
 #
-
+# Description -
 #
 # Test identity
 #

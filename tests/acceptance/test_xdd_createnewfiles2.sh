@@ -5,7 +5,7 @@
 # Validate the output results of -createnewfiles on unaligned files with dio
 # enabled
 #
-
+# Description - creates target file on unaligned files with dio enabled for each pass in an XDD run
 #
 # Source the test configuration environment
 #

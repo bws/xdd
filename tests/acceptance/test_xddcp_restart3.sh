@@ -2,11 +2,10 @@
 #
 # Acceptance test for XDD.
 #
-# Ensure that restarts occur when the transfer dies during EOF processing
+# Description - Ensure that restarts occur when the transfer dies during EOF processing
 # Note that the sleep time may need to be tuned depending on the storage
 # and connect time.
 #
-
 #
 # Test identity
 #

@@ -4,7 +4,7 @@
 #
 # Validate the truncate program
 #
-
+# Description - truncates target file to a certain size
 #
 # Source the test configuration environment
 #

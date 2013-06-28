@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate that verbose transfers produce exactly 1 log
+# Description - Validate that verbose transfers produce exactly 1 log
 #
-
 #
 # Test identity
 #

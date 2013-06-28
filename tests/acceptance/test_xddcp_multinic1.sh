@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate xdd E2E running over multiple NICs 
+# Description - Validate xdd E2E running over multiple NICs 
 #
-
 #
 # Test identity
 #

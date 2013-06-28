@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate a vanilla transfer
+# Description - Validate a vanilla transfer
 #
-
 #
 # Test identity
 #

@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the recursive flag with xddcp
+# Description - Validate the recursive flag with xddcp
 #
-
 #
 # Source the test configuration environment
 #
