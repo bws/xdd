@@ -390,41 +390,41 @@ xdd_get_target_datap(xdd_plan_t *planp, int32_t target_number, char *op) {
 		}
 		// Zero out the memory first
 		memset((unsigned char *)planp->target_datap[target_number], 0, sizeof(target_data_t));
-	}
-	tdp = planp->target_datap[target_number];
+		tdp = planp->target_datap[target_number];
 
-	// Allocate and initialize the data pattern structure
-	tdp->td_dpp = (xint_data_pattern_t *)malloc(sizeof(xint_data_pattern_t));
-	if (tdp->td_dpp == NULL) {
-	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct Data Pattern Structure for target %d\n",
-		    xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
-	    return(NULL);
-	}
-	xdd_data_pattern_init(tdp->td_dpp);
-
-	if (xgp->global_options & GO_EXTENDED_STATS) 
-	    xdd_get_esp(tdp);
-
-	if (planp->plan_options & PLAN_ENDTOEND) {
-		if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
-	    	tdp->td_e2ep = xdd_get_e2ep();
-			if (NULL == tdp->td_e2ep) {
-	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct END TO END Data Structure for target %d\n",
-		    		xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
-	    		return(NULL);
+		// Allocate and initialize the data pattern structure
+		tdp->td_dpp = (xint_data_pattern_t *)malloc(sizeof(xint_data_pattern_t));
+		if (tdp->td_dpp == NULL) {
+	    	fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct Data Pattern Structure for target %d\n",
+		    	xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
+	    	return(NULL);
+		}
+		xdd_data_pattern_init(tdp->td_dpp);
+	
+		if (xgp->global_options & GO_EXTENDED_STATS) 
+	    	xdd_get_esp(tdp);
+	
+		if (planp->plan_options & PLAN_ENDTOEND) {
+			if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
+	    		tdp->td_e2ep = xdd_get_e2ep();
+				if (NULL == tdp->td_e2ep) {
+	    			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct END TO END Data Structure for target %d\n",
+		    			xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
+	    			return(NULL);
+				}
 			}
 		}
+	
+		// Initialize the new Target Data Struct and lets rock and roll!
+		xdd_init_new_target_data(tdp, target_number);
+		planp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
+		if (planp->target_average_resultsp[target_number] == NULL) {
+	    	fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESULTS struct for target %d\n",
+		    	xgp->progname, (int)sizeof(results_t), target_number);
+	    	return(NULL);
+		}
 	}
-
-	// Initialize the new Target Data Struct and lets rock and roll!
-	xdd_init_new_target_data(tdp, target_number);
-	planp->target_average_resultsp[target_number] = malloc(sizeof(results_t));
-	if (planp->target_average_resultsp[target_number] == NULL) {
-	    fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for RESULTS struct for target %d\n",
-		    xgp->progname, (int)sizeof(results_t), target_number);
-	    return(NULL);
-	}
-    return(tdp);
+	return(planp->target_datap[target_number]);
 } /* End of xdd_get_target_datap() */
 
 /*----------------------------------------------------------------------------*/

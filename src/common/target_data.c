@@ -143,7 +143,7 @@ xdd_calculate_xfer_info(target_data_t *tdp) {
 	/* Now lets get down to business... */
 	tdp->td_xfer_size = tdp->td_reqsize * tdp->td_block_size;
 	if (tdp->td_xfer_size == 0) {
-		fprintf(xgp->errout,"%s: io_thread_init: ALERT! iothread for target %d has an iosize of 0, reqsize of %d, blocksize of %d\n",
+		fprintf(xgp->errout,"%s: xdd_calculate_xfer_info: ALERT! iothread for target %d has an iosize of 0, reqsize of %d, blocksize of %d\n",
 			xgp->progname, tdp->td_target_number, tdp->td_reqsize, tdp->td_block_size);
 		fflush(xgp->errout);
 		tdp->td_target_bytes_to_xfer_per_pass = 0;
@@ -154,7 +154,7 @@ xdd_calculate_xfer_info(target_data_t *tdp) {
 	else if (tdp->td_bytes)
 		tdp->td_target_bytes_to_xfer_per_pass = (uint64_t)tdp->td_bytes;
 	else { // Yikes - something was not specified
-		fprintf(xgp->errout,"%s: io_thread_init: ERROR! iothread for target %d has numreqs of %lld, bytes of %lld - one of these must be specified\n",
+		fprintf(xgp->errout,"%s: xdd_calculate_xfer_info: ERROR! iothread for target %d has numreqs of %lld, bytes of %lld - one of these must be specified\n",
 			xgp->progname, tdp->td_target_number, (long long)tdp->td_numreqs, (long long)tdp->td_bytes);
 		fflush(xgp->errout);
 		tdp->td_target_bytes_to_xfer_per_pass = 0;
@@ -304,7 +304,6 @@ xdd_build_target_data_substructure(xdd_plan_t* planp) {
 		if (tdp->td_target_options & TO_ENDTOEND) { 
 			xdd_build_target_data_substructure_e2e(planp, tdp);
 		} 
-
 		// Calcualte the data transfer information - number of ops, bytes, starting offset, ...etc.
 		xdd_calculate_xfer_info(tdp);
 

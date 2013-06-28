@@ -2213,7 +2213,6 @@ xddfunc_operation(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
 		return(0);
 
-
 	opname = (char *)argv[args+1];
 
 	if (strcmp(opname, "write") == 0) {
