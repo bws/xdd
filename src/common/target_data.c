@@ -408,3 +408,14 @@ xdd_build_target_data_substructure_e2e(xdd_plan_t* planp, target_data_t *tdp) {
 		} // End of ELSE clause with port_count == 0 and queue_depth > host addresses
 	} // End of ELSE clause with port_count == 0
 } // End of xdd_build_target_data_substructure_e2e()
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  default-tab-width: 4
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */
