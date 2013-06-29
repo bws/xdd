@@ -156,15 +156,15 @@ xdd_worker_thread_wait_for_previous_io(worker_data_t *wdp) {
 
 	tdp = wdp->wd_tdp;
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
-	tot_offset = (tdp->td_current_op_number % tdp->td_totp->tot_entries) - 1;
+	tot_offset = (tdp->td_counters.tc_current_op_number % tdp->td_totp->tot_entries) - 1;
 	if (tot_offset < 0) 
 		tot_offset = tdp->td_totp->tot_entries - 1; // The last TOT_ENTRY
 	
 //	if (tdp->td_target_options & TO_E2E_DESTINATION) {
-		if (tdp->td_current_op_number == 0)
+		if (tdp->td_counters.tc_current_op_number == 0)
 		return(0);	// Dont need to wait for op minus 1 ;)
 //	} else {
-//		if (tdp->td_current_op_number == 0)
+//		if (tdp->td_counters.tc_current_op_number == 0)
 //			return(0);	// Dont need to wait for op minus 1 ;)
 //	}
 
@@ -204,7 +204,7 @@ xdd_worker_thread_release_next_io(worker_data_t *wdp) {
 
 
 	tdp = wdp->wd_tdp;
-	tot_offset = (tdp->td_current_op_number % tdp->td_totp->tot_entries);
+	tot_offset = (tdp->td_counters.tc_current_op_number % tdp->td_totp->tot_entries);
 
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
 
@@ -226,7 +226,7 @@ xdd_worker_thread_release_next_io(worker_data_t *wdp) {
 			wdp->wd_thread_number,
 			status,
 			errno,
-			(long long int)tdp->td_current_op_number,
+			(long long int)tdp->td_counters.tc_current_op_number,
 			tot_offset);
 		return(-1);
 	}

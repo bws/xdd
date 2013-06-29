@@ -68,8 +68,6 @@ xdd_show_target_data(target_data_t *tdp) {
 	fprintf(stderr,"xdd_barrier_t		td_targetpass_worker_thread_eofcomplete_barrier\n");// The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
 
 
-	fprintf(stderr,"uint64_t			td_current_op_number=%lld\n",(long long int)tdp->td_current_op_number);		// Current operation number
-	fprintf(stderr,"uint64_t			td_current_byte_offset=%lld\n",(long long int)tdp->td_current_byte_offset);		// Current offset into target
 	fprintf(stderr,"uint64_t			td_current_bytes_issued=%lld\n",(long long int)tdp->td_current_bytes_issued);	// The amount of data for all transfer requests that has been issued so far 
 	fprintf(stderr,"uint64_t			td_current_bytes_completed=%lld\n",(long long int)tdp->td_current_bytes_completed);	// The amount of data for all transfer requests that has been completed so far
 	fprintf(stderr,"uint64_t			td_current_bytes_remaining=%lld\n",(long long int)tdp->td_current_bytes_remaining);	// Bytes remaining to be transferred 

@@ -126,7 +126,7 @@ xdd_raw_before_io_op(worker_data_t *wdp) {
 						fprintf(xgp->errout,"%s: RAW: Error getting status on file\n", xgp->progname);
 						tdp->td_rawp->raw_data_ready = wdp->wd_task.task_xfer_size;
 					} else { /* figure out how much more data we can read */
-						tdp->td_rawp->raw_data_ready = statbuf.st_size - tdp->td_current_byte_offset;
+						tdp->td_rawp->raw_data_ready = statbuf.st_size - tdp->td_counters.tc_current_byte_offset;
 						if (tdp->td_rawp->raw_data_ready < 0) {
 							/* The result of this should be positive, otherwise, the target file
 							* somehow got smaller and there is a problem. 
@@ -238,7 +238,7 @@ fprintf(stderr,"E2E_BEFORE_IO_OP: wdp=%p, returned from xdd_e2e_dest_recv...\n",
 		return(0);
 	}
 
-	// Use the hearder.location as the new my_current_byte_offset and the e2e_header.length as the new my_current_xfer_size for this op
+	// Use the hearder.location as the new tdp->td_counters.tc_current_byte_offset and the e2e_header.length as the new my_current_xfer_size for this op
 	// This will allow for the use of "no ordering" on the source side of an e2e operation
 	wdp->wd_task.task_byte_offset = wdp->wd_e2ep->e2e_header.location;
 	wdp->wd_task.task_xfer_size = wdp->wd_e2ep->e2e_header.length;
