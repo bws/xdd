@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate a zero-to-null transfer
+# Description - Validate a zero-to-null transfer
 #
-
 #
 # Test identity
 #

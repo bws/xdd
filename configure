@@ -4250,6 +4250,28 @@ _ACEOF
 fi
 done
 
+for ac_func in pread
+do :
+  ac_fn_c_check_func "$LINENO" "pread" "ac_cv_func_pread"
+if test "x$ac_cv_func_pread" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PREAD 1
+_ACEOF
+
+fi
+done
+
+for ac_func in pwrite
+do :
+  ac_fn_c_check_func "$LINENO" "pwrite" "ac_cv_func_pwrite"
+if test "x$ac_cv_func_pwrite" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_PWRITE 1
+_ACEOF
+
+fi
+done
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing clock_gettime" >&5
 $as_echo_n "checking for library containing clock_gettime... " >&6; }

@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Do the simplest lockstep command possible
+# Description - Do the simplest lockstep command possible
 #
-
 #
 # Source the test configuration environment
 #

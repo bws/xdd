@@ -2,14 +2,13 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the recursive flag -r with restart option -a using xddcp
+# Description - Validate the recursive flag -r with restart option -a using xddcp
 # and more than one network interface
 # Scenario:
 #   Destination xdd hangs (killed)
 #   User or scheduler restarts original xddcp line
 #   Modification time changed on a different file every xddcp restart
 #
-
 #
 # Test identity
 #

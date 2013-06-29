@@ -48,7 +48,7 @@ xdd_worker_thread(void *pin) {
 	wdp = (worker_data_t *)pin; 
 	tdp = wdp->wd_tdp;	// This is the pointer to this WorkerThread's Target Data Struct
 
-//fprintf(stderr,"Qthread: dest_hostname=%s\n",wdp->e2ep->e2e_dest_hostname);
+	//fprintf(stderr,"Worker thread starting: %s\n", tdp->td_target_directory);
 	status = xdd_worker_thread_init(wdp);
 	if (status != 0) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread: Aborting target due to previous initialization failure for Target number %d name '%s' WorkerThread %d.\n",
@@ -90,11 +90,7 @@ xdd_worker_thread(void *pin) {
 				break;
 			case TASK_REQ_REOPEN:
 				// Reopen the target as requested
-#ifdef LINUX
-                            // No-op with shared file handles
-#else
-				xdd_target_reopen(wdp);
-#endif
+				xdd_target_reopen(wdp->wd_tdp);
 				break;
 			case TASK_REQ_STOP:
 				// This indicates that we should clean up and exit this subroutine

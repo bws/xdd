@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the retry flag with xddcp without the -a resume flag
+# Description - Validate the retry flag with xddcp without the -a resume flag
 #
-
 #
 # Test identity
 #

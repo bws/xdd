@@ -4,7 +4,7 @@
 #
 # Validate the output results of -createnewfiles on 1GB files
 #
-
+# Description - creates target file for each pass in an XDD run
 #
 # Source the test configuration environment
 #

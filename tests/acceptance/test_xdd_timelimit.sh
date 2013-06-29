@@ -2,8 +2,9 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the funtionality of -timelimit option
+# Validate the funtionality of -timelimit option by reading the test file forever untill the time restriction stops it
 #
+# Description - sets a time limit in seconds for each pass
 #
 # Source the test configuration environment
 #

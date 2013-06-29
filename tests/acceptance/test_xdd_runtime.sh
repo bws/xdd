@@ -2,8 +2,9 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the funtionality of -runtime option
+# Validate the funtionality of -runtime option by reading test file forever untill terminated by -runtime
 #
+# Description - terminates XDD after a given amount of seconds have passed
 #
 # Source the test configuration environment
 #
