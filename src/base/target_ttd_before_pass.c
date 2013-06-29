@@ -206,7 +206,7 @@ xdd_init_target_data_before_pass(target_data_t *tdp) {
     
 	// Init all the pass-related variables to 0
 	tdp->td_counters.tc_pass_elapsed_time = 0;
-	tdp->td_counters.tc_first_op_start_time = 0;
+	tdp->td_counters.tc_time_first_op_issued_this_pass = 0;
 	tdp->td_counters.tc_accumulated_op_time = 0; 
 	tdp->td_counters.tc_accumulated_read_op_time = 0;
 	tdp->td_counters.tc_accumulated_write_op_time = 0;
@@ -297,11 +297,11 @@ xdd_target_ttd_before_pass(target_data_t *tdp) {
 			// actual "first pass start time" is set to a LARGE number so that it later
 			// gets set to the time that the first packet of data was actually received.
 			// That is done by the Results Manager at the end of a pass.
-			tdp->td_first_pass_start_time = NCLK_MAX;
+			tdp->td_counters.tc_time_first_op_issued_this_pass = NCLK_MAX;
 			tdp->td_counters.tc_pass_start_time = NCLK_MAX;
 		} else { // This is either a non-E2E run or this is the Source Side of an E2E
-			nclk_now(&tdp->td_first_pass_start_time);
-			tdp->td_counters.tc_pass_start_time = tdp->td_first_pass_start_time;
+			nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
+			tdp->td_counters.tc_pass_start_time = tdp->td_counters.tc_time_first_op_issued_this_pass;
 		}
 		// Get the current CPU user and system times 
 		times(&tdp->td_counters.tc_starting_cpu_times_this_run);
@@ -319,7 +319,7 @@ xdd_target_ttd_before_pass(target_data_t *tdp) {
 	wdp = tdp->td_next_wdp;
 	while (wdp) { // Set up the pass_start_times for all the Worker Threads 
 		if (tdp->td_counters.tc_pass_number == 1) {
-			wdp->wd_counters.tc_pass_start_time = tdp->td_first_pass_start_time;
+			wdp->wd_counters.tc_pass_start_time = tdp->td_counters.tc_time_first_op_issued_this_pass;
 			// Get the current CPU user and system times 
 			times(&wdp->wd_counters.tc_starting_cpu_times_this_run);
 		} else { 

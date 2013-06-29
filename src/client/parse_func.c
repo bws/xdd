@@ -4197,6 +4197,8 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     double value;
     target_data_t *tdp;
     int retval;
+	xint_throttle_t	*throtp;
+
 
     args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
     if (args < 0) return(-1);
@@ -4224,15 +4226,17 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
             return(0);
         }
         if (tdp) {
-		    tdp->td_throtp->throttle_type = XINT_THROTTLE_OPS;
-            tdp->td_throtp->throttle = value;
+			throtp = xdd_get_throtp(tdp);
+		    throtp->throttle_type = XINT_THROTTLE_OPS;
+            throtp->throttle = value;
         } else  { /* Set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
 				while (tdp) {
-					tdp->td_throtp->throttle_type = XINT_THROTTLE_OPS;
-					tdp->td_throtp->throttle = value;
+					throtp = xdd_get_throtp(tdp);
+					throtp->throttle_type = XINT_THROTTLE_OPS;
+					throtp->throttle = value;
 					i++;
 					tdp = planp->target_datap[i];
 				}
@@ -4245,15 +4249,17 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
             return(0);
         }
         if (tdp) {
-		    tdp->td_throtp->throttle_type = XINT_THROTTLE_BW;
-            tdp->td_throtp->throttle = value;
+			throtp = xdd_get_throtp(tdp);
+		    throtp->throttle_type = XINT_THROTTLE_BW;
+            throtp->throttle = value;
         } else { /* Set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
 				while (tdp) {
-					tdp->td_throtp->throttle_type = XINT_THROTTLE_BW;
-					tdp->td_throtp->throttle = value;
+					throtp = xdd_get_throtp(tdp);
+					throtp->throttle_type = XINT_THROTTLE_BW;
+					throtp->throttle = value;
 					i++;
 					tdp = planp->target_datap[i];
 				}
@@ -4266,35 +4272,40 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
             return(0);
         }
         if (tdp) {
-	    tdp->td_throtp->throttle_type = XINT_THROTTLE_DELAY;
+			throtp = xdd_get_throtp(tdp);
+		    tdp->td_throtp->throttle_type = XINT_THROTTLE_DELAY;
             tdp->td_throtp->throttle = value;
         } else { /* Set option for all targets */
-	    if (flags & XDD_PARSE_PHASE2) {
-		tdp = planp->target_datap[0];
-		i = 0;
-		while (tdp) {
-		    tdp->td_throtp->throttle_type = XINT_THROTTLE_DELAY;
-		    tdp->td_throtp->throttle = value;
-		    i++;
-		    tdp = planp->target_datap[i];
+	    	if (flags & XDD_PARSE_PHASE2) {
+				tdp = planp->target_datap[0];
+				i = 0;
+				while (tdp) {
+					throtp = xdd_get_throtp(tdp);
+		    		tdp->td_throtp->throttle_type = XINT_THROTTLE_DELAY;
+		    		tdp->td_throtp->throttle = value;
+		    		i++;
+		    		tdp = planp->target_datap[i];
+				}
+	    	}
 		}
-	    }
-	}
-	return(retval);
+		return(retval);
     } else if (strcmp(what, "var") == 0) { /* Throttle Variance */
 	if (NULL != tdp && value <= 0.0) {
+		throtp = xdd_get_throtp(tdp);
 	    fprintf(xgp->errout,"%s: throttle variance of %5.2f is not valid. throttle variance must be a number greater than 0.00 but less than the throttle value of %5.2f\n",xgp->progname,tdp->td_throtp->throttle_variance,tdp->td_throtp->throttle);
 	    return(0);
 	}
 	else if (value <= 0.0)
 	    fprintf(xgp->errout,"%s: Negative throttle variance of %5.2f is not valid.\n",xgp->progname, value);
-        if (tdp)
+        if (tdp) {
+			throtp = xdd_get_throtp(tdp);
             tdp->td_throtp->throttle_variance = value;
-		else { /* Set option for all targets */
+		} else { /* Set option for all targets */
 			if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
 				i = 0;
 				while (tdp) {
+					throtp = xdd_get_throtp(tdp);
 					tdp->td_throtp->throttle_variance = value;
 					i++;
 					tdp = planp->target_datap[i];
@@ -4306,7 +4317,7 @@ xddfunc_throttle(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		fprintf(xgp->errout,"%s: throttle type of of %s is not valid. throttle type must be \"ops\", \"bw\", or \"var\"\n",xgp->progname,what);
 		return(0);
 	}
-}
+} // End of xddfunc_throttle()
 /*----------------------------------------------------------------------------*/
 int
 xddfunc_timelimit(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)

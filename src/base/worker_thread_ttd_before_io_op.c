@@ -280,17 +280,19 @@ xdd_throttle_before_io_op(worker_data_t *wdp) {
 		} else { // Process the throttle for IOPS or BW
 			now -= wdp->wd_counters.tc_pass_start_time;
 			if (now < tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1) { /* Then we may need to sleep */
-				sleep_time = (tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1 - now) / BILLION; /* sleep time in milliseconds */
+				sleep_time = (tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1 - now); /* sleep time in microseconds */
 				if (sleep_time > 0) {
 					sleep_time_dw = sleep_time;
 #ifdef WIN32
-					Sleep(sleep_time_dw);
+					Sleep(sleep_time_dw/1000);
 #elif (LINUX || IRIX || AIX || DARWIN || FREEBSD) /* Change this line to use usleep */
 					if ((sleep_time_dw*CLK_TCK) > 1000) /* only sleep if it will be 1 or more ticks */
 #if (IRIX )
-						sginap((sleep_time_dw*CLK_TCK)/1000);
+						sginap((sleep_time_dw*CLK_TCK)/shit);
 #elif (LINUX || AIX || DARWIN || FREEBSD) /* Change this line to use usleep */
-						usleep(sleep_time_dw*1000);
+						// The sleep_time_dw is in units of nanoseconds so we 
+						// divide be 1000 to get the number of microseconds to sleep
+						usleep(sleep_time_dw/1000);
 #endif
 #endif
 				}

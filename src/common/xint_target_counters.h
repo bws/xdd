@@ -36,7 +36,7 @@ struct xint_target_counters {
 	nclk_t		tc_pass_start_time; 			// The time this pass started but before the first operation is issued
 	nclk_t		tc_pass_end_time; 				// The time stamp that this pass ended 
 	nclk_t		tc_pass_elapsed_time; 			// Time between the start and end of this pass
-	nclk_t		tc_first_op_start_time;			// Time this Worker Thread was able to issue its first operation for this pass
+	nclk_t		tc_time_first_op_issued_this_pass; // Time this Worker Thread was able to issue its first operation for this pass
 	struct	tms	tc_starting_cpu_times_this_run;	// CPU times from times() at the start of this run
 	struct	tms	tc_starting_cpu_times_this_pass;// CPU times from times() at the start of this pass
 	struct	tms	tc_current_cpu_times;			// CPU times from times()
@@ -47,6 +47,7 @@ struct xint_target_counters {
 	int64_t		tc_current_op_number;			// Current I/O operation number 
 	int32_t		tc_current_io_status; 			// I/O Status of the last I/O operation for this Worker Thread
 	int32_t		tc_current_io_errno; 			// The errno associated with the status of this I/O for this thread
+	int32_t		tc_current_bytes_xfered_this_op;// I/O Status of the last I/O operation for this Worker Thread
 	int64_t		tc_current_error_count;			// The number of I/O errors for this Worker Thread
 	nclk_t		tc_current_op_start_time; 		// Start time of the current op
 	nclk_t		tc_current_op_end_time; 		// End time of the current op

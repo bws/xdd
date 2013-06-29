@@ -170,8 +170,6 @@ struct xint_target_data {
     // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
 	//
-	nclk_t				td_run_start_time; 			// This is time t0 of this run - set by xdd_main
-	nclk_t				td_first_pass_start_time; 	// Time the first pass started but before the first operation is issued
 	uint64_t			td_target_bytes_to_xfer_per_pass; 	// Number of bytes to xfer per pass for the entire target (all qthreads)
 	int64_t				td_last_committed_op;		// Operation number of last r/w operation relative to zero
 	uint64_t			td_last_committed_location;	// Byte offset into target of last r/w operation

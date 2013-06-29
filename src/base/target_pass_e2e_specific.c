@@ -86,7 +86,7 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 		wdp->wd_task.task_op_type = TASK_OP_TYPE_WRITE;
 		wdp->wd_task.task_op_number = tdp->td_current_op_number;
 		if (tdp->td_current_op_number == 0) 
-			nclk_now(&tdp->td_counters.tc_first_op_start_time);
+			nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
 
    		// If time stamping is on then assign a time stamp entry to this Worker Thread
    		if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -253,7 +253,7 @@ xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp) {
 	// Remember the operation number for this target
 	wdp->wd_task.task_op_number = tdp->td_current_op_number;
 	if (tdp->td_current_op_number == 0) 
-		nclk_now(&tdp->td_counters.tc_first_op_start_time);
+		nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
 
    	// If time stamping is on then assign a time stamp entry to this Worker Thread
    	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {

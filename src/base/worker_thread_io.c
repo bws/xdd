@@ -268,27 +268,27 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 	wdp->wd_counters.tc_current_io_errno = errno;
 	wdp->wd_counters.tc_current_error_count = 0;
 	if (wdp->wd_task.task_io_status == wdp->wd_task.task_xfer_size) { // Status is GOOD - update counters
-//		wdp->wd_current_bytes_xfered_this_op = wdp->wd_task.task_xfer_size;
-//		wdp->wd_current_bytes_xfered += wdp->wd_task.task_xfer_size;
-//		wdp->wd_current_op_count++;
+		wdp->wd_counters.tc_current_bytes_xfered_this_op = wdp->wd_task.task_xfer_size;
+		wdp->wd_counters.tc_accumulated_bytes_xfered += wdp->wd_counters.tc_current_bytes_xfered_this_op;
+		wdp->wd_counters.tc_accumulated_op_count++;
 		// Operation-specific counters
-//		switch (wdp->wd_current_op_type) { 
-//			case TASK_OP_TYPE_READ: 
-//				tdp->td_counters.tc_accumulated_read_op_time += tdp->td_current_op_elapsed_time;
-//				tdp->td_current_bytes_read += wdp->wd_task.task_xfer_size;
-//				tdp->td_current_read_op_count++;
-//				break;
-//			case TASK_OP_TYPE_WRITE: 
-//				tdp->td_counters.tc_accumulated_write_op_time += tdp->td_current_op_elapsed_time;
-//				tdp->td_current_bytes_written += wdp->wd_task.task_xfer_size;
-//				tdp->td_current_write_op_count++;
-//				break;
-//			case TASK_OP_TYPE_NOOP: 
-//				tdp->td_counters.tc_accumulated_noop_op_time += tdp->td_current_op_elapsed_time;
-//				tdp->td_current_bytes_noop += wdp->wd_task.task_xfer_size;
-//				tdp->td_current_noop_op_count++;
-//				break;
-//		} // End of SWITCH
+		switch (wdp->wd_task.task_op_type) { 
+			case TASK_OP_TYPE_READ: 
+				wdp->wd_counters.tc_accumulated_read_op_time += wdp->wd_counters.tc_current_op_elapsed_time;
+				wdp->wd_counters.tc_accumulated_bytes_read += wdp->wd_counters.tc_current_bytes_xfered_this_op;
+				wdp->wd_counters.tc_accumulated_read_op_count++;
+				break;
+			case TASK_OP_TYPE_WRITE: 
+				wdp->wd_counters.tc_accumulated_write_op_time += wdp->wd_counters.tc_current_op_elapsed_time;
+				wdp->wd_counters.tc_accumulated_bytes_written += wdp->wd_counters.tc_current_bytes_xfered_this_op;
+				wdp->wd_counters.tc_accumulated_write_op_count++;
+				break;
+			case TASK_OP_TYPE_NOOP: 
+				wdp->wd_counters.tc_accumulated_noop_op_time += wdp->wd_counters.tc_current_op_elapsed_time;
+				wdp->wd_counters.tc_accumulated_bytes_noop += wdp->wd_counters.tc_current_bytes_xfered_this_op;
+				wdp->wd_counters.tc_accumulated_noop_op_count++;
+				break;
+		} // End of SWITCH
 	} else {// Something went wrong - issue error message
 		if (xgp->global_options & GO_STOP_ON_ERROR) {
 			tdp->td_abort = 1; // This tells all the other Worker Threads and the Target Thread to abort
@@ -315,60 +315,6 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 		}
 		wdp->wd_counters.tc_current_error_count = 1;
 	} // Done checking status
-#ifdef ndef
-	tdp->td_counters.tc_current_op_elapsed_time = (wdp->wd_counters.tc_current_op_end_time - wdp->wd_counters.tc_current_op_start_time);
-	tdp->td_counters.tc_accumulated_op_time += tdp->td_counters.tc_current_op_elapsed_time;
-	tdp->td_current_io_errno = errno;
-	tdp->td_current_error_count = 0;
-	if (tdp->td_counters.tc_current_io_status == tdp->td_xfer_size) { // Status is GOOD - update counters
-		tdp->td_current_bytes_xfered_this_op = wdp->wd_task.task_xfer_size;
-		tdp->td_current_bytes_xfered += wdp->wd_task.task_xfer_size;
-		tdp->td_current_op_count++;
-		// Operation-specific counters
-		switch (tdp->td_current_op_type) { 
-			case TASK_OP_TYPE_READ: 
-				tdp->td_counters.tc_accumulated_read_op_time += tdp->td_current_op_elapsed_time;
-				tdp->td_current_bytes_read += wdp->wd_task.task_xfer_size;
-				tdp->td_current_read_op_count++;
-				break;
-			case TASK_OP_TYPE_WRITE: 
-				tdp->td_counters.tc_accumulated_write_op_time += tdp->td_current_op_elapsed_time;
-				tdp->td_current_bytes_written += wdp->wd_task.task_xfer_size;
-				tdp->td_current_write_op_count++;
-				break;
-			case TASK_OP_TYPE_NOOP: 
-				tdp->td_counters.tc_accumulated_noop_op_time += tdp->td_current_op_elapsed_time;
-				tdp->td_current_bytes_noop += wdp->wd_task.task_xfer_size;
-				tdp->td_current_noop_op_count++;
-				break;
-		} // End of SWITCH
-	} else {// Something went wrong - issue error message
-		if (xgp->global_options & GO_STOP_ON_ERROR) {
-			tdp->td_abort = 1; // Remember to abort this Worker Thread
-		}
-		fprintf(xgp->errout, "%s: I/O ERROR on Target %d Worker Thread %d: ERROR: Status %d, I/O Transfer Size [expected status] %d, %s Operation Number %lld\n",
-			xgp->progname,
-			tdp->td_target_number,
-			wdp->wd_thread_number,
-			tdp->td_counters.tc_current_io_status,
-			wdp->wd_task.task_xfer_size,
-			tdp->td_task.task_op_string,
-			(long long)tdp->td_current_op_number);
-		if (!(tdp->td_target_options & TO_SGIO)) {
-			if ((tdp->td_counters.tc_current_io_status == 0) && (errno == 0)) { // Indicate this is an end-of-file condition
-				fprintf(xgp->errout, "%s: Target %d Worker Thread %d: WARNING: END-OF-FILE Reached during %s Operation Number %lld\n",
-					xgp->progname,
-					tdp->td_target_number,
-					wdp->wd_thread_number,
-					tdp->td_task.task_op_string,
-					(long long)tdp->td_current_op_number);
-			} else {
-				perror("reason"); // Only print the reason (aka errno text) if this is not an SGIO request
-			}
-		}
-		tdp->td_current_error_count = 1;
-	} // Done checking status
-#endif
 } // End of xdd_worker_thread_update_local_counters()
 
 /*----------------------------------------------------------------------------*/

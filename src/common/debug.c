@@ -142,8 +142,6 @@ fprintf(stderr,"WTSYNC_EOF_RECEIVED			0x00000008\n");				// This Worker Thread r
     // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
 	//
-	fprintf(stderr,"nclk_t				td_run_start_time=%lld\n",(long long int)tdp->td_run_start_time); 			// This is time t0 of this run - set by xdd_main
-	fprintf(stderr,"nclk_t				td_first_pass_start_time=%lld\n",(long long int)tdp->td_first_pass_start_time); 	// Time the first pass started but before the first operation is issued
 	fprintf(stderr,"uint64_t			td_target_bytes_to_xfer_per_pass=%lld\n",(long long int)tdp->td_target_bytes_to_xfer_per_pass); 	// Number of bytes to xfer per pass for the entire target (all qthreads)
 	fprintf(stderr,"int64_t				td_last_committed_op=%lld\n",(long long int)tdp->td_last_committed_op);		// Operation number of last r/w operation relative to zero
 	fprintf(stderr,"uint64_t			td_last_committed_location=%lld\n",(long long int)tdp->td_last_committed_location);	// Byte offset into target of last r/w operation

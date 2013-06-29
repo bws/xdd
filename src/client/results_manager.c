@@ -723,7 +723,7 @@ xdd_extract_pass_results(results_t *rp, target_data_t *tdp, xdd_plan_t *planp) {
 	rp->accumulated_write_op_time = (double)((double)tdp->td_counters.tc_accumulated_write_op_time / FLOAT_BILLION); // nano to seconds
 	rp->accumulated_pattern_fill_time = (double)((double)tdp->td_counters.tc_accumulated_pattern_fill_time / FLOAT_BILLION); // nano to milli
 	rp->accumulated_flush_time = (double)((double)tdp->td_counters.tc_accumulated_flush_time / FLOAT_BILLION); // nano to milli
-	rp->earliest_start_time_this_run = (double)(tdp->td_first_pass_start_time); // nanoseconds
+	rp->earliest_start_time_this_run = (double)(tdp->td_counters.tc_time_first_op_issued_this_pass); // nanoseconds
 	rp->earliest_start_time_this_pass = (double)(tdp->td_counters.tc_pass_start_time); // nanoseconds
 	rp->latest_end_time_this_run = (double)(tdp->td_counters.tc_pass_end_time); // nanoseconds
 	rp->latest_end_time_this_pass = (double)(tdp->td_counters.tc_pass_end_time); // nanoseconds
