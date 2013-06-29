@@ -288,7 +288,7 @@ xdd_throttle_before_io_op(worker_data_t *wdp) {
 #elif (LINUX || IRIX || AIX || DARWIN || FREEBSD) /* Change this line to use usleep */
 					if ((sleep_time_dw*CLK_TCK) > 1000) /* only sleep if it will be 1 or more ticks */
 #if (IRIX )
-						sginap((sleep_time_dw*CLK_TCK)/shit);
+						sginap((sleep_time_dw*CLK_TCK)/fixme);
 #elif (LINUX || AIX || DARWIN || FREEBSD) /* Change this line to use usleep */
 						// The sleep_time_dw is in units of nanoseconds so we 
 						// divide be 1000 to get the number of microseconds to sleep
