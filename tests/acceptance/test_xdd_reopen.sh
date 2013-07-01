@@ -57,7 +57,7 @@ test_success=1
 for ((i=$min_passes;i<=$(($max_passes-1));i++)); do
       
       if [ $((${sys_open[$i]}+1)) -eq ${sys_open[$(($i+1))]} -a $open_name=="open" ]; then
-           : 
+            : 
       else
             test_success=0
       fi

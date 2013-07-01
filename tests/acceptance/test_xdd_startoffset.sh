@@ -17,7 +17,7 @@ test_dir=$XDDTEST_LOCAL_MOUNT/$test_name
 
 # Make test directory and file
 rm -r $test_dir
-mkdir $test_dir
+mkdir -p $test_dir
 
 test_file=$test_dir/data1
 touch $test_file

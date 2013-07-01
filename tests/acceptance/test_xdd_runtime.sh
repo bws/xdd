@@ -11,11 +11,11 @@
 source ./test_config
 
 exit_success(){
-  echo "Acceptance Test 4 - -runtime termintated XDD: PASSED."
+  echo "Acceptance Test runtime: PASSED."
   exit 0
 }
 exit_error(){
-  echo "Acceptance Test 4 - -runtime failed to terminate XDD: FAILED."
+  echo "Acceptance Test runtime: FAILED."
   exit 1
 }
 
