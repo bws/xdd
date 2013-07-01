@@ -159,6 +159,7 @@ struct xint_target_data {
 	int32_t				td_block_size;  			// Size of a block in bytes for this target 
 	int32_t				td_queue_depth; 			// Command queue depth for each target 
 	int64_t				td_preallocate; 			// File preallocation value 
+	int64_t				td_pretruncate; 			// File pretruncation value 
 	int32_t				td_mem_align;   			// Memory read/write buffer alignment value in bytes 
     //
     // ------------------ Heartbeat stuff --------------------------------------------------

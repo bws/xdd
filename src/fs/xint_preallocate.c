@@ -44,7 +44,7 @@
  *
  */
 int32_t
-xdd_target_preallocate_for_os(target_data_t *tdp) {
+xint_target_preallocate_for_os(target_data_t *tdp) {
 	
 #ifdef XFS_ENABLED
 	int32_t 	status;		// Status of various system calls
@@ -96,19 +96,6 @@ xdd_target_preallocate_for_os(target_data_t *tdp) {
 			rem -= max_bytes;
 		}
 
-        /* A regression in XFS means that preallocate fixes the extents, but
-           performance is still bad during file extend sequences.  Truncate
-           the file to length to improve performance */
-       status = ftruncate(tdp->td_file_desc, tdp->td_preallocate);
-       if (0 != status) {
-           fprintf(xgp->errout,
-                   "%s: xdd_target_preallocatefor_os<LINUX>: WARNING: Target %d name %s: preallocation ftruncate failed\n",
-                   xgp->progname,
-                   tdp->td_target_number,
-                   tdp->td_target_full_pathname);
-            perror("Reason");
-            fflush(xgp->errout);
-        }
 	}
 		
 	// Everything must have worked :)
@@ -122,15 +109,15 @@ xdd_target_preallocate_for_os(target_data_t *tdp) {
 #endif // XFS_ENABLED
 
 
-} // End of Linux xdd_target_preallocate()
+} // End of Linux xint_target_preallocate()
 
 #elif AIX
 
 /*----------------------------------------------------------------------------*/
-/* xdd_target_preallocate() - Preallocate routine for AIX
+/* xint_target_preallocate() - Preallocate routine for AIX
  */
 int32_t
-xdd_target_preallocate_for_os(target_data_t *tdp) {
+xint_target_preallocate_for_os(target_data_t *tdp) {
 
 	fprintf(xgp->errout,
 		"%s: xdd_target_preallocate_for_os<AIX>: ERROR: Target %d name %s: Preallocation is not supported on AIX\n",
@@ -140,7 +127,7 @@ xdd_target_preallocate_for_os(target_data_t *tdp) {
 	fflush(xgp->errout);
 	return(-1);
 	
-} // End of AIX xdd_target_preallocate()
+} // End of AIX xint_target_preallocate()
 
 #else 
 
@@ -148,7 +135,7 @@ xdd_target_preallocate_for_os(target_data_t *tdp) {
 /* xdd_target_preallocate() - The default Preallocate routine for all other OS
  */
 int32_t
-xdd_target_preallocate_for_os(target_data_t *tdp) {
+xint_target_preallocate_for_os(target_data_t *tdp) {
 
 	fprintf(xgp->errout,
 		"%s: xdd_target_preallocate_for_os: ERROR: Target %d name %s: Preallocation is not supported on this OS\n",
@@ -158,7 +145,7 @@ xdd_target_preallocate_for_os(target_data_t *tdp) {
 	fflush(xgp->errout);
 	return(-1);
 	
-} // End of default xdd_target_preallocate()
+} // End of default xint_target_preallocate()
  
 #endif
 
@@ -171,7 +158,7 @@ xdd_target_preallocate_for_os(target_data_t *tdp) {
  * Otherwise -1 is returned to indicate an error.
  */
 int32_t
-xdd_target_preallocate(target_data_t *tdp){
+xint_target_preallocate(target_data_t *tdp){
 	int32_t		status;		// Status of the preallocate call
 
 
@@ -183,7 +170,7 @@ xdd_target_preallocate(target_data_t *tdp){
 	if (tdp->td_preallocate <= 0) 
 		return(0);
 
-	status = xdd_target_preallocate_for_os(tdp);
+	status = xint_target_preallocate_for_os(tdp);
 
 	// Check the status of the preallocate operation to see if it worked
 	if (-1 == status)  // Preallocation not supported
@@ -201,7 +188,7 @@ xdd_target_preallocate(target_data_t *tdp){
 	}
 	return(0);
 
-} // End of xdd_target_preallocate()
+} // End of xint_target_preallocate()
 
 /*
  * Local variables:

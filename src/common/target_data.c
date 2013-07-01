@@ -65,6 +65,7 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 	tdp->td_start_offset = DEFAULT_STARTOFFSET;
 	tdp->td_pass_offset = DEFAULT_PASSOFFSET;
 	tdp->td_preallocate = DEFAULT_PREALLOCATE;
+	tdp->td_pretruncate= DEFAULT_PRETRUNCATE;
 	tdp->td_queue_depth = DEFAULT_QUEUEDEPTH;
 	tdp->td_dpp->data_pattern_filename = (char *)DEFAULT_DATA_PATTERN_FILENAME;
 	tdp->td_dpp->data_pattern = (unsigned char *)DEFAULT_DATA_PATTERN;
