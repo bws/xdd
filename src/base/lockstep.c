@@ -262,7 +262,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers
 		lsp->ls_ops_completed_this_interval++;
 		lsp->ls_ops_completed_this_pass++;
 		// If we are past the specified operation, then signal the SLAVE to start.
-if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:INTERVAL_OP - ls_interval_value=%lld, ls_ops_completed_this_interval=%lld, tdp->td_current_op_number=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,lsp,lsp->ls_state,(long long int)lsp->ls_interval_value, (long long int)lsp->ls_ops_completed_this_interval, (long long int)tdp->td_current_op_number);
+if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers:p:%p:lsp:%p:state:0x%x:INTERVAL_OP - ls_interval_value=%lld, ls_ops_completed_this_interval=%lld, tdp->td_counters.tc_current_op_number=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,lsp,lsp->ls_state,(long long int)lsp->ls_interval_value, (long long int)lsp->ls_ops_completed_this_interval, (long long int)tdp->td_counters.tc_current_op_number);
 		if (lsp->ls_ops_completed_this_interval >= lsp->ls_interval_value) {
 			status=TRUE;
 			lsp->ls_ops_completed_this_interval= 0;
@@ -271,7 +271,7 @@ if (xgp->global_options & GO_DEBUG) fprintf(stdout,"%lld:lockstep_check_triggers
 	if (lsp->ls_interval_type & LS_INTERVAL_PERCENT) {
 		lsp->ls_task_counter++;
 		// If we have completed percentage of operations then signal the SLAVE to start.
-		if (tdp->td_current_op_number >= lsp->ls_task_counter) {
+		if (tdp->td_counters.tc_current_op_number >= lsp->ls_task_counter) {
 			status=TRUE;
 			lsp->ls_task_counter = 0;
 		}

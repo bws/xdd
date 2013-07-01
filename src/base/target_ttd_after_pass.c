@@ -65,8 +65,8 @@ xdd_target_ttd_after_pass(target_data_t *tdp) {
 	// Loop through all the Worker Threads to put the Earliest Start Time and Latest End Time into this Target Data Struct
 	wdp = tdp->td_next_wdp;
 	while (wdp) {
-		if (wdp->wd_counters.tc_pass_start_time <= tdp->td_first_pass_start_time) 
-			tdp->td_first_pass_start_time = wdp->wd_counters.tc_pass_start_time;
+		if (wdp->wd_counters.tc_time_first_op_issued_this_pass <= tdp->td_counters.tc_time_first_op_issued_this_pass) 
+			tdp->td_counters.tc_time_first_op_issued_this_pass = wdp->wd_counters.tc_time_first_op_issued_this_pass;
 		if (wdp->wd_counters.tc_pass_start_time <= tdp->td_counters.tc_pass_start_time) 
 			tdp->td_counters.tc_pass_start_time = wdp->wd_counters.tc_pass_start_time;
 		if (wdp->wd_counters.tc_pass_end_time >= tdp->td_counters.tc_pass_end_time) 

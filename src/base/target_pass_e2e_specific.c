@@ -84,9 +84,9 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 		// Make sure the Worker Thread does not think the pass is complete
 		wdp->wd_task.task_request = TASK_REQ_IO;
 		wdp->wd_task.task_op_type = TASK_OP_TYPE_WRITE;
-		wdp->wd_task.task_op_number = tdp->td_current_op_number;
-		if (tdp->td_current_op_number == 0) 
-			nclk_now(&tdp->td_counters.tc_first_op_start_time);
+		wdp->wd_task.task_op_number = tdp->td_counters.tc_current_op_number;
+		if (tdp->td_counters.tc_current_op_number == 0) 
+			nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
 
    		// If time stamping is on then assign a time stamp entry to this Worker Thread
    		if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -111,7 +111,7 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 		// Release the Worker Thread to let it start working on this task
 		xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&tdp->td_occupant,0);
 	
-		tdp->td_current_op_number++;
+		tdp->td_counters.tc_current_op_number++;
 		// Get another Worker Thread and lets keepit roling...
 		wdp = xdd_get_any_available_worker_thread(tdp);
 	
@@ -179,8 +179,8 @@ xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, target_data_t *tdp) {
 		xdd_targetpass_e2e_task_setup_src(wdp);
 
 		// Update the pointers/counters in the Target Data Struct to get ready for the next I/O operation
-		tdp->td_current_byte_offset += wdp->wd_task.task_xfer_size;
-		tdp->td_current_op_number++;
+		tdp->td_counters.tc_current_byte_offset += wdp->wd_task.task_xfer_size;
+		tdp->td_counters.tc_current_op_number++;
 		tdp->td_current_bytes_issued += wdp->wd_task.task_xfer_size;
 		tdp->td_current_bytes_remaining -= wdp->wd_task.task_xfer_size;
 
@@ -235,7 +235,7 @@ xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp) {
 	wdp->wd_e2ep->e2e_msg_sequence_number = tdp->td_e2ep->e2e_msg_sequence_number;
 	tdp->td_e2ep->e2e_msg_sequence_number++;
 
-	if (tdp->td_seekhdr.seeks[tdp->td_current_op_number].operation == SO_OP_READ) // READ Operation
+	if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_READ) // READ Operation
 		wdp->wd_task.task_op_type = TASK_OP_TYPE_READ;
 	else wdp->wd_task.task_op_type = TASK_OP_TYPE_NOOP;
 
@@ -248,12 +248,12 @@ xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp) {
 	else wdp->wd_task.task_xfer_size = tdp->td_xfer_size;
 
 	// Set the location to seek to 
-	wdp->wd_task.task_byte_offset = tdp->td_current_byte_offset;
+	wdp->wd_task.task_byte_offset = tdp->td_counters.tc_current_byte_offset;
 
 	// Remember the operation number for this target
-	wdp->wd_task.task_op_number = tdp->td_current_op_number;
-	if (tdp->td_current_op_number == 0) 
-		nclk_now(&tdp->td_counters.tc_first_op_start_time);
+	wdp->wd_task.task_op_number = tdp->td_counters.tc_current_op_number;
+	if (tdp->td_counters.tc_current_op_number == 0) 
+		nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
 
    	// If time stamping is on then assign a time stamp entry to this Worker Thread
    	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -337,7 +337,7 @@ xdd_targetpass_e2e_monitor(target_data_t *tdp) {
 	int qavail;
 
 
-	if ((tdp->td_current_op_number > 0) && ((tdp->td_current_op_number % tdp->td_queue_depth) == 0)) {
+	if ((tdp->td_counters.tc_current_op_number > 0) && ((tdp->td_counters.tc_current_op_number % tdp->td_queue_depth) == 0)) {
 		qmin = 0;
 		qmax = 0;
 		opmin = tdp->td_target_ops;
@@ -346,12 +346,12 @@ xdd_targetpass_e2e_monitor(target_data_t *tdp) {
 		tmpwdp = tdp->td_next_wdp; // first Worker Thread on the chain
 		while (tmpwdp) { // Scan the Worker Threads to determine the one furthest ahead and the one furthest behind
 			if (tmpwdp->wd_worker_thread_target_sync & WTSYNC_BUSY) {
-				if (tdp->td_current_op_number < opmin) {
-					opmin = tdp->td_current_op_number;
+				if (tdp->td_counters.tc_current_op_number < opmin) {
+					opmin = tdp->td_counters.tc_current_op_number;
 					qmin = tmpwdp->wd_thread_number;
 				}
-				if (tdp->td_current_op_number > opmax) {
-					opmax = tdp->td_current_op_number;
+				if (tdp->td_counters.tc_current_op_number > opmax) {
+					opmax = tdp->td_counters.tc_current_op_number;
 					qmax = tmpwdp->wd_thread_number;
 				}
 			} else {

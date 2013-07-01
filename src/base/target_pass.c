@@ -215,10 +215,10 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	wdp->wd_task.task_file_desc = tdp->td_file_desc;
 
 	// Set the Operation Type
-	if (tdp->td_seekhdr.seeks[tdp->td_current_op_number].operation == SO_OP_WRITE) { // Write Operation
+	if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_WRITE) { // Write Operation
 		wdp->wd_task.task_op_type = TASK_OP_TYPE_WRITE;
 		wdp->wd_task.task_op_string = "WRITE";
-	} else if (tdp->td_seekhdr.seeks[tdp->td_current_op_number].operation == SO_OP_READ) { // READ Operation
+	} else if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_READ) { // READ Operation
 		wdp->wd_task.task_op_type = TASK_OP_TYPE_READ;
 		wdp->wd_task.task_op_string = "READ";
 	} else { 
@@ -232,10 +232,10 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	else wdp->wd_task.task_xfer_size = tdp->td_xfer_size;
 
 	// Set the location to seek to 
-	wdp->wd_task.task_byte_offset = tdp->td_current_byte_offset;
+	wdp->wd_task.task_byte_offset = tdp->td_counters.tc_current_byte_offset;
 
 	// Remember the operation number for this target
-	wdp->wd_task.task_op_number = tdp->td_current_op_number;
+	wdp->wd_task.task_op_number = tdp->td_counters.tc_current_op_number;
 
    	// If time stamping is on then assign a time stamp entry to this Worker Thread
    	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -256,8 +256,8 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	}
 	// Update the pointers/counters in the Target Data Struct to get 
 	// ready for the next I/O operation
-	tdp->td_current_byte_offset += wdp->wd_task.task_xfer_size;
-	tdp->td_current_op_number++;
+	tdp->td_counters.tc_current_byte_offset += wdp->wd_task.task_xfer_size;
+	tdp->td_counters.tc_current_op_number++;
 	tdp->td_current_bytes_issued += wdp->wd_task.task_xfer_size;
 	tdp->td_current_bytes_remaining -= wdp->wd_task.task_xfer_size;
 

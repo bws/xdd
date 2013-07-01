@@ -88,7 +88,10 @@ xdd_dio_before_io_op(worker_data_t *wdp) {
 		xgp->canceled = 1;
 	}
 
-        tdp->td_target_options |= TO_DIO;
+	// Since the file was re-opened it has a new file descriptor
+	wdp->wd_task.task_file_desc = tdp->td_file_desc;
+
+	tdp->td_target_options |= TO_DIO;
 } // End of xdd_dio_before_io_op()
 
 /*----------------------------------------------------------------------------*/
@@ -126,7 +129,7 @@ xdd_raw_before_io_op(worker_data_t *wdp) {
 						fprintf(xgp->errout,"%s: RAW: Error getting status on file\n", xgp->progname);
 						tdp->td_rawp->raw_data_ready = wdp->wd_task.task_xfer_size;
 					} else { /* figure out how much more data we can read */
-						tdp->td_rawp->raw_data_ready = statbuf.st_size - tdp->td_current_byte_offset;
+						tdp->td_rawp->raw_data_ready = statbuf.st_size - tdp->td_counters.tc_current_byte_offset;
 						if (tdp->td_rawp->raw_data_ready < 0) {
 							/* The result of this should be positive, otherwise, the target file
 							* somehow got smaller and there is a problem. 
@@ -238,7 +241,7 @@ fprintf(stderr,"E2E_BEFORE_IO_OP: wdp=%p, returned from xdd_e2e_dest_recv...\n",
 		return(0);
 	}
 
-	// Use the hearder.location as the new my_current_byte_offset and the e2e_header.length as the new my_current_xfer_size for this op
+	// Use the hearder.location as the new tdp->td_counters.tc_current_byte_offset and the e2e_header.length as the new my_current_xfer_size for this op
 	// This will allow for the use of "no ordering" on the source side of an e2e operation
 	wdp->wd_task.task_byte_offset = wdp->wd_e2ep->e2e_header.location;
 	wdp->wd_task.task_xfer_size = wdp->wd_e2ep->e2e_header.length;
@@ -280,17 +283,19 @@ xdd_throttle_before_io_op(worker_data_t *wdp) {
 		} else { // Process the throttle for IOPS or BW
 			now -= wdp->wd_counters.tc_pass_start_time;
 			if (now < tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1) { /* Then we may need to sleep */
-				sleep_time = (tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1 - now) / BILLION; /* sleep time in milliseconds */
+				sleep_time = (tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1 - now); /* sleep time in microseconds */
 				if (sleep_time > 0) {
 					sleep_time_dw = sleep_time;
 #ifdef WIN32
-					Sleep(sleep_time_dw);
+					Sleep(sleep_time_dw/1000);
 #elif (LINUX || IRIX || AIX || DARWIN || FREEBSD) /* Change this line to use usleep */
 					if ((sleep_time_dw*CLK_TCK) > 1000) /* only sleep if it will be 1 or more ticks */
 #if (IRIX )
-						sginap((sleep_time_dw*CLK_TCK)/1000);
+						sginap((sleep_time_dw*CLK_TCK)/fixme);
 #elif (LINUX || AIX || DARWIN || FREEBSD) /* Change this line to use usleep */
-						usleep(sleep_time_dw*1000);
+						// The sleep_time_dw is in units of nanoseconds so we 
+						// divide be 1000 to get the number of microseconds to sleep
+						usleep(sleep_time_dw/1000);
 #endif
 #endif
 				}

@@ -95,8 +95,6 @@ struct xint_target_data {
 	xdd_barrier_t		td_targetpass_worker_thread_eofcomplete_barrier;// The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
 
 
-	uint64_t			td_current_op_number;		// Current operation number
-	uint64_t			td_current_byte_offset;		// Current offset into target
 	uint64_t			td_current_bytes_issued;	// The amount of data for all transfer requests that has been issued so far 
 	uint64_t			td_current_bytes_completed;	// The amount of data for all transfer requests that has been completed so far
 	uint64_t			td_current_bytes_remaining;	// Bytes remaining to be transferred 
@@ -170,8 +168,6 @@ struct xint_target_data {
     // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
 	//
-	nclk_t				td_run_start_time; 			// This is time t0 of this run - set by xdd_main
-	nclk_t				td_first_pass_start_time; 	// Time the first pass started but before the first operation is issued
 	uint64_t			td_target_bytes_to_xfer_per_pass; 	// Number of bytes to xfer per pass for the entire target (all qthreads)
 	int64_t				td_last_committed_op;		// Operation number of last r/w operation relative to zero
 	uint64_t			td_last_committed_location;	// Byte offset into target of last r/w operation

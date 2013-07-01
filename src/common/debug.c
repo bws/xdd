@@ -68,8 +68,6 @@ xdd_show_target_data(target_data_t *tdp) {
 	fprintf(stderr,"xdd_barrier_t		td_targetpass_worker_thread_eofcomplete_barrier\n");// The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
 
 
-	fprintf(stderr,"uint64_t			td_current_op_number=%lld\n",(long long int)tdp->td_current_op_number);		// Current operation number
-	fprintf(stderr,"uint64_t			td_current_byte_offset=%lld\n",(long long int)tdp->td_current_byte_offset);		// Current offset into target
 	fprintf(stderr,"uint64_t			td_current_bytes_issued=%lld\n",(long long int)tdp->td_current_bytes_issued);	// The amount of data for all transfer requests that has been issued so far 
 	fprintf(stderr,"uint64_t			td_current_bytes_completed=%lld\n",(long long int)tdp->td_current_bytes_completed);	// The amount of data for all transfer requests that has been completed so far
 	fprintf(stderr,"uint64_t			td_current_bytes_remaining=%lld\n",(long long int)tdp->td_current_bytes_remaining);	// Bytes remaining to be transferred 
@@ -142,8 +140,6 @@ fprintf(stderr,"WTSYNC_EOF_RECEIVED			0x00000008\n");				// This Worker Thread r
     // ------------------ RUNTIME stuff --------------------------------------------------
     // Stuff REFERENCED during runtime
 	//
-	fprintf(stderr,"nclk_t				td_run_start_time=%lld\n",(long long int)tdp->td_run_start_time); 			// This is time t0 of this run - set by xdd_main
-	fprintf(stderr,"nclk_t				td_first_pass_start_time=%lld\n",(long long int)tdp->td_first_pass_start_time); 	// Time the first pass started but before the first operation is issued
 	fprintf(stderr,"uint64_t			td_target_bytes_to_xfer_per_pass=%lld\n",(long long int)tdp->td_target_bytes_to_xfer_per_pass); 	// Number of bytes to xfer per pass for the entire target (all qthreads)
 	fprintf(stderr,"int64_t				td_last_committed_op=%lld\n",(long long int)tdp->td_last_committed_op);		// Operation number of last r/w operation relative to zero
 	fprintf(stderr,"uint64_t			td_last_committed_location=%lld\n",(long long int)tdp->td_last_committed_location);	// Byte offset into target of last r/w operation

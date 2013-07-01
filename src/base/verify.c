@@ -270,14 +270,14 @@ xdd_verify_location(worker_data_t *wdp, int64_t current_op) {
 
 	errors = 0;
 	current_position = *(uint64_t *)wdp->wd_task.task_bufp;
-	if (current_position != tdp->td_current_byte_offset) {
+	if (current_position != tdp->td_counters.tc_current_byte_offset) {
 		errors++;
 		fprintf(xgp->errout,"%s: xdd_verify_location: Target %d Worker Thread %d: ERROR: op number %lld: Data Buffer Sequence mismatch - expected %lld, got %lld\n",
 			xgp->progname, 
 			tdp->td_target_number, 
 			wdp->wd_thread_number, 
-			(long long int)tdp->td_current_op_number, 
-			(long long int)tdp->td_current_byte_offset, 
+			(long long int)tdp->td_counters.tc_current_op_number, 
+			(long long int)tdp->td_counters.tc_current_byte_offset, 
 			(long long int)current_position);
 
 		fflush(xgp->errout);
