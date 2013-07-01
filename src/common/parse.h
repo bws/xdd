@@ -103,6 +103,7 @@ int xddfunc_passes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 int xddfunc_passoffset(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_percentcpu(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_preallocate(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_pretruncate(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_processlock(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_processor(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_queuedepth(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);

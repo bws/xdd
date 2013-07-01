@@ -3,6 +3,7 @@
 #
 DIR := src/fs
 
-FS_SRC := $(DIR)/preallocate.c \
+FS_SRC := $(DIR)/xint_preallocate.c \
+	$(DIR)/xint_pretruncate.c \
 	$(DIR)/sg.c
 
