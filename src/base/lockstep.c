@@ -117,7 +117,7 @@ xdd_lockstep(target_data_t *tdp) {
 	worker_data_t	*wdp;
 	int		q;
 	int		i;
-	int64_t	ops_remaining;
+	uint64_t	ops_remaining;
 	int64_t	ops_this_interval;
 
 

@@ -3160,7 +3160,7 @@ if test "$CC" = "xlc_r"; then
             CFLAGS="-q64 -qcpluscmt -qthreaded"
    LDFLAGS="-q64 -qthreaded"
 elif test "$CC" = "clang"; then
-   CFLAGS="-g -pedantic -Wall -Wextra"
+   CFLAGS="-g -pedantic -Wall -Wextra -Wno-unused-parameter"
    LDFLAGS="-g"
 elif test "$CC" = "gcc"; then
 

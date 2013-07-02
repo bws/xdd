@@ -39,8 +39,8 @@
 /* Forward declarations */
 static int parse_heartbeat(xdd_lite_options_t* opts, char* val);
 static int parse_verbosity(xdd_lite_options_t* opts, char* val);
-static int parse_help(xdd_lite_options_t* opts, char* val);
-static int parse_file(xdd_lite_options_t* opts, char* val);
+//static int parse_help(xdd_lite_options_t* opts, char* val);
+//static int parse_file(xdd_lite_options_t* opts, char* val);
 static int parse_offset(xdd_lite_options_t* opts, char* val);
 static int parse_length(xdd_lite_options_t* opts, char* val);
 static int parse_e2e_spec(xdd_lite_options_t* opts, char* val);

@@ -597,7 +597,7 @@ xdd_cpu_count(void) {
  */
 int32_t
 xdd_atohex(unsigned char *destp, char *sourcep) {
-	int		i;
+	size_t		i;
 	size_t     	length;
 	size_t		nibbles;
 	int		hi;
