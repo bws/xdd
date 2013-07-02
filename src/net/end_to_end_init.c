@@ -203,10 +203,8 @@ xdd_e2e_setup_src_socket(worker_data_t *wdp) {
 
 	    /* If this is a retry, sleep for 3 seconds before retrying */
 	    if (i > 0) {
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wmissing-field-initializers"
-		struct timespec req = {0};
-#pragma clang diagnostic pop
+		struct timespec req;
+		memset(&req, 0, sizeof(req));
 		req.tv_sec = 3;
 		fprintf(xgp->errout,
 			"Socket connection error, retrying in %d seconds: %d\n",
