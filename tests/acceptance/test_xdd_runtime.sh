@@ -10,24 +10,16 @@
 #
 source ./test_config
 
-exit_success(){
-  echo "Acceptance Test runtime: PASSED."
-  exit 0
-}
-exit_error(){
-  echo "Acceptance Test runtime: FAILED."
-  exit 1
-}
-
-
 # Perform pre-test 
-echo "Beginning Acceptance Test 4 . . ."
-test_dir=$XDDTEST_LOCAL_MOUNT/acceptance4
+echo "Beginning Runtime Acceptance Test  . . ."
+test_name=$(basename $0)
+test_name="${test_name%.*}"
+test_dir=$XDDTEST_LOCAL_MOUNT/$test_name
 rm -rf $test_dir
-mkdir -p $test_dir || exit_error
+mkdir -p $test_dir
 
 # ReqSize 4096, Bytes 1GB, Targets 1, QueueDepth 4, Passes 1
-data_file=$test_dir/test
+data_file=$test_dir/data1
 # write a file
 $XDDTEST_XDD_EXE -op write -reqsize 4096 -mbytes    1024 -targets 1 $data_file -qd 4                -passes 1 -datapattern random 
 # now read forever, small random I/O  with a runtime
@@ -50,8 +42,11 @@ fi
 #rm -rf $test_dir
 
 # Output test result
-if [ "1" == "$test_passes" ]; then
-  exit_success
+echo "Acceptance Test - $test_name : \c"
+if [ 1 -eq $test_passes ]; then
+    echo "PASSED"
+    exit 0
 else
-  exit_error
+    echo "FAILED"
+    exit 1
 fi

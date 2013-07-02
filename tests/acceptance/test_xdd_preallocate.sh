@@ -32,12 +32,7 @@ if [ $test_file != ${test_file#$xfs} ]; then
    is_xfs=1
 fi
 
-
-if [ `uname` == "Linux" ]; then
-      file_size=$(stat -c%s $test_file)
-elif [ `uname` == "Darwin" ]; then
-      file_size=$(ls -l $test_dir |grep data1 |cut -f 9 -d ' ')
-fi
+file_size=$($XDDTEST_XDD_GETFILESIZE_EXE $test_file | cut -f 1 -d " ")
 
 # Only XFS supports preallocation, so test success based on xfs_pass 
 test_success=0

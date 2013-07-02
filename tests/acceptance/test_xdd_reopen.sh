@@ -56,15 +56,10 @@ done
 test_success=1
 for ((i=$min_passes;i<=$(($max_passes-1));i++)); do
       
-      if [ $((${sys_open[$i]}+1)) -eq ${sys_open[$(($i+1))]} -a $open_name=="open" ]; then
-            : 
-      else
+      if [ $((${sys_open[$i]}+1)) -ne ${sys_open[$(($i+1))]} -o "$open_name" != "open" ]; then
             test_success=0
       fi
-
-      if [ $((${sys_close[$i]}+1)) -eq ${sys_close[$(($i+1))]} -a $close_name=="close" ]; then
-            :
-      else
+      if [ $((${sys_close[$i]}+1)) -ne ${sys_close[$(($i+1))]} -o "$close_name" != "close" ]; then
             test_success=0
       fi
 done
