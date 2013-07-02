@@ -96,6 +96,8 @@ elif test "$CC" = "gcc"; then
    AX_CFLAGS_GCC_OPTION([-fno-strict-aliasing])
    AX_CFLAGS_GCC_OPTION([-fPIC])
    AX_CFLAGS_GCC_OPTION([-Wall])
+   AX_CFLAGS_GCC_OPTION([-Wextra])
+   AX_CFLAGS_GCC_OPTION([-Wno-unused-parameter])
 else
    AC_MSG_ERROR(Unsupported compiler type: $CC)
 fi
@@ -385,6 +387,16 @@ dnl Set the default installation prefix
 dnl
 install_prefix='/opt/xdd'
 AC_PREFIX_DEFAULT("$install_prefix")
+
+dnl
+dnl As a very last step, make warnings trigger errors.  This has to be
+dnl done after all checks because it causes alot of the tests to fail
+dnl
+if test "$CC" = "clang"; then
+   CFLAGS="$CFLAGS -Werror"
+elif test "$CC" = "gcc"; then
+   AX_CFLAGS_GCC_OPTION([-Werror])
+fi
 
 dnl
 dnl Sets the compilation options

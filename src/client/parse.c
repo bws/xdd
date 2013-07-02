@@ -546,7 +546,7 @@ xdd_linux_cpu_count(void) {
 	cpu_set_t 	cpumask; 	/* mask of the CPUs configured on this system */
 	int		status; 	/* System call status */
 	int32_t 	cpus; 		/* the number of CPUs configured on this system */
-	int32_t		j;
+	size_t		j;
 
 	cpumask_size = (size_t)sizeof(cpumask);
 	status = sched_getaffinity(getpid(), cpumask_size, &cpumask);
