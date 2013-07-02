@@ -77,9 +77,9 @@ struct xdd_global_data {
 	char			*csvoutput_filename;    			/* name of the csv output file */
 	char			*combined_output_filename; 			/* name of the combined output file */
 	char			*id;                    			/* ID string pointer */
-	int64_t			max_errors;             			/* max number of errors to tollerate */
-	int64_t			max_errors_to_print;    			/* Maximum number of compare errors to print */
-	int32_t			number_of_processors;   			/* Number of processors */    
+	uint64_t			max_errors;             			/* max number of errors to tollerate */
+	uint64_t			max_errors_to_print;    			/* Maximum number of compare errors to print */
+	uint32_t			number_of_processors;   			/* Number of processors */    
 	int32_t			clock_tick;							/* Number of clock ticks per second */
 	nclk_t			debug_base_time;					/* The "t=0" time used by DEBUG operation time stamps */
     

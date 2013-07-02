@@ -70,7 +70,7 @@ xdd_ts_setup(target_data_t *tdp) {
 	xint_timestamp_t	*tsp;
 	nclk_t		cycleval; /* resolution of the clock in nanoseconds per ticl */
 	time_t 		t;  /* Time */
-	int64_t 	tt_entries; /* number of entries inthe time stamp table */
+	size_t 	    tt_entries; /* number of entries in the time stamp table */
 	int32_t 	tt_bytes; /* size of time stamp table in bytes */
 	int32_t		ts_filename_size; // Number of bytes in the size of the file name
 

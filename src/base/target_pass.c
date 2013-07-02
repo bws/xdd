@@ -227,7 +227,7 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 	}
 	 
 	// Figure out the transfer size to use for this I/O
-	if (tdp->td_current_bytes_remaining < tdp->td_xfer_size)
+	if (tdp->td_current_bytes_remaining < (uint64_t)tdp->td_xfer_size)
 		wdp->wd_task.task_xfer_size = tdp->td_current_bytes_remaining;
 	else wdp->wd_task.task_xfer_size = tdp->td_xfer_size;
 

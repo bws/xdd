@@ -130,17 +130,17 @@ xdd_raw_before_io_op(worker_data_t *wdp) {
 						tdp->td_rawp->raw_data_ready = wdp->wd_task.task_xfer_size;
 					} else { /* figure out how much more data we can read */
 						tdp->td_rawp->raw_data_ready = statbuf.st_size - tdp->td_counters.tc_current_byte_offset;
-						if (tdp->td_rawp->raw_data_ready < 0) {
-							/* The result of this should be positive, otherwise, the target file
-							* somehow got smaller and there is a problem. 
-							* So, fake it and let this loop exit 
-							*/
-							fprintf(xgp->errout,"%s: RAW: Something is terribly wrong with the size of the target file...\n",xgp->progname);
-							tdp->td_rawp->raw_data_ready = wdp->wd_task.task_xfer_size;
-						}
-					}
-				}
-			} else { /* This section uses a socket connection to the Destination and waits for the Source to tell it to receive something from its socket */
+						//if (tdp->td_rawp->raw_data_ready < 0) {
+                                                //    /* The result of this should be positive, otherwise, the target file
+                                                //     * somehow got smaller and there is a problem. 
+                                                //     * So, fake it and let this loop exit 
+                                                //     */
+                                                //    fprintf(xgp->errout,"%s: RAW: Something is terribly wrong with the size of the target file...\n",xgp->progname);
+                                                //    tdp->td_rawp->raw_data_ready = wdp->wd_task.task_xfer_size;
+                                                //}
+                                        }
+                                }
+                        } else { /* This section uses a socket connection to the Destination and waits for the Source to tell it to receive something from its socket */
 				while (tdp->td_rawp->raw_data_ready < wdp->wd_task.task_xfer_size) {
 					/* xdd_raw_read_wait() will block until there is data to read */
 					status = xdd_raw_read_wait(wdp);

@@ -80,7 +80,7 @@ struct xint_target_data {
 	int32_t				td_xfer_size;  		// Number of bytes per request 
 	int32_t				td_filetype;  		// Type of file: regular, device, socket, ... 
 	int64_t				td_filesize;  		// Size of target file in bytes 
-	int64_t				td_target_ops;  	// Total number of ops to perform on behalf of a "target"
+	uint64_t				td_target_ops;  	// Total number of ops to perform on behalf of a "target"
 	seekhdr_t			td_seekhdr;  		// For all the seek information 
 	FILE				*td_tsfp;   		// Pointer to the time stamp output file 
 	// The Occupant Strcuture used by the barriers 

@@ -243,7 +243,7 @@ xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp) {
 	// It will be either the normal I/O size (tdp->td_io_size) or if this is the
 	// end of this file then the last transfer could be less than the
 	// normal I/O size. 
-	if (tdp->td_current_bytes_remaining < tdp->td_xfer_size)
+	if (tdp->td_current_bytes_remaining < (uint64_t)tdp->td_xfer_size)
 		wdp->wd_task.task_xfer_size = tdp->td_current_bytes_remaining;
 	else wdp->wd_task.task_xfer_size = tdp->td_xfer_size;
 
@@ -333,7 +333,7 @@ void
 xdd_targetpass_e2e_monitor(target_data_t *tdp) {
 	worker_data_t	*tmpwdp;
 	int qmax, qmin;
-	int64_t opmax, opmin;
+	uint64_t opmax, opmin;
 	int qavail;
 
 
@@ -341,7 +341,7 @@ xdd_targetpass_e2e_monitor(target_data_t *tdp) {
 		qmin = 0;
 		qmax = 0;
 		opmin = tdp->td_target_ops;
-		opmax = -1;
+		opmax = 0;
 		qavail = 0;
 		tmpwdp = tdp->td_next_wdp; // first Worker Thread on the chain
 		while (tmpwdp) { // Scan the Worker Threads to determine the one furthest ahead and the one furthest behind
