@@ -2539,7 +2539,7 @@ xddfunc_percentcpu(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags
 /*----------------------------------------------------------------------------*/
 // Specify the number of bytes to preallocate for a target file that is 
 // being created. This option is only valid when used on operating systems
-// and file systems that support teh Reserve Space file operation.
+// and file systems that support the Reserve Space file operation.
 int
 xddfunc_preallocate(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 { 
@@ -2578,6 +2578,48 @@ xddfunc_preallocate(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 		}
 		return(2);
 	}
+}
+/*----------------------------------------------------------------------------*/
+// Specify the number of bytes to truncate the file size to  target file that is 
+// being created. This option may zero-fill for some file systems.
+int
+xddfunc_pretruncate(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
+{
+    int         args, i;
+    int         target_number;
+    target_data_t       *tdp;
+    int64_t     pretruncate;
+
+    args = xdd_parse_target_number(planp, argc, &argv[0], flags, &target_number);
+    if (args < 0) return(-1);
+
+    if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
+        return(0);
+
+    pretruncate = (int64_t)atoll(argv[args+1]);
+    if (pretruncate <= 0) {
+        fprintf(stderr,"%s: Error: Pretruncate value of '%lld' is not valid - it must be greater than or equal to zero\n", xgp->progname, (long long int)pretruncate);
+        return(-1);
+    }
+
+    if (target_number >= 0) { /* Set this option value for a specific target */
+        tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+        if (tdp == NULL) return(-1);
+
+        tdp->td_pretruncate= pretruncate;
+        return(args+2);
+    } else { // Put this option into all Targets 
+        if (flags & XDD_PARSE_PHASE2) {
+            tdp = planp->target_datap[0];
+            i = 0;
+            while (tdp) {
+                tdp->td_pretruncate= pretruncate;
+                i++;
+                tdp = planp->target_datap[i];
+            }
+        }
+        return(2);
+    }
 }
 /*----------------------------------------------------------------------------*/
 // Lock the process in memory

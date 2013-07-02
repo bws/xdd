@@ -88,7 +88,10 @@ xdd_dio_before_io_op(worker_data_t *wdp) {
 		xgp->canceled = 1;
 	}
 
-        tdp->td_target_options |= TO_DIO;
+	// Since the file was re-opened it has a new file descriptor
+	wdp->wd_task.task_file_desc = tdp->td_file_desc;
+
+	tdp->td_target_options |= TO_DIO;
 } // End of xdd_dio_before_io_op()
 
 /*----------------------------------------------------------------------------*/

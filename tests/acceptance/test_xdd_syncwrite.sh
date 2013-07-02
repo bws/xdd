@@ -18,7 +18,7 @@ fi
 test_name=$(basename $0)
 test_name="${test_name%.*}"
 test_dir=$XDDTEST_LOCAL_MOUNT/$test_name
-mkdir $test_dir
+mkdir -p $test_dir
 
 test_file=$test_dir/data1
 touch $test_file
@@ -31,7 +31,6 @@ sys_call=$(2>&1 strace -cfq -e trace=fdatasync $xdd_cmd |tail -3 |head -1)
 sync_num=$(echo $sys_call |cut -f 4 -d ' ')
 sync_name=$(echo $sys_call |cut -f 5 -d ' ')
 
-echo $sync_name
 # Verify output
 echo -n "Acceptance Test - $test_name : "
 if [ $sync_num -eq $num_passes -a $sync_name == "fdatasync" ]; then

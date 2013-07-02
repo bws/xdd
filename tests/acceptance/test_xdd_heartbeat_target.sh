@@ -12,7 +12,7 @@ echo "Beginning heartbeat utility test."
 test_name=$(basename $0)
 test_name="${test_name%.*}"
 test_dir=$XDDTEST_LOCAL_MOUNT/$test_name
-mkdir $test_dir
+mkdir -p $test_dir
 
 test_file=$test_dir/data1
 test_file2=$test_dir/data2

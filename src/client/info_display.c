@@ -332,6 +332,7 @@ xdd_target_info(FILE *out, target_data_t *tdp) {
 	else fprintf(out," disabled.\n");
 	fprintf(out,"\t\tDirect I/O, %s", (tdp->td_target_options & TO_DIO)?"enabled\n":"disabled\n");
 	fprintf(out, "\t\tPreallocation, %lld\n",(long long int)tdp->td_preallocate);
+	fprintf(out, "\t\tPretruncation, %lld\n",(long long int)tdp->td_pretruncate);
 	fprintf(out, "\t\tQueue Depth, %d\n",tdp->td_queue_depth);
 	/* Timestamp options */
 	if (tdp->td_tsp->ts_options & TS_ON) {

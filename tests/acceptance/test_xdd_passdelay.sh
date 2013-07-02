@@ -16,7 +16,7 @@ echo "Beginning passdelay function test."
 test_name=$(basename $0)
 test_name="${test_name%.*}"
 test_dir=$XDDTEST_LOCAL_MOUNT/$test_name
-mkdir $test_dir
+mkdir -p $test_dir
 
 test_file=$test_dir/data1
 touch $test_file

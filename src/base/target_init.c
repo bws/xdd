@@ -73,8 +73,11 @@ xdd_target_init(target_data_t *tdp) {
 		return(-1);
 
 	/* Perform preallocation if needed */
-	xdd_target_preallocate(tdp);
+	xint_target_preallocate(tdp);
         
+	/* Perform pretruncation if needed */
+	xint_target_pretruncate(tdp);
+
 	// The Seek List
 	// There is one Seek List per target.
 	// This list contains all the locations in a implied order that need to be accessed
