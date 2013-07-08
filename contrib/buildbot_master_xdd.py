@@ -64,7 +64,7 @@ def loadConfig(config):
     # Generate the test configuration
     xdd_factory.addStep(ShellCommand(command=['./contrib/buildbot_gen_test_config.sh'], name="configuring"))
 
-    # Test basic XDD commands
+    # Test basic XDD CLI arguments
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_createnewfiles.sh'], name="test_xdd_createnewfiles.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_createnewfiles2.sh'], name="test_xdd_createnewfiles2.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_timelimit.sh'], name="test_xdd_timelimit.sh"))
@@ -73,7 +73,8 @@ def loadConfig(config):
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_startoffset.sh'], name="test_xdd_startoffset.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_syncwrite.sh'], name="test_xdd_syncwrite.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_reopen.sh'], name="test_xdd_reopen.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_preallocate.sh'], name="test_xdd_preallocate.sh"))
+    #xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_preallocate.sh'], name="test_xdd_preallocate.sh"))
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_pretruncate.sh'], name="test_xdd_pretruncate.sh"))
     
     # Test XDD lockstep
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_lockstep1.sh'], name="test_xdd_lockstep1.sh"))
