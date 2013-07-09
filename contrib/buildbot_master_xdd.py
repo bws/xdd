@@ -132,8 +132,9 @@ def loadConfig(config):
     build_nightly_xdd=Nightly(name="xdd-nightly1", 
                               branch = "master",
                               properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
-                              builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", 
-                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64", "xdd-osx-10-8"],
+                              builderNames=["xdd-rhel5-x86_64", #"xdd-rhel6-x86_64", 
+                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64", 
+                                            "xdd-osx-10-8"],
                               hour = 2,
                               minute = 3)
     config['schedulers'].append(build_nightly_xdd)
@@ -141,7 +142,7 @@ def loadConfig(config):
     # Configure each force build seperately so that they live in differing buildsets
     from buildbot.schedulers.forcesched import ForceScheduler
     config['schedulers'].append(ForceScheduler(name="xdd-force1", builderNames=["xdd-rhel5-x86_64"]))
-    config['schedulers'].append(ForceScheduler(name="xdd-force2", builderNames=["xdd-rhel6-x86_64"]))
+#    config['schedulers'].append(ForceScheduler(name="xdd-force2", builderNames=["xdd-rhel6-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force3", builderNames=["xdd-sles10-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force4", builderNames=["xdd-sles11-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force6", builderNames=["xdd-osx-10-8"]))
