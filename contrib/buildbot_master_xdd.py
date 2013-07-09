@@ -117,7 +117,7 @@ def loadConfig(config):
     # Add the XDD Build factory to each of the available builders described in the master.cfg
     from buildbot.config import BuilderConfig
     config['builders'].append(BuilderConfig(name="xdd-rhel5-x86_64", slavenames=["pod7"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
-    config['builders'].append(BuilderConfig(name="xdd-rhel6-x86_64", slavenames=["pod9"], factory=xdd_factory,  env={"XDDTEST_TIMEOUT": "900"},category='xdd'))
+#    config['builders'].append(BuilderConfig(name="xdd-rhel6-x86_64", slavenames=["pod9"], factory=xdd_factory,  env={"XDDTEST_TIMEOUT": "900"},category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-sles10-x86_64", slavenames=["pod10"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-sles11-x86_64", slavenames=["pod11"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-osx-10-8", slavenames=["natureboy"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
