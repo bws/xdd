@@ -77,7 +77,7 @@ static struct {
 int32_t
 xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result)
 {
-	in_addr_t addr;
+	in_addr_t addr = INADDR_LOOPBACK;
 	int hit = 0, found = 0;
 	struct addrinfo hints;
 	struct addrinfo *addrinfo = NULL;

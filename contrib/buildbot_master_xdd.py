@@ -58,7 +58,7 @@ def loadConfig(config):
     # Check out the source, configure, and compile
     xdd_factory.addStep(Git(repourl='/ccs/proj/csc040/var/git/xdd.git', mode='copy', branch='master'))
     xdd_factory.addStep(ShellCommand(command=['autoconf'], name="autoconf"))
-    xdd_factory.addStep(Configure())
+    xdd_factory.addStep(Configure(command=["configure", "--enable-debug"]))
     xdd_factory.addStep(Compile(description=["compiling"]))
 
     # Generate the test configuration
