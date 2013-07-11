@@ -39,17 +39,16 @@ max_passes=4
 
 for ((num_passes=$min_passes;num_passes<=$max_passes;num_passes++)); do
       xdd_cmd="$XDDTEST_XDD_EXE -op write -target $test_file -numreqs 10 -passes $num_passes -passdelay 1 -reopen $test_file"
+      
+      sys_call=$(2>&1 strace -cfq -e trace=open,close $xdd_cmd |tail -4 |grep -e 'open\|close' |cut -b 32-40,51-)
+      open_num=$(echo $sys_call |cut -f 1 -d ' ') 
+      close_num=$(echo $sys_call |cut -f 3 -d ' ') 
+      
+      open_name=$(echo $sys_call |cut -f 2 -d ' ')
+      close_name=$(echo $sys_call |cut -f 4 -d ' ')
 
-      open_call=$(2>&1 strace -cfq -e trace=open $xdd_cmd |grep open | tail -1)
-      close_call=$(2>&1 strace -cfq -e trace=close $xdd_cmd |grep close)
-      num_open=$(echo $open_call |cut -f 4 -d ' ')
-      num_close=$(echo $close_call |cut -f 4 -d ' ')
-
-      open_name=$(echo $open_call |cut -f 5 -d ' ')
-      close_name=$(echo $close_call |cut -f 5 -d ' ')
-
-      sys_open[$num_passes]=$num_open
-      sys_close[$num_passes]=$num_close
+      sys_open[$num_passes]=$open_num
+      sys_close[$num_passes]=$close_num
 done
 
 # Verify output 

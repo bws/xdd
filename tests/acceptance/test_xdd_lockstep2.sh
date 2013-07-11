@@ -20,7 +20,7 @@ $XDDTEST_XDD_EXE -targets 2 $test_dir/foo $test_dir/foo -op target 0 write -op t
 
 # Validate output
 test_passes=0
-correct_size=$((1024*1024*10))
+correct_size=$((1024*10))
 file_size=$($XDDTEST_XDD_PATH/xdd-getfilesize $test_dir/foo |cut -f 1 -d ' ')
 if [ "$correct_size" == "$file_size" ]; then
     test_passes=1
