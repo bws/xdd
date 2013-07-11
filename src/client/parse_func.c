@@ -253,7 +253,8 @@ xddfunc_csvout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 int
 xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
-	int           		args, i; 
+	int           		args;
+	size_t              i;
 	int           		target_number;
 	target_data_t        		*tdp;
 	char          		*pattern_type; // The pattern type of ascii, hex, random, ...etc

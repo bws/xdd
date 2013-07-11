@@ -88,7 +88,7 @@ if test "$CC" = "xlc_r"; then
    CFLAGS="-q64 -qcpluscmt -qthreaded"
    LDFLAGS="-q64 -qthreaded"
 elif test "$CC" = "clang"; then
-   CFLAGS="-g -pedantic -Wall -Wextra"
+   CFLAGS="-g -pedantic -Wall -Wextra -Wno-unused-parameter"
    LDFLAGS="-g"
 elif test "$CC" = "gcc"; then
    AX_CFLAGS_GCC_OPTION([-std=c99])
@@ -96,6 +96,8 @@ elif test "$CC" = "gcc"; then
    AX_CFLAGS_GCC_OPTION([-fno-strict-aliasing])
    AX_CFLAGS_GCC_OPTION([-fPIC])
    AX_CFLAGS_GCC_OPTION([-Wall])
+   AX_CFLAGS_GCC_OPTION([-Wextra])
+   AX_CFLAGS_GCC_OPTION([-Wno-unused-parameter])
 else
    AC_MSG_ERROR(Unsupported compiler type: $CC)
 fi
@@ -385,6 +387,23 @@ dnl Set the default installation prefix
 dnl
 install_prefix='/opt/xdd'
 AC_PREFIX_DEFAULT("$install_prefix")
+
+dnl
+dnl As a very last step, turn on options that improve debugging:
+dnl   make warnings trigger errors.  
+dnl
+dnl This has to be dnl done after all checks because it may cause
+dnl autoconf checks to fail
+dnl
+AC_ARG_ENABLE([debug], [Enable options supporting debug (Default: no)],
+			enable_debug="$enableval", enable_debug="no")
+if test "x$enable_debug" = "xyes"; then
+    if test "$CC" = "clang"; then
+        CFLAGS="$CFLAGS -Werror"
+    elif test "$CC" = "gcc"; then
+        AX_CFLAGS_GCC_OPTION([-Werror])
+    fi
+fi
 
 dnl
 dnl Sets the compilation options

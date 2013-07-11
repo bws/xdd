@@ -271,8 +271,9 @@ int main(int argc, char **argv) {
 /* get total threads, thread ids, operation mix */
 void
 xdd_getthreads(xdd_tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix)
-{       
-       int i, k = -1, tothreads = 0;
+{
+    size_t i;
+       int k = -1, tothreads = 0;
        uint64_t read_ops = 0, write_ops = 0;
        if (*op_mix > 0.0) {
           fprintf(stderr,"xdd_getthreads: op_mix = %10.4f ..should be 0.0\n",*op_mix);
@@ -296,7 +297,7 @@ xdd_getthreads(xdd_tthdr_t *tsdata, int *total_threads, int thread_id[], double 
 
 /* subtract the timestamps by the minimum start times */
 void normalize_time(xdd_tthdr_t *tsdata, nclk_t *start_norm) {
-	int64_t i;
+	size_t i;
 	nclk_t start;
 	start = tsdata->tte[0].disk_start;
 
@@ -391,7 +392,7 @@ void sort_by_time(xdd_tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted )
 	}
 
 	/* initialize pointers */
-	int64_t i;
+	size_t i;
 	for (i = 0; i < tsdata->tt_size; i++) {
 		op[i] = &(tsdata->tte[i]);
 	}
@@ -406,7 +407,8 @@ void sort_by_time(xdd_tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted )
 void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
 	tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
 
-	int64_t   i, k, numts_entries;
+    int i;
+	int64_t   k, numts_entries;
 	float cutoff;
 	/* variables for the file writing loop below */
 	FILE *outfile;
@@ -442,12 +444,14 @@ void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
 	numts_entries = 0;
         if (src != NULL) {
               numts_entries = src->tt_size;
-              if (src != NULL) fprintf(outfile,"#SOURCE");
-              else             fprintf(outfile,"#READ OP");
+              if (src != NULL)
+                  fprintf(outfile,"#SOURCE");
+              else
+                  fprintf(outfile,"#READ OP");
 	      fprintf(outfile," timestamp file: %s\n",srcfilename);
 	      fprintf(outfile,"#timestamp: %s",src->td);
 	      fprintf(outfile,"#reqsize: %d\n",src->reqsize);
-	      fprintf(outfile,"#filesize: %"PRId64"\n",src->reqsize*src->tt_size);
+	      fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
               fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
           for (i = 0; i < total_threads_src; i++) { 
               fprintf(outfile,"%d ",thread_id_src[i] );
@@ -462,7 +466,7 @@ void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
 	      fprintf(outfile," timestamp file: %s\n",dstfilename);
 	      fprintf(outfile,"#timestamp: %s",dst->td);
 	      fprintf(outfile,"#reqsize: %d\n",dst->reqsize);
-	      fprintf(outfile,"#filesize: %"PRId64"\n",dst->reqsize*dst->tt_size);
+	      fprintf(outfile,"#filesize: %ld\n",dst->reqsize*dst->tt_size);
               fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
             for (i = 0; i < total_threads_dst; i++) { 
 	      fprintf(outfile,"%d ",thread_id_dst[i] );

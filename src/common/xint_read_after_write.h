@@ -37,7 +37,7 @@ struct xdd_raw_msg {
 	nclk_t				sendtime;				// Time this packet was sent in global nano seconds 
 	nclk_t				recvtime;				// Time this packet was received in global nano seconds 
 	int64_t				location;				// Starting location in bytes for this operation 
-	int64_t				length;					// Length in bytes this operation 
+	size_t				length;					// Length in bytes this operation 
 }; 
 typedef struct xdd_raw_msg xdd_raw_msg_t;
 
@@ -67,8 +67,8 @@ struct	xint_raw	{
 	int32_t				raw_msg_recv; 			// The number of messages received 
 	int64_t				raw_prev_loc; 			// The previous location from a RAW message from the source 
 	int64_t				raw_prev_len; 			// The previous length from a RAW message from the source 
-	int64_t				raw_data_ready; 		// The amount of data that is ready to be read in an RAW op 
-	int64_t				raw_data_length; 		// The amount of data that is ready to be read for this operation 
+	size_t				raw_data_ready; 		// The amount of data that is ready to be read in an RAW op 
+	size_t				raw_data_length; 		// The amount of data that is ready to be read for this operation 
 }; 
 typedef struct xint_raw xint_raw_t;
 /*

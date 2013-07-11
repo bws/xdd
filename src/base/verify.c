@@ -45,7 +45,7 @@ xdd_verify_checksum(worker_data_t *wdp, int64_t current_op) {
 } // end of xdd_verify_checksum()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_verify_hex() - Verify hex data pattern in the data buffer  
+/* xdd_Verify_hex() - Verify hex data pattern in the data buffer  
  * Returns the number of miscompare errors.
  * This routine assumes that the specified hex data pattern and replication 
  * factor has been previously written to the media that was just read and 
@@ -60,7 +60,7 @@ xdd_verify_checksum(worker_data_t *wdp, int64_t current_op) {
 int32_t
 xdd_verify_hex(worker_data_t *wdp, int64_t current_op) {
 	target_data_t	*tdp;
-	int32_t i;
+	size_t i;
 	int32_t errors;
 	int32_t remaining;
 	int32_t offset;
@@ -114,8 +114,8 @@ xdd_verify_hex(worker_data_t *wdp, int64_t current_op) {
 int32_t
 xdd_verify_sequence(worker_data_t *wdp, int64_t current_op) {
 	target_data_t	*tdp;
-	int32_t  		i,j;
-	int64_t	  		errors;
+	size_t  		i,j;
+	uint64_t	  		errors;
 	uint64_t 		expected_data;
 	uint64_t 		*uint64p;
 	unsigned char 	*ucp;        /* A temporary unsigned char pointer */
@@ -136,7 +136,7 @@ xdd_verify_sequence(worker_data_t *wdp, int64_t current_op) {
 		if (*uint64p != expected_data) { // If the expected_data pattern is not what we think it should be then scream!
 			//Check how many errors we've had, if too many, then don't print data
 			if (errors <= xgp->max_errors_to_print) {
-				fprintf(xgp->errout,"%s: xdd_verify_sequence: Target %d Worker Thread %d: ERROR: Sequence mismatch on op number %lld at %d bytes into block %lld\n",
+				fprintf(xgp->errout,"%s: xdd_verify_sequence: Target %d Worker Thread %d: ERROR: Sequence mismatch on op number %lld at %zd bytes into block %lld\n",
 					xgp->progname, 
 					tdp->td_target_number, 
 					wdp->wd_thread_number, 
@@ -179,7 +179,7 @@ xdd_verify_sequence(worker_data_t *wdp, int64_t current_op) {
 int32_t
 xdd_verify_singlechar(worker_data_t *wdp, int64_t current_op) {
 	target_data_t	*tdp;
-	int32_t  i;
+	size_t  i;
 	int32_t  errors;
 	unsigned char *ucp;
  
@@ -190,7 +190,7 @@ xdd_verify_singlechar(worker_data_t *wdp, int64_t current_op) {
 	errors = 0;
 	for (i = 0; i < wdp->wd_task.task_xfer_size; i++) {
 		if (*ucp != *(tdp->td_dpp->data_pattern)) {
-			fprintf(xgp->errout,"%s: xdd_verify_singlechar: Target %d Worker Thread %d: ERROR: Content mismatch on op number %lld at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
+			fprintf(xgp->errout,"%s: xdd_verify_singlechar: Target %d Worker Thread %d: ERROR: Content mismatch on op number %lld at %zd bytes into block %lld, expected 0x%02x, got 0x%02x\n",
 				xgp->progname, 
 				tdp->td_target_number, 
 				wdp->wd_thread_number, 

@@ -256,7 +256,7 @@ xdd_target_existence_check(target_data_t *tdp) {
  	* file. Send out a WARNING if this is a possibility
  	*/
 	if ( (tdp->td_target_options & TO_REGULARFILE) && !(tdp->td_rwratio < 1.0)) { // This is a purely read operation
-		if (tdp->td_target_bytes_to_xfer_per_pass > tdp->td_statbuf.st_size) { // Check to make sure that the we won't read off the end of the file
+		if (tdp->td_target_bytes_to_xfer_per_pass > (uint64_t)tdp->td_statbuf.st_size) { // Check to make sure that the we won't read off the end of the file
 		fprintf(xgp->errout,"%s: xdd_target_existence_check: WARNING: Target number %d name %s <%lld bytes> is shorter than the the total requested transfer size <%lld bytes>\n",
 			xgp->progname,
 			tdp->td_target_number,

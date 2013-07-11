@@ -37,12 +37,12 @@ struct	xint_triggers	{
 	// The following variables are used to implement the various trigger options 
 	nclk_t        		start_trigger_time; 		// Time to trigger another target to start 
 	nclk_t        		stop_trigger_time; 			// Time to trigger another target to stop 
-	int64_t       		start_trigger_op; 			// Operation number to trigger another target to start 
-	int64_t       		stop_trigger_op; 			// Operation number  to trigger another target to stop
+	uint64_t       		start_trigger_op; 			// Operation number to trigger another target to start 
+	uint64_t       		stop_trigger_op; 			// Operation number  to trigger another target to stop
 	double        		start_trigger_percent; 		// Percentage of ops before triggering another target to start 
 	double        		stop_trigger_percent; 		// Percentage of ops before triggering another target to stop 
-	int64_t       		start_trigger_bytes; 		// Number of bytes to transfer before triggering another target to start 
-	int64_t       		stop_trigger_bytes; 		// Number of bytes to transfer before triggering another target to stop 
+	uint64_t       		start_trigger_bytes; 		// Number of bytes to transfer before triggering another target to start 
+	uint64_t       		stop_trigger_bytes; 		// Number of bytes to transfer before triggering another target to stop 
 	uint32_t			trigger_types;				// This is the type of trigger to administer to another target 
 	int32_t				start_trigger_target;		// The number of the target to send the start trigger to 
 	int32_t				stop_trigger_target;		// The number of the target to send the stop trigger to 

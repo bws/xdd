@@ -267,7 +267,7 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 	wdp->wd_counters.tc_accumulated_op_time += wdp->wd_counters.tc_current_op_elapsed_time;
 	wdp->wd_counters.tc_current_io_errno = errno;
 	wdp->wd_counters.tc_current_error_count = 0;
-	if (wdp->wd_task.task_io_status == wdp->wd_task.task_xfer_size) { // Status is GOOD - update counters
+	if (wdp->wd_task.task_io_status == (ssize_t) wdp->wd_task.task_xfer_size) { // Status is GOOD - update counters
 		wdp->wd_counters.tc_current_bytes_xfered_this_op = wdp->wd_task.task_xfer_size;
 		wdp->wd_counters.tc_accumulated_bytes_xfered += wdp->wd_counters.tc_current_bytes_xfered_this_op;
 		wdp->wd_counters.tc_accumulated_op_count++;
@@ -338,7 +338,7 @@ xdd_worker_thread_update_target_counters(worker_data_t *wdp) {
 	pthread_mutex_lock(&tdp->td_counters_mutex);
 	// Update counters and status in the Worker Thread Data
 	tdp->td_counters.tc_accumulated_op_time += tdp->td_counters.tc_current_op_elapsed_time;
-	if (wdp->wd_task.task_io_status == wdp->wd_task.task_xfer_size) { // Only update counters if I/O succeeded
+	if (wdp->wd_task.task_io_status == (ssize_t) wdp->wd_task.task_xfer_size) { // Only update counters if I/O succeeded
 		tdp->td_current_bytes_completed += wdp->wd_task.task_xfer_size;
 		tdp->td_counters.tc_accumulated_bytes_xfered += wdp->wd_task.task_xfer_size;
 		tdp->td_counters.tc_accumulated_op_count++;

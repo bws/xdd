@@ -43,12 +43,12 @@ struct xint_target_counters {
 
 	// Updated by the Worker Thread in Worker Data during an I/O operation
 	// and then copied to the Target Data strcuture at the completion of an I/O operation
-	int64_t		tc_current_byte_offset; 		// Current byte location for this I/O operation 
-	int64_t		tc_current_op_number;			// Current I/O operation number 
+	uint64_t		tc_current_byte_offset; 		// Current byte location for this I/O operation 
+	uint64_t		tc_current_op_number;			// Current I/O operation number 
 	int32_t		tc_current_io_status; 			// I/O Status of the last I/O operation for this Worker Thread
 	int32_t		tc_current_io_errno; 			// The errno associated with the status of this I/O for this thread
 	int32_t		tc_current_bytes_xfered_this_op;// I/O Status of the last I/O operation for this Worker Thread
-	int64_t		tc_current_error_count;			// The number of I/O errors for this Worker Thread
+	uint64_t		tc_current_error_count;			// The number of I/O errors for this Worker Thread
 	nclk_t		tc_current_op_start_time; 		// Start time of the current op
 	nclk_t		tc_current_op_end_time; 		// End time of the current op
 	nclk_t		tc_current_op_elapsed_time;		// Elapsed time of the current op
@@ -58,14 +58,14 @@ struct xint_target_counters {
 
 	// Accumulated Counters 
 	// Updated in the Target Data structure by each Worker Thread at the completion of an I/O operation
-	int64_t		tc_accumulated_op_count; 		// The number of read+write operations that have completed so far
-	int64_t		tc_accumulated_read_op_count;	// The number of read operations that have completed so far 
-	int64_t		tc_accumulated_write_op_count;	// The number of write operations that have completed so far 
-	int64_t		tc_accumulated_noop_op_count;	// The number of noops that have completed so far 
-	int64_t		tc_accumulated_bytes_xfered;	// Total number of bytes transferred so far (to storage device, not network)
-	int64_t		tc_accumulated_bytes_read;		// Total number of bytes read so far (from storage device, not network)
-	int64_t		tc_accumulated_bytes_written;	// Total number of bytes written so far (to storage device, not network)
-	int64_t		tc_accumulated_bytes_noop;		// Total number of bytes processed by noops so far
+	uint64_t		tc_accumulated_op_count; 		// The number of read+write operations that have completed so far
+	uint64_t		tc_accumulated_read_op_count;	// The number of read operations that have completed so far 
+	uint64_t		tc_accumulated_write_op_count;	// The number of write operations that have completed so far 
+	uint64_t		tc_accumulated_noop_op_count;	// The number of noops that have completed so far 
+	uint64_t		tc_accumulated_bytes_xfered;	// Total number of bytes transferred so far (to storage device, not network)
+	uint64_t		tc_accumulated_bytes_read;		// Total number of bytes read so far (from storage device, not network)
+	uint64_t		tc_accumulated_bytes_written;	// Total number of bytes written so far (to storage device, not network)
+	uint64_t		tc_accumulated_bytes_noop;		// Total number of bytes processed by noops so far
 	nclk_t		tc_accumulated_op_time; 		// Accumulated time spent in I/O 
 	nclk_t		tc_accumulated_read_op_time; 	// Accumulated time spent in read 
 	nclk_t		tc_accumulated_write_op_time;	// Accumulated time spent in write 

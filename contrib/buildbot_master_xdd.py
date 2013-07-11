@@ -58,13 +58,13 @@ def loadConfig(config):
     # Check out the source, configure, and compile
     xdd_factory.addStep(Git(repourl='/ccs/proj/csc040/var/git/xdd.git', mode='copy', branch='master'))
     xdd_factory.addStep(ShellCommand(command=['autoconf'], name="autoconf"))
-    xdd_factory.addStep(Configure())
+    xdd_factory.addStep(Configure(command=["configure", "--enable-debug"]))
     xdd_factory.addStep(Compile(description=["compiling"]))
 
     # Generate the test configuration
     xdd_factory.addStep(ShellCommand(command=['./contrib/buildbot_gen_test_config.sh'], name="configuring"))
 
-    # Test basic XDD commands
+    # Test basic XDD CLI arguments
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_createnewfiles.sh'], name="test_xdd_createnewfiles.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_createnewfiles2.sh'], name="test_xdd_createnewfiles2.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_timelimit.sh'], name="test_xdd_timelimit.sh"))
@@ -73,7 +73,8 @@ def loadConfig(config):
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_startoffset.sh'], name="test_xdd_startoffset.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_syncwrite.sh'], name="test_xdd_syncwrite.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_reopen.sh'], name="test_xdd_reopen.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_preallocate.sh'], name="test_xdd_preallocate.sh"))
+    #xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_preallocate.sh'], name="test_xdd_preallocate.sh"))
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_pretruncate.sh'], name="test_xdd_pretruncate.sh"))
     
     # Test XDD lockstep
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_lockstep1.sh'], name="test_xdd_lockstep1.sh"))
@@ -116,7 +117,7 @@ def loadConfig(config):
     # Add the XDD Build factory to each of the available builders described in the master.cfg
     from buildbot.config import BuilderConfig
     config['builders'].append(BuilderConfig(name="xdd-rhel5-x86_64", slavenames=["pod7"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
-    config['builders'].append(BuilderConfig(name="xdd-rhel6-x86_64", slavenames=["pod9"], factory=xdd_factory,  env={"XDDTEST_TIMEOUT": "900"},category='xdd'))
+#    config['builders'].append(BuilderConfig(name="xdd-rhel6-x86_64", slavenames=["pod9"], factory=xdd_factory,  env={"XDDTEST_TIMEOUT": "900"},category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-sles10-x86_64", slavenames=["pod10"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-sles11-x86_64", slavenames=["pod11"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-osx-10-8", slavenames=["natureboy"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
@@ -131,8 +132,9 @@ def loadConfig(config):
     build_nightly_xdd=Nightly(name="xdd-nightly1", 
                               branch = "master",
                               properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
-                              builderNames=["xdd-rhel5-x86_64", "xdd-rhel6-x86_64", 
-                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64", "xdd-osx-10-8"],
+                              builderNames=["xdd-rhel5-x86_64", #"xdd-rhel6-x86_64", 
+                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64", 
+                                            "xdd-osx-10-8"],
                               hour = 2,
                               minute = 3)
     config['schedulers'].append(build_nightly_xdd)
@@ -140,7 +142,7 @@ def loadConfig(config):
     # Configure each force build seperately so that they live in differing buildsets
     from buildbot.schedulers.forcesched import ForceScheduler
     config['schedulers'].append(ForceScheduler(name="xdd-force1", builderNames=["xdd-rhel5-x86_64"]))
-    config['schedulers'].append(ForceScheduler(name="xdd-force2", builderNames=["xdd-rhel6-x86_64"]))
+#    config['schedulers'].append(ForceScheduler(name="xdd-force2", builderNames=["xdd-rhel6-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force3", builderNames=["xdd-sles10-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force4", builderNames=["xdd-sles11-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force6", builderNames=["xdd-osx-10-8"]))

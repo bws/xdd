@@ -203,8 +203,12 @@ xdd_process_pass_results(xdd_plan_t *planp) {
     target_data_t		*tdp;		// pointer of the Target Data Struct
     results_t	*tarp;	// Pointer to the Target Average results structure
     results_t	*trp;	// Pointer to the Temporary Target Pass results
-    results_t	targetpass_results = {0}; // Temporary for target pass results
+    results_t	targetpass_results; // Temporary for target pass results
 
+	// Initialize temporary to 0
+	memset(&targetpass_results, 0, sizeof(targetpass_results));
+
+		   
     planp->heartbeat_holdoff = 1;
 
     trp = &targetpass_results;

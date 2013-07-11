@@ -202,7 +202,8 @@ static int tcp_accept_connection(xni_context_t ctx_, struct xni_endpoint* local,
     int optval = 1;
     setsockopt(servers[i], SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
-    struct sockaddr_in addr = { 0 };
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons((uint16_t)(local->port + i));
     addr.sin_addr.s_addr = inet_addr(local->host);
@@ -305,7 +306,8 @@ static int tcp_connect(xni_context_t ctx_, struct xni_endpoint* remote, int nbuf
       goto error_out;
     }
 
-    struct sockaddr_in addr = { 0 };
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_port = htons((uint16_t)(remote->port + i));
     addr.sin_addr.s_addr = inet_addr(remote->host);

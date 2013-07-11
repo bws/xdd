@@ -233,7 +233,7 @@ xdd_options_info(xdd_plan_t* planp, FILE *out) {
  */
 void
 xdd_target_info(FILE *out, target_data_t *tdp) {
-	int 				i;
+	size_t 				i;
 	//ptds_t 				*masterp, *slavep;
 	//lockstep_t			*master_lsp, *slave_lsp;
 	xint_data_pattern_t	*dpp;
@@ -419,8 +419,8 @@ xdd_target_info(FILE *out, target_data_t *tdp) {
 		fprintf(out,"\t\tEnd-to-End ACTIVE: this target is the %s side\n",
 			(tdp->td_target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
 		// Display all the hostname:base_port,port_count entries in the e2e_address_table
-		for (i = 0; i < tdp->td_e2ep->e2e_address_table_host_count; i++) {
-			fprintf(out,"\t\tEnd-to-End Destination Address %d of %d '%s' base port %d for %d ports [ports %d - %d]\n",
+		for (i = 0; i < (size_t)tdp->td_e2ep->e2e_address_table_host_count; i++) {
+			fprintf(out,"\t\tEnd-to-End Destination Address %ld of %d '%s' base port %d for %d ports [ports %d - %d]\n",
 				i+1,
 				tdp->td_e2ep->e2e_address_table_host_count,
 				tdp->td_e2ep->e2e_address_table[i].hostname,

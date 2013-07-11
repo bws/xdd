@@ -98,7 +98,7 @@ struct xdd_tthdr {
     nclk_t 	timer_oh; 	/**< Timer overhead in nanoseconds */
     nclk_t 	delta;  	/**< Delta used for normalization */
     int64_t 	tt_bytes; 	/**< Size of the entire time stamp table in bytes */
-    int64_t 	tt_size; 	/**< Size of the entire time stamp table in entries */
+    size_t 	tt_size; 	/**< Size of the entire time stamp table in entries */
     int64_t 	tte_indx; 	/**< Index into the time stamp table */
     struct 	tte tte[1]; 	/**< timestamp table entries */
 };
