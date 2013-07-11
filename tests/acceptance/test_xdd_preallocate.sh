@@ -20,7 +20,7 @@ test_file=$test_dir/data1
 touch $test_file
 
 # Preallocate test file
-preallocate_size=4096
+preallocate_size=1024
 req_size=1
 
 $XDDTEST_XDD_EXE -target $test_file -op write -reqsize $req_size -numreqs 1 -preallocate $preallocate_size 
@@ -31,6 +31,10 @@ xfs=$(mount | grep xfs |cut -f 3 -d ' ')
 if [ $test_file != ${test_file#$xfs} ]; then
    is_xfs=1
 fi
+
+
+
+
 
 file_size=$($XDDTEST_XDD_GETFILESIZE_EXE $test_file | cut -f 1 -d " ")
 

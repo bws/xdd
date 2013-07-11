@@ -19,6 +19,8 @@ exit_success(){
   echo "Acceptance Test 3 - -timelimit termintated XDD: PASSED."
   exit 0
 }
+test_name=$(basename $0)
+test_name="${test_name%.*}" 
 
 # Perform pre-test 
 echo "Beginning Acceptance Test 3 . . ."
@@ -50,8 +52,10 @@ fi
 #rm -rf $test_dir
 
 # Output test result
-if [ "1" == "$test_passes" ]; then
-  exit_success
+echo -n "Acceptance Test - $test_name : "
+if [ 1 -eq $test_passes ]; then
+  echo "PASSED."
+  exit 1
 else
-  exit_error
+  echo "FAILED" 
 fi
