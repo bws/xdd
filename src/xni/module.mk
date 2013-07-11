@@ -4,5 +4,5 @@
 DIR := src/xni
 
 XNI_SRC := $(DIR)/xni.c \
-	$(DIR)/xni_ib.c \
 	$(DIR)/xni_tcp.c 
+#	$(DIR)/xni_ib.c \

@@ -89,7 +89,7 @@ include $(XNI_DIR)/module.mk
 # Construct information from modules
 #
 XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
-	$(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) $(TOOLS_SRC)
+	$(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) $(TOOLS_SRC) $(XNI_SRC)
 
 XDD_LITE_SRC := $(BASE_SRC) $(CLIENT_LITE_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
 	$(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) $(TOOLS_SRC) $(XNI_SRC)
@@ -137,7 +137,7 @@ CLIENT_LITE_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_LITE_EXE_
 #
 INCLUDES = -I$(BASE_DIR) -I$(CLIENT_DIR) -I$(CLIENT_LITE_DIR) -I$(COMMON_DIR) \
 		-I$(COMPAT_DIR) -I$(FS_DIR) -I$(NET_DIR) \
-		-I$(PUBLIC_DIR) -I$(TOOLS_DIR)
+		-I$(PUBLIC_DIR) -I$(TOOLS_DIR) -I$(XNI_DIR)
 
 ARFLAGS = @CONFIG_ARFLAGS@
 
@@ -304,7 +304,18 @@ contrib/mpil: contrib/mpil.o
 contrib/mpil.o: contrib/mpil.c
 	$(MPICC) -c $^ -o $@
 
-test: contrib/mpil
+#
+# Build other tests
+#
+bin/basic-xni-test: tests/other/xni/basic-xni-test.c $(LIB_DIR)/libxdd.a
+	$(CC) $(CPPFLAGS) $(CFLAGS) -L$(LIB_DIR) -lxdd $< -o $@
+
+test: contrib/mpil bin/basic-xni-test
+
+check: bin/basic-xni-test
+	@# This should somehow run all of the tests.
+
+.PHONY: test check
 
 #
 # Build rules for cleaning up derived files
