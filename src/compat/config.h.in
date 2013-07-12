@@ -109,12 +109,18 @@
 /* Define to 1 if you have the <gtest/gtest.h> header file. */
 #undef HAVE_GTEST_GTEST_H
 
+/* Define to 1 if you have the <infiniband/verbs.h> header file. */
+#undef HAVE_INFINIBAND_VERBS_H
+
 /********************************************************************************
  * Defines for functions
  *******************************************************************************/
 
 /* Define to 1 if you have the `clock_gettime' function. */
 #undef HAVE_CLOCK_GETTIME
+
+/* Define to 1 if you have the `ibv_get_device_list' function. */
+#undef HAVE_IBV_GET_DEVICE_LIST
 
 /* Define to 1 if you have the `initstate' function. */
 #undef HAVE_INITSTATE
@@ -177,6 +183,13 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
+
+/* Define to 1 if you wish to enable XFS support */
+#undef HAVE_ENABLE_XFS
+
+/* Define to 1 if you wish to enable Infiniband support */
+#undef HAVE_ENABLE_IB
+
 
 #endif
 
