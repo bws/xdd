@@ -91,8 +91,9 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 		wdp->wd_task.task_xfer_size = -1; 	// To be filled in after data received
 		wdp->wd_task.task_io_status = -1; 	// To be filled in after data received
 		wdp->wd_task.task_errno = 0; 		// To be filled in after data received
-		if (tdp->td_counters.tc_current_op_number == 0) 
-			nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
+//		if (tdp->td_counters.tc_current_op_number == 0) {
+//			nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
+//		}
 
    		// If time stamping is on then assign a time stamp entry to this Worker Thread
    		if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {

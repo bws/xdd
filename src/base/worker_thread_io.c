@@ -262,6 +262,9 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 	// Get the pointer to the Target's Data
 	tdp = wdp->wd_tdp;
 
+
+if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worker_thread_update_local_counters: Target: %d: Worker: %d: byte_offset: %lld: wd_counters.tc_current_op_elapsed_time: %lld:  wd_counters.tc_current_op_start_time: %lld: wd_counters.tc_current_op_end_time: %lld: wd_counters.tc_current_op_elapsed_time: %lld\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,(long long int)wdp->wd_task.task_byte_offset,(unsigned long long int)wdp->wd_counters.tc_current_op_elapsed_time,(unsigned long long int)wdp->wd_counters.tc_current_op_start_time,(unsigned long long int)wdp->wd_counters.tc_current_op_end_time,(unsigned long long int)(wdp->wd_counters.tc_current_op_end_time - wdp->wd_counters.tc_current_op_start_time));
+
 	wdp->wd_counters.tc_current_op_elapsed_time = (wdp->wd_counters.tc_current_op_end_time - wdp->wd_counters.tc_current_op_start_time);
 	wdp->wd_counters.tc_accumulated_op_time += wdp->wd_counters.tc_current_op_elapsed_time;
 	wdp->wd_counters.tc_current_io_errno = errno;
@@ -343,12 +346,6 @@ xdd_worker_thread_update_target_counters(worker_data_t *wdp) {
 		tdp->td_counters.tc_accumulated_op_count++;
 		if (tdp->td_e2ep && wdp->wd_e2ep)
 			tdp->td_e2ep->e2e_sr_time += wdp->wd_e2ep->e2e_sr_time; // E2E Send/Receive Time
-//		if ( (tdp->td_target_options & TO_ENDTOEND) && (tdp->td_target_options & TO_E2E_DESTINATION)) {
-//			if ( wdp->wd_first_pass_start_time < tdp->td_first_pass_start_time)  // Record the proper *First* pass start time
-//				tdp->td_first_pass_start_time = wdp->wd_first_pass_start_time;
-//			if ( wdp->wd_counters.tc_pass_start_time < tdp->td_counters.tc_pass_start_time)  // Record the proper PASS start time
-//				tdp->td_counters.tc_pass_start_time = wdp->wd_counters.tc_pass_start_time;
-//		}
 		// Operation-specific counters
 		switch (wdp->wd_task.task_op_type) { 
 			case TASK_OP_TYPE_READ: 
