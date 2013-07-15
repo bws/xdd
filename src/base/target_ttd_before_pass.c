@@ -292,17 +292,8 @@ xdd_target_ttd_before_pass(target_data_t *tdp) {
 
 	/* Get the starting time stamp */
 	if (tdp->td_counters.tc_pass_number == 1) { // For the *first* pass...
-		if ((tdp->td_target_options & TO_ENDTOEND) && (tdp->td_target_options & TO_E2E_DESTINATION)) {  
-			// Since the Destination Side starts and *waits* for the Source Side, the
-			// actual "first pass start time" is set to a LARGE number so that it later
-			// gets set to the time that the first packet of data was actually received.
-			// That is done by the Results Manager at the end of a pass.
-			tdp->td_counters.tc_time_first_op_issued_this_pass = NCLK_MAX;
-			tdp->td_counters.tc_pass_start_time = NCLK_MAX;
-		} else { // This is either a non-E2E run or this is the Source Side of an E2E
-			nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
-			tdp->td_counters.tc_pass_start_time = tdp->td_counters.tc_time_first_op_issued_this_pass;
-		}
+		nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
+		tdp->td_counters.tc_pass_start_time = tdp->td_counters.tc_time_first_op_issued_this_pass;
 		// Get the current CPU user and system times 
 		times(&tdp->td_counters.tc_starting_cpu_times_this_run);
 	} else { // For pass number greater than 1
