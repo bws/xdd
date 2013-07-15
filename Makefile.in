@@ -307,12 +307,15 @@ contrib/mpil.o: contrib/mpil.c
 #
 # Build other tests
 #
+bin/basic-ib-test: tests/other/xni/basic-ib-test.c $(LIB_DIR)/libxdd.a
+	$(CC) $(CPPFLAGS) $(CFLAGS) -L$(LIB_DIR) $< -lxdd $(LIBS) -o $@
+
 bin/basic-xni-test: tests/other/xni/basic-xni-test.c $(LIB_DIR)/libxdd.a
-	$(CC) $(CPPFLAGS) $(CFLAGS) -L$(LIB_DIR) $< -lxdd -o $@
+	$(CC) $(CPPFLAGS) $(CFLAGS) -L$(LIB_DIR) $< -lxdd $(LIBS) -o $@
 
 test: contrib/mpil bin/basic-xni-test
 
-check: bin/basic-xni-test
+check: bin/basic-xni-test bin/basic-ib-test
 	@# This should somehow run all of the tests.
 
 .PHONY: test check

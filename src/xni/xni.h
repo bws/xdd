@@ -436,6 +436,7 @@ extern xni_protocol_t xni_protocol_tcp;
  * found.
  *
  * \param[in] device_name The name of the IB device to bind to or \c NULL.
+ * \param[in] num_buffers The number of memory buffers to register.
  * \param[out] control_block The newly allocated control block.
  *
  * \return #XNI_OK if the control block was successfully created.
@@ -443,7 +444,7 @@ extern xni_protocol_t xni_protocol_tcp;
  *
  * \sa xni_free_ib_control_block()
  */
-int xni_allocate_ib_control_block(const char *device_name, xni_control_block_t *control_block);
+int xni_allocate_ib_control_block(const char *device_name, size_t num_buffers, xni_control_block_t *control_block);
 /*! \brief Free an InfiniBand control block.
  *
  * It is forbidden to call this function more than once with the same
