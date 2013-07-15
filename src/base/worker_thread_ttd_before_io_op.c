@@ -82,7 +82,7 @@ xdd_dio_before_io_op(worker_data_t *wdp) {
 		fprintf(xgp->errout,"%s: xdd_dio_before_io_op: ERROR: Target %d Worker Thread %d: Reopen of target '%s' failed\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			tdp->td_target_full_pathname);
 		fflush(xgp->errout);
 		xgp->canceled = 1;
@@ -223,12 +223,15 @@ xdd_e2e_before_io_op(worker_data_t *wdp) {
 	wdp->wd_e2ep->e2e_data_recvd = 0; // This will record how much data is recvd in this routine
 
 	// Lets read a packet of data from the Source side
-	// xdd_e2e_dest_recv() will block until there is data to read 
+	// The call to xdd_e2e_dest_recv() will block until there is data to read 
 	tdp->td_current_state |= CURRENT_STATE_DEST_RECEIVE;
 
-fprintf(stderr,"E2E_BEFORE_IO_OP: wdp=%p, calling xdd_e2e_dest_recv...\n",wdp);
-	status = xdd_e2e_dest_recv(wdp);
-fprintf(stderr,"E2E_BEFORE_IO_OP: wdp=%p, returned from xdd_e2e_dest_recv...\n",wdp);
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Calling xdd_e2e_dest_recv...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+
+	status = xdd_e2e_dest_receive(wdp);
+
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Returning from xdd_e2e_dest_recv...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+if (xgp->global_options & GO_DEBUG_E2E) xdd_show_e2e_header(wdp->wd_e2ep->e2e_hdrp);
 
 	tdp->td_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
 
@@ -237,17 +240,17 @@ fprintf(stderr,"E2E_BEFORE_IO_OP: wdp=%p, returned from xdd_e2e_dest_recv...\n",
 		return(-1);
 		
 	// Check to see of this is the last message in the transmission
-	if (wdp->wd_e2ep->e2e_header.magic == XDD_E2E_MAGIQ)  { // This must be the End of the File
+	if (wdp->wd_e2ep->e2e_hdrp->e2eh_magic == XDD_E2E_EOF)  { // This must be the End of the File
 		return(0);
 	}
 
 	// Use the hearder.location as the new tdp->td_counters.tc_current_byte_offset and the e2e_header.length as the new my_current_xfer_size for this op
 	// This will allow for the use of "no ordering" on the source side of an e2e operation
-	wdp->wd_task.task_byte_offset = wdp->wd_e2ep->e2e_header.location;
-	wdp->wd_task.task_xfer_size = wdp->wd_e2ep->e2e_header.length;
-	wdp->wd_task.task_op_number = wdp->wd_e2ep->e2e_header.sequence;
+	wdp->wd_task.task_byte_offset = wdp->wd_e2ep->e2e_hdrp->e2eh_byte_offset;
+	wdp->wd_task.task_xfer_size = wdp->wd_e2ep->e2e_hdrp->e2eh_data_length;
+	wdp->wd_task.task_op_number = wdp->wd_e2ep->e2e_hdrp->e2eh_sequence_number;
 	// Record the amount of data received 
-	wdp->wd_e2ep->e2e_data_recvd = wdp->wd_e2ep->e2e_header.length;
+	wdp->wd_e2ep->e2e_data_recvd = wdp->wd_e2ep->e2e_hdrp->e2eh_data_length;
 
 	return(0);
 

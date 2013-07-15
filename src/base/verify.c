@@ -74,7 +74,7 @@ xdd_verify_hex(worker_data_t *wdp, int64_t current_op) {
 	else remaining = tdp->td_dpp->data_pattern_length;
 
 	offset = 0;
-	bufferp = wdp->wd_task.task_bufp;
+	bufferp = wdp->wd_task.task_datap;
 	errors = 0;
 	while (remaining) {
 		patternp = tdp->td_dpp->data_pattern;
@@ -83,7 +83,7 @@ xdd_verify_hex(worker_data_t *wdp, int64_t current_op) {
 				fprintf(xgp->errout,"%s: xdd_verify_hex: Target %d Worker Thread %d: ERROR: Content mismatch on op %lld at %d bytes into block %lld, expected 0x%02x, got 0x%02x\n",
 					xgp->progname, 
 					tdp->td_target_number, 
-					wdp->wd_thread_number, 
+					wdp->wd_worker_number, 
 					(long long int)current_op,
 					offset, 
 					(long long int)(wdp->wd_task.task_byte_offset/tdp->td_block_size), 
@@ -123,7 +123,7 @@ xdd_verify_sequence(worker_data_t *wdp, int64_t current_op) {
 
 	tdp = wdp->wd_tdp;
 
-	uint64p = (uint64_t *)wdp->wd_task.task_bufp;
+	uint64p = (uint64_t *)wdp->wd_task.task_datap;
 	errors = 0;
 	for (i = 0; i < wdp->wd_task.task_xfer_size; i+=(sizeof(wdp->wd_task.task_byte_offset))) {
 		expected_data = wdp->wd_task.task_byte_offset + i;
@@ -139,7 +139,7 @@ xdd_verify_sequence(worker_data_t *wdp, int64_t current_op) {
 				fprintf(xgp->errout,"%s: xdd_verify_sequence: Target %d Worker Thread %d: ERROR: Sequence mismatch on op number %lld at %zd bytes into block %lld\n",
 					xgp->progname, 
 					tdp->td_target_number, 
-					wdp->wd_thread_number, 
+					wdp->wd_worker_number, 
 					(long long int)current_op,
 					i, 
 					(long long int)(wdp->wd_task.task_byte_offset/tdp->td_block_size));
@@ -163,7 +163,7 @@ xdd_verify_sequence(worker_data_t *wdp, int64_t current_op) {
 		fprintf(xgp->errout,"%s: xdd_verify_sequence: Target %d Worker Thread %d: ERROR: ADDITIONAL Data Buffer Content mismatches = %lld\n",
 			    xgp->progname, 
 				tdp->td_target_number, 
-				wdp->wd_thread_number, 
+				wdp->wd_worker_number, 
 				(long long int)(errors - (xgp->max_errors_to_print)));
 	}
 	return(errors);
@@ -186,14 +186,14 @@ xdd_verify_singlechar(worker_data_t *wdp, int64_t current_op) {
 
 	tdp = wdp->wd_tdp;
 
-	ucp = wdp->wd_task.task_bufp;
+	ucp = wdp->wd_task.task_datap;
 	errors = 0;
 	for (i = 0; i < wdp->wd_task.task_xfer_size; i++) {
 		if (*ucp != *(tdp->td_dpp->data_pattern)) {
 			fprintf(xgp->errout,"%s: xdd_verify_singlechar: Target %d Worker Thread %d: ERROR: Content mismatch on op number %lld at %zd bytes into block %lld, expected 0x%02x, got 0x%02x\n",
 				xgp->progname, 
 				tdp->td_target_number, 
-				wdp->wd_thread_number, 
+				wdp->wd_worker_number, 
 				(long long int)current_op,
 				i, 
 				(unsigned long long)(wdp->wd_task.task_byte_offset/tdp->td_block_size), 
@@ -246,7 +246,7 @@ xdd_verify_contents(worker_data_t *wdp, int64_t current_op) {
 	fprintf(xgp->errout, "%s: xdd_verify_contents: Target %d Worker Thread %d: ERROR: Data verification request not understood. No verification possible.\n",
 				xgp->progname, 
 				tdp->td_target_number, 
-				wdp->wd_thread_number);
+				wdp->wd_worker_number);
 	return(0);
 	
 } // end of xdd_verify_contents()  
@@ -269,13 +269,13 @@ xdd_verify_location(worker_data_t *wdp, int64_t current_op) {
 	tdp = wdp->wd_tdp;
 
 	errors = 0;
-	current_position = *(uint64_t *)wdp->wd_task.task_bufp;
+	current_position = *(uint64_t *)wdp->wd_task.task_datap;
 	if (current_position != tdp->td_counters.tc_current_byte_offset) {
 		errors++;
 		fprintf(xgp->errout,"%s: xdd_verify_location: Target %d Worker Thread %d: ERROR: op number %lld: Data Buffer Sequence mismatch - expected %lld, got %lld\n",
 			xgp->progname, 
 			tdp->td_target_number, 
-			wdp->wd_thread_number, 
+			wdp->wd_worker_number, 
 			(long long int)tdp->td_counters.tc_current_op_number, 
 			(long long int)tdp->td_counters.tc_current_byte_offset, 
 			(long long int)current_position);
@@ -305,7 +305,7 @@ xdd_verify(worker_data_t *wdp, int64_t current_op) {
 		fprintf(xgp->errout,"%s: xdd_verify: Target %d Worker Thread %d: ERROR: Data verification type <location or contents> not specified - No verification performed.\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number);
+			wdp->wd_worker_number);
 		return(0);
 	}
 

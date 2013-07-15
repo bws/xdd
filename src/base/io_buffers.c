@@ -39,30 +39,71 @@
 
 /*----------------------------------------------------------------------------*/
 /* xdd_init_io_buffers() - set up the I/O buffers
- * This routine will allocate the memory used as the I/O buffer for a target.
+ * This routine will allocate the memory used as the I/O buffer for a Worker
+ * Thread. The pointer to the buffer (wd_bufp) and the size of the buffer 
+ * (wd_buf_size) are set in the Worker Data Struct.
+ *
+ * This routine will return the pointer to the buffer upon success. If for
+ * some reason the buffer cannot be allocated then NULL is returned. 
+ *
  * For some operating systems, you can use a shared memory segment instead of 
  * a normal malloc/valloc memory chunk. This is done using the "-sharedmemory"
  * command line option.
+ *
+ * The size of the buffer depends on whether it is being used for network
+ * I/O as in an End-to-end operation. For End-to-End operations, the size
+ * of the buffer is 1 page larger than for non-End-to-End operations.
+ *
+ * For normal (non-E2E operations) the buffer pointers are as follows:
+ *                   |<----------- wd_buf_size = N Pages ----------------->|
+ *	                 +-----------------------------------------------------+
+ *	                 |  data buffer                                        |
+ *	                 |  transfer size (td_xfer_size) rounded up to N pages |
+ *	                 |<-wd_bufp                                            |
+ *	                 |<-task_datap                                         |
+ *	                 +-----------------------------------------------------+
+ *
+ * For End-to-End operations, the buffer pointers are as follows:
+ *  |<------------------- wd_buf_size = N+1 Pages ------------------------>|
+ *	+----------------+-----------------------------------------------------+
+ *	|<----1 page---->|  transfer size (td_xfer_size) rounded up to N pages |
+ *	|<-wd_bufp       |<-task_datap                                         |
+ *	|     |   E2E    |      E2E                                            |
+ *	|     |<-Header->|   data buffer                                       |
+ *	+-----*----------*-----------------------------------------------------+
+ *	      ^          ^
+ *	      ^          +-e2e_datap     
+ *	      +-e2e_hdrp 
  */
 unsigned char *
 xdd_init_io_buffers(worker_data_t *wdp) {
-	target_data_t	*tdp;
-	unsigned char *rwbuf; /* the read/write buffer for this op */
-	void *shmat_status;
-	int	buffer_size;
+	target_data_t		*tdp;			// Pointer to Target Data
+	unsigned char 		*bufp;			// Generic Buffer Pointer
+	void 				*shmat_status;	// Status of shmat()
+	int 				buf_shmid;		// Shared Memory ID
+	int					buffer_size;	// Size of buffer in bytes
+	int					page_size;		// Size of a page of memory
+	int					pages;			// Size of buffer in pages
 #ifdef WIN32
 	LPVOID lpMsgBuf; /* Used for the error messages */
 #endif
 
-
 	tdp = wdp->wd_tdp;
+	wdp->wd_bufp = NULL;
+	wdp->wd_buf_size = 0;
 
-	buffer_size = tdp->td_xfer_size;
-	/* allocate slightly larger buffer for meta data for end-to-end ops */
+	// Calaculate the number of pages needed for a buffer
+	page_size = getpagesize();
+	pages = tdp->td_xfer_size / page_size;
+	if (tdp->td_xfer_size % page_size)
+		pages++; // Round up to page size
 	if ((tdp->td_target_options & TO_ENDTOEND)) {
-		buffer_size += sizeof(wdp->wd_e2ep->e2e_header);
-		wdp->wd_e2ep->e2e_xfer_size = buffer_size;
+		pages++; // Add one page for the e2e header
 	}
+	
+	// This is the actual size of the I/O buffer
+	buffer_size = pages * page_size;
+
 	/* Check to see if we want to use a shared memory segment and allocate it using shmget() and shmat().
 	 * NOTE: This is not supported by all operating systems. 
 	 */
@@ -71,48 +112,48 @@ xdd_init_io_buffers(worker_data_t *wdp) {
 	    /* In AIX we need to get memory in a shared memory segment to avoid
 	     * the system continually trying to pin each page on every I/O operation */
 #if (AIX)
-		wdp->wd_rwbuf_shmid = shmget(IPC_PRIVATE, buffer_size, IPC_CREAT | SHM_LGPAGE |SHM_PIN );
+		buf_shmid = shmget(IPC_PRIVATE, buffer_size, IPC_CREAT | SHM_LGPAGE |SHM_PIN );
 #else
-		wdp->wd_rwbuf_shmid = shmget(IPC_PRIVATE, buffer_size, IPC_CREAT );
+		buf_shmid = shmget(IPC_PRIVATE, buffer_size, IPC_CREAT );
 #endif
-		if (wdp->wd_rwbuf_shmid < 0) {
+		if (buf_shmid < 0) {
 			fprintf(xgp->errout,"%s: Cannot create shared memory segment\n", xgp->progname);
 			perror("Reason");
-			rwbuf = 0;
-			wdp->wd_rwbuf_shmid = -1;
+			bufp = 0;
+			buf_shmid = -1;
 		} else {
-			shmat_status = (void *)shmat(wdp->wd_rwbuf_shmid,NULL,0);
+			shmat_status = (void *)shmat(buf_shmid,NULL,0);
 			if (shmat_status == (void *)-1) {
 				fprintf(xgp->errout,"%s: Cannot attach to shared memory segment\n",xgp->progname);
 				perror("Reason");
-				rwbuf = 0;
-				wdp->wd_rwbuf_shmid = -1;
+				bufp = 0;
+				buf_shmid = -1;
 			}
-			else rwbuf = (unsigned char *)shmat_status;
+			else bufp = (unsigned char *)shmat_status;
 		}
 		if (xgp->global_options & GO_REALLYVERBOSE)
-				fprintf(xgp->output,"Shared Memory ID allocated and attached, shmid=%d\n",wdp->wd_rwbuf_shmid);
+				fprintf(xgp->output,"Shared Memory ID allocated and attached, shmid=%d\n",buf_shmid);
 #elif (IRIX || WIN32 )
 		fprintf(xgp->errout,"%s: Shared Memory not supported on this OS - using valloc\n",
 			xgp->progname);
 		tdp->td_target_options &= ~TO_SHARED_MEMORY;
 #if (IRIX || SOLARIS || LINUX || AIX || DARWIN || FREEBSD)
-		rwbuf = valloc(buffer_size);
+		bufp = valloc(buffer_size);
 #else
-		rwbuf = malloc(buffer_size);
+		bufp = malloc(buffer_size);
 #endif
 #endif 
 	} else { /* Allocate memory the normal way */
 #if (AIX || LINUX)
-		posix_memalign((void **)&rwbuf, sysconf(_SC_PAGESIZE), buffer_size);
+		posix_memalign((void **)&bufp, sysconf(_SC_PAGESIZE), buffer_size);
 #elif (IRIX || SOLARIS || LINUX || DARWIN || FREEBSD)
-		rwbuf = valloc(buffer_size);
+		bufp = valloc(buffer_size);
 #else
-		rwbuf = malloc(buffer_size);
+		bufp = malloc(buffer_size);
 #endif
 	}
 	/* Check to see if we really allocated some memory */
-	if (rwbuf == NULL) {
+	if (bufp == NULL) {
 		fprintf(xgp->errout,"%s: cannot allocate %d bytes of memory for I/O buffer\n",
 			xgp->progname,buffer_size);
 		fflush(xgp->errout);
@@ -136,10 +177,13 @@ xdd_init_io_buffers(worker_data_t *wdp) {
 	}
 	/* Memory allocation must have succeeded */
 
-	/* Lock all rwbuf pages in memory */
-	xdd_lock_memory(rwbuf, buffer_size, "RW BUFFER");
+	/* Lock all pages in memory */
+	xdd_lock_memory(bufp, buffer_size, "RW BUFFER");
 
-	return(rwbuf);
+	wdp->wd_bufp = bufp;
+	wdp->wd_buf_size = buffer_size;
+
+	return(bufp);
 } /* end of xdd_init_io_buffers() */
 
  

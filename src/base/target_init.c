@@ -263,7 +263,7 @@ xdd_target_init_start_worker_threads(target_data_t *tdp) {
 	    pthread_attr_init(&worker_thread_attr);
 	    
 	    // Start a WorkerThread and wait for it to initialize
-	    wdp->wd_thread_number = q;
+	    wdp->wd_worker_number = q;
 	    if (tdp->td_target_options & TO_ENDTOEND) {
 
 		// Find an e2e entry that has a valid port count
@@ -290,7 +290,7 @@ xdd_target_init_start_worker_threads(target_data_t *tdp) {
 		if (xgp->global_options & GO_REALLYVERBOSE)
 		    fprintf(stderr,"Target Init: Target %d: assigning hostname %s port %d to worker_thread %d\n",
 			    tdp->td_target_number, wdp->wd_e2ep->e2e_dest_hostname,
-			    wdp->wd_e2ep->e2e_dest_port, wdp->wd_thread_number);
+			    wdp->wd_e2ep->e2e_dest_port, wdp->wd_worker_number);
 	    }
 
 	    

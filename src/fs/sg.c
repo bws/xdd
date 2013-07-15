@@ -59,7 +59,7 @@ xdd_get_sgiop(worker_data_t *wdp) {
 		wdp->wd_sgiop = malloc(sizeof(struct xdd_sgio));
 		if (wdp->wd_sgiop == NULL) {
 			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for SGIO structure for target %d, worker %d\n",
-			xgp->progname, (int)sizeof(struct xdd_sgio), wdp->wd_tdp->td_target_number, wdp->wd_thread_number);
+			xgp->progname, (int)sizeof(struct xdd_sgio), wdp->wd_tdp->td_target_number, wdp->wd_worker_number);
 			return(NULL);
 		}
 	}
@@ -126,7 +126,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 		io_hdr.dxfer_direction = SG_DXFER_TO_DEV; // Write op
 	else io_hdr.dxfer_direction = SG_DXFER_FROM_DEV; // Read op
 	io_hdr.dxfer_len = sgiop->sg_blocksize * sgiop->sg_blocks;
-	io_hdr.dxferp = wdp->wd_task.task_bufp;
+	io_hdr.dxferp = wdp->wd_task.task_datap;
 	io_hdr.mx_sb_len = SENSE_BUFF_LEN;
 	io_hdr.sbp = sgiop->sg_sense;
 	io_hdr.timeout = DEF_TIMEOUT;
@@ -145,7 +145,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 		fprintf(xgp->errout, "%s:(T%d.Q%d): Error sending IO Header and CDB to SG Driver for a %s Command on target %s - status %d, op# %lld\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			(rw == 'w')?"Write":"Read",
 			tdp->td_target_full_pathname,
 			status,
@@ -167,7 +167,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 		fprintf(xgp->errout, "%s (T%d.Q%d): SG I/O Error for %s Command on target %s - status %d, op# %lld, from sector# %llu for %d sectors\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			(rw == 'w')?"Write":"Read",
 			tdp->td_target_full_pathname,
 			status,
@@ -183,7 +183,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 				fprintf(xgp->errout, "%s (T%d.Q%d): Recovered %s Error on target %s - status %d, op# %lld, from sector# %llu for %d sectors\n",
 					xgp->progname,
 					tdp->td_target_number,
-					wdp->wd_thread_number,
+					wdp->wd_worker_number,
 					(rw == 'w')?"Write":"Read",
 					tdp->td_target_full_pathname,
 					status,
@@ -199,7 +199,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 						fprintf(xgp->errout, "%s (T%d.Q%d): Attempting to access a sector that is PAST the END of the device: op# %llu, from sector# %lld, for %d sectors\n",
 							xgp->progname,
 							tdp->td_target_number,
-							wdp->wd_thread_number,
+							wdp->wd_worker_number,
 							(long long)wdp->wd_task.task_op_number,
 							(unsigned long long)sgiop->sg_from_block, 
 							sgiop->sg_blocks);
@@ -208,7 +208,7 @@ xdd_sg_io(worker_data_t *wdp, char rw) {
 				fprintf(xgp->errout, "%s (T%d.Q%d): %s Error on target %s - status %d, op# %lld, from sector# %llu for %d sectors\n",
 					xgp->progname,
 					tdp->td_target_number,
-					wdp->wd_thread_number,
+					wdp->wd_worker_number,
 					(rw == 'w')?"Write":"Read",
 					tdp->td_target_full_pathname,
 					status,
@@ -270,7 +270,7 @@ xdd_sg_read_capacity(worker_data_t *wdp) {
 	if (status < 0) {
 		fprintf(xgp->errout, "(T%d.Q%d) %s: I/O Error - Read Capacity Command on target %s - status %d, op# %lld\n",
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			xgp->progname,
 			tdp->td_target_full_pathname,
 			status,

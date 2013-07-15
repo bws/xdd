@@ -122,19 +122,8 @@ struct xint_target_data {
     pthread_cond_t 		td_any_worker_thread_available_condition;
     pthread_mutex_t 	td_any_worker_thread_available_mutex;
     int 				td_any_worker_thread_available;
-
-	// Worker Thread-specific semaphores and associated pointers
-	pthread_mutex_t		td_worker_thread_target_sync_mutex;			// Used to serialize access to the Worker Thread-Target Synchronization flags
-	int32_t				td_worker_thread_target_sync;				// Flags used to synchronize a Worker Thread with its Target
-#define	WTSYNC_AVAILABLE			0x00000001				// This Worker Thread is available for a task, set by qthread, reset by xdd_get_specific_qthread.
-#define	WTSYNC_BUSY					0x00000002				// This Worker Thread is busy
-#define	WTSYNC_TARGET_WAITING		0x00000004				// The parent Target is waiting for this Worker Thread to become available, set by xdd_get_specific_qthread, reset by qthread.
-#define	WTSYNC_EOF_RECEIVED			0x00000008				// This Worker Thread received an EOF packet from the Source Side of an E2E Operation
-    //sem_t				this_qthread_is_available_sem;		// xdd_get_specific_qthread() routine waits on this for any Worker Thread to become available
     pthread_cond_t 		td_this_wthread_is_available_condition;
-    
-//	xdd_barrier_t		wthread_targetpass_wait_for_task_barrier;	// The barrier where the Worker Thread waits for targetpass() to release it with a task to perform
-
+	
 	// command line option values 
 	int64_t				td_start_offset; 			// starting block offset value 
 	int64_t				td_pass_offset; 			// number of blocks to add to seek locations between passes 
@@ -195,7 +184,6 @@ struct xint_target_data {
 	struct xint_raw				*td_rawp;          	// RAW Data Structure Pointer
 	struct lockstep				*td_lsp;			// Pointer to the lockstep structure used by the lockstep option
 	struct xint_restart			*td_restartp;		// Pointer to the restart structure used by the restart monitor
-	struct ptds					*td_tdpm1;			// Target_Data minus  1 - used for report print queueing - don't ask 
 #if (LINUX || DARWIN)
 	struct stat					td_statbuf;			// Target File Stat buffer used by xdd_target_open()
 #elif (AIX || SOLARIS)

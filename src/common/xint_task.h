@@ -43,7 +43,7 @@
 struct xint_task {
 	char				task_request;				// Type of Task to perform
 	int					task_file_desc;				// File Descriptor
-	unsigned char		*task_bufp;					// The data buffer
+	unsigned char		*task_datap;				// The data section of the I/O buffer
 	char				task_op_type;				// Operation to perform
 	char				*task_op_string;			// Operation to perform in ASCII
 	uint64_t			task_op_number;				// Offset into the file where this transfer starts

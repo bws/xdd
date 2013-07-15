@@ -280,10 +280,10 @@ AC_ARG_ENABLE([ib],
               [AS_HELP_STRING(--disable-ib, Disable Infiniband support)],
               [ib_enabled="$enableval"], [])
 if test "x$ib_enabled" = "xyes" ; then
-  AC_CHECK_HEADERS([infiniband/verbs.h], [], [])
+  
+  AC_CHECK_HEADERS([infiniband/verbs.h], [AC_DEFINE(HAVE_ENABLE_IB)], [])
   AC_SEARCH_LIBS([ibv_get_device_list], [ibverbs],
                  AC_DEFINE(HAVE_IBV_GET_DEVICE_LIST), [])
-  AC_DEFINE(HAVE_ENABLE_IB)
 fi
 
 dnl
