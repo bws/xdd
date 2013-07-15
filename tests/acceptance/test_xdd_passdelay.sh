@@ -23,6 +23,7 @@ touch $test_file
 
 
 # Determine correct time and elapsed time
+
 num_passes=5
 pass_delay=2
 correct_time=$((($num_passes-1)*$pass_delay))
@@ -44,3 +45,4 @@ else
 	echo "FAILED"	
 	exit 1
 fi 
+

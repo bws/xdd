@@ -10,15 +10,6 @@
 #
 source ./test_config
 
-exit_error(){
-  echo "Acceptance Test 3 - -timelimit failed to terminate XDD: FAILED."
-  exit 1
-}
-
-exit_success(){
-  echo "Acceptance Test 3 - -timelimit termintated XDD: PASSED."
-  exit 0
-}
 test_name=$(basename $0)
 test_name="${test_name%.*}" 
 
@@ -55,7 +46,8 @@ fi
 echo -n "Acceptance Test - $test_name : "
 if [ 1 -eq $test_passes ]; then
   echo "PASSED."
-  exit 1
+  exit 0
 else
   echo "FAILED" 
+  exit 1  
 fi
