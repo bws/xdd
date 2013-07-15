@@ -82,9 +82,15 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 
 	
 		// Make sure the Worker Thread does not think the pass is complete
+		// Get the most recent File Descriptor in case it changed...
+		wdp->wd_task.task_file_desc = tdp->td_file_desc;
 		wdp->wd_task.task_request = TASK_REQ_IO;
 		wdp->wd_task.task_op_type = TASK_OP_TYPE_WRITE;
 		wdp->wd_task.task_op_number = tdp->td_counters.tc_current_op_number;
+		wdp->wd_task.task_byte_offset = -1; // To be filled in after data received
+		wdp->wd_task.task_xfer_size = -1; 	// To be filled in after data received
+		wdp->wd_task.task_io_status = -1; 	// To be filled in after data received
+		wdp->wd_task.task_errno = 0; 		// To be filled in after data received
 		if (tdp->td_counters.tc_current_op_number == 0) 
 			nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
 
@@ -99,7 +105,7 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 				tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 			}
 			tdp->td_ttp->tte[wdp->wd_ts_entry].pass_number = tdp->td_counters.tc_pass_number;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_thread_number;
+			tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_worker_number;
 			tdp->td_ttp->tte[wdp->wd_ts_entry].thread_id     = wdp->wd_thread_id;
 			tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = TASK_OP_TYPE_WRITE;
 			tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = -1; 		// to be filled in after data received
@@ -110,6 +116,12 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 
 		// Release the Worker Thread to let it start working on this task
 		xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&tdp->td_occupant,0);
+		// At this point the Worker Thread is running. The first thing it will do is perform all the 
+		// Things To Do (ttd) before the I/O operation. This includes receiving data from the Source
+		// which will block until it gets the data. Once the data is received, the Worker Thread will
+		// perform the requested WRITE operation to the Destination file. The byte offset and length
+		// to WRITE is provided by the Source in the Header of the data received. 
+		// If the next data blob received is an End Of File (EOF) packet, then things come to a halt.
 	
 		tdp->td_counters.tc_current_op_number++;
 		// Get another Worker Thread and lets keepit roling...
@@ -178,16 +190,6 @@ xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, target_data_t *tdp) {
 		// Set up the task for the Worker Thread
 		xdd_targetpass_e2e_task_setup_src(wdp);
 
-		// Update the pointers/counters in the Target Data Struct to get ready for the next I/O operation
-		tdp->td_counters.tc_current_byte_offset += wdp->wd_task.task_xfer_size;
-		tdp->td_counters.tc_current_op_number++;
-		tdp->td_current_bytes_issued += wdp->wd_task.task_xfer_size;
-		tdp->td_current_bytes_remaining -= wdp->wd_task.task_xfer_size;
-
-		// E2E Source Side needs to be monitored...
-		if (tdp->td_target_options & TO_E2E_SOURCE_MONITOR)
-			xdd_targetpass_e2e_monitor(tdp);
-
 		// Release the Worker Thread to let it start working on this task
 		xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&tdp->td_occupant,0);
 
@@ -232,28 +234,39 @@ xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp) {
 	// Assign an IO task to this worker thread
 	wdp->wd_task.task_request = TASK_REQ_IO;
 
-	wdp->wd_e2ep->e2e_msg_sequence_number = tdp->td_e2ep->e2e_msg_sequence_number;
-	tdp->td_e2ep->e2e_msg_sequence_number++;
+	// Get the most recent File Descriptor in case it changed...
+	wdp->wd_task.task_file_desc = tdp->td_file_desc;
 
-	if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_READ) // READ Operation
+	// Set the Operation Type
+	if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_WRITE) { // Write Operation
+		wdp->wd_task.task_op_type = TASK_OP_TYPE_WRITE;
+		wdp->wd_task.task_op_string = "WRITE";
+	} else if (tdp->td_seekhdr.seeks[tdp->td_counters.tc_current_op_number].operation == SO_OP_READ) { // READ Operation
 		wdp->wd_task.task_op_type = TASK_OP_TYPE_READ;
-	else wdp->wd_task.task_op_type = TASK_OP_TYPE_NOOP;
-
+		wdp->wd_task.task_op_string = "READ";
+	} else { 
+		wdp->wd_task.task_op_type = TASK_OP_TYPE_NOOP;
+		wdp->wd_task.task_op_string = "NOOP";
+	}
+	 
 	// Figure out the transfer size to use for this I/O
-	// It will be either the normal I/O size (tdp->td_io_size) or if this is the
-	// end of this file then the last transfer could be less than the
-	// normal I/O size. 
 	if (tdp->td_current_bytes_remaining < (uint64_t)tdp->td_xfer_size)
 		wdp->wd_task.task_xfer_size = tdp->td_current_bytes_remaining;
 	else wdp->wd_task.task_xfer_size = tdp->td_xfer_size;
+	wdp->wd_task.task_io_status = 0;
+	wdp->wd_task.task_errno = 0;
 
 	// Set the location to seek to 
 	wdp->wd_task.task_byte_offset = tdp->td_counters.tc_current_byte_offset;
 
 	// Remember the operation number for this target
 	wdp->wd_task.task_op_number = tdp->td_counters.tc_current_op_number;
-	if (tdp->td_counters.tc_current_op_number == 0) 
-		nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
+
+	wdp->wd_e2ep->e2e_msg_sequence_number = tdp->td_e2ep->e2e_msg_sequence_number;
+	tdp->td_e2ep->e2e_msg_sequence_number++;
+
+	// Remember the operation number for this target
+	wdp->wd_task.task_op_number = tdp->td_counters.tc_current_op_number;
 
    	// If time stamping is on then assign a time stamp entry to this Worker Thread
    	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -266,12 +279,22 @@ xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp) {
 			tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
 		tdp->td_ttp->tte[wdp->wd_ts_entry].pass_number = tdp->td_counters.tc_pass_number;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_thread_number;
+		tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_worker_number;
 		tdp->td_ttp->tte[wdp->wd_ts_entry].thread_id = wdp->wd_thread_id;
 		tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = wdp->wd_task.task_op_type;
 		tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = wdp->wd_task.task_op_number;
 		tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = wdp->wd_task.task_byte_offset;
 	}
+if (xgp->global_options & GO_DEBUG_TASK) fprintf(stderr,"DEBUG_TASK: %lld: xdd_targetpass_e2e_task_setup_src: Target: %d: Worker: %d: task_request: 0x%x: file_desc: %d: datap: %p: op_type: %d, op_string: %s: op_number: %lld: xfer_size: %d, byte_offset: %lld: e2e_sequence_number: %lld\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,wdp->wd_task.task_request,wdp->wd_task.task_file_desc,wdp->wd_task.task_datap,wdp->wd_task.task_op_type,wdp->wd_task.task_op_string,(unsigned long long int)wdp->wd_task.task_op_number,(int)wdp->wd_task.task_xfer_size,(long long int)wdp->wd_task.task_byte_offset,(unsigned long long int)wdp->wd_task.task_e2e_sequence_number);
+	// Update the pointers/counters in the Target Data Struct to get ready for the next I/O operation
+	tdp->td_counters.tc_current_byte_offset += wdp->wd_task.task_xfer_size;
+	tdp->td_counters.tc_current_op_number++;
+	tdp->td_current_bytes_issued += wdp->wd_task.task_xfer_size;
+	tdp->td_current_bytes_remaining -= wdp->wd_task.task_xfer_size;
+	
+	// E2E Source Side needs to be monitored...
+	if (tdp->td_target_options & TO_E2E_SOURCE_MONITOR)
+		xdd_targetpass_e2e_monitor(tdp);
 
 } // End of xdd_targetpass_e2e_task_setup_src()
 
@@ -309,10 +332,10 @@ xdd_targetpass_e2e_eof_src(target_data_t *tdp) {
 				tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 			}
 			tdp->td_ttp->tte[wdp->wd_ts_entry].pass_number = tdp->td_counters.tc_pass_number;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_thread_number;
+			tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_worker_number;
 			tdp->td_ttp->tte[wdp->wd_ts_entry].thread_id = wdp->wd_thread_id;
 			tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = TASK_OP_TYPE_EOF;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = -1*wdp->wd_thread_number;
+			tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = -1*wdp->wd_worker_number;
 			tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = -1;
 		}
 	
@@ -348,11 +371,11 @@ xdd_targetpass_e2e_monitor(target_data_t *tdp) {
 			if (tmpwdp->wd_worker_thread_target_sync & WTSYNC_BUSY) {
 				if (tdp->td_counters.tc_current_op_number < opmin) {
 					opmin = tdp->td_counters.tc_current_op_number;
-					qmin = tmpwdp->wd_thread_number;
+					qmin = tmpwdp->wd_worker_number;
 				}
 				if (tdp->td_counters.tc_current_op_number > opmax) {
 					opmax = tdp->td_counters.tc_current_op_number;
-					qmax = tmpwdp->wd_thread_number;
+					qmax = tmpwdp->wd_worker_number;
 				}
 			} else {
 				qavail++;

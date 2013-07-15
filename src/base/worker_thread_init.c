@@ -41,9 +41,10 @@
  */
 int32_t
 xdd_worker_thread_init(worker_data_t *wdp) {
-    int32_t  	status;
-    target_data_t		*tdp;			// Pointer to this worker_thread's target Data Struct
-    char		tmpname[XDD_BARRIER_MAX_NAME_LENGTH];	// Used to create unique names for the barriers
+    int32_t  		status;
+    target_data_t	*tdp;			// Pointer to this worker_thread's target Data Struct
+    char			tmpname[XDD_BARRIER_MAX_NAME_LENGTH];	// Used to create unique names for the barriers
+	unsigned char	*bufp;		// Generic Buffer pointer
 
 #if defined(HAVE_CPUSET_T) && defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
     // BWS Print the cpuset
@@ -75,21 +76,21 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Cannot init my_current_state_mutex \n",
 			xgp->progname, 
 			tdp->td_target_number,
-			wdp->wd_thread_number);
+			wdp->wd_worker_number);
 		fflush(xgp->errout);
 		return(-1);
 	}
 	// The "mutex_this_worker_thread_is_available" is used by the WorkerThreads and the get_next_available_worker_thread() subroutines
-	status = pthread_mutex_init(&tdp->td_worker_thread_target_sync_mutex, 0);
+	status = pthread_mutex_init(&wdp->wd_worker_thread_target_sync_mutex, 0);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Cannot init worker_thread_target_sync_mutex\n",
 			xgp->progname, 
 			tdp->td_target_number,
-			wdp->wd_thread_number);
+			wdp->wd_worker_number);
 		fflush(xgp->errout);
 		return(-1);
 	}
-	tdp->td_worker_thread_target_sync = 0;
+	wdp->wd_worker_thread_target_sync = 0;
 
 #if (HAVE_PREAD && HAVE_PWRITE)
         // Copy the file descriptor from the target thread (requires pread/pwrite support)
@@ -102,32 +103,67 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Failed to open Target named '%s'\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			tdp->td_target_full_pathname);
 		return(-1);
 	}
         
-	// Get a RW buffer
-	wdp->wd_task.task_bufp = xdd_init_io_buffers(wdp);
-	if (wdp->wd_task.task_bufp == 0) {
+	// Get the I/O buffer
+	// The xdd_init_io_buffers() routine will set wd_bufp and wd_buf_size to appropriate values.
+	// The size of the buffer depends on whether it is being used for network
+	// I/O as in an End-to-end operation. For End-to-End operations, the size
+	// of the buffer is 1 page larger than for non-End-to-End operations.
+	//
+	// For normal (non-E2E operations) the buffer pointers are as follows:
+	//                   |<----------- wd_buf_size = N Pages ----------------->|
+	//	                 +-----------------------------------------------------+
+	//	                 |  data buffer                                        |
+	//	                 |  transfer size (td_xfer_size) rounded up to N pages |
+	//	                 |<-wd_bufp                                            |
+	//	                 |<-task_datap                                         |
+	//	                 +-----------------------------------------------------+
+	// For ease of reading this code, bufp == wdp->wd_bufp.
+	//
+	bufp = xdd_init_io_buffers(wdp);
+	if (bufp == NULL) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Failed to allocate I/O buffer.\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number);
+			wdp->wd_worker_number);
 		return(-1);
 	}
+	// For End-to-End operations, the buffer pointers are as follows:
+	//  |<------------------- wd_buf_size = N+1 Pages ------------------------>|
+	//	+----------------+-----------------------------------------------------+
+	//	|<----1 page---->|  transfer size (td_xfer_size) rounded up to N pages |
+	//	|<-wd_bufp       |<-task_datap                                         |
+	//	|     |   E2E    |      E2E                                            |
+	//	|     |<-Header->|   data buffer                                       |
+	//	+-----*----------*-----------------------------------------------------+
+	//	      ^          ^
+	//	      ^          +-e2e_datap 
+	//	      +-e2e_hdrp 
+	//
+	if (tdp->td_target_options & TO_ENDTOEND) {
+		 wdp->wd_task.task_datap = bufp + getpagesize();
+		 wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
+		 wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (getpagesize() - sizeof(xdd_e2e_header_t)));
+	} else {
+		// For normal (non-E2E) operations the data portion is the entire buffer
+		wdp->wd_task.task_datap = bufp;
+	}
 
-	// Set proper data pattern in RW buffer
+	// Set proper data pattern in Data buffer
 	xdd_datapattern_buffer_init(wdp);
 
 	// Init the WorkerThread-TargetPass WAIT Barrier for this WorkerThread
-	sprintf(tmpname,"T%04d:W%04d>worker_thread_targetpass_wait_barrier",tdp->td_target_number,wdp->wd_thread_number);
+	sprintf(tmpname,"T%04d:W%04d>worker_thread_targetpass_wait_barrier",tdp->td_target_number,wdp->wd_worker_number);
 	status = xdd_init_barrier(tdp->td_planp, &wdp->wd_thread_targetpass_wait_for_task_barrier, 2, tmpname);
 	if (status) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Cannot initialize WorkerThread TargetPass WAIT barrier.\n",
 			xgp->progname, 
 			tdp->td_target_number,
-			wdp->wd_thread_number);
+			wdp->wd_worker_number);
 		fflush(xgp->errout);
 		return(-1);
 	}
@@ -144,7 +180,7 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: WARNING: Bad status from sem_post on any_worker_thread_available semaphore: status=%d, errno=%d\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			status,
 			errno);
 	}
@@ -157,7 +193,7 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 			fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: Cannot determine which side of the E2E operation this target is supposed to be.\n",
 				xgp->progname,
 				tdp->td_target_number,
-				wdp->wd_thread_number);
+				wdp->wd_worker_number);
 			fprintf(xgp->errout,"%s: xdd_worker_thread_init: Check to be sure that the '-e2e issource' or '-e2e isdestination' was specified for this target.\n",
 				xgp->progname);
 				fflush(xgp->errout);
@@ -168,7 +204,7 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 			fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: E2E %s initialization failed.\n",
 				xgp->progname,
 				tdp->td_target_number,
-				wdp->wd_thread_number,
+				wdp->wd_worker_number,
 				(tdp->td_target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
 		return(-1);
 		}

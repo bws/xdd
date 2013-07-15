@@ -28,6 +28,18 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+/*
+ * +-----+-----------------------------------------------+
+ * | hdr | Data                                          |
+ * +-----+-----------------------------------------------+
+ *
+ * +----//----------------------+----------------------------------------+
+ * |             |  E2E Header  |   Data ---- N bytes ----               |
+ * |             |<--64 bytes-->|<< Start of data buffer is Page Aligned |
+ * |<---//----PAGE_SIZE bytes-->|                                        |
+ * +----//----------------------+----------------------------------------+
+ *
+ */
 
 #ifdef HAVE_SCHED_H
 #include <sched.h>
@@ -37,13 +49,13 @@
 
 #define	E2E_ADDRESS_TABLE_ENTRIES 16
 struct xdd_e2e_header {
-	uint32_t 	magic;  			/**< Magic number */
-	int32_t  	sendqnum;  			/**< Sender's Worker Thread Number  */
-	int64_t  	sequence; 			/**< Sequence number */
-	nclk_t  	sendtime; 			/**< Time this packet was sent in global nano seconds */
-	nclk_t  	recvtime; 			/**< Time this packet was received in global nano seconds */
-	int64_t  	location; 			/**< Starting location in bytes for this operation relative to the beginning of the file*/
-	int64_t  	length;  			/**< Length of the user data in bytes this operation */
+	uint32_t 	e2eh_magic;  				// Magic Number - sanity check
+	int32_t  	e2eh_worker_thread_number; 	// Sender's Worker Thread Number
+	int64_t  	e2eh_sequence_number; 		// Sequence number of this operation
+	nclk_t  	e2eh_send_time; 			// Time this packet was sent in global nano seconds 
+	nclk_t  	e2eh_recv_time; 			// Time this packet was received in global nano seconds 
+	int64_t  	e2eh_byte_offset; 			// Offset relative to the beginning of the file of where this data belongs
+	int64_t  	e2eh_data_length; 			// Length of the user data in bytes for this operation 
 };
 typedef struct xdd_e2e_header xdd_e2e_header_t;
 
@@ -93,12 +105,15 @@ struct xint_e2e {
 	uint32_t			e2e_rnamelen; 			// the length of the source socket name 
 	int32_t				e2e_current_csd; 		// the current csd used by the select call on the destination side
 	int32_t				e2e_next_csd; 			// The next available csd to use 
+	xdd_e2e_header_t	*e2e_hdrp;				// Pointer to the header portion of a packet
+	unsigned char		*e2e_datap;				// Pointer to the data portion of a packet
+	int32_t				e2e_header_size; 		// Size of the header portion of the buffer 
+	int32_t				e2e_data_size; 			// Size of the data portion of the buffer
 	int32_t				e2e_xfer_size; 			// Number of bytes per End to End request - size of data buffer plus size of E2E Header
 	int32_t				e2e_send_status; 		// Current Send Status
 	int32_t				e2e_recv_status; 		// Current Recv status
-#define XDD_E2E_MAGIC 	0x07201959 				// The magic number that should appear at the beginning of each message 
-#define XDD_E2E_MAGIQ 	0x07201960 				// The magic number that should appear in a message signaling destination to quit 
-	xdd_e2e_header_t 	e2e_header;				// Header (actually a trailer) in the data packet of each message sent/received
+#define XDD_E2E_DATA_READY 	0xDADADADA 			// The magic number that should appear at the beginning of each message indicating data is present
+#define XDD_E2E_EOF 	0xE0F0E0F0 				// The magic number that should appear in a message signaling and End of File
 	int64_t				e2e_msg_sequence_number;// The Message Sequence Number of the most recent message sent or to be received
 	int32_t				e2e_msg_sent; 			// The number of messages sent 
 	int32_t				e2e_msg_recv; 			// The number of messages received 

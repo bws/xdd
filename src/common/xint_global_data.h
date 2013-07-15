@@ -52,16 +52,22 @@
 #define GO_MEMORY_USAGE_ONLY   	0x0000000000000800ULL  /* Display memory usage and exit */
 #define GO_STOP_ON_ERROR       	0x0000000000001000ULL  /* Indicates that all targets/threads should stop on the first error from any target */
 #define GO_DESKEW              	0x0000000000002000ULL  /* Display memory usage and exit */
-#define GO_DEBUG				0x0000000000004000ULL  /* DEBUG flag used by the Write After Read routines */
 #define GO_ENDTOEND				0x0000000000008000ULL  /* End to End operation - be sure to add the headers for the results display */
 #define GO_EXTENDED_STATS		0x0000000000010000ULL  /* Calculate Extended stats on each operation */
 #define GO_DRYRUN				0x0000000000020000ULL  /* Indicates a dry run - chicken! */
 #define GO_HEARTBEAT			0x0000000000040000ULL  /* Indicates that a heartbeat has been requested */
-#define GO_AVAILABLE2			0x0000000000080000ULL  /* AVAILABLE */
 #define GO_INTERACTIVE			0x0000000400000000ULL  /* Enter Interactive Mode - oh what FUN! */
 #define GO_INTERACTIVE_EXIT		0x0000000800000000ULL  /* Exit Interactive Mode */
 #define GO_INTERACTIVE_STOP		0x0000001000000000ULL  /* Stop at various points in Interactive Mode */
 #define GO_LOCKSTEP				0x0000002000000000ULL  /* Indicates that the lockstep MASTER has been defined */
+
+#define GO_DEBUG_IO				0x0010000000000000ULL  /* */
+#define GO_DEBUG_E2E			0x0020000000000000ULL  /* */
+#define GO_DEBUG_LOCKSTEP		0x0040000000000000ULL  /* */
+#define GO_DEBUG_OPEN			0x0080000000000000ULL  /* */
+#define GO_DEBUG_TASK			0x0100000000000000ULL  /* */
+#define GO_DEBUG_USER1			0x0200000000000000ULL  /* */
+#define GO_DEBUG_ALL			(GO_DEBUG_IO|GO_DEBUG_E2E|GO_DEBUG_LOCKSTEP|GO_DEBUG_OPEN|GO_DEBUG_TASK|GO_DEBUG_USER1)
 
 struct xdd_global_data {
 	uint64_t		global_options;        				/* I/O Options valid for all targets */

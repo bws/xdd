@@ -248,12 +248,13 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 			tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
 		tdp->td_ttp->tte[wdp->wd_ts_entry].pass_number = tdp->td_counters.tc_pass_number;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_thread_number;
+		tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_worker_number;
 		tdp->td_ttp->tte[wdp->wd_ts_entry].thread_id = wdp->wd_thread_id;
 		tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = wdp->wd_task.task_op_type;
 		tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = wdp->wd_task.task_op_number;
 		tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = wdp->wd_task.task_byte_offset;
 	}
+if (xgp->global_options & GO_DEBUG_TASK) fprintf(stderr,"DEBUG_TASK: %lld: xdd_targetpass_task_setup_src: Target: %d: Worker: %d: task_request: 0x%x: file_desc: %d: datap: %p: op_type: %d, op_string: %s: op_number: %lld: xfer_size: %d, byte_offset: %lld\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,wdp->wd_task.task_request,wdp->wd_task.task_file_desc,wdp->wd_task.task_datap,wdp->wd_task.task_op_type,wdp->wd_task.task_op_string,(unsigned long long int)wdp->wd_task.task_op_number,(int)wdp->wd_task.task_xfer_size,(long long int)wdp->wd_task.task_byte_offset);
 	// Update the pointers/counters in the Target Data Struct to get 
 	// ready for the next I/O operation
 	tdp->td_counters.tc_current_byte_offset += wdp->wd_task.task_xfer_size;

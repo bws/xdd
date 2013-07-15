@@ -55,7 +55,7 @@ xdd_worker_thread(void *pin) {
 			xgp->progname,
 			tdp->td_target_number,
 			tdp->td_target_full_pathname,
-			wdp->wd_thread_number);
+			wdp->wd_worker_number);
 		fflush(xgp->errout);
 		xgp->abort = 1; // This will prevent all other threads from being created...
 	}
@@ -108,7 +108,7 @@ xdd_worker_thread(void *pin) {
 					xgp->progname,
 					tdp->td_target_number,
 					tdp->td_target_full_pathname,
-					wdp->wd_thread_number,
+					wdp->wd_worker_number,
 					wdp->wd_task.task_request);
 				break;
 		} // End of SWITCH stmnt that determines the TASK
@@ -139,8 +139,8 @@ xdd_worker_thread(void *pin) {
 		// Mark this WorkerThread Available
 		pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
 		nclk_now(&checktime);
-		wdp->wd_worker_thread_target_sync &= ~WDSYNC_BUSY; // Mark this WorkerThread NOT Busy
-		if (wdp->wd_worker_thread_target_sync & WDSYNC_TARGET_WAITING) {
+		wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this WorkerThread NOT Busy
+		if (wdp->wd_worker_thread_target_sync & WTSYNC_TARGET_WAITING) {
 		    // Release the target that is waiting on this WorkerThread
 		    //status = sem_post(&wdp->this_worker_thread_is_available_sem);
 		    status = pthread_cond_broadcast(&wdp->wd_this_worker_thread_is_available_condition);
@@ -148,12 +148,12 @@ xdd_worker_thread(void *pin) {
 			fprintf(xgp->errout,"%s: xdd_worker_thread: Target %d WorkerThread %d: WARNING: Bad status from sem_post on this_worker_thread_is_available semaphore: status=%d, errno=%d\n",
 				xgp->progname,
 				tdp->td_target_number,
-				wdp->wd_thread_number,
+				wdp->wd_worker_number,
 				status,
 				errno);
 		    }
 			// Turn off the TARGET_WAITING Flag
-			wdp->wd_worker_thread_target_sync &= ~WDSYNC_TARGET_WAITING; 
+			wdp->wd_worker_thread_target_sync &= ~WTSYNC_TARGET_WAITING; 
 		}
 
 		nclk_now(&checktime);
@@ -170,7 +170,7 @@ xdd_worker_thread(void *pin) {
 			fprintf(xgp->errout,"%s: xdd_worker_thread: Target %d WorkerThread %d: WARNING: Bad status from sem_post on sem_any_worker_thread_available semaphore: status=%d, errno=%d\n",
 				xgp->progname,
 				tdp->td_target_number,
-				wdp->wd_thread_number,
+				wdp->wd_worker_number,
 				status,
 				errno);
 		}

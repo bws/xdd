@@ -310,19 +310,28 @@ xdd_target_open_for_os(target_data_t *tdp) {
 	if (tdp->td_rwratio == 0.0) {
 		if (tdp->td_target_options & TO_SGIO) {
 			tdp->td_file_desc = open(tdp->td_target_full_pathname,tdp->td_open_flags|O_RDWR, 0777); /* Must open RDWR for SGIO */
+if (xgp->global_options & GO_DEBUG_OPEN) fprintf(stderr,"DEBUG_OPEN: %lld: xdd_target_open_for_os: Target: %d: Worker: %d: SGIO WRITE: file_desc: %d\n ", (long long int)pclk_now(),tdp->td_target_number,tdp->td_queue_depth,tdp->td_file_desc);
 			xdd_sg_set_reserved_size(tdp,tdp->td_file_desc);
 			xdd_sg_get_version(tdp,tdp->td_file_desc);
-		} else tdp->td_file_desc = open(tdp->td_target_full_pathname,tdp->td_open_flags|O_WRONLY, 0666); /* write only */
+		} else {
+			tdp->td_file_desc = open(tdp->td_target_full_pathname,tdp->td_open_flags|O_WRONLY, 0666); /* write only */
+if (xgp->global_options & GO_DEBUG_OPEN) fprintf(stderr,"DEBUG_OPEN: %lld: xdd_target_open_for_os: Target: %d: Worker: %d: WRITE ONLY: file_desc: %d\n ", (long long int)pclk_now(),tdp->td_target_number,tdp->td_queue_depth,tdp->td_file_desc);
+		}
 	} else if (tdp->td_rwratio == 1.0) { /* read only */
 		tdp->td_open_flags &= ~O_CREAT;
 		if (tdp->td_target_options & TO_SGIO) {
 			tdp->td_file_desc = open(tdp->td_target_full_pathname,tdp->td_open_flags|O_RDWR, 0777); /* Must open RDWR for SGIO  */
+if (xgp->global_options & GO_DEBUG_OPEN) fprintf(stderr,"DEBUG_OPEN: %lld: xdd_target_open_for_os: Target: %d: Worker: %d: SGIO READ: file_desc: %d\n ", (long long int)pclk_now(),tdp->td_target_number,tdp->td_queue_depth,tdp->td_file_desc);
 			xdd_sg_set_reserved_size(tdp,tdp->td_file_desc);
 			xdd_sg_get_version(tdp,tdp->td_file_desc);
-		} else tdp->td_file_desc = open(tdp->td_target_full_pathname,tdp->td_open_flags|O_RDONLY, 0777); /* Read only */
+		} else {
+			tdp->td_file_desc = open(tdp->td_target_full_pathname,tdp->td_open_flags|O_RDONLY, 0777); /* Read only */
+if (xgp->global_options & GO_DEBUG_OPEN) fprintf(stderr,"DEBUG_OPEN: %lld: xdd_target_open_for_os: Target: %d: Worker: %d: READ ONLY: file_desc: %d\n ", (long long int)pclk_now(),tdp->td_target_number,tdp->td_queue_depth,tdp->td_file_desc);
+		}
 	} else if ((tdp->td_rwratio > 0.0) && (tdp->td_rwratio < 1.0)) { /* read/write mix */
 		tdp->td_open_flags &= ~O_CREAT;
 		tdp->td_file_desc = open(tdp->td_target_full_pathname,tdp->td_open_flags|O_RDWR, 0666);
+if (xgp->global_options & GO_DEBUG_OPEN) fprintf(stderr,"DEBUG_OPEN: %lld: xdd_target_open_for_os: Target: %d: Worker: %d: MIXED RW: file_desc: %d\n ", (long long int)pclk_now(),tdp->td_target_number,tdp->td_queue_depth,tdp->td_file_desc);
 	}
 
 	return(0);

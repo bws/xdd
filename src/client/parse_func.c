@@ -617,8 +617,44 @@ xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 int
 xddfunc_debug(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 {
-	xgp->global_options |= GO_DEBUG;
-	return(1);
+	if (argv[1] == NULL) {
+		fprintf(stderr,"xddfunc_debug: No option for -debug specified: defaulting to -debug ALL\n");
+		xgp->global_options |= GO_DEBUG_ALL;
+		return(1);
+	}
+    if ((strcmp(argv[1], "io") == 0) ||
+		(strcmp(argv[1], "IO") == 0)) {
+			xgp->global_options |= GO_DEBUG_IO;
+	} else if ((strcmp(argv[1], "E2E") == 0) ||
+			   (strcmp(argv[1], "e2e") == 0) ||
+			   (strcmp(argv[1], "END2END") == 0) ||
+			   (strcmp(argv[1], "end2end") == 0)) {
+			xgp->global_options |= GO_DEBUG_E2E;
+	} else if ((strcmp(argv[1], "LOCKSTEP") == 0) ||
+			   (strcmp(argv[1], "lockstep") == 0) ||
+			   (strcmp(argv[1], "LS") == 0) ||
+			   (strcmp(argv[1], "ls") == 0)) {
+			xgp->global_options |= GO_DEBUG_LOCKSTEP;
+	} else if ((strcmp(argv[1], "OPEN") == 0) ||
+			   (strcmp(argv[1], "open") == 0)) {
+			xgp->global_options |= GO_DEBUG_OPEN;
+	} else if ((strcmp(argv[1], "TASK") == 0) ||
+			   (strcmp(argv[1], "task") == 0)) {
+			xgp->global_options |= GO_DEBUG_OPEN;
+	} else if ((strcmp(argv[1], "USER1") == 0) ||
+			   (strcmp(argv[1], "user1") == 0)) {
+			xgp->global_options |= GO_DEBUG_USER1;
+	} else if ((strcmp(argv[1], "ALL") == 0) ||
+			   (strcmp(argv[1], "all") == 0) ||
+			   (strcmp(argv[1], "a") == 0)) {
+			xgp->global_options |= GO_DEBUG_ALL;
+	} else {
+		fprintf(stderr,"xddfunc_debug: Unknown option for -debug: '%s' - defaulting to -debug ALL\n",argv[1]);
+		xgp->global_options |= GO_DEBUG_ALL;
+		if (*argv[1] == '-') // Perhaps this is another option so return 1 and we'll assume that the debug option was not specified
+			return(1);
+	}
+	return(2);
 } // End of xddfunc_debug()
 
 /*----------------------------------------------------------------------------*/
