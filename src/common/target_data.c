@@ -47,7 +47,6 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 	tdp->td_target_number = n; // set upon creation of this Target_Data
 	tdp->td_pid = getpid(); // Set upon creation
 	tdp->td_thread_id = 0; // This is set later by the actual thread 
-	tdp->td_tdpm1 = 0; // set upon creation
 	tdp->td_target_directory = DEFAULT_TARGETDIR; // can be changed by CLO
 	tdp->td_target_basename = DEFAULT_TARGET;  // can be changed by CLO
 	sprintf(tdp->td_target_extension,"%08d",1);  // can be changed by CLO
@@ -212,7 +211,7 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
 	memset((unsigned char *)wdp, 0, sizeof(struct xint_worker_data));
 	wdp->wd_tdp = tdp;
 	wdp->wd_next_wdp = NULL; 
-	wdp->wd_thread_number = q;
+	wdp->wd_worker_number = q;
 	wdp->wd_sgiop = NULL;
         
 	if (tdp->td_target_options & TO_SGIO) {
@@ -236,7 +235,7 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
 			memcpy(wdp->wd_e2ep, tdp->td_e2ep, sizeof(xint_e2e_t));
 	}
 
-	sprintf(wdp->wd_occupant_name,"TARGET%04d_WORKER%04d",tdp->td_target_number,wdp->wd_thread_number); 
+	sprintf(wdp->wd_occupant_name,"TARGET%04d_WORKER%04d",tdp->td_target_number,wdp->wd_worker_number); 
 	xdd_init_barrier_occupant(&wdp->wd_occupant, wdp->wd_occupant_name, XDD_OCCUPANT_TYPE_WORKER_THREAD, tdp);
 	
 	return(wdp);

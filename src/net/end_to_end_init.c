@@ -85,11 +85,11 @@ xdd_e2e_worker_init(worker_data_t *wdp) {
 		fprintf(xgp->errout,"%s: xdd_e2e_worker_init: Target %d Worker Thread %d: No DESTINATION host name or IP address specified for this end-to-end operation.\n",
 				xgp->progname,
 				tdp->td_target_number,
-				wdp->wd_thread_number);
+				wdp->wd_worker_number);
 		fprintf(xgp->errout,"%s: xdd_e2e_worker_init: Target %d Worker Thread %d: Use the '-e2e destination' option to specify the DESTINATION host name or IP address.\n",
 				xgp->progname,
 				tdp->td_target_number,
-				wdp->wd_thread_number);
+				wdp->wd_worker_number);
 		return(-1);
 	}
 
@@ -128,16 +128,19 @@ xdd_e2e_worker_init(worker_data_t *wdp) {
 int32_t
 xdd_e2e_src_init(worker_data_t *wdp) {
 	target_data_t	*tdp;
+	xint_e2e_t		*e2ep;		// Pointer to the E2E data struct
 	int  		status; // status of various function calls 
 
 
 	tdp = wdp->wd_tdp;
+	e2ep = wdp->wd_e2ep;
+	
 	// Check to make sure that the source target is actually *reading* the data from a file or device
 	if (tdp->td_rwratio < 1.0) { // Something is wrong - the source file/device is not 100% read
 		fprintf(xgp->errout,"%s: xdd_e2e_src_init: Target %d Worker Thread %d: Error - E2E source file '%s' is not being *read*: rwratio=%5.2f is not valid\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			tdp->td_target_full_pathname,
 			tdp->td_rwratio);
 		return(-1);
@@ -149,14 +152,28 @@ xdd_e2e_src_init(worker_data_t *wdp) {
 		return(-1);
 	}
 	// Init the relevant variables 
-	wdp->wd_e2ep->e2e_msg_sent = 0;
-	wdp->wd_e2ep->e2e_msg_sequence_number = 0;
+	e2ep->e2e_msg_sent = 0;
+	e2ep->e2e_msg_sequence_number = 0;
+	e2ep->e2e_header_size = (int)(sizeof(xdd_e2e_header_t));
+
 	// Init the message header
-	wdp->wd_e2ep->e2e_header.sequence = 0;
-	wdp->wd_e2ep->e2e_header.sendtime = 0;
-	wdp->wd_e2ep->e2e_header.recvtime = 0;
-	wdp->wd_e2ep->e2e_header.location = 0;
-	wdp->wd_e2ep->e2e_header.sendqnum = 0;
+ 	// For End-to-End operations, the buffer pointers are as follows:
+    //	+----------------+-----------------------------------------------------+
+    //	|<----1 page---->|  transfer size (td_xfer_size) rounded up to N pages |
+    //	|<-task_bufp     |<-task_datap                                         |
+    //	|     |          |                                                     |
+    //	|     |<-Header->|  E2E data buffer                                    |
+    //	+-----*----------*-----------------------------------------------------+
+    //	      ^          ^
+    //	      ^          +-e2e_datap 
+    //	      +-e2e_hdrp 
+	//
+	e2ep->e2e_hdrp->e2eh_worker_thread_number = 0;
+	e2ep->e2e_hdrp->e2eh_sequence_number = 0;
+	e2ep->e2e_hdrp->e2eh_send_time = 0;
+	e2ep->e2e_hdrp->e2eh_recv_time = 0;
+	e2ep->e2e_hdrp->e2eh_byte_offset = 0;
+	e2ep->e2e_hdrp->e2eh_data_length = 0;
 
 
 	return(0);
@@ -248,7 +265,7 @@ xdd_e2e_dest_init(worker_data_t *wdp) {
 		fprintf(xgp->errout,"%s: xdd_e2e_dest_init: Target %d Worker Thread %d: Error - E2E destination file/device '%s' is not being *written*: rwratio=%5.2f is not valid\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			tdp->td_target_full_pathname,
 			tdp->td_rwratio);
 		return(-1);
@@ -383,7 +400,7 @@ xdd_e2e_set_socket_opts(worker_data_t *wdp, int skt) {
 		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d Worker Thread %d: WARNING: on setsockopt SO_SNDBUF: status %d: %s\n", 
 			xgp->progname, 
 			tdp->td_target_number, 
-			wdp->wd_thread_number, 
+			wdp->wd_worker_number, 
 			status, 
 			strerror(errno));
 	}
@@ -392,7 +409,7 @@ xdd_e2e_set_socket_opts(worker_data_t *wdp, int skt) {
 		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d Worker Thread %d: WARNING: on setsockopt SO_RCVBUF: status %d: %s\n", 
 			xgp->progname, 
 			tdp->td_target_number, 
-			wdp->wd_thread_number, 
+			wdp->wd_worker_number, 
 			status, 
 			strerror(errno));
 	}
@@ -401,7 +418,7 @@ xdd_e2e_set_socket_opts(worker_data_t *wdp, int skt) {
 		fprintf(xgp->errout,"%s: xdd_e2e_set_socket_opts: Target %d Worker Thread %d: WARNING: on setsockopt SO_REUSEPORT: status %d: %s\n", 
 			xgp->progname, 
 			tdp->td_target_number, 
-			wdp->wd_thread_number, 
+			wdp->wd_worker_number, 
 			status, 
 			strerror(errno));
 	}
@@ -460,7 +477,7 @@ xdd_e2e_err(worker_data_t *wdp, char const *whence, char const *fmt, ...) {
 		xgp->progname,
 		whence,
 		wdp->wd_tdp->td_target_number,
-		wdp->wd_thread_number);
+		wdp->wd_worker_number);
 	fprintf(xgp->errout, "%s", fmt);
 	perror(" Reason");
 	return;

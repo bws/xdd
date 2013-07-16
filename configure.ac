@@ -272,6 +272,19 @@ AC_TRY_COMPILE([#include <sched.h>],
             AC_DEFINE(HAVE_CPU_SET_T,1,[Define if you have the cpu_set_t type.]),
             [])
 
+dnl
+dnl Check for optional Infiniband headers
+dnl
+ib_enabled="yes"
+AC_ARG_ENABLE([ib],
+              [AS_HELP_STRING(--disable-ib, Disable Infiniband support)],
+              [ib_enabled="$enableval"], [])
+if test "x$ib_enabled" = "xyes" ; then
+  
+  AC_CHECK_HEADERS([infiniband/verbs.h], [AC_DEFINE(HAVE_ENABLE_IB)], [])
+  AC_SEARCH_LIBS([ibv_get_device_list], [ibverbs],
+                 AC_DEFINE(HAVE_IBV_GET_DEVICE_LIST), [])
+fi
 
 dnl
 dnl Check for MPI compiler
@@ -302,10 +315,12 @@ if test "x$xfs_override" = "xyes" ; then
     elif test "x$xfs_lib_support" = "xno" ; then
         AC_MSG_ERROR("XFS libraries not found.")
     fi
+    AC_DEFINE(HAVE_ENABLE_XFS)
     AC_SUBST(CONFIG_XFS_ENABLED, "-DXFS_ENABLED")
     AC_SUBST(CONFIG_XFS_PACKAGE, "-D$xfs_package")
 elif test "x$xfs_enabled" = "xyes" ; then
     if test $xfs_header_support = yes -a $xfs_lib_support = yes ; then
+        AC_DEFINE(HAVE_ENABLE_XFS)
         AC_SUBST(CONFIG_XFS_ENABLED, "-DXFS_ENABLED")
         AC_SUBST(CONFIG_XFS_PACKAGE, "-D$xfs_package")
     fi
@@ -320,11 +335,6 @@ AC_CHECK_HEADERS([linux/magic.h],
                                  [[#include <linux/magic.h>]]),
                  [])
 
-
-dnl
-dnl Check whether to enable assertions
-dnl
-dnl AC_HEADER_ASSERT
 
 dnl
 dnl Ensure that XDDCP required utilities are present
@@ -403,6 +413,8 @@ if test "x$enable_debug" = "xyes"; then
     elif test "$CC" = "gcc"; then
         AX_CFLAGS_GCC_OPTION([-Werror])
     fi
+    dnl Only works with recent-ish versions of autoconf
+    dnl AC_HEADER_ASSERT
 fi
 
 dnl

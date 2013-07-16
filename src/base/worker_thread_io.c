@@ -65,10 +65,9 @@ xdd_worker_thread_io(worker_data_t *wdp) {
 		fprintf(xgp->errout,"\n%s: xdd_worker_thread_io: Target %d Worker Thread %d: ERROR: Canceling run due to previous error\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number);
+			wdp->wd_worker_number);
 		xgp->canceled = 1; // Need to terminate early
 	}
-
 
 	// If this is the Destination Side of an E2E operation and this is an End-of-File Packet 
 	// there is no data to write to the storage so just set the "EOF_RECEIVED" bit in the
@@ -76,7 +75,7 @@ xdd_worker_thread_io(worker_data_t *wdp) {
 	// done receiving data from the Source Side.
 	// If there is Loose or Serial Ordering in effect then we need to release the Next Worker Thread
 	// before returning.
-	if ((tdp->td_target_options & TO_E2E_DESTINATION) && (wdp->wd_e2ep->e2e_header.magic == XDD_E2E_MAGIQ)) { 
+	if ((tdp->td_target_options & TO_E2E_DESTINATION) && (wdp->wd_e2ep->e2e_hdrp->e2eh_magic == XDD_E2E_EOF)) { 
 		// Indicate that this Worker Thread has received its EOF Packet
 		pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
 		wdp->wd_worker_thread_target_sync |= WTSYNC_EOF_RECEIVED;
@@ -88,7 +87,7 @@ xdd_worker_thread_io(worker_data_t *wdp) {
 
 		return;
 	}
-		
+
 	// Wait for the Previous I/O to release this Worker Thread if Serial or Loose Ordering is in effect.
 	// It is important to note that for Serial Ordering, when we get released by the Worker Thread that performed
 	// the previous I/O operation and we are gauranteed that the previous I/O operation has completed.
@@ -174,7 +173,7 @@ xdd_worker_thread_wait_for_previous_io(worker_data_t *wdp) {
 	pthread_mutex_lock(&tep->tot_mutex);
 	tdp->td_current_state &= ~CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS;
 	nclk_now(&tep->tot_wait_ts);
-	tep->tot_wait_worker_thread_number = wdp->wd_thread_number;
+	tep->tot_wait_worker_thread_number = wdp->wd_worker_number;
 
 	
 	tdp->td_current_state |= CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO;
@@ -212,7 +211,7 @@ xdd_worker_thread_release_next_io(worker_data_t *wdp) {
 	tdp->td_current_state |= CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE;
 	pthread_mutex_lock(&tep->tot_mutex);
 	tdp->td_current_state &= ~CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE;
-	tep->tot_post_worker_thread_number = wdp->wd_thread_number;
+	tep->tot_post_worker_thread_number = wdp->wd_worker_number;
 	nclk_now(&tep->tot_post_ts);
 
 	// Increment the specified semaphore to let the next Worker Thread run 
@@ -223,7 +222,7 @@ xdd_worker_thread_release_next_io(worker_data_t *wdp) {
 		fprintf(xgp->errout,"%s: xdd_worker_thread_release_next_io: Target %d Worker Thread %d: ERROR: Bad status from sem_post: status=%d, errno=%d, target_op_number=%lld, tot_offset=%d\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			status,
 			errno,
 			(long long int)tdp->td_counters.tc_current_op_number,
@@ -263,6 +262,9 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 	// Get the pointer to the Target's Data
 	tdp = wdp->wd_tdp;
 
+
+if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worker_thread_update_local_counters: Target: %d: Worker: %d: byte_offset: %lld: wd_counters.tc_current_op_elapsed_time: %lld:  wd_counters.tc_current_op_start_time: %lld: wd_counters.tc_current_op_end_time: %lld: wd_counters.tc_current_op_elapsed_time: %lld\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,(long long int)wdp->wd_task.task_byte_offset,(unsigned long long int)wdp->wd_counters.tc_current_op_elapsed_time,(unsigned long long int)wdp->wd_counters.tc_current_op_start_time,(unsigned long long int)wdp->wd_counters.tc_current_op_end_time,(unsigned long long int)(wdp->wd_counters.tc_current_op_end_time - wdp->wd_counters.tc_current_op_start_time));
+
 	wdp->wd_counters.tc_current_op_elapsed_time = (wdp->wd_counters.tc_current_op_end_time - wdp->wd_counters.tc_current_op_start_time);
 	wdp->wd_counters.tc_accumulated_op_time += wdp->wd_counters.tc_current_op_elapsed_time;
 	wdp->wd_counters.tc_current_io_errno = errno;
@@ -296,7 +298,7 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 		fprintf(xgp->errout, "%s: I/O ERROR on Target %d Worker Thread %d: ERROR: Status %d, I/O Transfer Size [expected status] %d, %s Operation Number %lld\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			(int)wdp->wd_task.task_io_status,
 			(int)wdp->wd_task.task_xfer_size,
 			wdp->wd_task.task_op_string,
@@ -306,7 +308,7 @@ xdd_worker_thread_update_local_counters(worker_data_t *wdp) {
 				fprintf(xgp->errout, "%s: Target %d Worker Thread %d: WARNING: END-OF-FILE Reached during %s Operation Number %lld\n",
 					xgp->progname,
 					tdp->td_target_number,
-					wdp->wd_thread_number,
+					wdp->wd_worker_number,
 					wdp->wd_task.task_op_string,
 					(long long)wdp->wd_task.task_op_number);
 			} else {
@@ -344,12 +346,6 @@ xdd_worker_thread_update_target_counters(worker_data_t *wdp) {
 		tdp->td_counters.tc_accumulated_op_count++;
 		if (tdp->td_e2ep && wdp->wd_e2ep)
 			tdp->td_e2ep->e2e_sr_time += wdp->wd_e2ep->e2e_sr_time; // E2E Send/Receive Time
-//		if ( (tdp->td_target_options & TO_ENDTOEND) && (tdp->td_target_options & TO_E2E_DESTINATION)) {
-//			if ( wdp->wd_first_pass_start_time < tdp->td_first_pass_start_time)  // Record the proper *First* pass start time
-//				tdp->td_first_pass_start_time = wdp->wd_first_pass_start_time;
-//			if ( wdp->wd_counters.tc_pass_start_time < tdp->td_counters.tc_pass_start_time)  // Record the proper PASS start time
-//				tdp->td_counters.tc_pass_start_time = wdp->wd_counters.tc_pass_start_time;
-//		}
 		// Operation-specific counters
 		switch (wdp->wd_task.task_op_type) { 
 			case TASK_OP_TYPE_READ: 
@@ -390,7 +386,7 @@ xdd_worker_thread_update_target_counters(worker_data_t *wdp) {
 	    tdp->td_current_state |= CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
 	    tot_update(tdp->td_totp,
 		       wdp->wd_task.task_op_number,
-		       wdp->wd_thread_number,
+		       wdp->wd_worker_number,
 		       wdp->wd_task.task_byte_offset,
 		       wdp->wd_task.task_xfer_size);
 	    tdp->td_current_state &= ~CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;

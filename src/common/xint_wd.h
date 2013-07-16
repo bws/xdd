@@ -36,21 +36,22 @@ struct xint_worker_data {
 	target_data_t 				*wd_tdp;	 		// Pointer back to the Parent Target Data
 	struct xint_worker_data		*wd_next_wdp;		// Pointer to the next worker_data struct in the list
 	pthread_t  					wd_thread;			// Handle for this Worker_Thread
-	int32_t   					wd_thread_number;	// My queue number within this target 
+	int32_t   					wd_worker_number;	// My worker number within this target relative to 0
 	int32_t   					wd_thread_id;  		// My system thread ID (like a process ID) 
 	int32_t   					wd_pid;   			// My process ID 
-	int32_t						wd_rwbuf_shmid; 	// Shared Memory ID
+	unsigned char				*wd_bufp;			// Pointer to the generic I/O buffer
+	int							wd_buf_size;		// Size in bytes of the generic I/O buffer
 	int64_t						wd_ts_entry;		// The TimeStamp entry to use when time-stamping an operation
 	struct xint_task			wd_task;			// Task Structure
-	struct xint_target_counters	wd_counters;		// Pointer to the target counters
+	struct xint_target_counters	wd_counters;		// Counters specific to this worker for this target
 
 	// Worker Thread-specific locks and associated pointers
 	pthread_mutex_t	wd_worker_thread_target_sync_mutex;	// Used to serialize access to the Worker_Thread-Target Synchronization flags
 	int32_t			wd_worker_thread_target_sync;		// Flags used to synchronize a Worker_Thread with its Target
-#define	WDSYNC_AVAILABLE			0x00000001		// This Worker_Thread is available for a task, set by qthread, reset by xdd_get_specific_qthread.
-#define	WDSYNC_BUSY					0x00000002		// This Worker_Thread is busy
-#define	WDSYNC_TARGET_WAITING		0x00000004		// The parent Target is waiting for this Worker_Thread to become available, set by xdd_get_specific_qthread, reset by qthread.
-#define	WDSYNC_EOF_RECEIVED			0x00000008		// This Worker_Thread received an EOF packet from the Source Side of an E2E Operation
+#define	WTSYNC_AVAILABLE			0x00000001		// This Worker_Thread is available for a task, set by qthread, reset by xdd_get_specific_qthread.
+#define	WTSYNC_BUSY					0x00000002		// This Worker_Thread is busy
+#define	WTSYNC_TARGET_WAITING		0x00000004		// The parent Target is waiting for this Worker_Thread to become available, set by xdd_get_specific_qthread, reset by qthread.
+#define	WTSYNC_EOF_RECEIVED			0x00000008		// This Worker_Thread received an EOF packet from the Source Side of an E2E Operation
     pthread_cond_t 	wd_this_worker_thread_is_available_condition;
 	xdd_barrier_t	wd_thread_targetpass_wait_for_task_barrier;	// The barrier where the Worker_Thread waits for targetpass() to release it with a task to perform
 	xdd_occupant_t	wd_occupant;		// Used by the barriers to keep track of what is in a barrier at any given time

@@ -57,10 +57,20 @@ void	xdd_datapattern_fill(worker_data_t *wdp);
 void	xdd_show_plan(xdd_plan_t *planp);
 void	xdd_show_target_data(target_data_t *tdp);
 void	xdd_show_global_data(void);
+void	xdd_show_worker_data(worker_data_t *wdp);
+void	xdd_show_task(xint_task_t *taskp);
+void	xdd_show_occupant(xdd_occupant_t *op);
+void	xdd_show_target_counters(xint_target_counters_t *tcp);
+void 	xdd_show_e2e(xint_e2e_t *e2ep);
+void 	xdd_show_e2e_header(xdd_e2e_header_t *e2ehp);
 
 // end_to_end.c
 int32_t	xdd_e2e_src_send(worker_data_t *wdp);
-int32_t	xdd_e2e_dest_recv(worker_data_t *wdp);
+int32_t	xdd_e2e_dest_receive(worker_data_t *wdp);
+int32_t	xdd_e2e_dest_connection(worker_data_t *wdp);
+int32_t	xdd_e2e_dest_receive_header(worker_data_t *wdp);
+int32_t	xdd_e2e_dest_receive_data(worker_data_t *wdp);
+int32_t	xdd_e2e_dest_receive_error(worker_data_t *wdp);
 int32_t xdd_e2e_eof_source_side(worker_data_t *wdp);
 int32_t xdd_e2e_eof_destination_side(worker_data_t *wdp);
 

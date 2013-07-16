@@ -58,7 +58,7 @@ xdd_threshold_after_io_op(worker_data_t *wdp) {
 			fprintf(xgp->output, "%s: Target number %d Worker Thread %d: INFO: Threshold, %lld, exceeded by, %lld, microseconds, IO time was, %lld, usec on block, %lld\n",
 				xgp->progname, 
 				tdp->td_target_number, 
-				wdp->wd_thread_number,
+				wdp->wd_worker_number,
 				(long long)tdp->td_report_threshold/MILLION, 
 				(long long)excess_time, 
 				(long long)tdp->td_counters.tc_current_op_elapsed_time/MILLION, 
@@ -87,14 +87,14 @@ xdd_status_after_io_op(worker_data_t *wdp) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d Worker Thread %d: ERROR: Error on this target caused a Stop_On_Error Event\n",
 			xgp->progname,
 			tdp->td_target_number, 
-			wdp->wd_thread_number);
+			wdp->wd_worker_number);
 	}
 
 	if (wdp->wd_counters.tc_current_error_count >= xgp->max_errors) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d Worker Thread %d: WARNING: Maximum error threshold reached on target - current error count is %lld, maximum count is %lld\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			(long long int)wdp->wd_counters.tc_current_error_count,
 			(long long int)xgp->max_errors);
 	}
@@ -103,7 +103,7 @@ xdd_status_after_io_op(worker_data_t *wdp) {
 		fprintf(xgp->errout, "%s: status_after_io_op: Target %d Worker Thread %d: WARNING: End-Of-File reached on target named '%s' status=%d, errno=%d\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			tdp->td_target_full_pathname,
 			(int)wdp->wd_task.task_io_status, 
 			wdp->wd_task.task_errno);
@@ -158,7 +158,7 @@ xdd_dio_after_io_op(worker_data_t *wdp) {
 	// Reopen the file descriptor for this Worker Thread
 #if (SOLARIS || WIN32)
 	// For this OS, we need to issue a full open to the target device/file.
-	status = xdd_target_open(wdp);
+	status = xdd_target_open(tdp);
 #else // LINUX, AIX, DARWIN
 	// In this OS, we do not do an actual open because the Worker Threads share the File Descriptor
 	// with the Target Thread. Therefore, we issue a "shallow" open.
@@ -170,7 +170,7 @@ xdd_dio_after_io_op(worker_data_t *wdp) {
 	    fprintf(xgp->errout,"%s: xdd_dio_after_io_op: ERROR: Target %d Worker Thread %d: Reopen of target '%s' failed\n",
 		    xgp->progname,
 		    tdp->td_target_number,
-		    wdp->wd_thread_number,
+		    wdp->wd_worker_number,
 		    tdp->td_target_full_pathname);
 	    fflush(xgp->errout);
 	    xgp->canceled = 1;
@@ -227,7 +227,10 @@ xdd_e2e_after_io_op(worker_data_t *wdp) {
 
 
 	tdp = wdp->wd_tdp;
-	if ( (wdp->wd_counters.tc_current_io_status > 0) && (tdp->td_target_options & TO_ENDTOEND) ) {
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: ENTER\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+if (xgp->global_options & GO_DEBUG_E2E) xdd_show_task(&wdp->wd_task);
+
+	if ( (wdp->wd_task.task_io_status > 0) && (tdp->td_target_options & TO_ENDTOEND) ) {
 		if (tdp->td_target_options & TO_E2E_SOURCE) {
 			// For Serial Ordering, wait for the Previous I/O to complete before the associated Worker Thread releases this Worker Thread. 
 			// It is important to note that for Srial Ordering, when we get released by the Previous Worker Thread
@@ -235,29 +238,27 @@ xdd_e2e_after_io_op(worker_data_t *wdp) {
 			// the data is at the Destination machine memory and not necessarily on the Destination storage. 
 			// For Loose Ordering we get released just *before* the previous Worker Thread actually performs its sendto() 
 			// operation. 
-//Therefore, in order to ensure that the previous Worker Thread's I/O operation actually completes [properly], 
-// we need to wait again *after* we have completed our sendto() operation for the previous Worker Thread to 
-// release us *after* it completes its sendto(). 
 
 			// Send the data to the Destination machine
-			wdp->wd_e2ep->e2e_header.magic = XDD_E2E_MAGIC;
+			wdp->wd_e2ep->e2e_hdrp->e2eh_magic = XDD_E2E_DATA_READY;
 			tdp->td_current_state |= CURRENT_STATE_SRC_SEND;
 
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Calling xdd_e2e_src_send...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 			xdd_e2e_src_send(wdp);
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Returned from xdd_e2e_src_send...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 
 			tdp->td_current_state &= ~CURRENT_STATE_SRC_SEND;
 
-			
-// If Loose Ordering is in effect then we need to wait for the Previous Worker Thread to complete
-// its sendto() operation and release us before we continue. This is done to prevent this Worker Thread and
-// subsequent Worker Threads from getting too far ahead of the Previous Worker Thread.
-//			if (tdp->td_target_options & TO_LOOSE_ORDERING) {
-//				xdd_worker_thread_wait_for_previous_worker_thread(wdp,0);
-//			}
+			// If Loose Ordering is in effect then we need to wait for the Previous Worker Thread to complete
+			// its sendto() operation and release us before we continue. This is done to prevent this Worker Thread and
+			// subsequent Worker Threads from getting too far ahead of the Previous Worker Thread.
+			if (tdp->td_target_options & TO_ORDERING_STORAGE_LOOSE) {
+				xdd_worker_thread_wait_for_previous_io(wdp);
+			}
 	
 		} // End of me being the SOURCE in an End-to-End test 
 	} // End of processing a End-to-End
-
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: EXIT...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 } // End of xdd_e2e_after_io_op(wdp) 
 
 /*----------------------------------------------------------------------------*/
@@ -282,7 +283,7 @@ xdd_extended_stats(worker_data_t *wdp) {
 		fprintf(xgp->errout, "%s: xdd_extended_stats: Target %d Worker Thread %d: INTERNAL ERROR: No pointer to Extended Stats Structure for target named '%s'\n",
 			xgp->progname,
 			tdp->td_target_number,
-			wdp->wd_thread_number,
+			wdp->wd_worker_number,
 			tdp->td_target_full_pathname);
 		return;
 	}

@@ -1,6 +1,8 @@
 #ifndef XDD_XNI_H
 #define XDD_XNI_H
 
+#include <stdint.h>
+#include <stdlib.h>
 
 /*! \defgroup XNI Generic Interface
  * @{
@@ -26,33 +28,6 @@ enum {
 struct xni_protocol;
 /*! \brief Opaque type representing an XNI implementation. */
 typedef struct xni_protocol *xni_protocol_t;
-
-/*! \brief Memory allocation callback.
- *
- * The user may provide XNI with a function that will be called to
- * allocate memory for *message buffers.* The purpose of this callback
- * is to allow the user to more precisely control the location of
- * allocated memory. The memory may be pinned to a specific NUMA node,
- * for instance. The address returned by this function must point to a
- * block of memory at least \a size bytes in size that is aligned
- * modulo \a alignment. The \a alignment requested will be a power of
- * two.
- *
- * \param size The size of memory required in bytes.
- * \param alignment The required alignment.
- *
- * \return A pointer to an allocated block of memory.
- */
-typedef void* (*xni_allocate_fn_t)(size_t size, int alignment);
-/*! \brief Memory deallocation callback.
- *
- * The user may provide XNI with a function to release memory. XNI
- * will only call this function with a pointer returned from an
- * #xni_allocate_fn_t.
- *
- * \param[in] memptr A pointer to the block of memory to free.
- */
-typedef void (*xni_free_fn_t)(void *memptr);
 
 /*! \brief Opaque type representing a control block.
  *
@@ -89,12 +64,13 @@ struct xni_connection;
   */
 typedef struct xni_connection *xni_connection_t;
 
-/*! \brief Address of a remote process.
- */
 struct xni_endpoint {
   const char *host;  /*!< An IPv4 dotted-quad string. */
   int port;  /*!< An IPv4 port. */
 };
+/*! \brief Address of a remote process.
+ */
+typedef struct xni_endpoint xni_endpoint_t;
 
 struct xni_target_buffer;
 /*! \brief Opaque type representing a target file buffer.
@@ -170,6 +146,29 @@ int xni_context_create(xni_protocol_t protocol, xni_control_block_t control_bloc
  */
 int xni_context_destroy(xni_context_t *context);
 
+/*! \brief Register memory with XNI.
+ *
+ * This function provides XNI drivers to perform optimizations based on
+ * the adress of the memory buffers in use.
+ *
+ * \return #XNI_OK if registration was successful.
+ * \return #XNI_ERR if registration failed.
+ *
+ * \sa xni_unregister()
+ */
+int xni_register_buffer(xni_context_t context, void* buf, size_t nbytes, size_t reserved);
+/*! \brief Free resources associated with registering memory with XNI.
+ *
+ * This function frees any resources used to register memory for use with
+ * XNI.
+ *
+ * \return #XNI_OK if the cleanup was successful.
+ * \return #XNI_ERR if the cleanup failed.
+ *
+ * \sa xni_register()
+ */
+int xni_unregister_buffer(xni_context_t context, void* buf);
+
 /*! \brief Wait for a connection from a remote process.
  *
  * This function creates a <em>destination-side connection</em> by
@@ -194,7 +193,7 @@ int xni_context_destroy(xni_context_t *context);
  * \sa xni_close_connection()
  * \sa xni_receive_target_buffer()
  */
-int xni_accept_connection(xni_context_t context, struct xni_endpoint *local, int num_buffers, size_t buffer_size, xni_connection_t *connection);
+int xni_accept_connection(xni_context_t context, struct xni_endpoint *local, xni_connection_t *connection);
 /*! \brief Initiate a connection to a remote process.
  *
  * This function creates a <em>source-side connection</em> by
@@ -221,7 +220,7 @@ int xni_accept_connection(xni_context_t context, struct xni_endpoint *local, int
  * \sa xni_request_target_buffer()
  */
 //TODO: local_endpoint
-int xni_connect(xni_context_t context, struct xni_endpoint *remote, int num_buffers, size_t buffer_size, xni_connection_t *connection);
+int xni_connect(xni_context_t context, struct xni_endpoint *remote, xni_connection_t *connection);
 /*! \brief Close a connection and free its resources.
  *
  * This function closes a connection and frees all allocated target
@@ -274,6 +273,7 @@ int xni_request_target_buffer(xni_connection_t connection, xni_target_buffer_t *
  * is not associated with a <em>source-side connection.</em> It is an
  * error to send a target buffer whose data length is less than one.
  *
+ * \param[in] connection The connection to send target.
  * \param[in,out] buffer The buffer to send.
  *
  * \return #XNI_OK if the target buffer was sent.
@@ -281,7 +281,7 @@ int xni_request_target_buffer(xni_connection_t connection, xni_target_buffer_t *
  *
  * \sa xni_request_target_buffer()
  */
-int xni_send_target_buffer(xni_target_buffer_t *buffer);
+int xni_send_target_buffer(xni_connection_t connection, xni_target_buffer_t *buffer);
 /*! \brief Wait for a target buffer to arrive from the remote process.
   *
   * This function blocks on \e connection until a target buffer
@@ -388,16 +388,10 @@ enum {
 };
 /*! \brief Create a control block for the TCP implementation.
  *
- * Either both \e allocatefn and \e freefn must be provided or
- * neither. If \e allocatefn and \e freefn are \c NULL then a default
- * allocator is used.
- *
  * If \e num_sockets is #XNI_TCP_DEFAULT_NUM_SOCKETS then the number
  * of sockets will be equal to the number of target buffers specified
  * when a connection is created.
  *
- * \param allocatefn The function used to allocate memory or \c NULL.
- * \param freefn The function used to free memory or \c NULL.
  * \param num_sockets The number of TCP sockets to create per connection.
  * \param[out] control_block The newly allocated control block.
  *
@@ -406,7 +400,7 @@ enum {
  *
  * \sa xni_free_tcp_control_block()
  */
-int xni_allocate_tcp_control_block(xni_allocate_fn_t allocatefn, xni_free_fn_t freefn, int num_sockets, xni_control_block_t *control_block);
+int xni_allocate_tcp_control_block(int num_sockets, xni_control_block_t *control_block);
 /*! \brief Free a TCP control block.
  *
  * It is forbidden to call this function more than once with the same
@@ -438,16 +432,11 @@ extern xni_protocol_t xni_protocol_tcp;
 
 /*! \brief Create a control block for the InfiniBand implementation.
  *
- * Either both \e allocatefn and \e freefn must be provided or
- * neither. If \e allocatefn and \e freefn are \c NULL then a default
- * allocator is used.
- *
  * If \e device_name is \c NULL then XNI will use the first IB device
  * found.
  *
- * \param allocatefn The function used to allocate memory or \c NULL.
- * \param freefn The function used to free memory or \c NULL.
  * \param[in] device_name The name of the IB device to bind to or \c NULL.
+ * \param[in] num_buffers The number of memory buffers to register.
  * \param[out] control_block The newly allocated control block.
  *
  * \return #XNI_OK if the control block was successfully created.
@@ -455,7 +444,7 @@ extern xni_protocol_t xni_protocol_tcp;
  *
  * \sa xni_free_ib_control_block()
  */
-int xni_allocate_ib_control_block(xni_allocate_fn_t allocatefn, xni_free_fn_t freefn, const char *device_name, xni_control_block_t *control_block);
+int xni_allocate_ib_control_block(const char *device_name, size_t num_buffers, xni_control_block_t *control_block);
 /*! \brief Free an InfiniBand control block.
  *
  * It is forbidden to call this function more than once with the same
@@ -482,3 +471,14 @@ extern xni_protocol_t xni_protocol_ib;
 
 
 #endif  // XDD_XNI_H
+
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  default-tab-width: 4
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */
