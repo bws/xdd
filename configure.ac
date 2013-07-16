@@ -337,11 +337,6 @@ AC_CHECK_HEADERS([linux/magic.h],
 
 
 dnl
-dnl Check whether to enable assertions
-dnl
-dnl AC_HEADER_ASSERT
-
-dnl
 dnl Ensure that XDDCP required utilities are present
 dnl
 xddcp_disable="no"
@@ -418,7 +413,8 @@ if test "x$enable_debug" = "xyes"; then
     elif test "$CC" = "gcc"; then
         AX_CFLAGS_GCC_OPTION([-Werror])
     fi
-    AC_HEADER_ASSERT
+    dnl Only works with recent-ish versions of autoconf
+    dnl AC_HEADER_ASSERT
 fi
 
 dnl
