@@ -8,6 +8,16 @@
 #include "xni.h"
 
 #define BUFFER_PREPADDING 4096
+//#define DEFAULT_HOST "127.0.0.1"
+#define DEFAULT_HOST "128.219.144.20"
+
+#define FAIL() fail(__LINE__)
+
+static int fail(int lineno)
+{
+  printf("FAIL (line %d)\n", lineno);
+  exit(EXIT_FAILURE);
+}
 
 int start_server()
 {
@@ -26,16 +36,19 @@ int start_server()
 	// Third, register the memroy
     void* buf = 0;
     posix_memalign(&buf, 4096, BUFFER_PREPADDING + 512);
+    memset(buf, 2, BUFFER_PREPADDING + 512);
     xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING);
     
     // Third, accept connections
-    xni_endpoint_t xni_ep = {.host = "127.0.0.1", .port = 40000};
+    xni_endpoint_t xni_ep = {.host = DEFAULT_HOST, .port = 40000};
     xni_connection_t xni_conn;
-    xni_accept_connection(xni_ctx, &xni_ep, &xni_conn);
+    if (xni_accept_connection(xni_ctx, &xni_ep, &xni_conn))
+		FAIL();
     
     // Now pass a little data back and forth
 	xni_target_buffer_t xtb = 0;
-    xni_receive_target_buffer(xni_conn, &xtb);
+    if (xni_receive_target_buffer(xni_conn, &xtb))
+		FAIL();
 	char* payload = xni_target_buffer_data(xtb);
 	size_t l = xni_target_buffer_data_length(xtb);
 	printf("First 32 bits set to: %d Second 32 bits set to: %d\n", payload[0], payload[4]);
@@ -57,33 +70,34 @@ int start_client()
     xni_initialize();
 
     // Second, create the context
-	xni_endpoint_t xni_ep = {.host = "", .port = 0};
     xni_control_block_t xni_cb = 0;
     xni_context_t xni_ctx;
-	xni_allocate_tcp_control_block(1, &xni_cb);
-    xni_context_create(xni_protocol_tcp, xni_cb, &xni_ctx);
+	xni_allocate_ib_control_block("mlx4_0", 1, &xni_cb);
+    xni_context_create(xni_protocol_ib, xni_cb, &xni_ctx);
  
 	// Third, register the buffers (1 per socket)
     void* buf = 0;
     posix_memalign(&buf, 4096, BUFFER_PREPADDING + 512);
-	xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING);
+    memset(buf, 3, BUFFER_PREPADDING + 512);
+	if (xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING))
+		FAIL();
 	
     // Fourth, connect to the server
-	xni_ep.host = "127.0.0.1";
-    xni_ep.port = 40000;
+	xni_endpoint_t xni_ep = {.host = DEFAULT_HOST, .port = 40000};
     xni_connection_t xni_conn;
-    xni_connect(xni_ctx, &xni_ep, &xni_conn);
+    if (xni_connect(xni_ctx, &xni_ep, &xni_conn))
+ 		FAIL();
 	
     // Now pass a little data back and forth
 	xni_target_buffer_t xtb = 0;
-	xni_request_target_buffer(xni_conn, &xtb);
+	if (xni_request_target_buffer(xni_conn, &xtb)) FAIL();
 	xni_target_buffer_set_target_offset(0, xtb);
 	xni_target_buffer_set_data_length(512, xtb);
 	char* payload = xni_target_buffer_data(xtb);
 	memset(payload, 0, 512);
 	memset(payload, 1, 4);
 	printf("First 32 bits set to: %d Second 32 bits set to: %d\n", payload[0], payload[4]);
-	xni_send_target_buffer(xni_conn, &xtb);
+	if (xni_send_target_buffer(xni_conn, &xtb)) FAIL();
 	
     // XNI cleanup stuff
     xni_finalize();

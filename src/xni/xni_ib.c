@@ -20,7 +20,7 @@
 #include "xni.h"
 #include "xni_internal.h"
 
-#define XNI_TRACE 1
+//#define XNI_TRACE 1
 #define PROTOCOL_NAME "ib-nlmills-20120809"
 #define ALIGN(val,align) (((val)+(align)-1UL) & ~((align)-1UL))
 
@@ -59,8 +59,6 @@ struct ib_connection {
 	// added by struct ib_connection
 	//
 	struct ib_credit_buffer **credit_buffers;  // NULL-terminated
-	int buffer_size;
-	int num_buffers;
 	int credits;
 	int eof;
 
@@ -85,17 +83,19 @@ enum send_state {
   ERROR,
 };
 struct ib_target_buffer {
-  // inherited from xni_target_buffer
-  struct ib_context *context;
-  void *data;
-  size_t target_offset;
-  int data_length;
+	// inherited from xni_target_buffer
+	struct ib_context *context;
+	void *data;
+	size_t target_offset;
+	int data_length;
 
-  // added by struct ib_target_buffer
-  int busy;
-  enum send_state send_state;
-  struct ibv_mr *memory_region;
-  void *header;
+	// added by struct ib_target_buffer
+	size_t buffer_size;
+	int busy;
+	enum send_state send_state;
+	struct ibv_mr *memory_region;
+	void *header;
+	struct ib_connection *connection;
 };
 
 #define IB_CREDIT_MESSAGE_SIZE 8  // = tag(4) + credits(4)
@@ -231,10 +231,12 @@ static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size
 	tb->context = ctx;
 	tb->data = (void*)datap;
 	tb->data_length = -1;
+	tb->buffer_size = nbytes - reserved;
 	tb->busy = 0;
 	tb->send_state = 0;
 	tb->memory_region = mr;
 	tb->header = (void*)(datap - IB_DATA_MESSAGE_HEADER_SIZE);
+	tb->connection = NULL;
 	ctx->num_registered++;
 	pthread_mutex_unlock(&ctx->target_buffers_mutex);
 	return XNI_OK;
@@ -388,6 +390,10 @@ static int send_credits(struct ib_connection *conn, int ncredits)
 	//
 	struct ib_credit_buffer *cb = NULL;
 
+#ifdef XNI_TRACE
+	puts("Searching for credit.");
+#endif
+	
 	pthread_mutex_lock(&conn->credit_mutex);
 	while (cb == NULL) {
 		// first try to find a free one
@@ -400,8 +406,9 @@ static int send_credits(struct ib_connection *conn, int ncredits)
 
 		// otherwise mark any that have become free
 		if (cb == NULL) {
-			struct ibv_wc wc[conn->num_buffers];
-			int completed = ibv_poll_cq(conn->send_cq, conn->num_buffers, wc);
+			size_t num_bufs = conn->context->num_registered;
+			struct ibv_wc wc[num_bufs];
+			int completed = ibv_poll_cq(conn->send_cq, num_bufs, wc);
 			if (completed < 0) {
 				pthread_mutex_unlock(&conn->credit_mutex);
 				return 1;
@@ -414,6 +421,10 @@ static int send_credits(struct ib_connection *conn, int ncredits)
 	}
 	pthread_mutex_unlock(&conn->credit_mutex);
 
+#ifdef XNI_TRACE
+	puts("Found a credit");
+#endif
+	
 	//
 	// encode and send the credit message
 	//
@@ -436,6 +447,12 @@ static int send_credits(struct ib_connection *conn, int ncredits)
 	wr.num_sge = 1;
 	wr.opcode = IBV_WR_SEND;
 	wr.send_flags = 0;
+
+#ifdef XNI_TRACE
+	puts("Sending credit.");
+#endif
+	
+
 	if (ibv_post_send(conn->queue_pair, &wr, &badwr)) {
 		pthread_mutex_lock(&conn->credit_mutex);
 		cb->busy = 0;
@@ -444,7 +461,84 @@ static int send_credits(struct ib_connection *conn, int ncredits)
 	}
 	// don't wait for send completion
 
+#ifdef XNI_TRACE
+	puts("Not waiting for send completion.");
+#endif
+
 	return 0;
+}
+
+static int consume_credit(struct ib_connection *conn)
+{
+  pthread_mutex_lock(&conn->credit_mutex);
+  while (conn->credits < 1) {
+    struct ibv_wc wc;
+    memset(&wc, 0, sizeof(wc)); 
+    int completed = ibv_poll_cq(conn->receive_cq, 1, &wc);
+    if (completed < 0 || wc.status != IBV_WC_SUCCESS) {
+      pthread_mutex_unlock(&conn->credit_mutex);
+      return 1;
+    }
+    if (completed > 0) {
+      struct ib_credit_buffer *cb = (struct ib_credit_buffer*)wc.wr_id;
+      uint32_t tmp32 = 0;
+      //TODO: NBO?
+      memcpy(&tmp32, cb->msgbuf+TAG_LENGTH, 4);
+      //TODO: check for deadlock if receive can't be posted
+      post_receive(conn->queue_pair, cb->memory_region, cb->msgbuf,
+                   IB_CREDIT_MESSAGE_SIZE, (uintptr_t)cb);
+      conn->credits += tmp32;
+    }
+  }
+  conn->credits -= 1;
+  pthread_mutex_unlock(&conn->credit_mutex);
+
+  return 0;
+}
+
+//XXX: not thread safe; all other ops must be finished
+static int send_eof(struct ib_connection *conn)
+{
+  //TODO: use a better buffer
+  //XXX: for now, just hijack the first target bufffer
+  struct ib_target_buffer *tb = conn->context->target_buffers;
+  // encode the message
+  memcpy(tb->header, EOF_MESSAGE_TAG, TAG_LENGTH);
+
+  // send the message
+  struct ibv_sge sge;
+  memset(&sge, 0, sizeof(sge)); 
+  sge.addr = (uintptr_t)tb->header;
+  sge.length = TAG_LENGTH;
+  sge.lkey = tb->memory_region->lkey;
+
+  struct ibv_send_wr wr, *badwr;
+  memset(&wr, 0, sizeof(wr)); 
+  wr.wr_id = (uintptr_t)tb;
+  wr.next = NULL;
+  wr.sg_list = &sge;
+  wr.num_sge = 1;
+  wr.opcode = IBV_WR_SEND;
+  wr.send_flags = 0;
+  if (consume_credit(conn))
+    return 1;
+  if (ibv_post_send(conn->queue_pair, &wr, &badwr))
+    return 1;
+
+  // wait for send completion
+  struct ibv_wc wc;
+  memset(&wc, 0, sizeof(wc)); 
+  int completed = 0;
+  do {
+    completed = ibv_poll_cq(conn->send_cq, 1, &wc);
+    if (completed < 0)
+      return 1;
+    if (completed > 0 && wc.status != IBV_WC_SUCCESS)
+      return 1;
+  } while (!completed);
+  assert(wc.wr_id == (uintptr_t)tb);
+
+  return 0;
 }
 
 static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, xni_connection_t* conn_)
@@ -457,9 +551,6 @@ static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, 
 	struct ibv_cq *sendcq=NULL, *recvcq=NULL;
 	struct ibv_qp *qp = NULL;
 	int server=-1, client=-1;
-
-	//BWS FIXME TODO
-	size_t bufsiz = 512;
 
 	// Ensure a registered buffer exists
 	if (ctx->num_registered < 1)
@@ -557,6 +648,8 @@ static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, 
 
 	for (size_t i =0; i < ctx->num_registered; i++) {
 		struct ib_target_buffer* tbp = ctx->target_buffers + i;
+		tbp->connection = tmpconn;
+		size_t bufsiz = tbp->buffer_size;
 		if (post_receive(qp, tbp->memory_region, tbp->header,
 						 (int)((char*)(tbp->data) - (char*)(tbp->header) + bufsiz),
 						 (uintptr_t)tbp))
@@ -572,8 +665,6 @@ static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, 
 
 	tmpconn->context = ctx;
 	tmpconn->credit_buffers = credit_buffers;
-	tmpconn->buffer_size = bufsiz;
-	tmpconn->num_buffers = ctx->num_registered;
 	tmpconn->eof = 0;
 	pthread_mutex_init(&tmpconn->credit_mutex, NULL);
 	tmpconn->destination = 1;
@@ -621,21 +712,27 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 	struct ibv_qp *qp = NULL;
 	int server=-1, client=-1;
 
-	// BWS TODO FIXME
-	size_t bufsiz = 512;
-	
 	// Ensure a registered buffer exists
 	if (ctx->num_registered < 1)
 		return XNI_ERR;
 
+#ifdef XNI_TRACE
+	puts("2");
+#endif  // XNI_TRACE
 	// fill out a temporary connection object
 	tmpconn = calloc(1, sizeof(*tmpconn));
 	tmpconn->context = ctx;
 
 
+#ifdef XNI_TRACE
+	puts("3");
+#endif  // XNI_TRACE
 	credit_buffers = allocate_credit_buffers(ctx, ctx->num_registered);
 	if (credit_buffers == NULL)
 		goto error_out;
+#ifdef XNI_TRACE
+	puts("4");
+#endif  // XNI_TRACE
 
 	if ((sendcq = ibv_create_cq(ctx->verbs_context, ctx->num_registered, NULL, NULL, 0)) == NULL)
 		goto error_out;
@@ -644,6 +741,9 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 
 	if ((qp = create_queue_pair(ctx, sendcq, recvcq, ctx->num_registered)) == NULL)
 		goto error_out;
+#ifdef XNI_TRACE
+	puts("Create qps");
+#endif  // XNI_TRACE
   
 	// connect to the server
 	server = socket(AF_INET, SOCK_STREAM, 0);
@@ -714,8 +814,6 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 
 	tmpconn->context = ctx;
 	tmpconn->credit_buffers = credit_buffers;
-	tmpconn->buffer_size = bufsiz;
-	tmpconn->num_buffers = ctx->num_registered;
 	tmpconn->credits = 0;
 	pthread_mutex_init(&tmpconn->send_state_mutex, NULL);
 	pthread_mutex_init(&tmpconn->credit_mutex, NULL);
@@ -725,7 +823,11 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 	tmpconn->queue_pair = qp;
 	tmpconn->remote_qpnum = remote_qpnum;
 	tmpconn->remote_lid = remote_lid;
-  
+
+	// Add the connection to the registered buffers
+	for (size_t i = 0; i < ctx->num_registered; i++)
+		ctx->target_buffers[i].connection = tmpconn;
+	
 #ifdef XNI_TRACE
 	puts("Connected.");
 #endif  // XNI_TRACE
@@ -749,79 +851,6 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
   free(tmpconn);
 
   return XNI_ERR;
-}
-
-static int consume_credit(struct ib_connection *conn)
-{
-  pthread_mutex_lock(&conn->credit_mutex);
-  while (conn->credits < 1) {
-    struct ibv_wc wc;
-    memset(&wc, 0, sizeof(wc)); 
-    int completed = ibv_poll_cq(conn->receive_cq, 1, &wc);
-    if (completed < 0 || wc.status != IBV_WC_SUCCESS) {
-      pthread_mutex_unlock(&conn->credit_mutex);
-      return 1;
-    }
-    if (completed > 0) {
-      struct ib_credit_buffer *cb = (struct ib_credit_buffer*)wc.wr_id;
-      uint32_t tmp32 = 0;
-      //TODO: NBO?
-      memcpy(&tmp32, cb->msgbuf+TAG_LENGTH, 4);
-      //TODO: check for deadlock if receive can't be posted
-      post_receive(conn->queue_pair, cb->memory_region, cb->msgbuf,
-                   IB_CREDIT_MESSAGE_SIZE, (uintptr_t)cb);
-      conn->credits += tmp32;
-    }
-  }
-  conn->credits -= 1;
-  pthread_mutex_unlock(&conn->credit_mutex);
-
-  return 0;
-}
-
-//XXX: not thread safe; all other ops must be finished
-static int send_eof(struct ib_connection *conn)
-{
-  //TODO: use a better buffer
-  //XXX: for now, just hijack the first target bufffer
-  struct ib_target_buffer *tb = conn->context->target_buffers;
-  // encode the message
-  memcpy(tb->header, EOF_MESSAGE_TAG, TAG_LENGTH);
-
-  // send the message
-  struct ibv_sge sge;
-  memset(&sge, 0, sizeof(sge)); 
-  sge.addr = (uintptr_t)tb->header;
-  sge.length = TAG_LENGTH;
-  sge.lkey = tb->memory_region->lkey;
-
-  struct ibv_send_wr wr, *badwr;
-  memset(&wr, 0, sizeof(wr)); 
-  wr.wr_id = (uintptr_t)tb;
-  wr.next = NULL;
-  wr.sg_list = &sge;
-  wr.num_sge = 1;
-  wr.opcode = IBV_WR_SEND;
-  wr.send_flags = 0;
-  if (consume_credit(conn))
-    return 1;
-  if (ibv_post_send(conn->queue_pair, &wr, &badwr))
-    return 1;
-
-  // wait for send completion
-  struct ibv_wc wc;
-  memset(&wc, 0, sizeof(wc)); 
-  int completed = 0;
-  do {
-    completed = ibv_poll_cq(conn->send_cq, 1, &wc);
-    if (completed < 0)
-      return 1;
-    if (completed > 0 && wc.status != IBV_WC_SUCCESS)
-      return 1;
-  } while (!completed);
-  assert(wc.wr_id == (uintptr_t)tb);
-
-  return 0;
 }
 
 //XXX: all other sends, receives must be finished first!
@@ -885,72 +914,73 @@ static int ib_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *ta
 {
 	struct ib_connection* conn = (struct ib_connection*) conn_;
 	struct ib_target_buffer **targetbuf = (struct ib_target_buffer**)targetbuf_;
-  struct ib_target_buffer *tb = *targetbuf;
+	struct ib_target_buffer *tb = *targetbuf;
 
-  int return_code = XNI_ERR;
+	int return_code = XNI_ERR;
+	
+	if (conn->destination || tb->data_length < 1)
+		goto free_out;
 
-  if (conn->destination || tb->data_length < 1)
-    goto free_out;
+	// encode the message
+	//TODO: NBO?
+	memcpy(tb->header, DATA_MESSAGE_TAG, TAG_LENGTH);
+	uint64_t tmp64 = tb->target_offset;
+	memcpy(((char*)tb->header)+TAG_LENGTH, &tmp64, 8);
 
-  // encode the message
-  //TODO: NBO?
-  memcpy(tb->header, DATA_MESSAGE_TAG, TAG_LENGTH);
-  uint64_t tmp64 = tb->target_offset;
-  memcpy(((char*)tb->header)+TAG_LENGTH, &tmp64, 8);
+	// send the message
+	struct ibv_sge sge;
+	memset(&sge, 0, sizeof(sge)); 
+	sge.addr = (uintptr_t)tb->header;
+	sge.length = (int)((char*)tb->data - (char*)tb->header) + tb->data_length;
+	sge.lkey = tb->memory_region->lkey;
 
-  // send the message
-  struct ibv_sge sge;
-  memset(&sge, 0, sizeof(sge)); 
-  sge.addr = (uintptr_t)tb->header;
-  sge.length = (int)((char*)tb->data - (char*)tb->header) + tb->data_length;
-  sge.lkey = tb->memory_region->lkey;
+	struct ibv_send_wr wr, *badwr;
+	memset(&wr, 0, sizeof(wr)); 
+	wr.wr_id = (uintptr_t)tb;
+	wr.next = NULL;
+	wr.sg_list = &sge;
+	wr.num_sge = 1;
+	wr.opcode = IBV_WR_SEND;
+	wr.send_flags = 0;
+	if (consume_credit(conn))
+		goto free_out;
+	tb->send_state = QUEUED;
+	if (ibv_post_send(conn->queue_pair, &wr, &badwr))
+		goto free_out;
 
-  struct ibv_send_wr wr, *badwr;
-  memset(&wr, 0, sizeof(wr)); 
-  wr.wr_id = (uintptr_t)tb;
-  wr.next = NULL;
-  wr.sg_list = &sge;
-  wr.num_sge = 1;
-  wr.opcode = IBV_WR_SEND;
-  wr.send_flags = 0;
-  if (consume_credit(conn))
-    goto free_out;
-  tb->send_state = QUEUED;
-  if (ibv_post_send(conn->queue_pair, &wr, &badwr))
-    goto free_out;
+	// wait for send completion
+	pthread_mutex_lock(&conn->send_state_mutex);
+	while (tb->send_state == QUEUED) {
+		size_t num_bufs = conn->context->num_registered;
+		struct ibv_wc wc[num_bufs];
+		int completed = ibv_poll_cq(conn->send_cq, num_bufs, wc);
+		if (completed < 0) {
+			//TODO: better error handling
+			pthread_mutex_unlock(&conn->send_state_mutex);
+			goto free_out;
+		}
 
-  // wait for send completion
-  pthread_mutex_lock(&conn->send_state_mutex);
-  while (tb->send_state == QUEUED) {
-    struct ibv_wc wc[conn->num_buffers];
-    int completed = ibv_poll_cq(conn->send_cq, conn->num_buffers, wc);
-    if (completed < 0) {
-      //TODO: better error handling
-      pthread_mutex_unlock(&conn->send_state_mutex);
-      goto free_out;
-    }
+		for (int i = 0; i < completed; i++) {
+			struct ib_target_buffer *tb = (struct ib_target_buffer*)wc[i].wr_id;
+			tb->send_state = (wc[i].status == IBV_WC_SUCCESS
+							  ? SENT
+							  : ERROR);
+		}
+	}
+	pthread_mutex_unlock(&conn->send_state_mutex);
 
-    for (int i = 0; i < completed; i++) {
-      struct ib_target_buffer *tb = (struct ib_target_buffer*)wc[i].wr_id;
-      tb->send_state = (wc[i].status == IBV_WC_SUCCESS
-                        ? SENT
-                        : ERROR);
-    }
-  }
-  pthread_mutex_unlock(&conn->send_state_mutex);
-
-  return_code = (tb->send_state == SENT
-                 ? XNI_OK
-                 : XNI_ERR);
+	return_code = (tb->send_state == SENT
+				   ? XNI_OK
+				   : XNI_ERR);
     
- free_out:
-  // mark the buffer as free
-  pthread_mutex_lock(&conn->context->busy_flag_mutex);
-  tb->busy = 0;
-  pthread_cond_signal(&conn->context->busy_flag_cond);
-  pthread_mutex_unlock(&conn->context->busy_flag_mutex);
-
-  return return_code;
+  free_out:
+	// mark the buffer as free
+	pthread_mutex_lock(&conn->context->busy_flag_mutex);
+	tb->busy = 0;
+	pthread_cond_signal(&conn->context->busy_flag_cond);
+	pthread_mutex_unlock(&conn->context->busy_flag_mutex);
+	
+	return return_code;
 }
 
 static int ib_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t *targetbuf_)
@@ -999,25 +1029,25 @@ static int ib_release_target_buffer(xni_target_buffer_t *targetbuf_)
 
   tb->target_offset = 0;
   tb->data_length = -1;
-/*BWS TODO FIXME
+
   if (tb->connection->destination) {
     //TODO: busy flag?
     //TODO: better error handling
     if (post_receive(tb->connection->queue_pair,
                      tb->memory_region,
                      tb->header,
-                     ((int)((char*)tb->data - (char*)tb->header) + tb->connection->buffer_size),
+                     ((int)((char*)tb->data - (char*)tb->header) + tb->buffer_size),
                      (uintptr_t)tb))
       return XNI_ERR;
     if (send_credits(tb->connection, 1))
       return XNI_ERR;
   } else {
-    pthread_mutex_lock(&tb->connection->busy_flag_mutex);
+    pthread_mutex_lock(&tb->connection->context->busy_flag_mutex);
     tb->busy = 0;
-    pthread_cond_signal(&tb->connection->busy_flag_cond);
-    pthread_mutex_unlock(&tb->connection->busy_flag_mutex);
+    pthread_cond_signal(&tb->connection->context->busy_flag_cond);
+    pthread_mutex_unlock(&tb->connection->context->busy_flag_mutex);
   }
-*/                    
+
   *targetbuf = NULL;
   return XNI_OK;
 }
