@@ -1,0 +1,24 @@
+See COPYING for license.
+
+Note:
+XDD has gotten big enough that it is necessary to acknowledge some of the
+contributors.  However, the name XDD is trademarked and belongs to 
+I/O Performance, Inc.
+						- Brad
+
+Principle author:
+  Thomas M. Ruwart (tmruwart@gmail.com)
+
+Other contributors (alphabetical order):
+  Russell Catelan (russell@thebarn.com)
+  Jonathan M. Dobson (dobsonjm@ornl.gov)
+  Alex Elder
+  Stephen A. Hodson (hodsonsw@ornl.gov)
+  Jack Z. Li (lijz@ornl.gov)
+  Nicholas L. Mills (nlmills@clemson.edu)
+  Bradley W. Settlemyer (settlemyerbw@ornl.gov)
+
+Funding and resources provided by:
+ Oak Ridge National Labs, Department of Energy and Department of Defense
+ Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
+ and the wonderful people at I/O Performance, Inc.
