@@ -91,9 +91,6 @@ include $(XNI_DIR)/module.mk
 XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
 	$(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) $(TOOLS_SRC) $(XNI_SRC)
 
-XDD_LITE_SRC := $(BASE_SRC) $(CLIENT_LITE_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
-	$(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) $(TOOLS_SRC) $(XNI_SRC)
-
 #
 # XDD module build targets
 #
@@ -104,13 +101,13 @@ TOOL_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOL_SRC)))
 # Project executable objects
 #
 CLIENT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
-CLIENT_LITE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_LITE_EXE_SRC)))
 GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
 GETFILESIZE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETFILESIZE_EXE_SRC)))
 GETHOSTIP_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETHOSTIP_EXE_SRC)))
 READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
 TRUNCATE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TRUNCATE_EXE_SRC)))
 TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TS_EXE_SRC)))
+XDD_LITE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_LITE_EXE_SRC) $(CLIENT_LITE_SRC)))
 
 #
 # All objects
@@ -195,9 +192,9 @@ bin/xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
 	@echo "[LD] $@ ..."
 	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-bin/xdd-lite: $(XDD_OBJS) $(CLIENT_LITE_EXE_OBJS)
+bin/xdd-lite: $(XDD_LITE_EXE_OBJS) $(LIB_DIR)/libxdd.a 
 	@echo "[LD] $@ ..."
-	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	$(LD) $(LDFLAGS) -L$(LIB_DIR) -o $@ $(XDD_LITE_EXE_OBJS) -lxdd $(LIBS)
 
 bin/xdd-tserver: $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(TS_EXE_OBJS) 
 	@echo "[LD] $@ ..."

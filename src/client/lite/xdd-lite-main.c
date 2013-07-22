@@ -28,6 +28,7 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#include <stdio.h>
 #include <string.h>
 #include "libxdd.h"
 #include "xdd-lite.h"
@@ -36,8 +37,69 @@
 /** Print out the CLI usage information */
 int print_usage()
 {
-    xdd_lite_print_usage();
+    xdd_lite_options_print_usage();
     return 0;
+}
+
+/** Ensure the options are specified correctly */
+int validate_options(xdd_lite_options_t opts)
+{
+	int rc = 0;
+	size_t max_target_length = 0;
+	int has_itarget = 0;
+	int has_otarget = 0;
+	
+	// Ensure there is at least one target
+	if (0 == opts.num_targets)
+		rc++;
+	else {
+		// Check that target options make sense together
+		struct target_options* top = opts.to_head;
+		while (NULL != top) {
+			// Log the target types
+			if (XDDLITE_IN_TARGET_TYPE == top->type)
+				has_itarget = 1;
+			else if (XDDLITE_OUT_TARGET_TYPE == top->type)
+				has_otarget = 1;
+			
+			// If the uri is xni, dio and start_offset don't make sense
+			int is_xni_target = (0 == strncmp("xni://", top->uri, 6));
+			if (is_xni_target && 0 != top->start_offset) {
+				fprintf(stderr,
+						"Error: XNI targets do not support start offsets\n");
+				rc++;
+			}
+			else if (is_xni_target && 0 != top->dio_flag) {
+				fprintf(stderr,
+						"Error: XNI targets do not support Direct I/O\n");
+				rc++;
+			}
+
+			// Check the lengths
+			if (0 == max_target_length && 0 != top->length) {
+				max_target_length = top->length;
+			} else if (0 != top->length && top->length != max_target_length) {
+				fprintf(stderr, "Error: Target lengths don't match\n");
+				rc++;
+			}
+
+			// Iterate
+			top = top->next;
+		}
+
+		// Must have both an in and out target type
+		if (!(has_itarget && has_otarget)) {
+			fprintf(stderr, "Error: Must include both an itarget and otarget\n");
+			rc++;
+		}
+		
+		// At least one of the targets had to specify a length
+		if (0 >= max_target_length) {
+			fprintf(stderr, "Error: A target length must be specified\n");
+			rc++;
+		}
+	}
+	return rc;		 
 }
 
 /* Start a forking server */
@@ -71,42 +133,37 @@ int main(int argc, char** argv)
     rc = xdd_lite_options_init(&opts);    
     if (0 == rc) {
         rc += xdd_lite_options_parse(&opts, argc, argv);
-    } else {
-		xdd_lite_options_destroy(&opts);
-		return rc;
     }
 
 	/* Print help */
-    if (0 != rc || 1 == opts.help_flag) {
+    if (0 != rc) {
         print_usage();
 		xdd_lite_options_destroy(&opts);
 		return 1;
     }
-
-	/* Start XDD-Lite in server mode or client mode */
-	if (0 != opts.server_flag) {
-		/* Extract the relevant server options */
-		char iface[256];
-		char port[256];
-		int backlog = opts.s.backlog;
-		strncpy(iface, opts.s.iface, 255);
-		strncpy(port, opts.s.port, 255);
-		iface[255] = port[255] = '\0';
+	else if (1 == opts.help_flag) {
+        print_usage();
 		xdd_lite_options_destroy(&opts);
-
-		/* Start the server */
-		rc = start_server(iface, port, backlog);
-	} else {
-		/* Construct a plan from the specified options */
-		xdd_plan_pub_t lite_plan;		
-		rc += xdd_plan_init(&lite_plan);
-		rc += xdd_lite_options_plan_create(&opts, &lite_plan);
-		rc += xdd_lite_options_destroy(&opts);
-
-		/* Start the client */
-		rc = start_client(&lite_plan);
-		xdd_plan_destroy(&lite_plan);
+		return 0;
 	}
+
+	/* Validate options */
+	if (0 != validate_options(opts)) {
+		xdd_lite_options_destroy(&opts);
+		return 1;
+	}
+	
+	/* Convert the options into a plan */
+	xdd_plan_pub_t lite_plan;
+	rc = xdd_plan_init(&lite_plan);
+	rc += xdd_lite_options_plan_create(opts, &lite_plan);
+	rc += xdd_lite_options_destroy(&opts);
+
+	/* Start the plan */
+
+	/* Cleanup the plan */
+	rc += xdd_plan_destroy(&lite_plan);
+	
     return rc;
 }
 

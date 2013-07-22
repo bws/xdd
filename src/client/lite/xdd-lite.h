@@ -28,57 +28,59 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#ifndef XINT_LITE_H
-#define XINT_LITE_H
+#ifndef XDD_LITE_H
+#define XDD_LITE_H
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <xdd_plan.h>
 
-#define XDD_LITE_DEFAULT_LISTEN_BACKLOG 10
-#define XDD_LITE_DEFAULT_LISTEN_IFACE NULL
-#define XDD_LITE_DEFAULT_LISTEN_PORT "40000"
+#define XDDLITE_DEFAULT_LISTEN_BACKLOG 10
+#define XDDLITE_DEFAULT_LISTEN_IFACE NULL
+#define XDDLITE_DEFAULT_LISTEN_PORT "40000"
 
-typedef enum xdd_lite_op {NULL_OP_TYPE = 0, READ, WRITE} xint_op_t;
+enum xdd_lite_target_type {XDDLITE_NULL_TARGET_TYPE = 0,
+						   XDDLITE_IN_TARGET_TYPE,
+						   XDDLITE_META_TARGET_TYPE,
+						   XDDLITE_OUT_TARGET_TYPE };
+typedef enum xdd_lite_target_type xdd_lite_target_t;
 
-typedef struct xdd_lite_e2e {
-    char* host;
-    int port;
-    int thread_count;
-    int numa;
-} xdd_lite_e2e_t;
-    
-typedef struct xdd_lite_options {
+enum xdd_lite_access_type {XDDLITE_NULL_ACCESS_TYPE = 0,
+						   XDDLITE_LOOSE_ACCESS_TYPE,
+						   XDDLITE_RANDOM_ACCESS_TYPE,
+						   XDDLITE_SERIAL_ACCESS_TYPE,
+						   XDDLITE_UNORDERED_ACCESS_TYPE };
+typedef enum xdd_lite_access_type xdd_lite_access_t;
+
+enum xdd_lite_policy_type {XDDLITE_NULL_POLICY_TYPE = 0,
+						   XDDLITE_ANY_POLICY_TYPE };
+typedef enum xdd_lite_policy_type xdd_lite_policy_t;
+
+struct xdd_lite_options {
+	int again_flag;
+	size_t block_size;
 	int help_flag;
-	int server_flag;
+	size_t request_size;
 	int verbose_flag;
-
-	/* Client/source specific options */
-	struct client_source {
-		xint_op_t ot;
-		char* fname;
-		size_t offset;
-		size_t length;
+	size_t num_targets;
+	
+	struct target_options {
+		xdd_lite_target_t type;
+		char  uri[256];
+		xdd_lite_access_t access;
 		int dio_flag;
-		char* out_filename;
-		char* err_filename;
-		size_t preallocate;
-		char* restart_fname;
-		size_t heartbeat_freq;
-		int server_port;
-			
-		/* List of e2e connection information */
-		int num_e2e_specs;
-		xdd_lite_e2e_t* e2e_specs;
-	} c;
-	/* Server/destination specific options */
-	struct server_destination {
-		char* iface;
-		char* port;
-		int backlog;
-	} s;
+		size_t length;
+		size_t num_threads;
+		xdd_lite_policy_t policy;
+		size_t start_offset;
 
-} xdd_lite_options_t;
+		/** Use a linked-list pattern to chain all the target options */
+		struct target_options *next;
+	} *to_head;
+
+	struct target_options *to_current;
+};
+typedef struct xdd_lite_options xdd_lite_options_t;
 
 int xdd_lite_options_init(xdd_lite_options_t* opts);
 
@@ -86,13 +88,13 @@ int xdd_lite_options_destroy(xdd_lite_options_t* opts);
 
 int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv);
 
-int xdd_lite_options_plan_create(xdd_lite_options_t* opts, xdd_plan_pub_t* plan);
+int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_plan_pub_t* plan);
 
-int xdd_lite_print_usage();
+int xdd_lite_options_print_usage();
 
-int xdd_lite_start_source();
+//int xdd_lite_start_source();
 
-int xdd_lite_start_destination(int sd);
+//int xdd_lite_start_destination(int sd);
 
 #endif
 
