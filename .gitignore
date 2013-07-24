@@ -2,9 +2,11 @@ autom4te.cache
 config.h
 config.log
 config.status
+configure
 GNUmakefile
 Makefile
 tests/test_config
+*.tar.gz
 *.o
 *.csv
 *~

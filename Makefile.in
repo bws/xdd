@@ -35,16 +35,19 @@ TAR_EXE := @TAR@
 # Tools
 #
 AR = ar
+AUTOCONF = autoconf
 CC = $(CC_EXE)
 CP = cp
 DEPC = $(DEPC_EXE)
 DEPGEN = $(XDD_DIR)/support/depend.sh
+FIND = find
 INSTALL = $(XDD_DIR)/support/install-sh
+MKDIR = mkdir -p
 LD = $(CC_EXE)
 LN = ln -sf
-MKDIR = mkdir -p
 MV = mv -f
 RM = rm -f
+RMDIR = rmdir -f
 TAR = $(TAR_EXE)
 
 #
@@ -268,12 +271,6 @@ XDDVERSION := $(VERSION)
 baseversion:
 	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > $(BASE_DIR)/xdd_base_version.h
 
-dist: clean baseversion tarball
-	echo "Base Version $(XDDVERSION) Source Only"
-
-fulldist: clean baseversion all tarball
-	echo "Base Version $(XDDVERSION) built"
-
 TARPATH := $(shell basename ${PWD})
 TARFILE := xdd-$(shell date +%s).tgz
 TARFLAGS := --exclude \*.o --exclude \*~ --exclude .DS_STORE --exclude .git
@@ -358,13 +355,42 @@ clean: depclean libclean oclean tclean
 		bin/xdd-read-tsdumps \
 		a.out 
 
+.PHONY: testclean depclean docclean libclean oclean clean
+
+#
+# Rules for building the distribution
+#
+DISTCHECK_DIR := $(PWD)/tests/distcheck
+
+xdd-$(XDDVERSION):
+	git archive --format=tar --prefix=$@/ master | $(TAR) xf -
+	$(FIND) $@ -name .gitignore -exec rm {} \;
+	cd $@ && $(AUTOCONF)
+
+xdd-$(XDDVERSION).tar.gz: xdd-$(XDDVERSION)
+	$(TAR) cfz $@ $<
+	$(RM) -r $<
+
 distclean: clean
-	$(info Cleaning the distribution.)
+	$(info Cleaning the distribution)
 	@$(RM) GNUMakefile
 	@$(RM) Makefile
 	@$(RM) config.log config.status
+	@$(RM) -r xdd-$(VERSION)
+	@$(RM) xdd-$(VERSION).tar.gz
 
-.PHONY: testclean depclean docclean libclean oclean clean distclean
+distcheck: dist
+	$(RM) -r $(DISTCHECK_DIR)
+	$(MKDIR) $(DISTCHECK_DIR)
+	$(TAR) -C $(DISTCHECK_DIR) -xzf xdd-$(XDDVERSION).tar.gz
+	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && ./configure --prefix=$(DISTCHECK_DIR)
+	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make
+	#cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make check
+	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make install
+
+dist: xdd-$(XDDVERSION).tar.gz
+
+.PHONY: dist distcheck distclean
 
 #
 # Include dependency makefiles if building source target
