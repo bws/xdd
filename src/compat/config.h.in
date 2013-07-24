@@ -63,6 +63,9 @@
 #undef HAVE_INTTYPES_H
 
 /* Define to 1 if you have the <linux/magic.h> header file. */
+#undef HAVE_LIBGEN_H
+
+/* Define to 1 if you have the <linux/magic.h> header file. */
 #undef HAVE_LINUX_MAGIC_H
 
 /* Define to 1 if you have the <memory.h> header file. */

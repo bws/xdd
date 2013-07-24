@@ -179,6 +179,7 @@ AC_CHECK_HEADER([sys/utsname.h],
 dnl
 dnl Check for optional POSIX headers
 dnl
+AC_CHECK_HEADERS([libgen.h], [], []) 
 AC_CHECK_HEADERS([sched.h], [], []) 
 AC_CHECK_HEADERS([utmpx.h], [], [])
 AC_CHECK_HEADERS([numa.h], [], [])

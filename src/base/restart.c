@@ -32,10 +32,6 @@
  */
 #include "xint.h"
 
-#ifdef DARWIN
-#include <libgen.h>
-#endif
-
 // Prototypes
 int xdd_restart_create_restart_file(xint_restart_t *rp);
 int xdd_restart_write_restart_file(xint_restart_t *rp);

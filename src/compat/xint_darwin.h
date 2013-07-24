@@ -20,7 +20,7 @@
  * Contributing Authors:
  *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
  *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Brad Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
+ *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
  *       Russell Cattelan, Digital Elves (russell@thebarn.com)
  *       Alex Elder
  * Funding and resources provided by:
@@ -28,9 +28,12 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef XDD_DARWIN_H
+#define XDD_DARWIN_H
 
 #include "config.h"
 
+/* Standard C headers */
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -38,78 +41,53 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
+
+/* POSIX headers */
 #include <sys/types.h>
-#include <libgen.h>
-#include <unistd.h> 
-#include <ctype.h>
+#include <unistd.h> /* UNIX Only */
 #include <sys/time.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
-#include <semaphore.h>
-#include <sys/shm.h>
 #include <sys/times.h>
-#include <sys/prctl.h>
 #include <sys/param.h>
 #include <sys/mman.h>
 #include <sys/resource.h> /* needed for multiple processes */
 #include <pthread.h>
 #include <sched.h>
-#include <math.h>
 #include <sys/stat.h>
-#include <sys/unistd.h>
-#include <sys/utsname.h>
-#include <sys/vfs.h>
 #include <string.h>
-#include <syscall.h>
 /* for the global clock stuff */
 #include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
+
+/* Platform headers */
+#include <libgen.h>
 #if (SNFS)
 #include <client/cvdrfile.h>
 #endif
+
+/* XDD internal compatibility headers for this platform */
+#include "xint_barrier.h"
 #include "xint_nclk.h" /* nclk_t, prototype compatibility */
 #include "xint_misc.h"
 
-#define MP_MUSTRUN 1 /* Assign this thread to a specific processor */
+#define MP_MUSTRUN 1 /* ASsign this thread to a specific processor */
 #define MP_NPROCS 2 /* return the number of processors on the system */
 typedef int  sd_t;  /* A socket descriptor */
-#define CLK_TCK sysconf(_SC_CLK_TCK)
+#ifndef CLK_TCK
+#define CLK_TCK CLOCKS_PER_SEC
+#endif
+
+/* ------------------------------------------------------------------
+ * Constants
+ * ------------------------------------------------------------------ */
 #define DFL_FL_ADDR INADDR_ANY /* Any address */  /* server only */
 #define closesocket(sd) close(sd)
+//static bool  sockets_init(void);
+#include "xint_plan.h"
 
-#include "xint_restart.h"
-
-extern int h_errno; // For socket calls
-
-#if XFS_ENABLED && HAVE_XFS_XFS_H
-#include <xfs/xfs.h>
-#elif XFS_ENABLED && HAVE_XFS_LIBXFS_H
-#include <xfs/xfs.h>
-#include <xfs/libxfs.h>
-#elif XFS_ENABLED
-#error "ERROR: XFS Support is enabled, but the header support is not valid."
 #endif
-
-#if HAVE_LINUX_MAGIC_H && HAVE_DECL_XFS_SUPER_MAGIC
-#include <linux/magic.h>
-#else
-#define XFS_SUPER_MAGIC 0x58465342
-#endif
-
-#ifdef HAVE_UTMPX_H
-#include <utmpx.h>
-#endif
-
-/*
- * Local variables:
- *  indent-tabs-mode: t
- *  default-tab-width: 4
- *  c-indent-level: 4
- *  c-basic-offset: 4
- * End:
- *
- * vim: ts=4 sts=4 sw=4 noexpandtab
- */

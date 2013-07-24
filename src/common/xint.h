@@ -28,21 +28,22 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#include "config.h"
 #include "xdd_base_version.h"
 #if WIN32
-#include "xdd_win32.h"
+#include "xint_win32.h"
 #elif LINUX
-#include "xdd_linux.h"
+#include "xint_linux.h"
 #elif DARWIN
-#include "xdd_darwin.h"
+#include "xint_darwin.h"
 #elif FREEBSD
-#include "xdd_freebsd.h"
+#include "xint_freebsd.h"
 #elif SOLARIS
-#include "xdd_solaris.h"
+#include "xint_solaris.h"
 #elif AIX
-#include "xdd_aix.h"
+#include "xint_aix.h"
 #elif IRIX
-#include "xdd_irix.h"
+#include "xint_irix.h"
 #endif
 
 // #include "xint_common.h"
