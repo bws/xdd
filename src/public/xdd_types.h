@@ -28,55 +28,33 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#ifndef LIBXDD_H
-#define LIBXDD_H
+#ifndef XDD_TYPES_H
+#define XDD_TYPES_H
 
-#include <sys/types.h>
-#include "xdd_types.h"
-/**
- * A quick overview of how to use this interface.  More complicated things are possible,
- * but this is the most basic interaction:
- *   1.  Create at least 2 targetattrs, and set the attributes to create an IN and OUT
- *       target
- *   2.  Create plan attributes to set the access size
- *   3.  Create the plan from the array of target attributes and the plan attributes
- *   4.  Start the plan
- *   5.  Wait for plan completion
- *
- * Todo:  Retrieve results output from the plan
- */
+enum xdd_target_type {
+	XDD_NULL_TARGET_TYPE = 0,
+	XDD_IN_TARGET_TYPE,
+	XDD_OUT_TARGET_TYPE,
+	XDD_META_TARGET_TYPE
+};
+/*! \brief XDD target types. */
+typedef enum xdd_target_type xdd_target_type_t;
 
-int xdd_targetattr_init(xdd_targetattr_t *attr);
+struct xdd_target_attributes;
+/*! \brief XDD target attributes. */
+typedef struct xdd_target_attributes* xdd_targetattr_t;
 
-int xdd_targetattr_destroy(xdd_targetattr_t *attr);
+struct xdd_target;
+/*! \brief Opaque type representing an XDD target. */
+typedef struct xdd_target* xdd_target_t;
 
-int xdd_targetattr_set_type(xdd_targetattr_t *attr, xdd_target_type_t);
+struct xdd_plan_attributes;
+/*! \brief Opaque type representing an XDD paln. */
+typedef struct xdd_plan_attributes* xdd_planattr_t; 
 
-int xdd_targetattr_set_uri(xdd_targetattr_t *attr, char* uri);
-
-int xdd_targetattr_set_dio(xdd_targetattr_t *attr, int dio_flag);
-
-int xdd_targetattr_set_start_offset(xdd_targetattr_t *attr, off_t off);
-
-int xdd_targetattr_set_length(xdd_targetattr_t *attr, size_t length);
-
-int xdd_planattr_init(xdd_planattr_t* pattr);
-
-int xdd_planattr_destroy(xdd_planattr_t* pattr);
-
-int xdd_planattr_set_block_size(xdd_planattr_t* pattr, size_t block_size);
-
-int xdd_planattr_set_request_size(xdd_planattr_t* pattr, size_t request_size);
-
-int xdd_planattr_set_retry_flag(xdd_planattr_t* pattr, int retry_flag);
-
-int xdd_plan_init(xdd_planpub_t* plan, xdd_targetattr_t* tattrs, size_t ntattrs, xdd_planattr_t pattr);
-
-int xdd_plan_destroy(xdd_planpub_t* plan);
-
-int xdd_plan_start(const xdd_planpub_t* plan);
-
-int xdd_plan_wait(const xdd_planpub_t* plan);
+struct xdd_plan_pub;
+/*! \brief Opaque type representing an XDD paln. */
+typedef struct xdd_plan_pub* xdd_planpub_t; 
 
 #endif
 /*

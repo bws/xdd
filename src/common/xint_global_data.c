@@ -33,19 +33,21 @@
 /* xdd_global_initialization() - Initialize the "global_data" structure
  */
 xdd_global_data_t*
-xdd_global_data_initialization(int32_t argc,char *argv[]) {
-	char				errmsg[1024];
+xint_global_data_initialization(char* progname) {
+	char errmsg[1024];
 
 
 	xgp = (xdd_global_data_t *)malloc(sizeof(struct xdd_global_data));
 	if (xgp == 0) {
-		sprintf(errmsg,"%s: Cannot allocate %d bytes of memory for global variables!\n",argv[0], (int)sizeof(struct xdd_global_data));
+		sprintf(errmsg,
+                        "%s: Cannot allocate %d bytes of memory for global variables!\n",
+                        progname, (int)sizeof(struct xdd_global_data));
 		perror(errmsg);
 		return(0);
 	}
 	memset(xgp,0,sizeof(struct xdd_global_data));
 
-	xgp->progname = argv[0];
+	xgp->progname = progname;
 	// This is the default in order to avoid all the warning messages, overridden by selecting -maxall andor -proclock + -memlock
 	xgp->output = stdout;
 	xgp->errout = stderr;

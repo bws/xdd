@@ -54,8 +54,8 @@ xdd_target_thread(void *pin) {
 	tdp = (target_data_t *)pin;
 	planp = tdp->td_planp;
 
-	// Call xdd_target_thread_init() to create all the Worker Threads for this target
-	status = xdd_target_init(tdp);
+	// Call xint_target_thread_init() to create all the Worker Threads for this target
+	status = xint_target_init(tdp);
 	if (status != 0 ) {
 		fprintf(xgp->errout,"%s: xdd_target_thread: ERROR: Aborting due to previous initialization failure for target number %d name '%s'\n",
 			xgp->progname,

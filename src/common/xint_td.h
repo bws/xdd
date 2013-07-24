@@ -64,7 +64,7 @@
 
 // Per Thread Data Structure - one for each thread 
 struct xint_target_data {
-    struct xdd_plan 	*td_planp;
+    struct xint_plan 	*td_planp;
 	struct xint_worker_data	*td_next_wdp;	// Pointer to the first worker_data struct in the list
 	pthread_t  			td_thread;			// Handle for this Target Thread 
 	int32_t   			td_thread_id;  		// My system thread ID (like a process ID) 

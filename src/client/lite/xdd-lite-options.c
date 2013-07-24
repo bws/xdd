@@ -210,17 +210,44 @@ int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv) {
 }
 
 /** Convert the options into a valid plan */
-int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_plan_pub_t* plan) {
-    int rc;
-    int i = 0;
+int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_planpub_t* plan) {
+    int rc = 0;
 
-    for (i = 0; i < 1; i++) {
-        rc = xdd_plan_create_e2e(plan);
-        //rc = xdd_create_e2e_target(op_type, fname, offset, length, is_dio, qd, stdout, stderr, verbose, tracing, preallocate,
-        //                           is_stop_error, restart_stuff, heartbeat_stuff,
-        //                           e2e_host, e2e_port, e2e_qd, e2e_numa);
-    }
+	// Create the target attributes
+	xdd_targetattr_t *tattrs = calloc(opts.num_targets, sizeof(*tattrs));
+	struct target_options *topt = opts.to_head;
+	for (size_t i = 0; i < opts.num_targets; i++) {
+		xdd_targetattr_t* ta = tattrs + i;
+		xdd_targetattr_init(ta);
+		if (XDDLITE_IN_TARGET_TYPE == topt->type) {
+			xdd_targetattr_set_type(ta, XDD_IN_TARGET_TYPE);
+		}
+		else if (XDDLITE_OUT_TARGET_TYPE == topt->type) {
+			xdd_targetattr_set_type(ta, XDD_IN_TARGET_TYPE);
+		}
+		else {
+			rc = 1;
+			free(tattrs);
+			return rc;
+		}
+		xdd_targetattr_set_uri(ta, topt->uri);
+		xdd_targetattr_set_dio(ta, topt->dio_flag);
+		xdd_targetattr_set_start_offset(ta, topt->start_offset);
+		xdd_targetattr_set_length(ta, topt->length);
 
+		// Iterate to the target option struct
+		topt = topt->next;
+	}
+
+	// Create the plan attributes
+	xdd_planattr_t pattr;
+	xdd_planattr_init(&pattr);
+	xdd_planattr_set_block_size(&pattr, opts.block_size);
+	xdd_planattr_set_request_size(&pattr, opts.request_size);
+
+	// Create the plan
+	rc = xdd_plan_init(plan, tattrs, opts.num_targets, pattr);
+	free(tattrs);
     return rc;
 }
 

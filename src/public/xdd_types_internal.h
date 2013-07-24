@@ -28,55 +28,52 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
-#ifndef LIBXDD_H
-#define LIBXDD_H
+#ifndef XDD_TYPES_INTERNAL_H
+#define XDD_TYPES_INTERNAL_H
 
-#include <sys/types.h>
-#include "xdd_types.h"
-/**
- * A quick overview of how to use this interface.  More complicated things are possible,
- * but this is the most basic interaction:
- *   1.  Create at least 2 targetattrs, and set the attributes to create an IN and OUT
- *       target
- *   2.  Create plan attributes to set the access size
- *   3.  Create the plan from the array of target attributes and the plan attributes
- *   4.  Start the plan
- *   5.  Wait for plan completion
- *
- * Todo:  Retrieve results output from the plan
- */
+#include "xint.h"
 
-int xdd_targetattr_init(xdd_targetattr_t *attr);
+struct xdd_target_attributes {
+    xdd_target_type_t target_type;
+    char uri[2048];
+    size_t num_threads;
+	size_t length;
+    union {
+        struct {
+            int dio_flag;
+			off_t start_offset;
+        } in;
+        struct {
+            int dio_flag;
+			off_t start_offset;
+        } out;
+        struct {
+            int data_pattern;
+        } meta;
+    } u;
+};
 
-int xdd_targetattr_destroy(xdd_targetattr_t *attr);
+struct xdd_target {
+    struct xdd_target_attributes attr;
+    
+};
 
-int xdd_targetattr_set_type(xdd_targetattr_t *attr, xdd_target_type_t);
+struct xdd_plan_attributes {
+    size_t block_size;
+    size_t request_size;
+    int retry_flag;
+};
 
-int xdd_targetattr_set_uri(xdd_targetattr_t *attr, char* uri);
+struct xdd_plan_pub {
+    struct xdd_plan_attributes attr;
+    size_t num_targets;
+    struct xdd_target *targets;
 
-int xdd_targetattr_set_dio(xdd_targetattr_t *attr, int dio_flag);
-
-int xdd_targetattr_set_start_offset(xdd_targetattr_t *attr, off_t off);
-
-int xdd_targetattr_set_length(xdd_targetattr_t *attr, size_t length);
-
-int xdd_planattr_init(xdd_planattr_t* pattr);
-
-int xdd_planattr_destroy(xdd_planattr_t* pattr);
-
-int xdd_planattr_set_block_size(xdd_planattr_t* pattr, size_t block_size);
-
-int xdd_planattr_set_request_size(xdd_planattr_t* pattr, size_t request_size);
-
-int xdd_planattr_set_retry_flag(xdd_planattr_t* pattr, int retry_flag);
-
-int xdd_plan_init(xdd_planpub_t* plan, xdd_targetattr_t* tattrs, size_t ntattrs, xdd_planattr_t pattr);
-
-int xdd_plan_destroy(xdd_planpub_t* plan);
-
-int xdd_plan_start(const xdd_planpub_t* plan);
-
-int xdd_plan_wait(const xdd_planpub_t* plan);
+	// XDD internal data structures
+	xdd_plan_t* data;
+	xdd_occupant_t occupant;
+	
+};
 
 #endif
 /*

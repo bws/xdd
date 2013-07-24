@@ -33,7 +33,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <xdd_plan.h>
+#include <xdd_types.h>
 
 #define XDDLITE_DEFAULT_LISTEN_BACKLOG 10
 #define XDDLITE_DEFAULT_LISTEN_IFACE NULL
@@ -88,7 +88,7 @@ int xdd_lite_options_destroy(xdd_lite_options_t* opts);
 
 int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv);
 
-int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_plan_pub_t* plan);
+int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_planpub_t* plan);
 
 int xdd_lite_options_print_usage();
 

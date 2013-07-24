@@ -34,7 +34,7 @@
 #include "xint.h"
 
 /*----------------------------------------------------------------------------*/
-/* xdd_target_init() - Initialize a Target Thread
+/* xint_target_init() - Initialize a Target Thread
  * This subroutine will open the target file and perform some initial sanity 
  * checks. 
  * 
@@ -49,7 +49,7 @@
  * 
  */
 int32_t
-xdd_target_init(target_data_t *tdp) {
+xint_target_init(target_data_t *tdp) {
 	int32_t		status;			// Status of function calls
 //	nclk_t		CurrentLocalTime;	// Used the init the Global Clock
 //	nclk_t		TimeDelta;		// Used the init the Global Clock
@@ -131,7 +131,7 @@ xdd_target_init(target_data_t *tdp) {
 		return(status);
 	
 	// Initialize the barriers and mutex
-	status = xdd_target_init_barriers(tdp);
+	status = xint_target_init_barriers(tdp);
 	if (status) 
 	    return(-1);
 	
@@ -150,7 +150,7 @@ xdd_target_init(target_data_t *tdp) {
 	}
 
 	// Start the WorkerThreads
-	status = xdd_target_init_start_worker_threads(tdp);
+	status = xint_target_init_start_worker_threads(tdp);
 	if (status) 
 		return(-1);
 
@@ -163,7 +163,7 @@ xdd_target_init(target_data_t *tdp) {
 } // End of xdd_target_init()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_target_init_barriers() - Initialize the barriers and mutex
+/* xint_target_init_barriers() - Initialize the barriers and mutex
  * managed by the Target Thread.
  * Barrier Naming Convention: 
  *    (1) The first part of the name is the barrier "owner" or thread that initializes the barrier
@@ -178,7 +178,7 @@ xdd_target_init(target_data_t *tdp) {
  * Return value is 0 if everything succeeded or -1 if there was a failure.
  */
 int32_t
-xdd_target_init_barriers(target_data_t *tdp) {
+xint_target_init_barriers(target_data_t *tdp) {
     int32_t		status;								// Status of subroutine calls
     char		tmpname[XDD_BARRIER_MAX_NAME_LENGTH];	// Used to create unique names for the barriers
 
@@ -237,14 +237,14 @@ xdd_target_init_barriers(target_data_t *tdp) {
 } // End of xdd_target_init_barriers()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_target_thread_init_start_worker_threads() - Start up all WorkerThreads 
+/* xint_target_thread_init_start_worker_threads() - Start up all WorkerThreads 
  *
  * The actual WorkerThread routine called xdd_worker_thread() is located in worker_thread.c 
  *
  * Return value is 0 if everything succeeded or -1 if there was a failure.
  */
 int32_t
-xdd_target_init_start_worker_threads(target_data_t *tdp) {
+xint_target_init_start_worker_threads(target_data_t *tdp) {
 	worker_data_t	*wdp;					// Pointer to the WorkerThread Data Struct
 	int32_t			q;						// WorkerThread Number
 	int32_t			status;					// Status of subtroutine calls

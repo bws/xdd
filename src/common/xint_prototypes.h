@@ -90,8 +90,8 @@ int32_t	xdd_sockets_init(void);
 in_addr_t xdd_init_global_clock_network(char *hostname);
 void	xdd_init_global_clock(nclk_t *nclkp);
 
-// global_data.c
-xdd_global_data_t* xdd_global_data_initialization(int32_t argc,char *argv[]);
+// xint_global_data.c
+xdd_global_data_t* xint_global_data_initialization(char *progname);
 
 // global_time.c
 void	globtim_err(char const *fmt, ...);
@@ -330,9 +330,9 @@ void	xdd_signal_start_debugger();
 void	xdd_target_thread_cleanup(target_data_t *p);
 
 // target_init.c
-int32_t	xdd_target_init(target_data_t *p);
-int32_t	xdd_target_init_barriers(target_data_t *p);
-int32_t	xdd_target_init_start_worker_threads(target_data_t *p);
+int32_t	xint_target_init(target_data_t *p);
+int32_t	xint_target_init_barriers(target_data_t *p);
+int32_t	xint_target_init_start_worker_threads(target_data_t *p);
 
 // target_open.c
 int32_t	xdd_target_open(target_data_t *p);
@@ -414,3 +414,13 @@ void	xdd_start_restart_monitor(xdd_plan_t *planp);
 void	xdd_start_interactive(xdd_plan_t *planp);
 
 #endif
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  default-tab-width: 4
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */

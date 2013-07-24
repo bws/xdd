@@ -34,18 +34,15 @@
 #include <sys/utsname.h>
 #include <sys/socket.h>
 #include <pthread.h>
-#include "barrier.h"
-#include "xint_datapatterns.h"
-#include "results.h"
 #include "access_pattern.h"
-#include "xint_timestamp.h"
 #include "barrier.h"
-#include "xint_read_after_write.h"
+#include "results.h"
 #include "end_to_end.h"
 #include "target_offset_table.h"
 #include "heartbeat.h"
 #include "sgio.h"
 #include "xint_triggers.h"
+#include "xint_datapatterns.h"
 #include "xint_extended_stats.h"
 #include "xint_throttle.h"
 #include "xint_common.h"
@@ -54,6 +51,8 @@
 #include "xint_target_counters.h"
 #include "xint_td.h"
 #include "xint_wd.h"
+#include "xint_timestamp.h"
+#include "xint_read_after_write.h"
 // REMOVE LATER struct ptds;
 
 // Bit field definitions for the xdd_global_options - The "PLAN_XXXX" definitions are specifically for the Global Options 
@@ -82,7 +81,7 @@
 #define PLAN_INTERACTIVE_EXIT	0x0000000800000000ULL  /* Exit Interactive Mode */
 #define PLAN_INTERACTIVE_STOP	0x0000001000000000ULL  /* Stop at various points in Interactive Mode */
 
-struct xdd_plan {
+struct xint_plan {
 /* Global variables relevant to all threads */
 	uint64_t		plan_options;         				/* I/O Options valid for all targets */
 	time_t			current_time_for_this_run; 			/* run time for this run */
@@ -179,10 +178,22 @@ struct xdd_plan {
 #endif
 
 }; // End of Definition of the xdd_globals data structure
-typedef	struct 		xdd_plan 	xdd_plan_t;
+typedef	struct 		xint_plan 	xdd_plan_t;
 
-xdd_plan_t* xdd_plan_data_initialization();
+xdd_plan_t* xint_plan_data_initialization();
 
+int xint_plan_start(xdd_plan_t* planp, xdd_occupant_t* occupant);
+	
+int xint_plan_start_targets(xdd_plan_t* planp);
+
+void xint_plan_start_results_manager(xdd_plan_t* planp);
+
+void xint_plan_start_heartbeat(xdd_plan_t* planp);
+
+void xint_plan_start_restart_monitor(xdd_plan_t* planp);
+
+void xint_plan_start_interactive(xdd_plan_t* planp);
+	
 #endif
 /*
  * Local variables:

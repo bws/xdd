@@ -108,18 +108,18 @@ int start_server(char* iface, char* port, int backlog)
 	int rc = 0;
 
 	/* Start the forking server */
-	rc = xdd_lite_start_forking_server(iface, port, backlog);
+	//rc = xdd_lite_start_forking_server(iface, port, backlog);
 	return rc;
 }
 
 /* Start a client capable of interacting with the forking server */
-int start_client(xdd_plan_pub_t* plan)
+int start_client(xdd_planpub_t* plan)
 {
 	int rc = 0;
 	
 	/* Execute the plan */
-	rc += xdd_plan_start(plan);
-	rc += xdd_plan_wait(plan);	
+	//rc += xdd_plan_start(plan);
+	//rc += xdd_plan_wait(plan);	
 	return rc;
 }
 
@@ -154,16 +154,38 @@ int main(int argc, char** argv)
 	}
 	
 	/* Convert the options into a plan */
-	xdd_plan_pub_t lite_plan;
-	rc = xdd_plan_init(&lite_plan);
-	rc += xdd_lite_options_plan_create(opts, &lite_plan);
-	rc += xdd_lite_options_destroy(&opts);
+	xdd_planpub_t lite_plan;
+	rc = xdd_lite_options_plan_create(opts, &lite_plan);
+	if (0 != rc) {
+		fprintf(stderr, "Error: Invalid plan\n");
+		return 1;
+	}
 
-	/* Start the plan */
-
-	/* Cleanup the plan */
-	rc += xdd_plan_destroy(&lite_plan);
+	/* Cleanup the options */
+	rc = xdd_lite_options_destroy(&opts);
+	if (0 != rc) {
+		fprintf(stderr, "Error: Unable to free options\n");
+		return 1;
+	}
 	
+	/* Start the plan */
+	rc = xdd_plan_start(&lite_plan);
+	if (0 != rc) {
+		fprintf(stderr, "Error: Unable to start plan execution\n");
+		return 2;
+	}
+
+	/* Wait for completion */
+	rc = xdd_plan_wait(&lite_plan);
+	if (0 != rc) {
+		fprintf(stderr, "Error: Plan execution failed\n");
+		return 2;
+	}
+
+	/* TODO: Output the plan results here */
+	
+	/* Cleanup the plan */
+	rc = xdd_plan_destroy(&lite_plan);
     return rc;
 }
 
