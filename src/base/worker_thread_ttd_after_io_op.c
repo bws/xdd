@@ -227,7 +227,7 @@ xdd_e2e_after_io_op(worker_data_t *wdp) {
 
 
 	tdp = wdp->wd_tdp;
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: ENTER\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: ENTER\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 if (xgp->global_options & GO_DEBUG_E2E) xdd_show_task(&wdp->wd_task);
 
 	if ( (wdp->wd_task.task_io_status > 0) && (tdp->td_target_options & TO_ENDTOEND) ) {
@@ -243,22 +243,15 @@ if (xgp->global_options & GO_DEBUG_E2E) xdd_show_task(&wdp->wd_task);
 			wdp->wd_e2ep->e2e_hdrp->e2eh_magic = XDD_E2E_DATA_READY;
 			tdp->td_current_state |= CURRENT_STATE_SRC_SEND;
 
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Calling xdd_e2e_src_send...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Calling xdd_e2e_src_send...\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 			xdd_e2e_src_send(wdp);
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Returned from xdd_e2e_src_send...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Returned from xdd_e2e_src_send...\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 
 			tdp->td_current_state &= ~CURRENT_STATE_SRC_SEND;
 
-			// If Loose Ordering is in effect then we need to wait for the Previous Worker Thread to complete
-			// its sendto() operation and release us before we continue. This is done to prevent this Worker Thread and
-			// subsequent Worker Threads from getting too far ahead of the Previous Worker Thread.
-			if (tdp->td_target_options & TO_ORDERING_STORAGE_LOOSE) {
-				xdd_worker_thread_wait_for_previous_io(wdp);
-			}
-	
 		} // End of me being the SOURCE in an End-to-End test 
 	} // End of processing a End-to-End
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: EXIT...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: EXIT...\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 } // End of xdd_e2e_after_io_op(wdp) 
 
 /*----------------------------------------------------------------------------*/

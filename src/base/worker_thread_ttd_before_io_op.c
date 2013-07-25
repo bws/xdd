@@ -226,12 +226,11 @@ xdd_e2e_before_io_op(worker_data_t *wdp) {
 	// The call to xdd_e2e_dest_recv() will block until there is data to read 
 	tdp->td_current_state |= CURRENT_STATE_DEST_RECEIVE;
 
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Calling xdd_e2e_dest_recv...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+//if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Calling xdd_e2e_dest_recv...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 
 	status = xdd_e2e_dest_receive(wdp);
 
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Returning from xdd_e2e_dest_recv...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
-if (xgp->global_options & GO_DEBUG_E2E) xdd_show_e2e_header(wdp->wd_e2ep->e2e_hdrp);
+//if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Returning from xdd_e2e_dest_recv: e2e header:\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 
 	tdp->td_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
 

@@ -46,7 +46,7 @@ struct xint_task {
 	unsigned char		*task_datap;				// The data section of the I/O buffer
 	char				task_op_type;				// Operation to perform
 	char				*task_op_string;			// Operation to perform in ASCII
-	uint64_t			task_op_number;				// Offset into the file where this transfer starts
+	uint64_t			task_op_number;				// The operation number for this target relative to the start of the file
 	size_t				task_xfer_size;				// Number of bytes to transfer
 	off_t				task_byte_offset;			// Offset into the file where this transfer starts
 	uint64_t			task_e2e_sequence_number;	// Sequence number of this task when part of an End-to-End operation

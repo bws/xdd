@@ -63,6 +63,8 @@ void	xdd_show_occupant(xdd_occupant_t *op);
 void	xdd_show_target_counters(xint_target_counters_t *tcp);
 void 	xdd_show_e2e(xint_e2e_t *e2ep);
 void 	xdd_show_e2e_header(xdd_e2e_header_t *e2ehp);
+void 	xdd_show_tot(tot_t *totp);
+void 	xdd_show_tot_entry(tot_t *totp, int i);
 
 // end_to_end.c
 int32_t	xdd_e2e_src_send(worker_data_t *wdp);

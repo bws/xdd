@@ -640,7 +640,10 @@ xddfunc_debug(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			xgp->global_options |= GO_DEBUG_OPEN;
 	} else if ((strcmp(argv[1], "TASK") == 0) ||
 			   (strcmp(argv[1], "task") == 0)) {
-			xgp->global_options |= GO_DEBUG_OPEN;
+			xgp->global_options |= GO_DEBUG_TASK;
+	} else if ((strcmp(argv[1], "TOT") == 0) ||
+			   (strcmp(argv[1], "tot") == 0)) {
+			xgp->global_options |= GO_DEBUG_TOT;
 	} else if ((strcmp(argv[1], "USER1") == 0) ||
 			   (strcmp(argv[1], "user1") == 0)) {
 			xgp->global_options |= GO_DEBUG_USER1;
