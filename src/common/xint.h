@@ -28,6 +28,9 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#ifndef XINT_H
+#define XINT_H
+
 #include "config.h"
 #include "xdd_base_version.h"
 #if WIN32
@@ -50,4 +53,16 @@
 #include "xint_plan.h"
 #include "xint_prototypes.h"
 #include "xint_global_data.h"
+
+#endif
+/*
+ * Local variables:
+ *  indent-tabs-mode: t
+ *  default-tab-width: 4
+ *  c-indent-level: 4
+ *  c-basic-offset: 4
+ * End:
+ *
+ * vim: ts=4 sts=4 sw=4 noexpandtab
+ */
 

@@ -29,8 +29,6 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
-#include "config.h"
-
 /* Standard C headers */
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,6 +95,7 @@
 /* XDD internal compatibility headers */
 #include "xint_nclk.h" /* nclk_t, prototype compatibility */
 #include "xint_misc.h"
+#include "xint_restart.h"
 
 #define MP_MUSTRUN 1 /* Assign this thread to a specific processor */
 #define MP_NPROCS 2 /* return the number of processors on the system */
@@ -104,15 +103,6 @@ typedef int  sd_t;  /* A socket descriptor */
 #define CLK_TCK sysconf(_SC_CLK_TCK)
 #define DFL_FL_ADDR INADDR_ANY /* Any address */  /* server only */
 #define closesocket(sd) close(sd)
-
-#include "restart.h"
-#include "ptds.h"
- 
-int32_t xdd_sg_io(ptds_t *p, char rw);
-int32_t xdd_sg_read_capacity(ptds_t *p);
-void xdd_sg_set_reserved_size(ptds_t *p, int fd);
-void xdd_sg_get_version(ptds_t *p, int fd);
-
 extern int h_errno; // For socket calls
 
 /*
