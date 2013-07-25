@@ -1,19 +1,13 @@
 /* ----------------------------------------------------------------------- *
  *
- *   Copyright 2001-2008 H. Peter Anvin - All Rights Reserved
- *
- *   This program is free software; you can redistribute it and/or modify
- *   it under the terms of the GNU General Public License as published by
- *   the Free Software Foundation, Inc., 53 Temple Place Ste 330,
- *   Boston MA 02111-1307, USA; either version 2 of the License, or
- *   (at your option) any later version; incorporated herein by reference.
+ * See COPYING in top-level directory
  *
  * ----------------------------------------------------------------------- */
 
 /*
- * truncate.c
+ * getfilesize.c
  *
- * Small program to print file sizes and last modification times.
+ * Small program to print a file's size.
  */
 #include <errno.h>
 #include <stdio.h>
@@ -46,34 +40,34 @@ int main(int argc, char *argv[])
         if (0 != rc) {
             /** Handle errors */
 	    switch(errno) {
-		case(EACCES):
-		    fprintf(stderr, "Unable to access file: %s\n", filename);
-		    break;
-		case(ENAMETOOLONG):
-		    fprintf(stderr, "Filename too long: %s\n", filename);
-		    break;
-		case(ENOTDIR):
-		    fprintf(stderr, "Invalid path segment: %s\n", filename);
-		    break;
-		case(EFAULT):
-		    fprintf(stderr, "Invalid buffer address.\n");
-		    break;
-		case(ENOENT):
-		    fprintf(stderr, "File does not exist: %s\n", filename);
-		    break;
-		case(EOVERFLOW):
-		    fprintf(stderr, "Overflow error.  Abort.\n");
-		    break;
-		default:
-		    fprintf(stderr, "Unknown error occurred during stat %d.\n",
-			    errno);
-		    break;
+			case(EACCES):
+				fprintf(stderr, "Unable to access file: %s\n", filename);
+				break;
+			case(ENAMETOOLONG):
+				fprintf(stderr, "Filename too long: %s\n", filename);
+				break;
+			case(ENOTDIR):
+				fprintf(stderr, "Invalid path segment: %s\n", filename);
+				break;
+			case(EFAULT):
+				fprintf(stderr, "Invalid buffer address.\n");
+				break;
+			case(ENOENT):
+				fprintf(stderr, "File does not exist: %s\n", filename);
+				break;
+			case(EOVERFLOW):
+				fprintf(stderr, "Overflow error.  Abort.\n");
+				break;
+			default:
+				fprintf(stderr, "Unknown error occurred during stat %d.\n",
+						errno);
+				break;
 	    }
-            err = 1;
-            break;
+		err = 1;
+		break;
         }
         else {
-            printf("%llu %llu\n", (long long unsigned)buffer.st_size, (long long unsigned)buffer.st_mtime);
+            printf("%llu\n", (long long unsigned)buffer.st_size);
         }
     }
     
