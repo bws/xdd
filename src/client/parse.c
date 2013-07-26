@@ -522,20 +522,20 @@ xdd_get_throtp(target_data_t *tdp) {
 /* xdd_get_tsp() - return a pointer to the Time Stamp Variables
  * for the specified target
  */
-xint_timestamp_t *
-xdd_get_tsp(target_data_t *tdp) {
+//xint_timestamp_t *
+//xdd_get_tsp(target_data_t *tdp) {
 
-	if (tdp->td_tsp == 0) { // If there is no existing Time Stamp structure, allocate a new one 
-		tdp->td_tsp = malloc(sizeof(xint_timestamp_t));
-		if (tdp->td_tsp == NULL) {
-			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for TIMESTAMP variables for target %d\n",
-			xgp->progname, (int)sizeof(xint_timestamp_t), tdp->td_target_number);
-			return(NULL);
-		}
-	}
-	return(tdp->td_tsp);
-
-} /* End of xdd_get_tsp() */
+	//if (tdp->td_tsp == 0) { // If there is no existing Time Stamp structure, allocate a new one 
+		//tdp->td_tsp = malloc(sizeof(xint_timestamp_t));
+		//if (tdp->td_tsp == NULL) {
+			//fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for TIMESTAMP variables for target %d\n",
+			//xgp->progname, (int)sizeof(xint_timestamp_t), tdp->td_target_number);
+			//return(NULL);
+		//}
+	//}
+	//return(tdp->td_tsp);
+//
+//} /* End of xdd_get_tsp() */
 #if (LINUX)
 /*----------------------------------------------------------------------------*/
 /* xdd_linux_cpu_count() - return the number of CPUs on  this system

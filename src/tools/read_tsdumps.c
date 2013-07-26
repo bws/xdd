@@ -26,13 +26,13 @@
 #define NO_OP(x)    (x==TASK_OP_TYPE_NOOP||x==SO_OP_NOOP)
 #define EOF_OP(x)   (x==TASK_OP_TYPE_EOF||x==SO_OP_EOF)
 
-/* key offsets in tte_t for the sorting function */
-#define DISK_START  offsetof(tte_t, disk_start)
-#define DISK_END    offsetof(tte_t, disk_end)
-#define DISK_XFER   offsetof(tte_t, disk_xfer_size)
-#define NET_START   offsetof(tte_t, net_start)
-#define NET_END     offsetof(tte_t, net_end)
-#define NET_XFER    offsetof(tte_t, net_xfer_size)
+/* key offsets in xdd_ts_tte_t for the sorting function */
+#define DISK_START  offsetof(xdd_ts_tte_t, tte_disk_start)
+#define DISK_END    offsetof(xdd_ts_tte_t, tte_disk_end)
+#define DISK_XFER   offsetof(xdd_ts_tte_t, tte_disk_xfer_size)
+#define NET_START   offsetof(xdd_ts_tte_t, tte_net_start)
+#define NET_END     offsetof(xdd_ts_tte_t, tte_net_end)
+#define NET_XFER    offsetof(xdd_ts_tte_t, tte_net_xfer_size)
 
 /* magic number to make sure we can read the file */
 #define BIN_MAGIC_NUMBER 0xDEADBEEF
@@ -56,27 +56,27 @@ int kernel_trace = 0;
 int window_size;
 
 /* normalize timestamps */
-void normalize_time(xdd_tthdr_t *src, nclk_t *start_norm);
-/* custom quick sort for the tte_t array */
-void tte_qsort(tte_t **list, size_t key_offset, int64_t left, int64_t right);
+void normalize_time(xdd_ts_header_t *src, nclk_t *start_norm);
+/* custom quick sort for the xdd_ts_tte_t array */
+void tte_qsort(xdd_ts_tte_t **list, size_t key_offset, int64_t left, int64_t right);
 /* sorts the timestamp entries by completion time */
-void sort_by_time(xdd_tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted);
+void sort_by_time(xdd_ts_header_t *tsdata, size_t op_offset, xdd_ts_tte_t ***op_sorted);
 /* write all the outfiles */
-void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
-	tte_t **send_op, tte_t **recv_op, tte_t **write_op);
+void write_outfile(xdd_ts_header_t *src, xdd_ts_header_t *dst, xdd_ts_tte_t **read_op,
+	xdd_ts_tte_t **send_op, xdd_ts_tte_t **recv_op, xdd_ts_tte_t **write_op);
 /* read, check, and store the src and dst file data */
-int xdd_readfile(char *filename, xdd_tthdr_t **tsdata, size_t *tsdata_size);
+int xdd_readfile(char *filename, xdd_ts_header_t **tsdata, size_t *tsdata_size);
 /* Write an XDD binary timestamp structure to file */
-int xdd_writefile(char *filename, xdd_tthdr_t *tsdata, size_t tsdata_size);
+int xdd_writefile(char *filename, xdd_ts_header_t *tsdata, size_t tsdata_size);
 /* parse command line options */
 int getoptions(int argc, char **argv);
 /* print command line usage */
 void printusage(char *progname);
 /* get total threads, thread pids, operation mix (%read,%write) */
-void xdd_getthreads(xdd_tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix);
+void xdd_getthreads(xdd_ts_header_t *tsdata, int *total_threads, int thread_id[], double *op_mix);
 
 int
-matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filespec, xdd_tthdr_t *xdd_data);
+matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filespec, xdd_ts_header_t *xdd_data);
 
 
 int main(int argc, char **argv) {
@@ -85,14 +85,14 @@ int main(int argc, char **argv) {
         size_t tsdata_size;
         char *iotrace_data_dir, *current_work_dir;
 	/* tsdumps for the source and destination sides */
-	xdd_tthdr_t *src = NULL;
-	xdd_tthdr_t *dst = NULL;
-	xdd_tthdr_t *tsdata = NULL;
+	xdd_ts_header_t *src = NULL;
+	xdd_ts_header_t *dst = NULL;
+	xdd_ts_header_t *tsdata = NULL;
 	/* timestamp entries sorted by ending time */
-	tte_t **read_op = NULL;
-	tte_t **send_op = NULL;
-	tte_t **recv_op = NULL;
-	tte_t **write_op = NULL;
+	xdd_ts_tte_t **read_op = NULL;
+	xdd_ts_tte_t **send_op = NULL;
+	xdd_ts_tte_t **recv_op = NULL;
+	xdd_ts_tte_t **write_op = NULL;
 
 	/* get command line options */
 	argnum = getoptions(argc, argv);
@@ -106,12 +106,12 @@ int main(int argc, char **argv) {
 	}
         /* determine whether this is the source or destination file */
         /* if only 1 file given, then source==read, destination==write */
-        if (READ_OP(tsdata->tte[0].op_type)) { 
+        if (READ_OP(tsdata->tsh_tte[0].tte_op_type)) { 
            src = tsdata;
            srcfilename = argv[fn];
 	}
         else
-        if (WRITE_OP(tsdata->tte[0].op_type)){
+        if (WRITE_OP(tsdata->tsh_tte[0].tte_op_type)){
 	  dst = tsdata;
           dstfilename = argv[fn];
 	}
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
 	    exit(1);
 	  }
           /* determine whether this is the source or destination file */
-          if (READ_OP(tsdata->tte[0].op_type))  {
+          if (READ_OP(tsdata->tsh_tte[0].tte_op_type))  {
             if (src != NULL) {
               fprintf(stderr,"You passed 2 source dump files.\n");
               fprintf(stderr,"Please pass matching source and destination dumps or a single dump .\n");
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
             srcfilename = argv[fn+1];
           }
           else 
-          if (WRITE_OP(tsdata->tte[0].op_type)) {
+          if (WRITE_OP(tsdata->tsh_tte[0].tte_op_type)) {
             if (dst != NULL) {
               fprintf(stderr,"You passed 2 destination dump files.\n");
               fprintf(stderr,"Please pass matching source and destination dumps or a single dump .\n");
@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
              exit(1);
           }
           /* If these files are from the same transfer, they should be the same size. */
-          if (src->tt_bytes != dst->tt_bytes) {
+          if (src->tsh_tt_bytes != dst->tsh_tt_bytes) {
             fprintf(stderr,"Source and destination files are not the same size.\n");
             fprintf(stderr,"Please pass matching source and destination dumps.\n");
             exit(1);
@@ -179,21 +179,21 @@ int main(int argc, char **argv) {
      
           if (src != NULL) {
             sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
-	       	iotrace_data_dir, iotrace_data_dir, src->target_thread_id);
+	       	iotrace_data_dir, iotrace_data_dir, src->tsh_target_thread_id);
             if ( system(kernfilename) == -1 ) {
                fprintf(stderr,"in main: shell command failed: %s\n",kernfilename);
                exit(1);
             }
             if (strcmp(iotrace_data_dir,current_work_dir) != 0) {
               sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
-	  	iotrace_data_dir, src->target_thread_id,getenv("PWD"));
+	  	iotrace_data_dir, src->tsh_target_thread_id,getenv("PWD"));
               if ( system(kernfilename) == -1 ) {
                  fprintf(stderr,"in main: shell command failed: %s\n",kernfilename);
                  exit(1);
               }
             }
             sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
-                current_work_dir, src->target_thread_id);
+                current_work_dir, src->tsh_target_thread_id);
             matchadd_kernel_events(1,total_threads_src,thread_id_src,kernfilename,src);
             if (op_mix > 0.0)
             matchadd_kernel_events(0,total_threads_src,thread_id_src,kernfilename,src);
@@ -208,21 +208,21 @@ int main(int argc, char **argv) {
 
           if (dst != NULL) {
             sprintf(kernfilename,"decode %s/dictionary* %s/iotrace_data.%d.out",
-		iotrace_data_dir, iotrace_data_dir, dst->target_thread_id);
+		iotrace_data_dir, iotrace_data_dir, dst->tsh_target_thread_id);
             if ( system(kernfilename) == -1 ) {
                fprintf(stderr,"in main: shell command failed: %s\n",kernfilename);
                exit(1);
             }
             if (strcmp(iotrace_data_dir,current_work_dir) != 0) {
               sprintf(kernfilename,"mv %s/iotrace_data.%d.out.ascii %s",
-		iotrace_data_dir, dst->target_thread_id,getenv("PWD"));
+		iotrace_data_dir, dst->tsh_target_thread_id,getenv("PWD"));
               if ( system(kernfilename) == -1 ) {
                  fprintf(stderr,"in main: shell command failed: %s\n",kernfilename);
                  exit(1);
               }
             }
             sprintf(kernfilename,"%s/iotrace_data.%d.out.ascii",
-                current_work_dir, dst->target_thread_id);
+                current_work_dir, dst->tsh_target_thread_id);
             matchadd_kernel_events(0,total_threads_dst,thread_id_dst,kernfilename,dst);
             if (op_mix > 0.0)
             matchadd_kernel_events(1,total_threads_dst,thread_id_dst,kernfilename,dst);
@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
 }
 /* get total threads, thread ids, operation mix */
 void
-xdd_getthreads(xdd_tthdr_t *tsdata, int *total_threads, int thread_id[], double *op_mix)
+xdd_getthreads(xdd_ts_header_t *tsdata, int *total_threads, int thread_id[], double *op_mix)
 {
     size_t i;
        int k = -1, tothreads = 0;
@@ -280,15 +280,15 @@ xdd_getthreads(xdd_tthdr_t *tsdata, int *total_threads, int thread_id[], double 
           exit (-1);
        }
         /* how many qthreads are there? */
-        for (i = 0; i < tsdata->tt_size; i++) {
-                tothreads = MAX(tsdata->tte[i].worker_thread_number,tothreads);
+        for (i = 0; i < tsdata->tsh_tt_size; i++) {
+                tothreads = MAX(tsdata->tsh_tte[i].tte_worker_thread_number,tothreads);
                 if (k < tothreads && k < MAX_WORKER_THREADS)
                 {
                             k = tothreads;
-                  thread_id[k] = tsdata->tte[i].thread_id;
+                  thread_id[k] = tsdata->tsh_tte[i].tte_thread_id;
                 }
-                read_ops  +=  READ_OP(tsdata->tte[i].op_type);
-                write_ops += WRITE_OP(tsdata->tte[i].op_type);
+                read_ops  +=  READ_OP(tsdata->tsh_tte[i].tte_op_type);
+                write_ops += WRITE_OP(tsdata->tsh_tte[i].tte_op_type);
         }
         *total_threads = tothreads + 1;
         *op_mix        = (read_ops && write_ops) ? (double)read_ops/(double)write_ops : 0.0;
@@ -296,63 +296,63 @@ xdd_getthreads(xdd_tthdr_t *tsdata, int *total_threads, int thread_id[], double 
 }
 
 /* subtract the timestamps by the minimum start times */
-void normalize_time(xdd_tthdr_t *tsdata, nclk_t *start_norm) {
+void normalize_time(xdd_ts_header_t *tsdata, nclk_t *start_norm) {
 	size_t i;
 	nclk_t start;
-	start = tsdata->tte[0].disk_start;
+	start = tsdata->tsh_tte[0].tte_disk_start;
 
 	/* get minimum starting times */
-	for (i=0; i < tsdata->tt_size; i++) {
-		if (!READ_OP(tsdata->tte[i].op_type) && !WRITE_OP(tsdata->tte[i].op_type))
+	for (i=0; i < tsdata->tsh_tt_size; i++) {
+		if (!READ_OP(tsdata->tsh_tte[i].tte_op_type) && !WRITE_OP(tsdata->tsh_tte[i].tte_op_type))
 			continue;
-		start = MIN(start, tsdata->tte[i].disk_start);
-		if (tsdata->tte[i].net_start == 0)
+		start = MIN(start, tsdata->tsh_tte[i].tte_disk_start);
+		if (tsdata->tsh_tte[i].tte_net_start == 0)
 			continue;
-		start = MIN(start, tsdata->tte[i].net_start);
+		start = MIN(start, tsdata->tsh_tte[i].tte_net_start);
 	}
 
         *start_norm = start;
 
 	/* normalize timestamps */
-	for (i=0; i < tsdata->tt_size; i++) {
+	for (i=0; i < tsdata->tsh_tt_size; i++) {
 		/* don't subtract from zero */
-		if (EOF_OP(tsdata->tte[i].op_type) && (tsdata->tte[i].disk_start == 0))
+		if (EOF_OP(tsdata->tsh_tte[i].tte_op_type) && (tsdata->tsh_tte[i].tte_disk_start == 0))
 			continue;
-		tsdata->tte[i].disk_start   -= start;
-		tsdata->tte[i].disk_start_k -= start;
-		tsdata->tte[i].disk_end     -= start;
-		tsdata->tte[i].disk_end_k   -= start;
+		tsdata->tsh_tte[i].tte_disk_start   -= start;
+		tsdata->tsh_tte[i].tte_disk_start_k -= start;
+		tsdata->tsh_tte[i].tte_disk_end     -= start;
+		tsdata->tsh_tte[i].tte_disk_end_k   -= start;
 	}
 
 	/* normalize timestamps */
-	for (i=0; i < tsdata->tt_size; i++) {
+	for (i=0; i < tsdata->tsh_tt_size; i++) {
 		/* don't subtract from zero */
-		if (EOF_OP(tsdata->tte[i].op_type) && (tsdata->tte[i].net_start == 0))
+		if (EOF_OP(tsdata->tsh_tte[i].tte_op_type) && (tsdata->tsh_tte[i].tte_net_start == 0))
 			continue;
-		tsdata->tte[i].net_start    -= start;
-		tsdata->tte[i].net_start_k  -= start;
-		tsdata->tte[i].net_end      -= start;
-		tsdata->tte[i].net_end_k    -= start;
+		tsdata->tsh_tte[i].tte_net_start    -= start;
+		tsdata->tsh_tte[i].tte_net_start_k  -= start;
+		tsdata->tsh_tte[i].tte_net_end      -= start;
+		tsdata->tsh_tte[i].tte_net_end_k    -= start;
 	}
 }
 
 
-/* custom quick sort for the tte_t array */
-void tte_qsort(tte_t **list, size_t key_offset, int64_t low, int64_t high) {
+/* custom quick sort for the xdd_ts_tte_t array */
+void tte_qsort(xdd_ts_tte_t **list, size_t key_offset, int64_t low, int64_t high) {
 	/* NOTE: the pointer arithmetic is intended to take 'key_offset'
 	 * and use it to access either disk_start, disk_end, net_start, or net_end
-	 * in a tte_t element.  So if you pass a list of (tte_t *) elements,
-	 * and you want to sort the pointers based on what is in list[i]->disk_start,
-	 * pass offsetof(tte_t,disk_start) as key_offset.  This function is ONLY
+	 * in a xdd_ts_tte_t element.  So if you pass a list of (xdd_ts_tte_t *) elements,
+	 * and you want to sort the pointers based on what is in list[i].tte_disk_start,
+	 * pass offsetof(xdd_ts_tte_t,disk_start) as key_offset.  This function is ONLY
 	 * intended to sort by nclk_t timestamps at the moment.  Passing any other
 	 * offset will break stuff. */
 
 	/* get the nclk_t time value (specified by key_offset)
-	 * from the given tte_t element in the list */
+	 * from the given xdd_ts_tte_t element in the list */
 	#define timevalue(i) ( *((nclk_t *)((char *)list[i] + key_offset)) )
 
 	int64_t i,j;
-	tte_t *tmp = NULL;
+	xdd_ts_tte_t *tmp = NULL;
 	nclk_t mid;
 
 	i = low;
@@ -382,10 +382,10 @@ void tte_qsort(tte_t **list, size_t key_offset, int64_t low, int64_t high) {
 }
 
 /* sort timestamp entries by completion time */
-void sort_by_time(xdd_tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted )
+void sort_by_time(xdd_ts_header_t *tsdata, size_t op_offset, xdd_ts_tte_t ***op_sorted )
 		                                                         {
 	/* allocate array of pointers to tte structs */
-	tte_t **op = malloc(tsdata->tt_size*sizeof(tte_t *));
+	xdd_ts_tte_t **op = malloc(tsdata->tsh_tt_size*sizeof(xdd_ts_tte_t *));
 	if (op == NULL) {
 		fprintf(stderr,"Could not allocate enough memory for quick sort.\n");
 		exit(1);
@@ -393,19 +393,19 @@ void sort_by_time(xdd_tthdr_t *tsdata, size_t op_offset, tte_t ***op_sorted )
 
 	/* initialize pointers */
 	size_t i;
-	for (i = 0; i < tsdata->tt_size; i++) {
-		op[i] = &(tsdata->tte[i]);
+	for (i = 0; i < tsdata->tsh_tt_size; i++) {
+		op[i] = &(tsdata->tsh_tte[i]);
 	}
 
 	/* sort pointers */
-	tte_qsort(op, op_offset,0, tsdata->tt_size-1);
+	tte_qsort(op, op_offset,0, tsdata->tsh_tt_size-1);
 
 	/* save pointers */
 	*op_sorted = op;
 }
 /* write the outfile */
-void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
-	tte_t **send_op, tte_t **recv_op, tte_t **write_op) {
+void write_outfile(xdd_ts_header_t *src, xdd_ts_header_t *dst, xdd_ts_tte_t **read_op,
+	xdd_ts_tte_t **send_op, xdd_ts_tte_t **recv_op, xdd_ts_tte_t **write_op) {
 
     int i;
 	int64_t   k, numts_entries;
@@ -443,16 +443,16 @@ void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
 	/* file header */
 	numts_entries = 0;
         if (src != NULL) {
-              numts_entries = src->tt_size;
+              numts_entries = src->tsh_tt_size;
               if (src != NULL)
                   fprintf(outfile,"#SOURCE");
               else
                   fprintf(outfile,"#READ OP");
 	      fprintf(outfile," timestamp file: %s\n",srcfilename);
-	      fprintf(outfile,"#timestamp: %s",src->td);
-	      fprintf(outfile,"#reqsize: %d\n",src->reqsize);
-	      fprintf(outfile,"#filesize: %ld\n",src->reqsize*src->tt_size);
-              fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->target_thread_id,total_threads_src);
+	      fprintf(outfile,"#timestamp: %s",src->tsh_td);
+	      fprintf(outfile,"#reqsize: %d\n",src->tsh_reqsize);
+	      fprintf(outfile,"#filesize: %ld\n",src->tsh_reqsize*src->tsh_tt_size);
+              fprintf(outfile,"#qthreads_src, target pid, pids: %d %d ",src->tsh_target_thread_id,total_threads_src);
           for (i = 0; i < total_threads_src; i++) { 
               fprintf(outfile,"%d ",thread_id_src[i] );
               }
@@ -460,14 +460,14 @@ void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
               fprintf(outfile,"#src_start_norm %lld\n",src_start_norm);
         }
         if (dst != NULL) {
-              numts_entries = dst->tt_size;
+              numts_entries = dst->tsh_tt_size;
               if (src != NULL) fprintf(outfile,"#DESTINATION ");
               else             fprintf(outfile,"#WRITE OP ");
 	      fprintf(outfile," timestamp file: %s\n",dstfilename);
-	      fprintf(outfile,"#timestamp: %s",dst->td);
-	      fprintf(outfile,"#reqsize: %d\n",dst->reqsize);
-	      fprintf(outfile,"#filesize: %ld\n",dst->reqsize*dst->tt_size);
-              fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->target_thread_id,total_threads_dst);
+	      fprintf(outfile,"#timestamp: %s",dst->tsh_td);
+	      fprintf(outfile,"#reqsize: %d\n",dst->tsh_reqsize);
+	      fprintf(outfile,"#filesize: %ld\n",dst->tsh_reqsize*dst->tsh_tt_size);
+              fprintf(outfile,"#qthreads_dst, target pid, pids: %d %d ",dst->tsh_target_thread_id,total_threads_dst);
             for (i = 0; i < total_threads_dst; i++) { 
 	      fprintf(outfile,"%d ",thread_id_dst[i] );
             }
@@ -492,61 +492,61 @@ void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
 
                 if (read_op != NULL) {
 		  /* read disk */
-                 if (read_op[i]->disk_end > 0) {
-                  cutoff = MAX( nclk2sec(read_op[i]->disk_end)-window_size, 0.0);
-                  for (k = i; (k >= 0) && ( nclk2sec(read_op[k]->disk_end) > cutoff); k--)
-			op_mbs [0] += (double)read_op[k]->disk_xfer_size;
-			op_mbs [0]  = op_mbs[0] / MIN((double)window_size,(double)nclk2sec(read_op[i]->disk_end)) / BPU;
-			op_time[0]  = nclk2sec(read_op[i]->disk_end);
-			max_xfer = MAX(max_xfer,read_op[i]->disk_xfer_size);
+                 if (read_op[i]->tte_disk_end > 0) {
+                  cutoff = MAX( nclk2sec(read_op[i]->tte_disk_end)-window_size, 0.0);
+                  for (k = i; (k >= 0) && ( nclk2sec(read_op[k]->tte_disk_end) > cutoff); k--)
+			op_mbs [0] += (double)read_op[k]->tte_disk_xfer_size;
+			op_mbs [0]  = op_mbs[0] / MIN((double)window_size,(double)nclk2sec(read_op[i]->tte_disk_end)) / BPU;
+			op_time[0]  = nclk2sec(read_op[i]->tte_disk_end);
+			max_xfer = MAX(max_xfer,read_op[i]->tte_disk_xfer_size);
                   if (kernel_trace) {
-			op_dks [0]  = read_op[i]->disk_start_k  - read_op[i]->disk_start;
-			op_dke [0]  = read_op[i]->disk_end      - read_op[i]->disk_end_k;
+			op_dks [0]  = read_op[i]->tte_disk_start_k  - read_op[i]->tte_disk_start;
+			op_dke [0]  = read_op[i]->tte_disk_end      - read_op[i]->tte_disk_end_k;
                   }
                  }
                 }
                 if (send_op != NULL) {
 		/* send net */
-                 if (send_op[i]->net_end > 0) {
-                  cutoff = MAX( nclk2sec(send_op[i]->net_end)-window_size ,0.0);
-                  for (k = i; (k >= 0) && ( nclk2sec(send_op[k]->net_end) > cutoff); k--)
-			op_mbs [1] += (double)send_op[k]->net_xfer_size;
-			op_mbs [1]  = op_mbs[1] / MIN((double)window_size,(double)nclk2sec(send_op[i]->net_end)) / BPU;
-			op_time[1]  = nclk2sec(send_op[i]->net_end);
-			max_xfer = MAX(max_xfer,send_op[i]->net_xfer_size);
+                 if (send_op[i]->tte_net_end > 0) {
+                  cutoff = MAX( nclk2sec(send_op[i]->tte_net_end)-window_size ,0.0);
+                  for (k = i; (k >= 0) && ( nclk2sec(send_op[k]->tte_net_end) > cutoff); k--)
+			op_mbs [1] += (double)send_op[k]->tte_net_xfer_size;
+			op_mbs [1]  = op_mbs[1] / MIN((double)window_size,(double)nclk2sec(send_op[i]->tte_net_end)) / BPU;
+			op_time[1]  = nclk2sec(send_op[i]->tte_net_end);
+			max_xfer = MAX(max_xfer,send_op[i]->tte_net_xfer_size);
                   if (kernel_trace) {
-			op_dks [1]  = send_op[i]->net_start_k   - send_op[i]->net_start;
-			op_dke [1]  = send_op[i]->net_end       - send_op[i]->net_end_k;
+			op_dks [1]  = send_op[i]->tte_net_start_k   - send_op[i]->tte_net_start;
+			op_dke [1]  = send_op[i]->tte_net_end       - send_op[i]->tte_net_end_k;
                   }
                  }
                 }
                 if (recv_op != NULL) {
 		/* recv net */
-                 if (recv_op[i]->net_end > 0) {
-                  cutoff = MAX( nclk2sec(recv_op[i]->net_end)-window_size, 0.0);
-                  for (k = i; (k >= 0) && ( nclk2sec(recv_op[k]->net_end) > cutoff); k--)
-			op_mbs [2] += (double)recv_op[k]->net_xfer_size;
-			op_mbs [2]  = op_mbs[2] / MIN((double)window_size,(double)nclk2sec(recv_op[i]->net_end)) / BPU;
-			op_time[2]  = nclk2sec(recv_op[i]->net_end);
-			max_xfer    = MAX(max_xfer,recv_op[i]->net_xfer_size);
+                 if (recv_op[i]->tte_net_end > 0) {
+                  cutoff = MAX( nclk2sec(recv_op[i]->tte_net_end)-window_size, 0.0);
+                  for (k = i; (k >= 0) && ( nclk2sec(recv_op[k]->tte_net_end) > cutoff); k--)
+			op_mbs [2] += (double)recv_op[k]->tte_net_xfer_size;
+			op_mbs [2]  = op_mbs[2] / MIN((double)window_size,(double)nclk2sec(recv_op[i]->tte_net_end)) / BPU;
+			op_time[2]  = nclk2sec(recv_op[i]->tte_net_end);
+			max_xfer    = MAX(max_xfer,recv_op[i]->tte_net_xfer_size);
                   if (kernel_trace) {
-			op_dks [2]  = send_op[i]->net_start_k   - send_op[i]->net_start;
-			op_dke [2]  = send_op[i]->net_end       - send_op[i]->net_end_k;
+			op_dks [2]  = send_op[i]->tte_net_start_k   - send_op[i]->tte_net_start;
+			op_dke [2]  = send_op[i]->tte_net_end       - send_op[i]->tte_net_end_k;
                   }
                  }
                 }
                 if (write_op != NULL) {
 		/* write disk */
-                 if (write_op[i]->disk_end > 0) {
-                  cutoff = MAX( nclk2sec(write_op[i]->disk_end)-window_size, 0.0);
-                  for (k = i; (k >= 0) && (nclk2sec(write_op[k]->disk_end) > cutoff); k--)
-			op_mbs [3] += (double)write_op[k]->disk_xfer_size;
-			op_mbs [3]  = op_mbs[3] / MIN((double)window_size,(double)nclk2sec(write_op[i]->disk_end)) / BPU;
-			op_time[3]  = nclk2sec(write_op[i]->disk_end);
-			max_xfer    = MAX(max_xfer,write_op[i]->disk_xfer_size);
+                 if (write_op[i]->tte_disk_end > 0) {
+                  cutoff = MAX( nclk2sec(write_op[i]->tte_disk_end)-window_size, 0.0);
+                  for (k = i; (k >= 0) && (nclk2sec(write_op[k]->tte_disk_end) > cutoff); k--)
+			op_mbs [3] += (double)write_op[k]->tte_disk_xfer_size;
+			op_mbs [3]  = op_mbs[3] / MIN((double)window_size,(double)nclk2sec(write_op[i]->tte_disk_end)) / BPU;
+			op_time[3]  = nclk2sec(write_op[i]->tte_disk_end);
+			max_xfer    = MAX(max_xfer,write_op[i]->tte_disk_xfer_size);
                   if (kernel_trace) {
-			op_dks [3]  = write_op[i]->disk_start_k - write_op[i]->disk_start;
-			op_dke [3]  = write_op[i]->disk_end     - write_op[i]->disk_end_k;
+			op_dks [3]  = write_op[i]->tte_disk_start_k - write_op[i]->tte_disk_start;
+			op_dke [3]  = write_op[i]->tte_disk_end     - write_op[i]->tte_disk_end_k;
                   }
                  }
                 }
@@ -740,11 +740,11 @@ void write_outfile(xdd_tthdr_t *src, xdd_tthdr_t *dst, tte_t **read_op,
  * RETURN:
  *   1 if succeeded, 0 if failed
  *********************************************************/
-int xdd_readfile(char *filename, xdd_tthdr_t **tsdata, size_t *tsdata_size) {
+int xdd_readfile(char *filename, xdd_ts_header_t **tsdata, size_t *tsdata_size) {
 
 	FILE *tsfd;
 	size_t tsize = 0;
-	xdd_tthdr_t *tdata = NULL;
+	xdd_ts_header_t *tdata = NULL;
 	size_t result = 0;
 	uint32_t magic = 0;
 
@@ -774,7 +774,7 @@ int xdd_readfile(char *filename, xdd_tthdr_t **tsdata, size_t *tsdata_size) {
 		return 0;
 	}
 
-	/* check magic number in xdd_tthdr */
+	/* check magic number in xdd_ts_header_t */
 	result = fread(&magic,sizeof(uint32_t),1,tsfd);
 	fseek(tsfd,0,SEEK_SET);
 
@@ -796,7 +796,7 @@ int xdd_readfile(char *filename, xdd_tthdr_t **tsdata, size_t *tsdata_size) {
 	}
 
 	/* no empty sets */
-	if (tdata->tt_size < 1) {
+	if (tdata->tsh_tt_size < 1) {
 		fprintf(stderr,"Timestamp dump was empty: %s\n",filename);
 		return 0;
 	}
@@ -822,7 +822,7 @@ int xdd_readfile(char *filename, xdd_tthdr_t **tsdata, size_t *tsdata_size) {
  * RETURN:
  *   1 if succeeded, 0 if failed
  *********************************************************/
-int xdd_writefile(char *filename, xdd_tthdr_t *tsdata, size_t tsdata_size) {
+int xdd_writefile(char *filename, xdd_ts_header_t *tsdata, size_t tsdata_size) {
 
 	FILE *tsfd;
 	size_t result = 0;

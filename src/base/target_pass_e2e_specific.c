@@ -44,6 +44,7 @@
 void
 xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 	worker_data_t	*wdp;
+	xdd_ts_tte_t	*ttep;
 	int		q;
 
 	// The idea is to keep all the Worker Threads busy reading whatever is sent to them
@@ -96,23 +97,24 @@ xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp) {
 //		}
 
    		// If time stamping is on then assign a time stamp entry to this Worker Thread
-   		if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-			wdp->wd_ts_entry = tdp->td_tsp->ts_current_entry;	
-			tdp->td_tsp->ts_current_entry++;
-			if (tdp->td_tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
-				if (tdp->td_tsp->ts_current_entry == tdp->td_tsp->ts_size)
-					tdp->td_tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
-			} else if (tdp->td_tsp->ts_options & TS_WRAP) {
-				tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
+   		if ((tdp->td_ts_table.ts_options & (TS_ON|TS_TRIGGERED))) {
+			wdp->wd_ts_entry = tdp->td_ts_table.ts_current_entry;	
+			ttep = & tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+			tdp->td_ts_table.ts_current_entry++;
+			if (tdp->td_ts_table.ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
+				if (tdp->td_ts_table.ts_current_entry == tdp->td_ts_table.ts_size)
+					tdp->td_ts_table.ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
+			} else if (tdp->td_ts_table.ts_options & TS_WRAP) {
+				tdp->td_ts_table.ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 			}
-			tdp->td_ttp->tte[wdp->wd_ts_entry].pass_number = tdp->td_counters.tc_pass_number;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_worker_number;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].thread_id     = wdp->wd_thread_id;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = TASK_OP_TYPE_WRITE;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = -1; 		// to be filled in after data received
-			tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = -1; 	// to be filled in after data received
-			tdp->td_ttp->tte[wdp->wd_ts_entry].disk_xfer_size = 0; 	// to be filled in after data received
-			tdp->td_ttp->tte[wdp->wd_ts_entry].net_xfer_size = 0; 	// to be filled in after data received
+			ttep->tte_pass_number = tdp->td_counters.tc_pass_number;
+			ttep->tte_worker_thread_number = wdp->wd_worker_number;
+			ttep->tte_thread_id     = wdp->wd_thread_id;
+			ttep->tte_op_type = TASK_OP_TYPE_WRITE;
+			ttep->tte_op_number = -1; 		// to be filled in after data received
+			ttep->tte_byte_offset = -1; 	// to be filled in after data received
+			ttep->tte_disk_xfer_size = 0; 	// to be filled in after data received
+			ttep->tte_net_xfer_size = 0; 	// to be filled in after data received
 		}
 
 		// Release the Worker Thread to let it start working on this task
@@ -230,6 +232,7 @@ xdd_targetpass_e2e_loop_src(xdd_plan_t* planp, target_data_t *tdp) {
 void
 xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp) {
 	target_data_t	*tdp;
+	xdd_ts_tte_t	*ttep;
 
 	tdp = wdp->wd_tdp;
 	// Assign an IO task to this worker thread
@@ -270,21 +273,22 @@ xdd_targetpass_e2e_task_setup_src(worker_data_t *wdp) {
 	wdp->wd_task.task_op_number = tdp->td_counters.tc_current_op_number;
 
    	// If time stamping is on then assign a time stamp entry to this Worker Thread
-   	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-		wdp->wd_ts_entry = tdp->td_tsp->ts_current_entry;	
-		tdp->td_tsp->ts_current_entry++;
-		if (tdp->td_tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
-			if (tdp->td_tsp->ts_current_entry == tdp->td_tsp->ts_size)
-				tdp->td_tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
-		} else if (tdp->td_tsp->ts_options & TS_WRAP) {
-			tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
+   	if ((tdp->td_ts_table.ts_options & (TS_ON|TS_TRIGGERED))) {
+		wdp->wd_ts_entry = tdp->td_ts_table.ts_current_entry;	
+		ttep = & tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+		tdp->td_ts_table.ts_current_entry++;
+		if (tdp->td_ts_table.ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
+			if (tdp->td_ts_table.ts_current_entry == tdp->td_ts_table.ts_size)
+				tdp->td_ts_table.ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
+		} else if (tdp->td_ts_table.ts_options & TS_WRAP) {
+			tdp->td_ts_table.ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 		}
-		tdp->td_ttp->tte[wdp->wd_ts_entry].pass_number = tdp->td_counters.tc_pass_number;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_worker_number;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].thread_id = wdp->wd_thread_id;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = wdp->wd_task.task_op_type;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = wdp->wd_task.task_op_number;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = wdp->wd_task.task_byte_offset;
+		ttep->tte_pass_number = tdp->td_counters.tc_pass_number;
+		ttep->tte_worker_thread_number = wdp->wd_worker_number;
+		ttep->tte_thread_id = wdp->wd_thread_id;
+		ttep->tte_op_type = wdp->wd_task.task_op_type;
+		ttep->tte_op_number = wdp->wd_task.task_op_number;
+		ttep->tte_byte_offset = wdp->wd_task.task_byte_offset;
 	}
 if (xgp->global_options & GO_DEBUG_TASK) fprintf(stderr,"DEBUG_TASK: %lld: xdd_targetpass_e2e_task_setup_src: Target: %d: Worker: %d: task_request: 0x%x: file_desc: %d: datap: %p: op_type: %d, op_string: %s: op_number: %lld: xfer_size: %d, byte_offset: %lld: e2e_sequence_number: %lld\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,wdp->wd_task.task_request,wdp->wd_task.task_file_desc,wdp->wd_task.task_datap,wdp->wd_task.task_op_type,wdp->wd_task.task_op_string,(unsigned long long int)wdp->wd_task.task_op_number,(int)wdp->wd_task.task_xfer_size,(long long int)wdp->wd_task.task_byte_offset,(unsigned long long int)wdp->wd_task.task_e2e_sequence_number);
 	// Update the pointers/counters in the Target Data Struct to get ready for the next I/O operation
@@ -316,6 +320,7 @@ if (xgp->global_options & GO_DEBUG_TASK) fprintf(stderr,"DEBUG_TASK: %lld: xdd_t
 void
 xdd_targetpass_e2e_eof_src(target_data_t *tdp) {
 	worker_data_t	*wdp;
+	xdd_ts_tte_t	*ttep;
 	int		q;
 
 	for (q = 0; q < tdp->td_queue_depth; q++) {
@@ -323,21 +328,22 @@ xdd_targetpass_e2e_eof_src(target_data_t *tdp) {
 		wdp->wd_task.task_request = TASK_REQ_EOF;
 
    		// If time stamping is on then assign a time stamp entry to this Worker Thread
-   		if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-			wdp->wd_ts_entry = tdp->td_tsp->ts_current_entry;	
-			tdp->td_tsp->ts_current_entry++;
-			if (tdp->td_tsp->ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
-				if (tdp->td_tsp->ts_current_entry == tdp->td_tsp->ts_size)
-					tdp->td_tsp->ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
-			} else if (tdp->td_tsp->ts_options & TS_WRAP) {
-				tdp->td_tsp->ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
+   		if ((tdp->td_ts_table.ts_options & (TS_ON|TS_TRIGGERED))) {
+			wdp->wd_ts_entry = tdp->td_ts_table.ts_current_entry;	
+			ttep = & tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+			tdp->td_ts_table.ts_current_entry++;
+			if (tdp->td_ts_table.ts_options & TS_ONESHOT) { // Check to see if we are at the end of the ts buffer
+				if (tdp->td_ts_table.ts_current_entry == tdp->td_ts_table.ts_size)
+					tdp->td_ts_table.ts_options &= ~TS_ON; // Turn off Time Stamping now that we are at the end of the time stamp buffer
+			} else if (tdp->td_ts_table.ts_options & TS_WRAP) {
+				tdp->td_ts_table.ts_current_entry = 0; // Wrap to the beginning of the time stamp buffer
 			}
-			tdp->td_ttp->tte[wdp->wd_ts_entry].pass_number = tdp->td_counters.tc_pass_number;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].worker_thread_number = wdp->wd_worker_number;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].thread_id = wdp->wd_thread_id;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = TASK_OP_TYPE_EOF;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = -1*wdp->wd_worker_number;
-			tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = -1;
+			ttep->tte_pass_number = tdp->td_counters.tc_pass_number;
+			ttep->tte_worker_thread_number = wdp->wd_worker_number;
+			ttep->tte_thread_id = wdp->wd_thread_id;
+			ttep->tte_op_type = TASK_OP_TYPE_EOF;
+			ttep->tte_op_number = -1*wdp->wd_worker_number;
+			ttep->tte_byte_offset = -1;
 		}
 	
 		// Release the Worker Thread to let it start working on this task

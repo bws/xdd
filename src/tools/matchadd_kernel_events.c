@@ -199,7 +199,7 @@ int  parse_file_next_op (
 }
 
 int 
-matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filespec, xdd_tthdr_t *xdd_data)
+matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filespec, xdd_ts_header_t *xdd_data)
 {
     size_t i;
     int k;
@@ -221,84 +221,84 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
            /* each thread in chrono order; rewind kernel file for each pid */
            fseek(fp,0,SEEK_SET);
            /* for thread k, find matching kernel events and insert in xdd_data struct */
-           for (i = 0; i < xdd_data->tt_size; i++)
+           for (i = 0; i < xdd_data->tsh_tt_size; i++)
            {
             
-            if (xdd_data->tte[i].thread_id == thread_id[k])
+            if (xdd_data->tsh_tte[i].tte_thread_id == thread_id[k])
             {
               if (issource)
               {
               /* find next op. Deal with xdd eofi, i.e., don't look for trace events that did not happen */
                 if (DEBUG)
                 fprintf(stderr,"%2zd xdd  pread64  thread_pid %d size %8d  start %lld end %lld opt %d\n",
-                   i,xdd_data->tte[i].thread_id, xdd_data->tte[i].disk_xfer_size, xdd_data->tte[i].disk_start, xdd_data->tte[i].disk_end,xdd_data->tte[i].op_type );
-                if (READ_OP(xdd_data->tte[i].op_type) && xdd_data->tte[i].disk_xfer_size)
+                   i,xdd_data->tsh_tte[i].tte_thread_id, xdd_data->tsh_tte[i].tte_disk_xfer_size, xdd_data->tsh_tte[i].tte_disk_start, xdd_data->tsh_tte[i].tte_disk_end,xdd_data->tsh_tte[i].tte_op_type );
+                if (READ_OP(xdd_data->tsh_tte[i].tte_op_type) && xdd_data->tsh_tte[i].tte_disk_xfer_size)
                 {
                   ts_beg_op = ts_end_op = size_op = nops_op = 0;
                   parse_file_next_op(thread_id[k],fp,"pread64",&ts_beg_op,&ts_end_op,&size_op,&nops_op);
-                  xdd_data->tte[i].disk_start_k     = ts_beg_op;
-                  xdd_data->tte[i].disk_end_k       = ts_end_op;
-                  if ( xdd_data->tte[i].disk_xfer_size != size_op) 
-                    fprintf(stderr, "xddop# %zd pid %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].disk_xfer_size,size_op);
+                  xdd_data->tsh_tte[i].tte_disk_start_k     = ts_beg_op;
+                  xdd_data->tsh_tte[i].tte_disk_end_k       = ts_end_op;
+                  if ( xdd_data->tsh_tte[i].tte_disk_xfer_size != size_op) 
+                    fprintf(stderr, "xddop# %zd pid %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tsh_tte[i].tte_disk_xfer_size,size_op);
                 }
-                if ( xdd_data->tte[i].net_xfer_size > 0 )
+                if ( xdd_data->tsh_tte[i].tte_net_xfer_size > 0 )
                 {
                   ts_beg_op = ts_end_op = size_op   = nops_op = 0;
                 if (DEBUG)
                   fprintf(stderr,"%2zd xdd  sendto   thread_pid %d size %7d  start %lld end %lld opt %d\n",
-                     i,xdd_data->tte[i].thread_id, xdd_data->tte[i].net_xfer_size, xdd_data->tte[i].net_start, xdd_data->tte[i].net_end,xdd_data->tte[i].op_type );
+                     i,xdd_data->tsh_tte[i].tte_thread_id, xdd_data->tsh_tte[i].tte_net_xfer_size, xdd_data->tsh_tte[i].tte_net_start, xdd_data->tsh_tte[i].tte_net_end,xdd_data->tsh_tte[i].tte_op_type );
                   parse_file_next_op(thread_id[k],fp,"sendto",&ts_beg_op,&ts_end_op,&size_op,&nops_op);
-                  xdd_data->tte[i].net_start_k      = ts_beg_op;
-                  xdd_data->tte[i].net_end_k        = ts_end_op;
-                  if ( xdd_data->tte[i].net_xfer_size != size_op && size_op > 0) 
-                    fprintf(stderr, "xddop# %zd pid %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].net_xfer_size,size_op);
-                  if ( xdd_data->tte[i].net_xfer_calls != nops_op && nops_op > 0) 
-                    fprintf(stderr, "xddop# %zd pid %d nops %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
+                  xdd_data->tsh_tte[i].tte_net_start_k      = ts_beg_op;
+                  xdd_data->tsh_tte[i].tte_net_end_k        = ts_end_op;
+                  if ( xdd_data->tsh_tte[i].tte_net_xfer_size != size_op && size_op > 0) 
+                    fprintf(stderr, "xddop# %zd pid %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tsh_tte[i].tte_net_xfer_size,size_op);
+                  if ( xdd_data->tsh_tte[i].tte_net_xfer_calls != nops_op && nops_op > 0) 
+                    fprintf(stderr, "xddop# %zd pid %d nops %d != %"PRId64"\n",i,thread_id[k],xdd_data->tsh_tte[i].tte_net_xfer_calls,nops_op);
                 }
               }
               else /* is destination, parse for net op first (recvfrom) */
               {
                 /* parse for net op only if there was an app net op */
-                if ( xdd_data->tte[i].net_xfer_size > 0 )
+                if ( xdd_data->tsh_tte[i].tte_net_xfer_size > 0 )
                 {
                 if (DEBUG)
                   fprintf(stderr,"%2zd xdd  recvfrom thread_pid %d size %7d  start %lld end %lld opt %d\n",
-                     i,xdd_data->tte[i].thread_id, xdd_data->tte[i].net_xfer_size, xdd_data->tte[i].net_start, xdd_data->tte[i].net_end,xdd_data->tte[i].op_type );
+                     i,xdd_data->tsh_tte[i].tte_thread_id, xdd_data->tsh_tte[i].tte_net_xfer_size, xdd_data->tsh_tte[i].tte_net_start, xdd_data->tsh_tte[i].tte_net_end,xdd_data->tsh_tte[i].tte_op_type );
                   ts_beg_op = ts_end_op = size_op = nops_op = 0;
                   parse_file_next_op(thread_id[k],fp,"recvfrom",&ts_beg_op,&ts_end_op,&size_op,&nops_op);
-                  xdd_data->tte[i].net_start_k      = ts_beg_op;
-                  xdd_data->tte[i].net_end_k        = ts_end_op;
+                  xdd_data->tsh_tte[i].tte_net_start_k      = ts_beg_op;
+                  xdd_data->tsh_tte[i].tte_net_end_k        = ts_end_op;
                   /* xdd eof stuff */
-                  if ( xdd_data->tte[i].net_xfer_size != size_op && xdd_data->tte[i].net_xfer_size != sizeof(xdd_e2e_header_t)) 
-                    fprintf(stderr, "xddop# %zd pid %d op %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].net_xfer_size,size_op);
-                  if ( xdd_data->tte[i].net_xfer_calls != nops_op && nops_op > 0) 
-                    fprintf(stderr, "xddop# %zd pid %d nops %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].net_xfer_calls,nops_op);
+                  if ( xdd_data->tsh_tte[i].tte_net_xfer_size != size_op && xdd_data->tsh_tte[i].tte_net_xfer_size != sizeof(xdd_e2e_header_t)) 
+                    fprintf(stderr, "xddop# %zd pid %d op %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tsh_tte[i].tte_op_type,xdd_data->tsh_tte[i].tte_net_xfer_size,size_op);
+                  if ( xdd_data->tsh_tte[i].tte_net_xfer_calls != nops_op && nops_op > 0) 
+                    fprintf(stderr, "xddop# %zd pid %d nops %d != %"PRId64"\n",i,thread_id[k],xdd_data->tsh_tte[i].tte_net_xfer_calls,nops_op);
                 }
                 if (DEBUG)
                 fprintf(stderr,"%2zd xdd  pwrite64 thread_pid %d size %8d  start %lld end %lld opt %d\n",
-                   i,xdd_data->tte[i].thread_id, xdd_data->tte[i].disk_xfer_size, xdd_data->tte[i].disk_start, xdd_data->tte[i].disk_end,xdd_data->tte[i].op_type );
-                if (WRITE_OP(xdd_data->tte[i].op_type) && xdd_data->tte[i].disk_xfer_size)
+                   i,xdd_data->tsh_tte[i].tte_thread_id, xdd_data->tsh_tte[i].tte_disk_xfer_size, xdd_data->tsh_tte[i].tte_disk_start, xdd_data->tsh_tte[i].tte_disk_end,xdd_data->tsh_tte[i].tte_op_type );
+                if (WRITE_OP(xdd_data->tsh_tte[i].tte_op_type) && xdd_data->tsh_tte[i].tte_disk_xfer_size)
                 {
                   ts_beg_op = ts_end_op = size_op = nops_op = 0;
                   parse_file_next_op(thread_id[k],fp,"pwrite64",&ts_beg_op,&ts_end_op,&size_op,&nops_op);
-                  xdd_data->tte[i].disk_start_k     = ts_beg_op;
-                  xdd_data->tte[i].disk_end_k       = ts_end_op;
-                  if ( xdd_data->tte[i].disk_xfer_size != size_op && size_op > 0) 
-                  fprintf(stderr, "xddop# %zd pid %d op %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tte[i].op_type,xdd_data->tte[i].disk_xfer_size,size_op);
+                  xdd_data->tsh_tte[i].tte_disk_start_k     = ts_beg_op;
+                  xdd_data->tsh_tte[i].tte_disk_end_k       = ts_end_op;
+                  if ( xdd_data->tsh_tte[i].tte_disk_xfer_size != size_op && size_op > 0) 
+                  fprintf(stderr, "xddop# %zd pid %d op %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tsh_tte[i].tte_op_type,xdd_data->tsh_tte[i].tte_disk_xfer_size,size_op);
                 }
               }
             }
            }
           }
            if (DEBUG)
-           for (i = 0; i < xdd_data->tt_size; i++)
+           for (i = 0; i < xdd_data->tsh_tt_size; i++)
            {
               fprintf(stderr,"%2zd p %5d %2d DB %7d, NB %7d No %5d Ds %19lld %19lld De %19lld %19lld Ns %19lld %19lld Ne %19lld %19lld\n",
-                 i, xdd_data->tte[i].thread_id, xdd_data->tte[i].worker_thread_number, xdd_data->tte[i].disk_xfer_size, xdd_data->tte[i].net_xfer_size, xdd_data->tte[i].net_xfer_calls,
-                   xdd_data->tte[i].disk_start,xdd_data->tte[i].disk_start_k,
-                   xdd_data->tte[i].disk_end,xdd_data->tte[i].disk_end_k,
-                   xdd_data->tte[i].net_start,xdd_data->tte[i].net_start_k,
-                   xdd_data->tte[i].net_end,xdd_data->tte[i].net_end_k);
+                 i, xdd_data->tsh_tte[i].tte_thread_id, xdd_data->tsh_tte[i].tte_worker_thread_number, xdd_data->tsh_tte[i].tte_disk_xfer_size, xdd_data->tsh_tte[i].tte_net_xfer_size, xdd_data->tsh_tte[i].tte_net_xfer_calls,
+                   xdd_data->tsh_tte[i].tte_disk_start,xdd_data->tsh_tte[i].tte_disk_start_k,
+                   xdd_data->tsh_tte[i].tte_disk_end,xdd_data->tsh_tte[i].tte_disk_end_k,
+                   xdd_data->tsh_tte[i].tte_net_start,xdd_data->tsh_tte[i].tte_net_start_k,
+                   xdd_data->tsh_tte[i].tte_net_end,xdd_data->tsh_tte[i].tte_net_end_k);
            }
           fclose(fp);
           return (0);

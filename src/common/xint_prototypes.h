@@ -63,6 +63,10 @@ void	xdd_show_occupant(xdd_occupant_t *op);
 void	xdd_show_target_counters(xint_target_counters_t *tcp);
 void 	xdd_show_e2e(xint_e2e_t *e2ep);
 void 	xdd_show_e2e_header(xdd_e2e_header_t *e2ehp);
+void 	xdd_show_tot(tot_t *totp);
+void 	xdd_show_tot_entry(tot_t *totp, int i);
+void 	xdd_show_ts_table(xint_timestamp_t *ts_tablep, int target_number);
+void 	xdd_show_ts_header(xdd_ts_header_t *ts_hdrp, int target_number);
 
 // end_to_end.c
 int32_t	xdd_e2e_src_send(worker_data_t *wdp);
@@ -169,7 +173,6 @@ xint_restart_t 			*xdd_get_restartp(target_data_t *tdp);
 xint_raw_t				*xdd_get_rawp(target_data_t *tdp);
 xint_e2e_t 				*xdd_get_e2ep(void);
 xint_throttle_t 		*xdd_get_throtp(target_data_t *tdp);
-xint_timestamp_t		*xdd_get_tsp(target_data_t *tdp);
 xint_triggers_t 		*xdd_get_trigp(target_data_t *tdp);
 xint_extended_stats_t 	*xdd_get_esp(target_data_t *tdp);
 int32_t					xdd_linux_cpu_count(void);
@@ -385,10 +388,10 @@ void	xdd_init_worker_data_before_pass(worker_data_t *wdp);
 int32_t	xdd_target_ttd_before_pass(target_data_t *tdp);
 
 // timestamp.c
-void	xdd_ts_overhead(struct xdd_tthdr *ttp); 
+void	xdd_ts_overhead(struct xdd_ts_header *ts_hdrp); 
 void	xdd_ts_setup(target_data_t *p);
 void	xdd_ts_write(target_data_t *p);
-void	xdd_ts_cleanup(struct xdd_tthdr *ttp);
+void	xdd_ts_cleanup(struct xdd_ts_header *ts_hdrp);
 void	xdd_ts_reports(target_data_t *p);
 
 // utils.c

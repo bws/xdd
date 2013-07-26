@@ -49,9 +49,9 @@
 #include "xint_nclk.h"
 #include "xint_task.h"
 #include "xint_target_counters.h"
+#include "xint_timestamp.h"
 #include "xint_td.h"
 #include "xint_wd.h"
-#include "xint_timestamp.h"
 #include "xint_read_after_write.h"
 // REMOVE LATER struct ptds;
 
