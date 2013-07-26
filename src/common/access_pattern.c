@@ -80,8 +80,8 @@ xdd_init_seek_list(target_data_t *tdp) {
 	int32_t  previous_percent_op; /* used to determine read/write operation */
 	int32_t  percent_op;  /* used to determine read/write operation */
 	int32_t  current_op;  /* Current operation - SO_OP_READ or SO_OP_WRITE or SO_OP_NOOP */
-	char  state[256];
 	seekhdr_t *sp;   /* pointer to the seek header */
+        
 	/* If a throttle value has been specified, calculate the time that each operation should take */
 	if ((tdp->td_throtp) && (tdp->td_throtp->throttle > 0.0)) {
 		if (tdp->td_throtp->throttle_type & XINT_THROTTLE_BW){
@@ -112,8 +112,9 @@ xdd_init_seek_list(target_data_t *tdp) {
 		}
 	} else nano_seconds_per_op = 0;
 	sp = &tdp->td_seekhdr;
-	/* Initialize the random number generator */
-	initstate(sp->seek_seed, state, 256);
+        /* Initialize the random number generator */
+	sp->oldstate = initstate(sp->seek_seed, sp->state, sizeof(sp->state));
+
 	/* Check to see if we need to load the seeks from a specified file */
 	if (sp->seek_options & SO_SEEK_LOAD) { /* Load pre-defined seek list */
 		xdd_load_seek_list(tdp);

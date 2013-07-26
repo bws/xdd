@@ -70,6 +70,8 @@ struct seekhdr {
 	char  *seek_loadfile; /**< file from which to load seek locations from */
 	char  *seek_pattern; /**< The seek pattern used for this target */
 	seek_t  *seeks;  /**< the seek list */
+	char state[256];
+	char *oldstate;
 };
 typedef struct seekhdr seekhdr_t;
 
