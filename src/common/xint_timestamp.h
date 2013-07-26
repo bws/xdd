@@ -31,8 +31,44 @@
 
 //------------------------------------------------------------------------------------------------//
 // Timestamp structures
+// The xint_timestamp structure lives inside the Target Data Structure and contains information
+// relevant to time stamping when the timestamp option is specified. The members of xint_timestamp
+// specify various timestamping suboptions (ts_options), the size of the timestamp table (ts_size),
+// when to start timestamping (ts_trigop or ts_trigtime), where to put the timestamp results
+// (ts_binary_filename and/or ts_output_filename), a pointer to the relevant output file (ts_tsfp),
+// and a pinter to the actual timestamp header (ts_hdrp) which includes the array of timestamp 
+// entries.
 //
-// The xint_timestamp structure exists in the Target Data Structure.
+// The ts_hdrp member of the xint_timestamp structure points to the xdd_ts_header structure
+// which is allocated only if the timestamp option has been specified and lives outside of the
+// Target Data Structure. 
+//
+// The last member of the timestamp header is tsh_tte[] which is an array of timestamp table 
+// entries. There is one timestamp table entry (tte) for each I/O operation that this target will
+// perform over the course of an entire run. For example, if -numreqs is 100 and -passes is 3 
+// then there will be a total of 3*100 or 300 timestamp table entries. 
+//
+//  +----- xint_target_data --------------+
+//  |           :                         |
+//  |           :                         |
+//  | struct xint_timestamp  td_ts_table  |
+//  |             ts_options              |
+//  |             ts_size                 |
+//  |             ts_trigop               |
+//  |             ts_trigtime             |
+//  |             *ts_binary_fliename     |
+//  |             *ts_output_filename     |
+//  |             *ts_tsfp                |
+//  |             *ts_hdrp->>>>>>>>>>>>>>>>>+-- struct xdd_ts_header --------+
+//  |             - - - - - - - - - - - - | |   tsh_magic                    |
+//  |                                     | |      :                         |
+//  |                                     | |      :                         |
+//  |                                     | |   xdd_ts_tte_t  tsh_tte[]      |
+//  |                                     | |      (time stamp table entries)|
+//  |                                     | +--------------------------------+
+//  +----- End of xint_target_data -------+
+//
+//------------------------------------------------------------------------------------------------//
 
 #define MAX_IDLEN 8192 // This is the maximum length of the Run ID Length field
 #define CTIME_BUFSZ 32  // Size of character buffer for the output from ctime(1)
