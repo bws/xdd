@@ -335,18 +335,18 @@ xdd_target_info(FILE *out, target_data_t *tdp) {
 	fprintf(out, "\t\tPretruncation, %lld\n",(long long int)tdp->td_pretruncate);
 	fprintf(out, "\t\tQueue Depth, %d\n",tdp->td_queue_depth);
 	/* Timestamp options */
-	if (tdp->td_tsp->ts_options & TS_ON) {
+	if (tdp->td_ts_table.ts_options & TS_ON) {
                 fprintf(out, "\t\tTimestamping, enabled with options, %s %s %s %s %s %s\n",
-                   ( tdp->td_tsp->ts_options & TS_DETAILED   )?"DETAILED":"", 
-                   ( tdp->td_tsp->ts_options & TS_SUMMARY    )?"SUMMARY":"",
-                   ( tdp->td_tsp->ts_options & TS_NORMALIZE  )?"NORMALIZE":"",
-                   ( tdp->td_tsp->ts_options & TS_APPEND     )?"APPEND":"",
-                   ( tdp->td_tsp->ts_options & TS_WRAP       )?"WRAP":"",
-                   ( tdp->td_tsp->ts_options & TS_ONESHOT    )?"ONESHOT":"");
-                if ( tdp->td_tsp->ts_options & TS_TRIGTIME   ) fprintf(out,"TRIGTIME %llu",tdp->td_tsp->ts_trigtime);
-                if ( tdp->td_tsp->ts_options & TS_TRIGOP     ) fprintf(out,":TRIGOP %"PRId64,tdp->td_tsp->ts_trigop);
-		if ( tdp->td_tsp->ts_output_filename != NULL ) fprintf(out, "\t\tTimestamp ASCII output file name, %s\n",tdp->td_tsp->ts_output_filename);
-		if ( tdp->td_tsp->ts_options & TS_DUMP       ) fprintf(out, "\t\tTimestamp binary output file name, %s\n",tdp->td_tsp->ts_binary_filename);
+                   ( tdp->td_ts_table.ts_options & TS_DETAILED   )?"DETAILED":"", 
+                   ( tdp->td_ts_table.ts_options & TS_SUMMARY    )?"SUMMARY":"",
+                   ( tdp->td_ts_table.ts_options & TS_NORMALIZE  )?"NORMALIZE":"",
+                   ( tdp->td_ts_table.ts_options & TS_APPEND     )?"APPEND":"",
+                   ( tdp->td_ts_table.ts_options & TS_WRAP       )?"WRAP":"",
+                   ( tdp->td_ts_table.ts_options & TS_ONESHOT    )?"ONESHOT":"");
+                if ( tdp->td_ts_table.ts_options & TS_TRIGTIME   ) fprintf(out,"TRIGTIME %llu",tdp->td_ts_table.ts_trigtime);
+                if ( tdp->td_ts_table.ts_options & TS_TRIGOP     ) fprintf(out,":TRIGOP %"PRId64,tdp->td_ts_table.ts_trigop);
+		if ( tdp->td_ts_table.ts_output_filename != NULL ) fprintf(out, "\t\tTimestamp ASCII output file name, %s\n",tdp->td_ts_table.ts_output_filename);
+		if ( tdp->td_ts_table.ts_options & TS_DUMP       ) fprintf(out, "\t\tTimestamp binary output file name, %s\n",tdp->td_ts_table.ts_binary_filename);
 	} else                                       fprintf(out, "\t\tTimestamping, disabled\n");
 
 	// Print the heartbeat interval and options

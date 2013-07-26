@@ -80,6 +80,7 @@ xdd_e2e_src_send(worker_data_t *wdp) {
 	int					sento_calls;	// Number of times sendto() has been called
 	int					max_xfer;
 	unsigned char 		*bufp;
+	xdd_ts_tte_t		*ttep;		// Pointer to a time stamp table entry
 
 
 	tdp = wdp->wd_tdp;
@@ -94,8 +95,10 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	e2ehp->e2eh_data_length = wdp->wd_task.task_xfer_size;
 
 	// The message header for this data packet precedes the data portion
-	if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_processor_start = xdd_get_processor();
+	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+		ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+		ttep->tte_net_processor_start = xdd_get_processor();
+	}
 
 	// Note: the e2ep->e2e_xfer_size is the size of the data field plus the size of the header
 	max_xfer = MAXMIT_TCP;
@@ -133,12 +136,13 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	}
 	nclk_now(&wdp->wd_counters.tc_current_net_end_time);
 	// Time stamp if requested
-	if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_xfer_size = e2ep->e2e_xfer_size;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_start = wdp->wd_counters.tc_current_net_start_time;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_end = wdp->wd_counters.tc_current_net_end_time;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_processor_end = xdd_get_processor();
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_xfer_calls = sento_calls;
+	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+		ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+		ttep->tte_net_xfer_size = e2ep->e2e_xfer_size;
+		ttep->tte_net_start = wdp->wd_counters.tc_current_net_start_time;
+		ttep->tte_net_end = wdp->wd_counters.tc_current_net_end_time;
+		ttep->tte_net_processor_end = xdd_get_processor();
+		ttep->tte_net_xfer_calls = sento_calls;
 	}
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
@@ -230,6 +234,7 @@ xdd_e2e_dest_receive_header(worker_data_t *wdp) {
 	int					receive_size; 	// The number of bytes to receive for this invocation of recvfrom()
 	int					max_xfer;	// Maximum TCP transmission size
 	unsigned char 		*bufp;
+	xdd_ts_tte_t		*ttep;		// Pointer to a time stamp table entry
 
 
 	tdp = wdp->wd_tdp;
@@ -251,8 +256,10 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	bytes_received = 0;
 	for (e2ep->e2e_current_csd = 0; e2ep->e2e_current_csd < FD_SETSIZE; e2ep->e2e_current_csd++) { // Process all CSDs that are ready
 		if (FD_ISSET(e2ep->e2e_csd[e2ep->e2e_current_csd], &e2ep->e2e_readset)) { /* Process this csd */
-			if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
-				tdp->td_ttp->tte[wdp->wd_ts_entry].net_processor_start = xdd_get_processor();
+			if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+				ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+				ttep->tte_net_processor_start = xdd_get_processor();
+			}
 
 			nclk_now(&wdp->wd_counters.tc_current_net_start_time);
 
@@ -343,6 +350,7 @@ xdd_e2e_dest_receive_data(worker_data_t *wdp) {
 	int					receive_size; 	// The number of bytes to receive for this invocation of recvfrom()
 	int					max_xfer;	// Maximum TCP transmission size
 	unsigned char 		*bufp;
+	xdd_ts_tte_t		*ttep;		// Pointer to a time stamp table entry
 
 
 	tdp = wdp->wd_tdp;
@@ -365,9 +373,10 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	bytes_received = 0;
 	for (e2ep->e2e_current_csd = 0; e2ep->e2e_current_csd < FD_SETSIZE; e2ep->e2e_current_csd++) { // Process all CSDs that are ready
 		if (FD_ISSET(e2ep->e2e_csd[e2ep->e2e_current_csd], &e2ep->e2e_readset)) { /* Process this csd */
-			if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
-				tdp->td_ttp->tte[wdp->wd_ts_entry].net_processor_start = xdd_get_processor();
-
+			if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+				ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+				ttep->tte_net_processor_start = xdd_get_processor();
+			}
 
 			// Receive DATA if this was a "DATA" message
 			e2ep->e2e_data_size = e2ehp->e2eh_data_length;
@@ -478,6 +487,7 @@ xdd_e2e_dest_receive(worker_data_t *wdp) {
 	int 				header_bytes_received;	// Number of header bytes received 
 	int 				data_bytes_received;	// Number of data bytes received 
 	nclk_t 				e2e_wait_1st_msg_start_time; // This is the time stamp of when the first message arrived
+	xdd_ts_tte_t		*ttep;		// Pointer to a time stamp table entry
 
 
 	tdp = wdp->wd_tdp;
@@ -533,17 +543,18 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	e2ehp->e2eh_recv_time = wdp->wd_counters.tc_current_net_end_time; // This needs to be the net_end_time from this side of the operation
 
 	// If time stamping is on then we need to reset these values
-	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_start = wdp->wd_counters.tc_current_net_start_time;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_end = wdp->wd_counters.tc_current_net_end_time;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_processor_end = xdd_get_processor();
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_xfer_size = e2ep->e2e_recv_status;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = e2ehp->e2eh_byte_offset;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].disk_xfer_size = e2ehp->e2eh_data_length;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].op_number = e2ehp->e2eh_sequence_number;
+	if ((tdp->td_ts_table.ts_options & (TS_ON|TS_TRIGGERED))) {
+		ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+		ttep->tte_net_start = wdp->wd_counters.tc_current_net_start_time;
+		ttep->tte_net_end = wdp->wd_counters.tc_current_net_end_time;
+		ttep->tte_net_processor_end = xdd_get_processor();
+		ttep->tte_net_xfer_size = e2ep->e2e_recv_status;
+		ttep->tte_byte_offset = e2ehp->e2eh_byte_offset;
+		ttep->tte_disk_xfer_size = e2ehp->e2eh_data_length;
+		ttep->tte_op_number = e2ehp->e2eh_sequence_number;
 		if (e2ehp->e2eh_magic == XDD_E2E_EOF)
-			tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = SO_OP_EOF;
-		else tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = SO_OP_WRITE;
+			ttep->tte_op_type = SO_OP_EOF;
+		else ttep->tte_op_type = SO_OP_WRITE;
 	}
 
 	e2ep->e2e_readset = e2ep->e2e_active;  /* Prepare for the next select */
@@ -565,6 +576,7 @@ xdd_e2e_eof_source_side(worker_data_t *wdp) {
 	int					send_size; 		// The number of bytes to send for this invocation of sendto()
 	int					max_xfer;		// Maximum TCP transmission size
 	unsigned char 		*bufp;
+	xdd_ts_tte_t		*ttep;		// Pointer to a time stamp table entry
 
 
 	tdp = wdp->wd_tdp;
@@ -585,8 +597,10 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	e2ehp->e2eh_data_length = 0;	// NA - no data being sent other than the header
 	e2ehp->e2eh_magic = XDD_E2E_EOF;
 
-	if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) 
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_processor_start = xdd_get_processor();
+	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+		ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+		ttep->tte_net_processor_start = xdd_get_processor();
+	}
 	// This will send the E2E Header to the Destination
 	bytes_sent = 0;
 	sendto_calls = 0;
@@ -617,16 +631,17 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
 	e2ep->e2e_sr_time = (wdp->wd_counters.tc_current_net_end_time - wdp->wd_counters.tc_current_net_start_time);
 	// If time stamping is on then we need to reset these values
-   	if ((tdp->td_tsp->ts_options & (TS_ON|TS_TRIGGERED))) {
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_start = wdp->wd_counters.tc_current_net_start_time;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_end = wdp->wd_counters.tc_current_net_end_time;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_processor_end = xdd_get_processor();
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_xfer_size = bytes_sent;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].net_xfer_calls = sendto_calls;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].byte_offset = -1;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].disk_xfer_size = 0;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].op_number =e2ehp->e2eh_sequence_number;
-		tdp->td_ttp->tte[wdp->wd_ts_entry].op_type = TASK_OP_TYPE_EOF;
+   	if ((tdp->td_ts_table.ts_options & (TS_ON|TS_TRIGGERED))) {
+		ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+		ttep->tte_net_start = wdp->wd_counters.tc_current_net_start_time;
+		ttep->tte_net_end = wdp->wd_counters.tc_current_net_end_time;
+		ttep->tte_net_processor_end = xdd_get_processor();
+		ttep->tte_net_xfer_size = bytes_sent;
+		ttep->tte_net_xfer_calls = sendto_calls;
+		ttep->tte_byte_offset = -1;
+		ttep->tte_disk_xfer_size = 0;
+		ttep->tte_op_number =e2ehp->e2eh_sequence_number;
+		ttep->tte_op_type = TASK_OP_TYPE_EOF;
 	}
 
 

@@ -43,20 +43,19 @@
 void
 xdd_io_for_os(worker_data_t *wdp) {
 	target_data_t		*tdp;		// Pointer to the parent Target Data Structure
-	xint_timestamp_t	*tsp;		// Time Stamp pointer
-	xdd_tthdr_t			*ttp;		// Time Stamp Table Header pointer
+	xdd_ts_tte_t		*ttep;		// Pointer to a Timestamp Table Entry
 
 
 	tdp = wdp->wd_tdp;		// Get pointer to the Target Data 
-	tsp = tdp->td_tsp;		// Get pointer to the Time Stamp Variables 
-	ttp = tdp->td_ttp;		// Get pointer to the Time Stamp Table
+	ttep = NULL;
 
 	// Record the starting time for this write op
 	nclk_now(&wdp->wd_counters.tc_current_op_start_time);
 	// Time stamp if requested
-	if ((tsp) && (tsp->ts_options & (TS_ON | TS_TRIGGERED))) {
-		ttp->tte[wdp->wd_ts_entry].disk_start = wdp->wd_counters.tc_current_op_start_time;
-		ttp->tte[wdp->wd_ts_entry].disk_processor_start = xdd_get_processor();
+	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+		ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+		ttep->tte_disk_start = wdp->wd_counters.tc_current_op_start_time;
+		ttep->tte_disk_processor_start = xdd_get_processor();
 	}
 
 	/* Do the deed .... */
@@ -121,10 +120,10 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_io_fo
 	// Record the ending time for this op 
 	nclk_now(&wdp->wd_counters.tc_current_op_end_time);
 	// Time stamp if requested
-	if ((tsp) && (tsp->ts_options & (TS_ON | TS_TRIGGERED))) {
-		ttp->tte[tsp->ts_current_entry].disk_end = wdp->wd_counters.tc_current_op_end_time;
-		ttp->tte[tsp->ts_current_entry].disk_xfer_size = wdp->wd_task.task_io_status;
-		ttp->tte[tsp->ts_current_entry].disk_processor_end = xdd_get_processor();
+	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+		ttep->tte_disk_end = wdp->wd_counters.tc_current_op_end_time;
+		ttep->tte_disk_xfer_size = wdp->wd_task.task_io_status;
+		ttep->tte_disk_processor_end = xdd_get_processor();
 	}
 
 } // End of xdd_io_for_linux()
@@ -139,20 +138,18 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_io_fo
 void
 xdd_io_for_os(worker_data_t *wdp) {
 	target_data_t		*tdp;		// Pointer to the parent Target Data Structure
-	xint_timestamp_t	*tsp;		// Time Stamp pointer
-	xdd_tthdr_t			*ttp;		// Time Stamp Table Header pointer
+	xdd_ts_tte_t		*ttep;		// Pointer to a Timestamp Table Entry
 
 
 	tdp = wdp->wd_tdp;		// Get pointer to the Target Data 
-	tsp = tdp->td_tsp;		// Get pointer to the Time Stamp Variables 
-	ttp = tdp->td_ttp;		// Get pointer to the Time Stamp Table
 
 	// Record the starting time for this write op
 	nclk_now(&wdp->wd_counters.tc_current_op_start_time);
 	// Time stamp if requested
-	if ((tsp) && (tsp->ts_options & (TS_ON | TS_TRIGGERED))) {
-		ttp->tte[tsp->ts_current_entry].disk_start = wdp->wd_counters.tc_current_op_start_time;
-		ttp->tte[tsp->ts_current_entry].disk_processor_start = xdd_get_processor();
+	ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
+	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+		ttep->tte_disk_start = wdp->wd_counters.tc_current_op_start_time;
+		ttep->tte_disk_processor_start = xdd_get_processor();
 	}
 
 	/* Do the deed .... */
@@ -205,10 +202,10 @@ xdd_io_for_os(worker_data_t *wdp) {
 	// Record the ending time for this op 
 	nclk_now(&wdp->wd_counters.tc_current_op_end_time);
 	// Time stamp if requested
-	if ((tsp) && (tsp->ts_options & (TS_ON | TS_TRIGGERED))) {
-		ttp->tte[tsp->ts_current_entry].disk_end = wdp->wd_counters.tc_current_op_end_time;
-		ttp->tte[tsp->ts_current_entry].disk_xfer_size = wdp->wd_task.task_io_status;
-		ttp->tte[tsp->ts_current_entry].disk_processor_end = xdd_get_processor();
+	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+		ttep->tte_disk_end = wdp->wd_counters.tc_current_op_end_time;
+		ttep->tte_disk_xfer_size = wdp->wd_task.task_io_status;
+		ttep->tte_disk_processor_end = xdd_get_processor();
 	}		
 } // End of xdd_io_for_os()
 #endif
@@ -271,12 +268,12 @@ xdd_io_for_os(ptds_t *p) {
         nclk_now(&p->tgtstp->wd_current_end_time);
 		/* Take a time stamp if necessary */
 		if ((p->tsp->ts_options & TS_ON) && (p->tsp->ts_options & TS_TRIGGERED)) {  
-			ttp->tte[ttp->tte_indx++].disk_end = p->tgtstp->wd_current_end_time;
-			if (ttp->tte_indx == ttp->tt_size) { /* Check to see if we are at the end of the buffer */
+			ttep->tte_sk_end = p->tgtstp->wd_current_end_time;
+			if (ts_hdrp->tte_indx == ts_hdrp->tt_size) { /* Check to see if we are at the end of the buffer */
 				if (p->tsp->ts_options & TS_ONESHOT) 
 					p->tsp->ts_options &= ~TS_ON; /* Turn off Time Stamping now that we are at the end of the time stamp buffer */
 				else if (p->tsp->ts_options & TS_WRAP) 
-					ttp->tte_indx = 0; /* Wrap to the beginning of the time stamp buffer */
+					ts_hdrp->tte_indx = 0; /* Wrap to the beginning of the time stamp buffer */
 			}
 		}
 		/* Let's check the status of the last operation to see if things went well.

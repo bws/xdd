@@ -340,21 +340,18 @@ xdd_process_run_results(xdd_plan_t *planp) {
 	}
 
 	// Process TimeStamp reports for the -ts option
-//TMR FIXME
-#ifdef ndef
 	for (target_number=0; target_number<planp->number_of_targets; target_number++) { 
 		tdp = planp->target_datap[target_number]; /* Get the target_datap for this target */
 		/* Display and write the time stamping information if requested */
-		if (tdp->td_tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-			if (tdp->td_tsp->ts_current_entry > tdp->td_tsp->ts_size) 
-				tdp->td_ttp->numents = tdp->td_tsp->ts_size;
-			else tdp->td_ttp->numents = tdp->td_tsp->ts_current_entry;
-			xdd_ts_reports(p);  /* generate reports if requested */
-			xdd_ts_write(p); 
-			xdd_ts_cleanup(tdp->td_ttp); /* call this to free the TS table in memory */
+		if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+			if (tdp->td_ts_table.ts_current_entry > tdp->td_ts_table.ts_size) 
+				tdp->td_ts_table.ts_hdrp->tsh_numents = tdp->td_ts_table.ts_size;
+			else tdp->td_ts_table.ts_hdrp->tsh_numents = tdp->td_ts_table.ts_current_entry;
+			xdd_ts_reports(tdp);  /* generate reports if requested */
+			xdd_ts_write(tdp); 
+			xdd_ts_cleanup(tdp->td_ts_table.ts_hdrp); /* call this to free the TS table in memory */
 		}
 	} // End of processing TimeStamp reports
-#endif
 
 	return(0);
 } // End of xdd_process_run_results() 

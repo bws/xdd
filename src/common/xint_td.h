@@ -80,9 +80,9 @@ struct xint_target_data {
 	int32_t				td_xfer_size;  		// Number of bytes per request 
 	int32_t				td_filetype;  		// Type of file: regular, device, socket, ... 
 	int64_t				td_filesize;  		// Size of target file in bytes 
-	uint64_t				td_target_ops;  	// Total number of ops to perform on behalf of a "target"
+	uint64_t			td_target_ops;  	// Total number of ops to perform on behalf of a "target"
 	seekhdr_t			td_seekhdr;  		// For all the seek information 
-	FILE				*td_tsfp;   		// Pointer to the time stamp output file 
+	xint_timestamp_t 	td_ts_table;		// Timestamp Table
 	// The Occupant Strcuture used by the barriers 
 	xdd_occupant_t		td_occupant;							// Used by the barriers to keep track of what is in a barrier at any given time
 	char				td_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH];	// For a Target thread this is "TARGET####", for a Worker Thread it is "TARGET####WORKER####"
@@ -175,8 +175,6 @@ struct xint_target_data {
 	pthread_mutex_t 	td_counters_mutex; 			// Mutex for locking when updating td_counters
 	struct xint_target_counters	td_counters;		// Pointer to the target counters
 	struct xint_throttle		*td_throtp;			// Pointer to the throttle sturcture
-	struct xint_timestamp		*td_tsp;			// Pointer to the time stamp stuff
-	struct xdd_tthdr			*td_ttp;			// Pointer to the time stamp stuff
 	struct xint_e2e				*td_e2ep;			// Pointer to the e2e struct when needed
 	struct xint_extended_stats	*td_esp;			// Extended Stats Structure Pointer
 	struct xint_triggers		*td_trigp;			// Triggers Structure Pointer

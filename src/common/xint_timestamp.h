@@ -29,80 +29,85 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 
+//------------------------------------------------------------------------------------------------//
+// Timestamp structures
+//
+// The xint_timestamp structure exists in the Target Data Structure.
+
 #define MAX_IDLEN 8192 // This is the maximum length of the Run ID Length field
 #define CTIME_BUFSZ 32  // Size of character buffer for the output from ctime(1)
                         // POSIX-2008 says this must be at least 26 bytes
 #define XDD_VERSION_BUFSZ 64  // Size of the character buffer for the XDD version string
 
 /** typedef unsigned long long iotimer_t; */
-struct tte {
-    char 			op_type;  	// operation: write=2, read=1, no-op=0
-    char			filler1;	// 
-    short 			pass_number;  	// Pass Number
-    int32_t			worker_thread_number;	// My Worker Thread Number
-    int32_t         thread_id;      // My system thread ID (like a process ID)
+struct xdd_ts_tte {
+    char 			tte_op_type;  	// operation: write=2, read=1, no-op=0
+    char			tte_filler1;	// 
+    short 			tte_pass_number;  	// Pass Number
+    int32_t			tte_worker_thread_number;	// My Worker Thread Number
+    int32_t         tte_thread_id;      // My system thread ID (like a process ID)
 // 64 bits 8 bytes
-    short 			disk_processor_start;   // Processor number that this disk op was started on
-    short 			disk_processor_end;	// Processor number that this disk op ended on
-    short 			net_processor_start;    // Processor number that this net op was started on
-    short 			net_processor_end;	// Processor number that this net op ended on
+    short 			tte_disk_processor_start;   // Processor number that this disk op was started on
+    short 			tte_disk_processor_end;	// Processor number that this disk op ended on
+    short 			tte_net_processor_start;    // Processor number that this net op was started on
+    short 			tte_net_processor_end;	// Processor number that this net op ended on
 // 128 bits 16 bytes
-    int32_t			disk_xfer_size;	   // Number of bytes transferred to/from disk
-    int32_t		 	net_xfer_size;     // Number of bytes transferred to/from network
-    int32_t		 	net_xfer_calls;    // Number of calls to send/recv to complete this op
+    int32_t			tte_disk_xfer_size;	   // Number of bytes transferred to/from disk
+    int32_t		 	tte_net_xfer_size;     // Number of bytes transferred to/from network
+    int32_t		 	tte_net_xfer_calls;    // Number of calls to send/recv to complete this op
 // 192 bits 24 bytes
-    int64_t		 	op_number; 	// Operation number
+    int64_t		 	tte_op_number; 	// Operation number
 // 256 bits 32 bytes
-    int64_t		 	byte_offset; 	// Location in bytes - aka Offset into the device/file
+    int64_t		 	tte_byte_offset; 	// Location in bytes - aka Offset into the device/file
 // 320 bits 40 bytes
-    nclk_t 			disk_start;  	// The starting time stamp of the disk operation
-    nclk_t 			disk_start_k;  	// The starting time stamp of the disk operation kernel
+    nclk_t 			tte_disk_start;  	// The starting time stamp of the disk operation
+    nclk_t 			tte_disk_start_k;  	// The starting time stamp of the disk operation kernel
 // 384 bits 48 bytes
-    nclk_t 			disk_end;  	    // The ending time stamp of the disk operation
-    nclk_t 			disk_end_k;     // The ending time stamp of the disk operation kernel
+    nclk_t 			tte_disk_end;  	    // The ending time stamp of the disk operation
+    nclk_t 			tte_disk_end_k;     // The ending time stamp of the disk operation kernel
 // 448 bits 56 bytes
-    nclk_t 			net_start;      // The starting time stamp of the net operation (e2e only)
-    nclk_t 			net_start_k;    // The starting time stamp of the net operation (e2e only) kernel
+    nclk_t 			tte_net_start;      // The starting time stamp of the net operation (e2e only)
+    nclk_t 			tte_net_start_k;    // The starting time stamp of the net operation (e2e only) kernel
 // 512 bits 64 bytes
-    nclk_t 			net_end;        // The ending time stamp of the net operation (e2e only)
-    nclk_t 			net_end_k;      // The ending time stamp of the net operation (e2e only) kernel
+    nclk_t 			tte_net_end;        // The ending time stamp of the net operation (e2e only)
+    nclk_t 			tte_net_end_k;      // The ending time stamp of the net operation (e2e only) kernel
 // 520 bits
 //	struct timeval	usage_utime;	// usage_utime.tv_sec = usage.ru_utime.tv_sec;
 //	struct timeval	usage_stime;	// usage_utime.tv_sec = usage.ru_utime.tv_sec;
 //	long			nvcsw;			// Number of voluntary context switches so far
 //	long			nivcsw;			// Number of involuntary context switches so far
 };
-typedef struct tte tte_t;
+typedef struct xdd_ts_tte xdd_ts_tte_t;
 
 /**
  * Time stamp Trace Table Header - this gets written out before
  * the time stamp trace table data 
  */
-struct xdd_tthdr {
-    uint32_t    magic;          /**< Magic number indicating the beginning of timestamp data */
-    char       version[XDD_VERSION_BUFSZ];        /**< Version string for the timestamp data format */
-    int32_t    target_thread_id; // My system target thread ID (like a process ID)
-    int32_t	reqsize; 	/**< size of these requests in 'blocksize'-byte blocks */
-    int32_t 	blocksize; 	/**< size of each block in bytes */
-    int64_t 	numents; 	/**< number of timestamp table entries */
-    nclk_t 	trigtime; 	/**< Time the time stamp started */
-    int64_t 	trigop;  	/**< Operation number that timestamping started */
-    int64_t 	res;  		/**< clock resolution - nano seconds per clock tick */
-    int64_t 	range;  	/**< range over which the IO took place */
-    int64_t 	start_offset;	/**< offset of the starting block */
-    int64_t 	target_offset;	/**< offset of the starting block for each proc*/
-    uint64_t 	global_options;	/**< options used */
-    uint64_t 	target_options;	/**< options used */
-    char 	id[MAX_IDLEN]; 	/**< ID string */
-    char 	td[CTIME_BUFSZ];  	/**< time and date */
-    nclk_t 	timer_oh; 	/**< Timer overhead in nanoseconds */
-    nclk_t 	delta;  	/**< Delta used for normalization */
-    int64_t 	tt_bytes; 	/**< Size of the entire time stamp table in bytes */
-    size_t 	tt_size; 	/**< Size of the entire time stamp table in entries */
-    int64_t 	tte_indx; 	/**< Index into the time stamp table */
-    struct 	tte tte[1]; 	/**< timestamp table entries */
+struct xdd_ts_header {
+    uint32_t	tsh_magic;          /**< Magic number indicating the beginning of timestamp data */
+    char		tsh_version[XDD_VERSION_BUFSZ];        /**< Version string for the timestamp data format */
+    int32_t		tsh_target_thread_id; // My system target thread ID (like a process ID)
+    int32_t		tsh_reqsize; 	/**< size of these requests in 'blocksize'-byte blocks */
+    int32_t 	tsh_blocksize; 	/**< size of each block in bytes */
+    int64_t 	tsh_numents; 	/**< number of timestamp table entries */
+    nclk_t		tsh_trigtime; 	/**< Time the time stamp started */
+    int64_t 	tsh_trigop;  	/**< Operation number that timestamping started */
+    int64_t 	tsh_res;  		/**< clock resolution - nano seconds per clock tick */
+    int64_t 	tsh_range;  	/**< range over which the IO took place */
+    int64_t 	tsh_start_offset;	/**< offset of the starting block */
+    int64_t 	tsh_target_offset;	/**< offset of the starting block for each proc*/
+    uint64_t 	tsh_global_options;	/**< options used */
+    uint64_t 	tsh_target_options;	/**< options used */
+    char 		tsh_id[MAX_IDLEN]; 	/**< ID string */
+    char 		tsh_td[CTIME_BUFSZ];  	/**< time and date */
+    nclk_t 		tsh_timer_oh; 	/**< Timer overhead in nanoseconds */
+    nclk_t 		tsh_delta;  	/**< Delta used for normalization */
+    int64_t 	tsh_tt_bytes; 	/**< Size of the entire time stamp table in bytes */
+    size_t 		tsh_tt_size; 	/**< Size of the entire time stamp table in entries */
+    int64_t 	tsh_tte_indx; 	/**< Index into the time stamp table */
+    xdd_ts_tte_t tsh_tte[1]; 	/**< timestamp table entries */
 };
-typedef struct xdd_tthdr xdd_tthdr_t;
+typedef struct xdd_ts_header xdd_ts_header_t;
 
 /** ts_options bit settings */
 #define TS_NORMALIZE          0x00000001 /**< Time stamping normalization of output*/
@@ -121,7 +126,8 @@ typedef struct xdd_tthdr xdd_tthdr_t;
 #define TS_SUPPRESS_OUTPUT    0x00002000 /**< Suppress timestamp output */
 #define DEFAULT_TS_OPTIONS 0x00000000
 
-// The timestamp structure is pointed to from the ptds. 
+// The timestamp structure is pointed to from the Target Data Structure. 
+// There is one timestamp structure for each Target that has timestamping enabled.
 struct xint_timestamp {
 	uint64_t			ts_options;  			// Time Stamping Options 
 	int64_t				ts_current_entry; 		// Index into the Timestamp Table of the current entry
@@ -130,6 +136,8 @@ struct xint_timestamp {
 	nclk_t				ts_trigtime; 			// Time Stamping trigger time 
 	char				*ts_binary_filename; 	// Timestamp filename for the binary output file for this Target
 	char				*ts_output_filename; 	// Timestamp report output filename for this Target
+	FILE				*ts_tsfp;   			// Pointer to the time stamp output file 
+	xdd_ts_header_t		*ts_hdrp;				// Pointer to the actual time stamp header and entries
 };
 typedef struct xint_timestamp xint_timestamp_t;
 

@@ -51,8 +51,7 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 	tdp->td_target_basename = DEFAULT_TARGET;  // can be changed by CLO
 	sprintf(tdp->td_target_extension,"%08d",1);  // can be changed by CLO
 	tdp->td_reqsize = DEFAULT_REQSIZE;  // can be changed by CLO
-    xdd_get_tsp(tdp);
-	tdp->td_tsp->ts_options = DEFAULT_TS_OPTIONS;
+	tdp->td_ts_table.ts_options = DEFAULT_TS_OPTIONS;
 	tdp->td_target_options = DEFAULT_TARGET_OPTIONS; // Zero the target options field
 	tdp->td_time_limit = DEFAULT_TIME_LIMIT;
 	if (tdp->td_trigp) tdp->td_trigp->run_status = 1;   /* This is the status of this thread 0=not started, 1=running */

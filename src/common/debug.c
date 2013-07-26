@@ -116,32 +116,33 @@ xdd_show_target_data(target_data_t *tdp) {
     fprintf(stderr,"\nxdd_show_target_data:********* Start of TARGET_DATA 0x%p **********\n", tdp);
 
     fprintf(stderr,"xdd_show_target_data: struct xdd_plan         *td_planp=%p\n",tdp->td_planp);
-    fprintf(stderr,"xdd_show_target_data: struct xint_worker_data *td_next_wdp=%p\n",tdp->td_next_wdp);    // Pointer to the first worker_data struct in the list
-    fprintf(stderr,"xdd_show_target_data: pthread_t               td_thread\n");            // Handle for this Target Thread 
-    fprintf(stderr,"xdd_show_target_data: int32_t                 td_thread_id=%d\n",tdp->td_thread_id);          // My system thread ID (like a process ID) 
-    fprintf(stderr,"xdd_show_target_data: int32_t                 td_pid=%d\n",tdp->td_pid);               // My process ID 
-    fprintf(stderr,"xdd_show_target_data: int32_t                 td_target_number=%d\n",tdp->td_target_number);    // My target number 
-    fprintf(stderr,"xdd_show_target_data: uint64_t                td_target_options=%llx\n",(unsigned long long int)tdp->td_target_options);             // I/O Options specific to each target 
-    fprintf(stderr,"xdd_show_target_data: int32_t                 td_file_desc=%d\n",tdp->td_file_desc);        // File Descriptor for the target device/file 
-    fprintf(stderr,"xdd_show_target_data: int32_t                 td_open_flags=%x\n",tdp->td_open_flags);        // Flags used during open processing of a target
-    fprintf(stderr,"xdd_show_target_data: int32_t                 td_xfer_size=%d\n",tdp->td_xfer_size);          // Number of bytes per request 
-    fprintf(stderr,"xdd_show_target_data: int32_t                 td_filetype=%d\n",tdp->td_filetype);          // Type of file: regular, device, socket, ... 
-    fprintf(stderr,"xdd_show_target_data: int64_t                 td_filesize=%lld\n",(long long int)tdp->td_filesize);          // Size of target file in bytes 
-    fprintf(stderr,"xdd_show_target_data: int64_t                 td_target_ops=%lld\n",(long long int)tdp->td_target_ops);      // Total number of ops to perform on behalf of a "target"
+    fprintf(stderr,"xdd_show_target_data: struct xint_worker_data *td_next_wdp=%p\n",tdp->td_next_wdp);          // Pointer to the first worker_data struct in the list
+    fprintf(stderr,"xdd_show_target_data: pthread_t               td_thread\n");                                 // Handle for this Target Thread 
+    fprintf(stderr,"xdd_show_target_data: int32_t                 td_thread_id=%d\n",tdp->td_thread_id);         // My system thread ID (like a process ID) 
+    fprintf(stderr,"xdd_show_target_data: int32_t                 td_pid=%d\n",tdp->td_pid);                     // My process ID 
+    fprintf(stderr,"xdd_show_target_data: int32_t                 td_target_number=%d\n",tdp->td_target_number); // My target number 
+    fprintf(stderr,"xdd_show_target_data: uint64_t                td_target_options=%llx\n",(unsigned long long int)tdp->td_target_options); // I/O Options specific to each target 
+    fprintf(stderr,"xdd_show_target_data: int32_t                 td_file_desc=%d\n",tdp->td_file_desc);         // File Descriptor for the target device/file 
+    fprintf(stderr,"xdd_show_target_data: int32_t                 td_open_flags=%x\n",tdp->td_open_flags);       // Flags used during open processing of a target
+    fprintf(stderr,"xdd_show_target_data: int32_t                 td_xfer_size=%d\n",tdp->td_xfer_size);         // Number of bytes per request 
+    fprintf(stderr,"xdd_show_target_data: int32_t                 td_filetype=%d\n",tdp->td_filetype);           // Type of file: regular, device, socket, ... 
+    fprintf(stderr,"xdd_show_target_data: int64_t                 td_filesize=%lld\n",(long long int)tdp->td_filesize);      // Size of target file in bytes 
+    fprintf(stderr,"xdd_show_target_data: int64_t                 td_target_ops=%lld\n",(long long int)tdp->td_target_ops);  // Total number of ops to perform on behalf of a "target"
     fprintf(stderr,"xdd_show_target_data: seekhdr_t               td_seekhdr\n");          // For all the seek information 
-    fprintf(stderr,"xdd_show_target_data: FILE                    *td_tsfp=%p\n",tdp->td_planp);           // Pointer to the time stamp output file 
-    fprintf(stderr,"xdd_show_target_data: xdd_occupant_t          td_occupant\n");                            // Used by the barriers to keep track of what is in a barrier at any given time
-    fprintf(stderr,"xdd_show_target_data: char                    td_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH]='%s'\n",tdp->td_occupant_name);    // For a Target thread this is "TARGET####", for a Worker Thread it is "TARGET####WORKER####"
-    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           *td_current_barrier=%p\n",tdp->td_current_barrier);                    // Pointer to the current barrier this Thread is in at any given time or NULL if not in a barrier
-    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_target_worker_thread_init_barrier\n");        // Where the Target Thread waits for the Worker Thread to initialize
+    fprintf(stderr,"xdd_show_target_data: xint_timestamp_t        td_ts_table:\n");        // The timestamp table
+	xdd_show_ts_table(&tdp->td_ts_table,tdp->td_target_number);
+    fprintf(stderr,"xdd_show_target_data: xdd_occupant_t          td_occupant\n");         // Used by the barriers to keep track of what is in a barrier at any given time
+    fprintf(stderr,"xdd_show_target_data: char                    td_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH]='%s'\n",tdp->td_occupant_name); // For a Target thread this is "TARGET####", for a Worker Thread it is "TARGET####WORKER####"
+    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           *td_current_barrier=%p\n",tdp->td_current_barrier);  // Pointer to the current barrier this Thread is in at any given time or NULL if not in a barrier
+    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_target_worker_thread_init_barrier\n");            // Where the Target Thread waits for the Worker Thread to initialize
     fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_targetpass_worker_thread_passcomplete_barrier\n");// The barrier used to sync targetpass() with all the Worker Threads at the end of a pass
-    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_targetpass_worker_thread_eofcomplete_barrier\n");// The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
-    fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_issued=%lld\n",(long long int)tdp->td_current_bytes_issued);    // The amount of data for all transfer requests that has been issued so far 
-    fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_completed=%lld\n",(long long int)tdp->td_current_bytes_completed);    // The amount of data for all transfer requests that has been completed so far
-    fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_remaining=%lld\n",(long long int)tdp->td_current_bytes_remaining);    // Bytes remaining to be transferred 
-    fprintf(stderr,"xdd_show_target_data: char                    td_abort=%d\n",tdp->td_abort);                    // Abort this operation (either a Worker Thread or a Target Thread)
-    fprintf(stderr,"xdd_show_target_data: char                    td_time_limit_expired=%d\n",tdp->td_time_limit_expired);        // The time limit for this target has expired
-    fprintf(stderr,"xdd_show_target_data: pthread_mutex_t         td_current_state_mutex\n");     // Mutex for locking when checking or updating the state info
+    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_targetpass_worker_thread_eofcomplete_barrier\n"); // The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
+    fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_issued=%lld\n",(long long int)tdp->td_current_bytes_issued);       // The amount of data for all transfer requests that has been issued so far 
+    fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_completed=%lld\n",(long long int)tdp->td_current_bytes_completed); // The amount of data for all transfer requests that has been completed so far
+    fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_remaining=%lld\n",(long long int)tdp->td_current_bytes_remaining); // Bytes remaining to be transferred 
+    fprintf(stderr,"xdd_show_target_data: char                    td_abort=%d\n",tdp->td_abort);                       // Abort this operation (either a Worker Thread or a Target Thread)
+    fprintf(stderr,"xdd_show_target_data: char                    td_time_limit_expired=%d\n",tdp->td_time_limit_expired); // The time limit for this target has expired
+    fprintf(stderr,"xdd_show_target_data: pthread_mutex_t         td_current_state_mutex\n");                          // Mutex for locking when checking or updating the state info
     switch (tdp->td_current_state) {
         case CURRENT_STATE_INIT:
                 sp="CURRENT_STATE_INIT";
@@ -215,8 +216,6 @@ xdd_show_target_data(target_data_t *tdp) {
     fprintf(stderr,"xdd_show_target_data: pthread_mutex_t         td_counters_mutex\n");             // Mutex for locking when updating td_counters
     fprintf(stderr,"xdd_show_target_data: struct xint_target_counters td_counters\n");        // Pointer to the target counters
     fprintf(stderr,"xdd_show_target_data: struct xint_throttle    *td_throtp=%p\n",tdp->td_throtp);            // Pointer to the throttle sturcture
-    fprintf(stderr,"xdd_show_target_data: struct xint_timestamp   *td_tsp=%p\n",tdp->td_tsp);            // Pointer to the time stamp stuff
-    fprintf(stderr,"xdd_show_target_data: struct xdd_tthdr        *td_ttp=%p\n",tdp->td_ttp);            // Pointer to the time stamp stuff
     fprintf(stderr,"xdd_show_target_data: struct xint_e2e         *td_e2ep=%p\n",tdp->td_e2ep);            // Pointer to the e2e struct when needed
     fprintf(stderr,"xdd_show_target_data: struct xint_extended_stats *td_esp=%p\n",tdp->td_esp);            // Extended Stats Structure Pointer
     fprintf(stderr,"xdd_show_target_data: struct xint_triggers     *td_trigp=%p\n",tdp->td_trigp);            // Triggers Structure Pointer
@@ -472,19 +471,19 @@ xdd_show_e2e_header(xdd_e2e_header_t *e2ehp) {
 void
 xdd_show_tot_entry(tot_t *totp, int i) {
 
-    	fprintf(stderr,"\txdd_show_tot_entry:---------- TOT %p entry %d ----------\n",totp,i);
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> pthread_mutex_t tot_mutex\n",i);		// Mutex that is locked when updating items in this entry
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> pthread_cond_t tot_condition\n",i);
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int is_released=%d\n",i,totp->tot_entry[i].is_released);
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_wait_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_wait_ts);			// Time that another Worker Thread starts to wait on this
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_post_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_post_ts);			// Time that the responsible Worker Thread posts this semaphore
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_update_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_update_ts);		// Time that the responsible Worker Thread updates the byte_location and io_size
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int64_t tot_byte_location=%lld\n",i,(long long int)totp->tot_entry[i].tot_byte_location);	// Byte Location that was just processed
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int64_t tot_op_number=%lld\n",i,(long long int)totp->tot_entry[i].tot_op_number);		// Target Operation Number for the op that processed this block
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_io_size=%d\n",i,totp->tot_entry[i].tot_io_size);							// Size of I/O in bytes that was just processed
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_wait_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_wait_worker_thread_number);	// Number of the Worker Thread that is waiting for this TOT entry to be posted
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_post_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_post_worker_thread_number);	// Number of the Worker Thread that posted this TOT entry 
-    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_update_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_update_worker_thread_number);	// Number of the Worker Thread that last updated this TOT Entry
+  	fprintf(stderr,"\txdd_show_tot_entry:---------- TOT %p entry %d ----------\n",totp,i);
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> pthread_mutex_t tot_mutex\n",i);		// Mutex that is locked when updating items in this entry
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> pthread_cond_t tot_condition\n",i);
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int is_released=%d\n",i,totp->tot_entry[i].is_released);
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_wait_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_wait_ts);			// Time that another Worker Thread starts to wait on this
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_post_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_post_ts);			// Time that the responsible Worker Thread posts this semaphore
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_update_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_update_ts);		// Time that the responsible Worker Thread updates the byte_location and io_size
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int64_t tot_byte_location=%lld\n",i,(long long int)totp->tot_entry[i].tot_byte_location);	// Byte Location that was just processed
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int64_t tot_op_number=%lld\n",i,(long long int)totp->tot_entry[i].tot_op_number);		// Target Operation Number for the op that processed this block
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_io_size=%d\n",i,totp->tot_entry[i].tot_io_size);							// Size of I/O in bytes that was just processed
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_wait_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_wait_worker_thread_number);	// Number of the Worker Thread that is waiting for this TOT entry to be posted
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_post_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_post_worker_thread_number);	// Number of the Worker Thread that posted this TOT entry 
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_update_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_update_worker_thread_number);	// Number of the Worker Thread that last updated this TOT Entry
 
 } // End of xdd_show_tot_entry()
 
@@ -504,6 +503,108 @@ xdd_show_tot(tot_t *totp) {
 
 } // End of xdd_show_tot()
 
+/*----------------------------------------------------------------------------*/
+/* xdd_show_ts_table() - Display values in the specified data structure
+ */
+void
+xdd_show_ts_table(xint_timestamp_t *ts_tablep, int target_number) {
+	char option_string[256];
+
+
+    fprintf(stderr,"\nxdd_show_ts_table:********* Start of TS TABLE for Target %d **********\n",target_number);
+
+#define TS_NORMALIZE          0x00000001 /**< Time stamping normalization of output*/
+#define TS_ON                 0x00000002 /**< Time stamping is ON */
+#define TS_SUMMARY            0x00000004 /**< Time stamping Summary reporting */
+#define TS_DETAILED           0x00000008 /**< Time stamping Detailed reporting */
+#define TS_APPEND             0x00000010 /**< Time stamping Detailed reporting */
+#define TS_DUMP               0x00000020 /**< Time stamping Dumping */
+#define TS_WRAP               0x00000040 /**< Wrap the time stamp buffer */
+#define TS_ONESHOT            0x00000080 /**< Stop time stamping at the end of the buffer */
+#define TS_STOP               0x00000100 /**< Stop time stamping  */
+#define TS_ALL                0x00000200 /**< Time stamp all operations */
+#define TS_TRIGTIME           0x00000400 /**< Time stamp trigger time */
+#define TS_TRIGOP             0x00000800 /**< Time stamp trigger operation number */
+#define TS_TRIGGERED          0x00001000 /**< Time stamping has been triggered */
+#define TS_SUPPRESS_OUTPUT    0x00002000 /**< Suppress timestamp output */
+#define DEFAULT_TS_OPTIONS 0x00000000
+	option_string[0]='\0';
+	if (ts_tablep->ts_options & TS_NORMALIZE)
+		strcat(option_string,"TS_NORMALIZE ");
+	if (ts_tablep->ts_options & TS_ON)
+		strcat(option_string,"TS_ON ");
+	if (ts_tablep->ts_options & TS_SUMMARY)
+		strcat(option_string,"TS_SUMMARY ");
+	if (ts_tablep->ts_options & TS_DETAILED)
+		strcat(option_string,"TS_DETAILED ");
+	if (ts_tablep->ts_options & TS_APPEND)
+		strcat(option_string,"TS_APPEND ");
+	if (ts_tablep->ts_options & TS_DUMP)
+		strcat(option_string,"TS_DUMP ");
+	if (ts_tablep->ts_options & TS_WRAP)
+		strcat(option_string,"TS_WRAP ");
+	if (ts_tablep->ts_options & TS_ONESHOT)
+		strcat(option_string,"TS_ONESHOT ");
+	if (ts_tablep->ts_options & TS_STOP)
+		strcat(option_string,"TS_STOP ");
+	if (ts_tablep->ts_options & TS_ALL)
+		strcat(option_string,"TS_ALL ");
+	if (ts_tablep->ts_options & TS_TRIGTIME)
+		strcat(option_string,"TS_TRIGTIME ");
+	if (ts_tablep->ts_options & TS_TRIGOP)
+		strcat(option_string,"TS_TRIGOP ");
+	if (ts_tablep->ts_options & TS_TRIGGERED)
+		strcat(option_string,"TS_TRIGGERED ");
+	if (ts_tablep->ts_options & TS_SUPPRESS_OUTPUT)
+		strcat(option_string,"TS_SUPPRESS_OUTPUT ");
+	fprintf(stderr,"xdd_show_ts_table: uint64_t        ts_options=0x%016llx: '%s'\n",(unsigned long long int)ts_tablep->ts_options,option_string); // Time Stamping Options 
+	fprintf(stderr,"xdd_show_ts_table: int64_t         ts_current_entry=%lld\n",(long long int)ts_tablep->ts_current_entry); 		// Index into the Timestamp Table of the current entry
+	fprintf(stderr,"xdd_show_ts_table: int64_t         ts_size=%lld\n",(long long int)ts_tablep->ts_size);  						// Time Stamping Size in number of entries 
+	fprintf(stderr,"xdd_show_ts_table: int64_t         ts_trigop=%lld\n",(long long int)ts_tablep->ts_trigop);  					// Time Stamping trigger operation number 
+	fprintf(stderr,"xdd_show_ts_table: nclk_t          ts_trigtime=%lld\n",(long long int)ts_tablep->ts_trigtime); 					// Time Stamping trigger time 
+	fprintf(stderr,"xdd_show_ts_table: char            *ts_binary_filename=%p: '%s'\n",ts_tablep->ts_binary_filename,
+					                                                            (ts_tablep->ts_binary_filename != NULL)?ts_tablep->ts_binary_filename:"NA"); // Timestamp binary output filename for this Target
+	fprintf(stderr,"xdd_show_ts_table: char            *ts_output_filename=%p: '%s'\n",ts_tablep->ts_output_filename,
+					                                                            (ts_tablep->ts_output_filename != NULL)?ts_tablep->ts_output_filename:"NA"); // Timestamp report output filename for this Target
+	fprintf(stderr,"xdd_show_ts_table: FILE            *ts_tsfp=%p\n",ts_tablep->ts_tsfp);   	// Pointer to the time stamp output file 
+	fprintf(stderr,"xdd_show_ts_table: xdd_ts_header_t *ts_hdrp=%p\n",ts_tablep->ts_hdrp); // Pointer to the time stamp output file 
+	if (ts_tablep->ts_hdrp)
+		xdd_show_ts_header(ts_tablep->ts_hdrp, target_number);
+
+    fprintf(stderr,"xdd_show_ts_table:********* End of TS TABLE for Target %d **********\n",target_number);
+
+} // End of xdd_show_ts_table()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_show_ts_header() - Display values in the specified data structure
+ */
+void
+xdd_show_ts_header(xdd_ts_header_t *ts_hdrp, int target_number) {
+
+    fprintf(stderr,"\txdd_show_ts_header: uint32_t   tsh_magic=0x%08ux\n",ts_hdrp->tsh_magic);          /**< Magic number indicating the beginning of timestamp data */
+    fprintf(stderr,"\txdd_show_ts_header: char       tsh_version[XDD_VERSION_BUFSZ]=%s\n",ts_hdrp->tsh_version); /**< Version string for the timestamp data format */
+    fprintf(stderr,"\txdd_show_ts_header: int32_t    tsh_target_thread_id=%d\n",ts_hdrp->tsh_target_thread_id); // My system target thread ID (like a process ID)
+    fprintf(stderr,"\txdd_show_ts_header: int32_t    tsh_reqsize=%d\n",ts_hdrp->tsh_reqsize); 	/**< size of these requests in 'blocksize'-byte blocks */
+    fprintf(stderr,"\txdd_show_ts_header: int32_t    tsh_blocksize=%d\n",ts_hdrp->tsh_blocksize); 	/**< size of each block in bytes */
+    fprintf(stderr,"\txdd_show_ts_header: int64_t    tsh_numents=%lld\n",(long long int)ts_hdrp->tsh_numents); 	/**< number of timestamp table entries */
+    fprintf(stderr,"\txdd_show_ts_header: nclk_t     tsh_trigtime=%lld\n",(long long int)ts_hdrp->tsh_trigtime); 	/**< Time the time stamp started */
+    fprintf(stderr,"\txdd_show_ts_header: int64_t    tsh_trigop=%lld\n",(long long int)ts_hdrp->tsh_trigop);  	/**< Operation number that timestamping started */
+    fprintf(stderr,"\txdd_show_ts_header: int64_t    tsh_res=%lld\n",(long long int)ts_hdrp->tsh_res);  		/**< clock resolution - nano seconds per clock tick */
+    fprintf(stderr,"\txdd_show_ts_header: int64_t    tsh_range=%lld\n",(long long int)ts_hdrp->tsh_range);  	/**< range over which the IO took place */
+    fprintf(stderr,"\txdd_show_ts_header: int64_t    tsh_start_offset=%lld\n",(long long int)ts_hdrp->tsh_start_offset);	/**< offset of the starting block */
+    fprintf(stderr,"\txdd_show_ts_header: int64_t    tsh_target_offset=%lld\n",(long long int)ts_hdrp->tsh_target_offset);	/**< offset of the starting block for each proc*/
+    fprintf(stderr,"\txdd_show_ts_header: uint64_t   tsh_global_options=0x%016llx\n",(unsigned long long int)ts_hdrp->tsh_global_options);	/**< options used */
+    fprintf(stderr,"\txdd_show_ts_header: uint64_t   tsh_target_options=0x%016llx\n",(unsigned long long int)ts_hdrp->tsh_target_options);	/**< options used */
+    fprintf(stderr,"\txdd_show_ts_header: char       tsh_id[MAX_IDLEN]='%s'\n",ts_hdrp->tsh_id); 	/**< ID string */
+    fprintf(stderr,"\txdd_show_ts_header: char       tsh_td[CTIME_BUFSZ]='%s'\n",ts_hdrp->tsh_td);  	/**< time and date */
+    fprintf(stderr,"\txdd_show_ts_header: nclk_t     tsh_timer_oh=%lld\n",(long long int)ts_hdrp->tsh_timer_oh); 	/**< Timer overhead in nanoseconds */
+    fprintf(stderr,"\txdd_show_ts_header: nclk_t     tsh_delta=%lld\n",(long long int)ts_hdrp->tsh_delta);  	/**< Delta used for normalization */
+    fprintf(stderr,"\txdd_show_ts_header: int64_t    tsh_tt_bytes=%lld\n",(long long int)ts_hdrp->tsh_tt_bytes); 	/**< Size of the entire time stamp table in bytes */
+    fprintf(stderr,"\txdd_show_ts_header: size_t     tsh_tt_size=%d\n",(int)ts_hdrp->tsh_tt_size); 	/**< Size of the entire time stamp table in entries */
+    fprintf(stderr,"\txdd_show_ts_header: int64_t    tsh_tte_indx=%lld\n",(long long int)ts_hdrp->tsh_tte_indx); 	/**< Index into the time stamp table */
+    fprintf(stderr,"\txdd_show_ts_header: struct tte tsh_tte[]\n"); 	/**< timestamp table entries */
+
+} // End of xdd_show_ts_header()
 
 /*
  * Local variables:
