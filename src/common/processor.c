@@ -154,8 +154,7 @@ int
 xdd_get_processor() {
 
 #ifdef HAVE_SCHED_GETCPU
-		//return( sched_getcpu() );
-		return( 1 );
+		return( sched_getcpu() );
 #else
 		return(-1);
 #endif
