@@ -38,6 +38,9 @@
 #define XDDLITE_DEFAULT_LISTEN_BACKLOG 10
 #define XDDLITE_DEFAULT_LISTEN_IFACE NULL
 #define XDDLITE_DEFAULT_LISTEN_PORT "40000"
+#define XDDLITE_DEFAULT_BLOCK_SIZE 4096
+#define XDDLITE_DEFAULT_REQUEST_SIZE 1
+#define XDDLITE_DEFAULT_NUM_TARGET_THREADS 1
 
 enum xdd_lite_target_type {XDDLITE_NULL_TARGET_TYPE = 0,
 						   XDDLITE_IN_TARGET_TYPE,
@@ -56,6 +59,21 @@ enum xdd_lite_policy_type {XDDLITE_NULL_POLICY_TYPE = 0,
 						   XDDLITE_ANY_POLICY_TYPE };
 typedef enum xdd_lite_policy_type xdd_lite_policy_t;
 
+struct xdd_lite_target_options {
+	xdd_lite_target_t type;
+	char  uri[256];
+	xdd_lite_access_t access;
+	int dio_flag;
+	size_t length;
+	size_t num_threads;
+	xdd_lite_policy_t policy;
+	size_t start_offset;
+
+	/* Use a linked-list pattern to chain all the target options */
+	struct xdd_lite_target_options *next;
+};
+typedef struct xdd_lite_target_options xdd_lite_target_options_t;
+
 struct xdd_lite_options {
 	int again_flag;
 	size_t block_size;
@@ -63,24 +81,17 @@ struct xdd_lite_options {
 	size_t request_size;
 	int verbose_flag;
 	size_t num_targets;
-	
-	struct target_options {
-		xdd_lite_target_t type;
-		char  uri[256];
-		xdd_lite_access_t access;
-		int dio_flag;
-		size_t length;
-		size_t num_threads;
-		xdd_lite_policy_t policy;
-		size_t start_offset;
+	size_t default_target_length;
 
-		/** Use a linked-list pattern to chain all the target options */
-		struct target_options *next;
-	} *to_head;
-
-	struct target_options *to_current;
+	/* List of target options */
+	xdd_lite_target_options_t *to_head;
+	xdd_lite_target_options_t *to_tail;
 };
 typedef struct xdd_lite_options xdd_lite_options_t;
+
+int xdd_lite_target_options_init(xdd_lite_target_options_t* topts);
+
+int xdd_lite_target_options_destroy(xdd_lite_target_options_t* topts);
 
 int xdd_lite_options_init(xdd_lite_options_t* opts);
 
@@ -91,10 +102,6 @@ int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv);
 int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_planpub_t* plan);
 
 int xdd_lite_options_print_usage();
-
-//int xdd_lite_start_source();
-
-//int xdd_lite_start_destination(int sd);
 
 #endif
 

@@ -53,10 +53,31 @@ static int parse_target_start_offset(xdd_lite_options_t* opts, char* val);
 static int parse_target_help(xdd_lite_options_t* opts, char* val);
 static int parse_target_verbose(xdd_lite_options_t* opts, char* val);
 
+/** Initialize a target options structure */
+int xdd_lite_target_options_init(xdd_lite_target_options_t* topts) {
+    assert(0 != topts);
+    memset(topts, 0, sizeof(*topts));
+	topts->num_threads = XDDLITE_DEFAULT_NUM_TARGET_THREADS;
+
+	// TODO: Add this to the options
+    return 0;
+}
+
+/** Deallocate any resources associated with a target options structure */
+int xdd_lite_target_options_destroy(xdd_lite_target_options_t* topts) {
+    assert(0 != topts);
+
+	// Free each of the target option elements
+	memset(topts, 0, sizeof(*topts));
+    return 0;
+}
+
 /** Initialize the options structure */
 int xdd_lite_options_init(xdd_lite_options_t* opts) {
     assert(0 != opts);
     memset(opts, 0, sizeof(xdd_lite_options_t));
+	opts->block_size = XDDLITE_DEFAULT_BLOCK_SIZE;
+	opts->request_size = XDDLITE_DEFAULT_REQUEST_SIZE;
     return 0;
 }
 
@@ -65,9 +86,9 @@ int xdd_lite_options_destroy(xdd_lite_options_t* opts) {
     assert(0 != opts);
 
 	// Free each of the target option elements
-	struct target_options* p = opts->to_head;
+	struct xdd_lite_target_options* p = opts->to_head;
 	for (size_t i = 0; i < opts->num_targets; i++) {
-		struct target_options* t = p;
+		struct xdd_lite_target_options* t = p;
 		p = p->next;
 		free(t);
 	}
@@ -80,8 +101,8 @@ int xdd_lite_options_print_usage() {
 	printf("Global Options:\n\n");
 	printf("  -A, --again               Enable transfer restart/resume.\n");
 	printf("  -B, --block-size=BYTES    \n");
-	printf("  -H, --help\n");
 	printf("  -R, --request-size=BLOCKS \n");
+	printf("  -H, --help\n");
 	printf("  -V, --verbose             \n");
 	
 	printf("\nTarget Specs:\n\n");
@@ -92,7 +113,7 @@ int xdd_lite_options_print_usage() {
 	printf("\nTarget Options:\n\n");
 	printf("  -a, --access=ORDER        \n");
 	printf("  -d, --direct-io           \n");
-	printf("  -l, --length=BYTES        \n");
+	printf("  -l, --length=BYTES \n");
 	printf("  -n, --num-threads=NUM     \n");
 	printf("  -p, --policy=POLICY       \n");
 	printf("  -s, --start-offset=BYTES  \n");
@@ -111,6 +132,8 @@ int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv) {
         {"block-size", required_argument, 0, 'B'},
         /* Display usage */
         {"help", no_argument, 0, 'H'},
+        /* Global length in Bytes */
+        {"length", required_argument, 0, 'L'},
         /* Global request size */
         {"request-size", required_argument, 0, 'R'},
         /* Global verbosity */
@@ -125,8 +148,6 @@ int xdd_lite_options_parse(xdd_lite_options_t* opts, int argc, char** argv) {
         {"access", required_argument, 0, 'a'},
         /* Target direct I/O flag */
         {"direct-io", no_argument, 0, 'd'},
-        /* Target length in Bytes */
-        {"length", required_argument, 0, 'l'},
         /* Target number of threads */
         {"num-threads", required_argument, 0, 'n'},
         /* Select ordering mode */
@@ -215,7 +236,7 @@ int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_planpub_t* plan) {
 
 	// Create the target attributes
 	xdd_targetattr_t *tattrs = calloc(opts.num_targets, sizeof(*tattrs));
-	struct target_options *topt = opts.to_head;
+	struct xdd_lite_target_options *topt = opts.to_head;
 	for (size_t i = 0; i < opts.num_targets; i++) {
 		xdd_targetattr_t* ta = tattrs + i;
 		xdd_targetattr_init(ta);
@@ -223,7 +244,7 @@ int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_planpub_t* plan) {
 			xdd_targetattr_set_type(ta, XDD_IN_TARGET_TYPE);
 		}
 		else if (XDDLITE_OUT_TARGET_TYPE == topt->type) {
-			xdd_targetattr_set_type(ta, XDD_IN_TARGET_TYPE);
+			xdd_targetattr_set_type(ta, XDD_OUT_TARGET_TYPE);
 		}
 		else {
 			rc = 1;
@@ -232,13 +253,19 @@ int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_planpub_t* plan) {
 		}
 		xdd_targetattr_set_uri(ta, topt->uri);
 		xdd_targetattr_set_dio(ta, topt->dio_flag);
+		xdd_targetattr_set_num_threads(ta, topt->num_threads);
 		xdd_targetattr_set_start_offset(ta, topt->start_offset);
-		xdd_targetattr_set_length(ta, topt->length);
 
+		/* Use the specified length if its there, otherwise use the default */
+		if (0 != topt->length) {
+			xdd_targetattr_set_length(ta, topt->length);
+		} else {
+			xdd_targetattr_set_length(ta, opts.default_target_length);
+		}
 		// Iterate to the target option struct
 		topt = topt->next;
 	}
-
+	
 	// Create the plan attributes
 	xdd_planattr_t pattr;
 	xdd_planattr_init(&pattr);
@@ -247,6 +274,10 @@ int xdd_lite_options_plan_create(xdd_lite_options_t opts, xdd_planpub_t* plan) {
 
 	// Create the plan
 	rc = xdd_plan_init(plan, tattrs, opts.num_targets, pattr);
+
+	// Clean up the memory
+	for (size_t i = 0; i < opts.num_targets; i++)
+		xdd_targetattr_destroy(tattrs + i);
 	free(tattrs);
     return rc;
 }
@@ -299,24 +330,26 @@ int parse_request_size(xdd_lite_options_t* opts, char* val) {
 int parse_itarget(xdd_lite_options_t* opts, char* val) {
     int rc = 0;
 
-	struct target_options* tmp = calloc(1, sizeof(*tmp));
+	struct xdd_lite_target_options* tmp = calloc(1, sizeof(*tmp));
 	if (NULL == tmp) {
 		fprintf(stderr, "Error: Insufficient resources for input target\n");
 		rc = 1;
 	}
 	else {
+		xdd_lite_target_options_init(tmp);
 		tmp->type = XDDLITE_IN_TARGET_TYPE;
 		strncpy(tmp->uri, val, 255);
 		tmp->uri[255] = '\0';
+		tmp->num_threads = 1;
 
 		/* Add the new target options to the list */
 		if (0 == opts->num_targets) {
 			opts->to_head = tmp;
 		}
 		else {
-			opts->to_current->next = tmp;
+			opts->to_tail->next = tmp;
 		}
-		opts->to_current = tmp;
+		opts->to_tail = tmp;
 		opts->num_targets++;
 	}
     return rc;
@@ -333,23 +366,25 @@ int parse_mtarget(xdd_lite_options_t* opts, char* val) {
 int parse_otarget(xdd_lite_options_t* opts, char* val) {
     int rc = 0;
 
-	struct target_options* tmp = calloc(1, sizeof(*tmp));
+	struct xdd_lite_target_options* tmp = calloc(1, sizeof(*tmp));
 	if (NULL == tmp) {
 		fprintf(stderr, "Error: Insufficient resources for output target\n");
 		rc = 1;
 	}
 	else {
+		xdd_lite_target_options_init(tmp);
 		tmp->type = XDDLITE_OUT_TARGET_TYPE;
 		strncpy(tmp->uri, val, 255);
 		tmp->uri[255] = '\0';
+		tmp->num_threads = 1;
 		/* Add the new target options to the list */
 		if (0 == opts->num_targets) {
 			opts->to_head = tmp;
 		}
 		else {
-			opts->to_current->next = tmp;
+			opts->to_tail->next = tmp;
 		}
-		opts->to_current = tmp;
+		opts->to_tail = tmp;
 		opts->num_targets++;
 	}
     return rc;
@@ -360,21 +395,21 @@ int parse_target_access(xdd_lite_options_t* opts, char* val) {
     int rc = 0;
 
 	size_t len = strlen(val);
-	if (NULL == opts->to_current) {
+	if (NULL == opts->to_tail) {
 		fprintf(stderr, "Error: Target access type specified without active target\n");
 		rc = 1;
 	}
     else if (0 == strncmp("loose", val, len)) {
-		opts->to_current->access = XDDLITE_LOOSE_ACCESS_TYPE;
+		opts->to_tail->access = XDDLITE_LOOSE_ACCESS_TYPE;
     }
     else if (0 == strncmp("random", val, len)) {
-		opts->to_current->access = XDDLITE_RANDOM_ACCESS_TYPE;
+		opts->to_tail->access = XDDLITE_RANDOM_ACCESS_TYPE;
     }
     else if (0 == strncmp("serial", val, len)) {
-		opts->to_current->access = XDDLITE_SERIAL_ACCESS_TYPE;
+		opts->to_tail->access = XDDLITE_SERIAL_ACCESS_TYPE;
     }
     else if (0 == strncmp("unordered", val, len)) {
-		opts->to_current->access = XDDLITE_UNORDERED_ACCESS_TYPE;
+		opts->to_tail->access = XDDLITE_UNORDERED_ACCESS_TYPE;
     }
     else {
 		fprintf(stderr, "Error: Unknown access type: %s\n", val);
@@ -387,12 +422,12 @@ int parse_target_access(xdd_lite_options_t* opts, char* val) {
 int parse_target_direct_io(xdd_lite_options_t* opts, char* val) {
     int rc = 0;
 
-	if (NULL == opts->to_current) {
+	if (NULL == opts->to_tail) {
 		fprintf(stderr, "Error: Target direct I/O specified without active target\n");
 		rc = 1;
 	}
 	else {
-		opts->to_current->dio_flag = 1;
+		opts->to_tail->dio_flag = 1;
     }
     return rc;
 }
@@ -405,7 +440,7 @@ int parse_target_length(xdd_lite_options_t* opts, char* val) {
 	errno = 0;
 	num = strtoull(val, &p, 10);
 
-	if (NULL == opts->to_current) {
+	if (NULL == opts->to_tail) {
 		fprintf(stderr, "Error: Target length specified without active target\n");
 		rc = 1;
 	}
@@ -418,7 +453,11 @@ int parse_target_length(xdd_lite_options_t* opts, char* val) {
 		rc = 1;
     }
     else {
-		opts->to_current->length = num;
+		opts->to_tail->length = num;
+
+		// Set the default target length so that the user doesn't have to
+		// specify a length for all targets
+		opts->default_target_length = num;
     }
     return rc;
 }
@@ -431,7 +470,7 @@ int parse_target_num_threads(xdd_lite_options_t* opts, char* val) {
 	errno = 0;
 	num = strtoul(val, &p, 10);
 
-	if (NULL == opts->to_current) {
+	if (NULL == opts->to_tail) {
 		fprintf(stderr, "Error: Target num threads specified without active target\n");
 		rc = 1;
 	}
@@ -444,7 +483,7 @@ int parse_target_num_threads(xdd_lite_options_t* opts, char* val) {
 		rc = 1;
     }
     else {
-		opts->to_current->num_threads = num;
+		opts->to_tail->num_threads = num;
     }
     return rc;
 }
@@ -452,15 +491,13 @@ int parse_target_num_threads(xdd_lite_options_t* opts, char* val) {
 /** Parse the target policy */
 int parse_target_policy(xdd_lite_options_t* opts, char* val) {
     int rc = 0;
-	assert(NULL != opts->to_current);	
-
 	size_t len = strlen(val);
-	if (NULL == opts->to_current) {
+	if (NULL == opts->to_tail) {
 		fprintf(stderr, "Error: Target policy type specified without active target\n");
 		rc = 1;
 	}
     else if (0 == strncmp("any", val, len)) {
-		opts->to_current->policy = XDDLITE_ANY_POLICY_TYPE;
+		opts->to_tail->policy = XDDLITE_ANY_POLICY_TYPE;
     }
     else {
 		fprintf(stderr, "Error: Unknown policy: %s\n", val);
@@ -475,7 +512,7 @@ int parse_target_start_offset(xdd_lite_options_t* opts, char* val) {
     char* p = 0;
     unsigned long num = strtoul(val, &p, 10);
 
-	if (NULL == opts->to_current) {
+	if (NULL == opts->to_tail) {
 		fprintf(stderr, "Error: Target start offset specified without active target\n");
 		rc = 1;
 	}
@@ -488,7 +525,7 @@ int parse_target_start_offset(xdd_lite_options_t* opts, char* val) {
 		rc = 1;
     }
     else {
-		opts->to_current->start_offset = num;
+		opts->to_tail->start_offset = num;
     }
     return rc;
 }
@@ -496,7 +533,7 @@ int parse_target_start_offset(xdd_lite_options_t* opts, char* val) {
 /** Parse the verbosity string into the option structure */
 int parse_target_help(xdd_lite_options_t* opts, char* val) {
 	int rc = 0;
-	if (NULL == opts->to_current) {
+	if (NULL == opts->to_tail) {
 		fprintf(stderr, "Error: Target help option specified without active target\n");
 		rc = 1;
 	}
@@ -507,7 +544,7 @@ int parse_target_help(xdd_lite_options_t* opts, char* val) {
 /** Parse the verbosity string into the option structure */
 int parse_target_verbose(xdd_lite_options_t* opts, char* val) {
 	int rc = 0;
- 	if (NULL == opts->to_current) {
+ 	if (NULL == opts->to_tail) {
 		fprintf(stderr, "Error: Target verbose option specified without active target\n");
 		rc = 1;
 	}

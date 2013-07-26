@@ -42,19 +42,19 @@ int print_usage()
 }
 
 /** Ensure the options are specified correctly */
-int validate_options(xdd_lite_options_t opts)
+int validate_options(xdd_lite_options_t* opts)
 {
 	int rc = 0;
-	size_t max_target_length = 0;
+	size_t active_target_length = 0;
 	int has_itarget = 0;
 	int has_otarget = 0;
 	
 	// Ensure there is at least one target
-	if (0 == opts.num_targets)
+	if (0 == opts->num_targets)
 		rc++;
 	else {
 		// Check that target options make sense together
-		struct target_options* top = opts.to_head;
+		xdd_lite_target_options_t *top = opts->to_head;
 		while (NULL != top) {
 			// Log the target types
 			if (XDDLITE_IN_TARGET_TYPE == top->type)
@@ -75,10 +75,13 @@ int validate_options(xdd_lite_options_t opts)
 				rc++;
 			}
 
+			/* Save the first non-zero length */
+			if (0 == active_target_length && 0 != top->length) {
+				active_target_length = top->length;
+			}
+			
 			// Check the lengths
-			if (0 == max_target_length && 0 != top->length) {
-				max_target_length = top->length;
-			} else if (0 != top->length && top->length != max_target_length) {
+			if (0 != top->length && top->length != active_target_length) {
 				fprintf(stderr, "Error: Target lengths don't match\n");
 				rc++;
 			}
@@ -94,7 +97,7 @@ int validate_options(xdd_lite_options_t opts)
 		}
 		
 		// At least one of the targets had to specify a length
-		if (0 >= max_target_length) {
+		if (0 >= active_target_length) {
 			fprintf(stderr, "Error: A target length must be specified\n");
 			rc++;
 		}
@@ -148,7 +151,7 @@ int main(int argc, char** argv)
 	}
 
 	/* Validate options */
-	if (0 != validate_options(opts)) {
+	if (0 != validate_options(&opts)) {
 		xdd_lite_options_destroy(&opts);
 		return 1;
 	}

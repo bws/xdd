@@ -53,11 +53,6 @@ struct xdd_target_attributes {
     } u;
 };
 
-struct xdd_target {
-    struct xdd_target_attributes attr;
-    
-};
-
 struct xdd_plan_attributes {
     size_t block_size;
     size_t request_size;
@@ -65,10 +60,6 @@ struct xdd_plan_attributes {
 };
 
 struct xdd_plan_pub {
-    struct xdd_plan_attributes attr;
-    size_t num_targets;
-    struct xdd_target *targets;
-
 	// XDD internal data structures
 	xdd_plan_t* data;
 	xdd_occupant_t occupant;

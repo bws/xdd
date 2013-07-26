@@ -50,6 +50,10 @@ int xdd_targetattr_init(xdd_targetattr_t *attr);
 
 int xdd_targetattr_destroy(xdd_targetattr_t *attr);
 
+size_t xdd_targetattr_get_length(xdd_targetattr_t attr);
+
+const char* xdd_targetattr_get_uri(xdd_targetattr_t attr);
+
 int xdd_targetattr_set_type(xdd_targetattr_t *attr, xdd_target_type_t);
 
 int xdd_targetattr_set_uri(xdd_targetattr_t *attr, char* uri);
@@ -59,6 +63,8 @@ int xdd_targetattr_set_dio(xdd_targetattr_t *attr, int dio_flag);
 int xdd_targetattr_set_start_offset(xdd_targetattr_t *attr, off_t off);
 
 int xdd_targetattr_set_length(xdd_targetattr_t *attr, size_t length);
+
+int xdd_targetattr_set_num_threads(xdd_targetattr_t *attr, size_t nthreads);
 
 int xdd_planattr_init(xdd_planattr_t* pattr);
 
