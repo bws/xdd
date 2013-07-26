@@ -946,7 +946,7 @@ fi
 # Check that the correct version of XDD is available
 dest_version=\$(${XDDCP_XDD_EXE} -version)
 if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
-    echo "XDD source and destionation version mismatch." >&2
+    echo "XDD source and destination version mismatch." >&2
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
