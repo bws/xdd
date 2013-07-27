@@ -83,31 +83,36 @@ xdd_init_seek_list(target_data_t *tdp) {
 	seekhdr_t *sp;   /* pointer to the seek header */
         
 	/* If a throttle value has been specified, calculate the time that each operation should take */
+if (xgp->global_options & GO_DEBUG_THROTTLE) fprintf(stderr,"DEBUG_THROTTLE: %lld: xdd_init_seek_list: Target: %d: Worker: %d: ENTER: td_throtp: %p: throttle: %f:\n", (long long int)pclk_now(),tdp->td_target_number,-1,tdp->td_throtp,(tdp->td_throtp != NULL)?tdp->td_throtp->throttle:-69.69);
 	if ((tdp->td_throtp) && (tdp->td_throtp->throttle > 0.0)) {
 		if (tdp->td_throtp->throttle_type & XINT_THROTTLE_BW){
 			bytes_per_sec = tdp->td_throtp->throttle * MILLION;
 			bytes_per_request = (tdp->td_reqsize * tdp->td_block_size);
 			seconds_per_op = bytes_per_request/bytes_per_sec;
 			nano_seconds_per_op = seconds_per_op * BILLION;
-           	if (tdp->td_throtp->throttle_variance) {
+           	if (tdp->td_throtp->throttle_variance > 0.0) {
                	low_bw = (tdp->td_throtp->throttle - tdp->td_throtp->throttle_variance) * MILLION;
                	seconds_per_op_high = bytes_per_request / low_bw;
                	hi_bw = (tdp->td_throtp->throttle + tdp->td_throtp->throttle_variance) * MILLION;
                	seconds_per_op_low = bytes_per_request / hi_bw;
-               	nano_second_throttle_variance = seconds_per_op - (bytes_per_request / low_bw);
-           	} else {
+               	nano_second_throttle_variance = (seconds_per_op - (bytes_per_request / low_bw)) * BILLION;
+           	} else { // No BW variance required so low and high BW are equal
                	low_bw = bytes_per_sec;
                	hi_bw = bytes_per_sec;
            	}
 		} else if (tdp->td_throtp->throttle_type & XINT_THROTTLE_OPS){
 			seconds_per_op = 1.0 / tdp->td_throtp->throttle;
 			nano_seconds_per_op = seconds_per_op * BILLION;
-           	variance_seconds_per_op = 1.0 / tdp->td_throtp->throttle_variance;
+			if (tdp->td_throtp->throttle_variance > 0.0) 
+           		 variance_seconds_per_op = 1.0 / tdp->td_throtp->throttle_variance;
+			else variance_seconds_per_op = 0.0;
            	nano_second_throttle_variance = variance_seconds_per_op * BILLION;
 		} else if (tdp->td_throtp->throttle_type & XINT_THROTTLE_DELAY){
 			seconds_per_op = tdp->td_throtp->throttle;
 			nano_seconds_per_op = seconds_per_op * BILLION;
-           	variance_seconds_per_op = 1.0 / tdp->td_throtp->throttle_variance;
+			if (tdp->td_throtp->throttle_variance > 0.0) 
+           		 variance_seconds_per_op = 1.0 / tdp->td_throtp->throttle_variance;
+			else variance_seconds_per_op = 0.0;
            	nano_second_throttle_variance = variance_seconds_per_op * BILLION;
 		}
 	} else nano_seconds_per_op = 0;
@@ -193,7 +198,7 @@ xdd_init_seek_list(target_data_t *tdp) {
             //                   |Relative time minus the variance
             // The actual time that an I/O operation should take place is somewhere between
             // the relative time plus or minus the variance. In Theory. Maybe.
-            if ((tdp->td_throtp) && (tdp->td_throtp->throttle_variance)) {
+            if ((tdp->td_throtp) && (tdp->td_throtp->throttle_variance > 0.0)) {
                 variance_seconds_per_op = ((seconds_per_op_high-seconds_per_op_low) * xdd_random_float()) * BILLION;
                 sp->seeks[rw_index].time1 = (relative_time - nano_second_throttle_variance) + variance_seconds_per_op;
 
@@ -201,6 +206,7 @@ xdd_init_seek_list(target_data_t *tdp) {
 			    sp->seeks[rw_index].time1 = relative_time;
 
             }
+if (xgp->global_options & GO_DEBUG_THROTTLE) fprintf(stderr,"DEBUG_THROTTLE: %lld: xdd_init_seek_list: Target: %d: Worker: %d: SET SEEK TIME: nano_seconds_per_op: %lld: relative_time: %lld:\n", (long long int)pclk_now(),tdp->td_target_number,-1,(long long int)nano_seconds_per_op,(long long int)relative_time);
 			relative_time += nano_seconds_per_op;
 
 			/* Increment to the next entry in the seek list */

@@ -513,6 +513,10 @@ xdd_get_throtp(target_data_t *tdp) {
 			xgp->progname, (int)sizeof(xint_throttle_t), tdp->td_target_number);
 			return(NULL);
 		}
+		// Set default Throttle values in the newly allocated throttle structure
+		tdp->td_throtp->throttle = XINT_DEFAULT_THROTTLE;
+		tdp->td_throtp->throttle_variance = XINT_DEFAULT_THROTTLE_VARIANCE;
+		tdp->td_throtp->throttle_type = XINT_DEFAULT_THROTTLE_TYPE;
 	}
 	return(tdp->td_throtp);
 

@@ -270,6 +270,7 @@ xdd_throttle_before_io_op(worker_data_t *wdp) {
 
 
 	tdp = wdp->wd_tdp;
+//if (xgp->global_options & GO_DEBUG_THROTTLE) fprintf(stderr,"DEBUG_THROTTLE: %lld: xdd_throttle_before_io_op: Target: %d: Worker: %d: ENTER: td_throtp: %p: throttle: %f:\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,tdp->td_throtp,(tdp->td_throtp != NULL)?tdp->td_throtp->throttle:-69.69);
 	if ((tdp->td_throtp == NULL) || (tdp->td_throtp->throttle <= 0.0)) 
 		return;
 
@@ -286,6 +287,7 @@ xdd_throttle_before_io_op(worker_data_t *wdp) {
 			now -= wdp->wd_counters.tc_pass_start_time;
 			if (now < tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1) { /* Then we may need to sleep */
 				sleep_time = (tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1 - now); /* sleep time in microseconds */
+if (xgp->global_options & GO_DEBUG_THROTTLE) fprintf(stderr,"DEBUG_THROTTLE: %lld: xdd_throttle_before_io_op: Target: %d: Worker: %d: OPS/BW: time1: %lld: now: %lld: sleep_time: %lld\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,(long long int)tdp->td_seekhdr.seeks[wdp->wd_task.task_op_number].time1,(long long int)now,(long long int)sleep_time);
 				if (sleep_time > 0) {
 					sleep_time_dw = sleep_time;
 #ifdef WIN32
