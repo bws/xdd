@@ -56,14 +56,9 @@ xdd_ts_overhead(struct xdd_ts_header *ts_hdrp) {
 } /* End of xdd_ts_overhead() */
 /*----------------------------------------------------------------------------*/
 /* xdd_ts_setup() - set up the time stamping
- * It is important to distinguish between a normal run and one that involves 
- * the DESKEW option. If the DESKEW option is set then we need to make sure
- * timestamping is turned on and that the size of the time stamp table is 
- * adequate for this run. If time stamping is already turned on for this target
- * then we need to make sure that the size of the time stamp table is adequate
- * and enlarge it if necessary. 
- * If the DESKEW option is not set then just do the normal setup.
- * 
+ * If time stamping is already turned on for this target then we need to make 
+ * sure that the size of the time stamp table is adequate and enlarge it if 
+ * necessary. 
  */
 void
 xdd_ts_setup(target_data_t *tdp) {
@@ -77,15 +72,11 @@ xdd_ts_setup(target_data_t *tdp) {
 
 
 	tsp = &tdp->td_ts_table;
-	/* check to make sure we really need to do this */
-	if (!(tsp->ts_options & TS_ON) && !(xgp->global_options & GO_DESKEW))
+	if (!(tsp->ts_options & TS_ON))
 		return;
 
-	/* If DESKEW is TRUE but the TS option was not requested, then do a DESKEW ts setup */
-	if ((xgp->global_options & GO_DESKEW) && !(tsp->ts_options & TS_ON)) {
-		tsp->ts_options |= (TS_ON | TS_ALL | TS_ONESHOT | TS_SUPPRESS_OUTPUT);
-		tsp->ts_size = (tdp->td_planp->passes + 1) * tdp->td_queue_depth;
-	} else tsp->ts_size = (tdp->td_planp->passes * tdp->td_target_ops) + tdp->td_queue_depth;
+	// Calculate the size of the timestamp table needed for this entire run
+	tsp->ts_size = (tdp->td_planp->passes * tdp->td_target_ops) + tdp->td_queue_depth;
 	if (tsp->ts_options & (TS_TRIGTIME | TS_TRIGOP)) 
 		tsp->ts_options &= ~TS_ALL; /* turn off the "time stamp all operations" flag if a trigger was requested */
 	if (tsp->ts_options & TS_TRIGTIME) { /* adjust the trigger time to an actual local time */
@@ -97,8 +88,7 @@ xdd_ts_setup(target_data_t *tdp) {
 	tt_entries = tsp->ts_size; 
 	if (tt_entries < ((tdp->td_planp->passes * tdp->td_target_ops) + tdp->td_queue_depth)) { /* Display a NOTICE message if ts_wrap or ts_oneshot have not been specified to compensate for a short time stamp buffer */
 		if (((tsp->ts_options & TS_WRAP) == 0) &&
-			((tsp->ts_options & TS_ONESHOT) == 0) &&
-			(!(xgp->global_options & GO_DESKEW))) {
+			((tsp->ts_options & TS_ONESHOT) == 0)) {
 			fprintf(xgp->errout,"%s: ***NOTICE*** The size specified for timestamp table for target %d is too small - enabling time stamp wrapping to compensate\n",xgp->progname,tdp->td_target_number);
 			fflush(xgp->errout);
 			tsp->ts_options |= TS_WRAP;

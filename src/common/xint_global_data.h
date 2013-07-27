@@ -51,7 +51,6 @@
 #define GO_TIMER_INFO          	0x0000000000000400ULL  /* Display Timer information */
 #define GO_MEMORY_USAGE_ONLY   	0x0000000000000800ULL  /* Display memory usage and exit */
 #define GO_STOP_ON_ERROR       	0x0000000000001000ULL  /* Indicates that all targets/threads should stop on the first error from any target */
-#define GO_DESKEW              	0x0000000000002000ULL  /* Display memory usage and exit */
 #define GO_ENDTOEND				0x0000000000008000ULL  /* End to End operation - be sure to add the headers for the results display */
 #define GO_EXTENDED_STATS		0x0000000000010000ULL  /* Calculate Extended stats on each operation */
 #define GO_DRYRUN				0x0000000000020000ULL  /* Indicates a dry run - chicken! */
