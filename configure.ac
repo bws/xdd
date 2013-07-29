@@ -244,15 +244,14 @@ dnl
 AC_SEARCH_LIBS([clock_gettime], [rt],
 	       [], 
 	       AC_MSG_WARN(Posix function clock_gettime not found.))
-
-AC_CHECK_FUNCS([sched_getcpu],, AC_MSG_ERROR([Function sched_getcpu not found.]))
-AC_CHECK_FUNCS([sched_setscheduler],, AC_MSG_ERROR([Function sched_setscheduler not found.]))
 AC_CHECK_FUNCS([posix_memalign],, AC_MSG_ERROR([Function posix_memalign not found.]))
 
 dnl
 dnl Check for useful non-standard stuff
 dnl
 AC_CHECK_FUNCS([valloc])
+AC_CHECK_FUNCS([sched_getcpu])
+AC_CHECK_FUNCS([sched_setscheduler])
 
 dnl
 dnl Search for the NUMA function numa_node_to_cpus
@@ -269,7 +268,7 @@ if test "x$enable_numa" = "xyes" ; then
 
     AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
                    AC_DEFINE(HAVE_NUMA_ALLOCATE_CPUMASK),
-                   AC_MSG_WARN([Function numa_allocate_cpumask not found.  Use --disable-numa.]))
+                   AC_MSG_ERROR([Function numa_allocate_cpumask not found.  Use --disable-numa.]))
 fi
 
 dnl
@@ -310,7 +309,12 @@ AC_ARG_ENABLE([xfs],
 
 if test "x$enable_xfs" = "xyes" ; then
     AC_DEFINE(HAVE_ENABLE_XFS)
-    AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h])
+    xfs_header="no"
+    AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h],
+                     xfs_header="yes"; break, [])
+    if test "x$xfs_header" = "xno" ; then
+        AC_MSG_ERROR([No valid XFS header found.  Use --disable-xfs.])
+    fi 
     AC_CHECK_DECLS([xfsctl], 
                    AC_DEFINE(HAVE_XFSCTL), 
                    AC_MSG_ERROR([Function xfsctl not found.  Use --disable-xfs.]),

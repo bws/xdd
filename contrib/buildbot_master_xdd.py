@@ -55,14 +55,14 @@ def loadConfig(config):
 
     xdd_factory = BuildFactory()
 
-    # Check out the source, configure, and compile
+    # Check out the source
     xdd_factory.addStep(Git(repourl='/ccs/proj/csc040/var/git/xdd.git', mode='copy', branch='master'))
-    xdd_factory.addStep(ShellCommand(command=['autoconf'], name="autoconf"))
-    xdd_factory.addStep(Configure(command=["configure", "--enable-debug"]))
-    xdd_factory.addStep(Compile(description=["compiling"]))
 
     # Generate the test configuration
     xdd_factory.addStep(ShellCommand(command=['./contrib/buildbot_gen_test_config.sh'], name="configuring"))
+
+    # Compile the code
+    xdd_factory.addStep(Compile(description=["compiling"]))
 
     # Test basic XDD CLI arguments
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_createnewfiles.sh'], name="test_xdd_createnewfiles.sh"))
@@ -73,7 +73,7 @@ def loadConfig(config):
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_startoffset.sh'], name="test_xdd_startoffset.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_syncwrite.sh'], name="test_xdd_syncwrite.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_reopen.sh'], name="test_xdd_reopen.sh"))
-    #xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_preallocate.sh'], name="test_xdd_preallocate.sh"))
+    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_preallocate.sh'], name="test_xdd_preallocate.sh"))
     xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_pretruncate.sh'], name="test_xdd_pretruncate.sh"))
     
     # Test XDD lockstep
@@ -121,6 +121,7 @@ def loadConfig(config):
     config['builders'].append(BuilderConfig(name="xdd-sles10-x86_64", slavenames=["pod10"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-sles11-x86_64", slavenames=["pod11"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-osx-10-8", slavenames=["natureboy"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+    config['builders'].append(BuilderConfig(name="xdd-rhel6-ppc64", slavenames=["spry02"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
 
     ####### SCHEDULERS
     # Configure the Schedulers, which decide how to react to incoming changes.  In this
@@ -146,6 +147,7 @@ def loadConfig(config):
     config['schedulers'].append(ForceScheduler(name="xdd-force3", builderNames=["xdd-sles10-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force4", builderNames=["xdd-sles11-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force6", builderNames=["xdd-osx-10-8"]))
+    config['schedulers'].append(ForceScheduler(name="xdd-force7", builderNames=["xdd-rhel6-ppc64"]))
 
     ####### STATUS TARGETS
     # 'status' is a list of Status Targets. The results of each build will be

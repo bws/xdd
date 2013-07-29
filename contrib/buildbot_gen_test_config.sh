@@ -1,6 +1,10 @@
 #!/bin/bash
 #
-# Generate the test configuration for use by a buildbot slave.
+# Generate the test configuration for a buildbot slave
+#
+# Step 1:  Generate a local test_config
+# Step 2:  autoconf
+# Step 3:  ./configure
 #
 
 #
@@ -19,6 +23,10 @@ srchost=${buildslave_host}
 dsthost=${buildslave_host}
 test_timeout=600
 
+#
+#
+#
+configure_flags="--enable-debug"
 
 #
 # Overrides for specific hosts
@@ -28,26 +36,31 @@ case "${buildslave_host}" in
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/xfs/$USER/source
         dest_mnt=/data/xfs/$USER/dest
+        configure_flags="$configure_flags"
         ;;
     pod9)
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/xfs/$USER/source
         dest_mnt=/data/xfs/$USER/dest
+        configure_flags="$configure_flags --disable-numa"
         ;;
     pod10)
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/xfs/$USER/source
         dest_mnt=/data/xfs/$USER/dest
+        configure_flags="$configure_flags --disable-numa"
         ;;
     pod11)
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/xfs/$USER/source
         dest_mnt=/data/xfs/$USER/dest
+        configure_flags="$configure_flags --disable-numa"
         ;;
-    spry01)
+    spry02)
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/$USER/source
         dest_mnt=/data/$USER/dest
+        configure_flags="CC=gcc $configure_flags --disable-numa --disable-xfs"
         ;;
     natureboy)
         nightly_base_path=$(pwd)/build_tests
@@ -55,6 +68,7 @@ case "${buildslave_host}" in
         dest_mnt=/data/hfsplus/$USER/dest
         srchost=${buildslave_host}
         dsthost=localhost
+        configure_flags="$configure_flags --disable-numa --disable-xfs --disable-ib"
         ;;
 esac
 
@@ -82,7 +96,7 @@ mkdir -p $test_dest_dir
 mkdir -p $test_local_dir
 
 #
-# Setup the nightly tests config file
+# Generate the nightly tests config file
 #
 cat >test_config <<EOF
 XDDTEST_XDD_EXE=$install_dir/bin/xdd
@@ -108,3 +122,9 @@ XDDTEST_XDD_REMOTE_PATH=${install_dir}/bin
 XDDTEST_XDD_LOCAL_PATH=${install_dir}/bin
 XDDTEST_TIMEOUT=${test_timeout}
 EOF
+
+#
+# Perform the configure
+#
+autoconf
+./configure $configure_flags
