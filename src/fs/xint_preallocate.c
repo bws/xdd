@@ -55,10 +55,10 @@ xint_target_preallocate_for_os(target_data_t *tdp) {
 	status = fstatfs(tdp->td_file_desc, &sfs);
 	if (0 != status) {
 		fprintf(xgp->errout, 
-			"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: cannot get file system information via statfs\n",
-			xgp->progname,
-			tdp->td_target_number,
-			tdp->td_target_full_pathname);
+				"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: cannot get file system information via statfs\n",
+				xgp->progname,
+				tdp->td_target_number,
+				tdp->td_target_full_pathname);
 		perror("Reason");
 		fflush(xgp->errout);
 		return(1);
@@ -66,36 +66,52 @@ xint_target_preallocate_for_os(target_data_t *tdp) {
 	
 	/* Support preallocate on XFS */ 
 	if (XFS_SUPER_MAGIC == sfs.f_type) {
-		int64_t pos,rem;
-		const int64_t max_bytes = 1L<<32;
-
-		/* Perform allocation in 4GB chunks to support 16KB alignment */
-		pos = 0;
-		rem = tdp->td_preallocate;
-		while (rem > 0) {
+		/* On non 64-bit systems, preallocate may only work 4GB at a time */
+		if (8 == sizeof(int*)) {
 			/* Always set whence to 0, for now */
 			xfs_flock.l_whence = 0;
-
+				
 			/* Allocate the next 4GB */
 			xfs_flock.l_start = pos; 
-			xfs_flock.l_len = (rem <= max_bytes) ? rem : max_bytes;
-			status = xfsctl(tdp->td_target_full_pathname,tdp->td_file_desc, XFS_IOC_RESVSP64, &xfs_flock);
-
-			/* Check preallocate status */
-			if (status) { 
-				fprintf(xgp->errout, 
+			xfs_flock.l_len = tdp->td_preallocate;
+			status = xfsctl(tdp->td_target_full_pathname,
+							tdp->td_file_desc,
+							XFS_IOC_RESVSP64, &xfs_flock);
+		}
+		else {
+			/* Perform allocation in 4GB chunks to support 16KB alignment */
+			const int64_t max_bytes = 1L<<32;
+			int64_t pos = 0;
+			int64_t rem = tdp->td_preallocate;
+			while (rem > 0) {
+				/* Always set whence to 0, for now */
+				xfs_flock.l_whence = 0;
+				
+				/* Allocate the next 4GB */
+				xfs_flock.l_start = pos; 
+				xfs_flock.l_len = (rem <= max_bytes) ? rem : max_bytes;
+				status = xfsctl(tdp->td_target_full_pathname,
+								tdp->td_file_desc,
+								XFS_IOC_RESVSP64, &xfs_flock);
+			
+				/* Check preallocate status */
+				if (status) { 
+					break;
+				}
+				pos += max_bytes;
+				rem -= max_bytes;
+			}
+		}
+		if (status) {
+			fprintf(xgp->errout, 
 					"%s: xdd_target_preallocatefor_os<LINUX>: ERROR: Target %d name %s: xfsctl call for preallocation failed\n",
 					xgp->progname,
 					tdp->td_target_number,
 					tdp->td_target_full_pathname);
-				perror("Reason");
-				fflush(xgp->errout);
-				return(1);
-			}
-			pos += max_bytes;
-			rem -= max_bytes;
+			perror("Reason");
+			fflush(xgp->errout);
+			return(1);
 		}
-
 	}
 		
 	// Everything must have worked :)
