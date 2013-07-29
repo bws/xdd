@@ -313,7 +313,7 @@ if test "x$enable_xfs" = "xyes" ; then
     AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h],
                      xfs_header="yes"; break, [])
     if test "x$xfs_header" = "xno" ; then
-        AC_MSG_ERROR([No valid XFS header found.  Use --disable-xfs.])
+        AC_MSG_ERROR([No valid XFS header found (sometimes this is caused by missing libuuid headers).  Use --disable-xfs.])
     fi 
     AC_CHECK_DECLS([xfsctl], 
                    AC_DEFINE(HAVE_XFSCTL), 
