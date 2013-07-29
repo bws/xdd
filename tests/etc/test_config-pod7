@@ -18,7 +18,6 @@ XDDTEST_TESTS_DIR=$HOME/workspace/xdd/tests
 # Mounts to use for testing
 #
 XDDTEST_LOCAL_MOUNT=/data/xfs/$USER/manual-local
-XDDTEST_LOCAL_MOUNT=$HOME/$USER/manual-local
 XDDTEST_SOURCE_MOUNT=/data/xfs/$USER/manual-src
 XDDTEST_DEST_MOUNT=/data/xfs/$USER/manual-dest
 

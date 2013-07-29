@@ -165,7 +165,7 @@
 #undef HAVE_SCHED_SETSCHEDULER
 
 /********************************************************************************
- * Defines for featuress
+ * Defines for features
  *******************************************************************************/
 
 /* Define if you have cpu_set_t type */

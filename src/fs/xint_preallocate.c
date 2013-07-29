@@ -71,8 +71,8 @@ xint_target_preallocate_for_os(target_data_t *tdp) {
 			/* Always set whence to 0, for now */
 			xfs_flock.l_whence = 0;
 				
-			/* Allocate the next 4GB */
-			xfs_flock.l_start = pos; 
+			/* Allocate the entire file */
+			xfs_flock.l_start = 0; 
 			xfs_flock.l_len = tdp->td_preallocate;
 			status = xfsctl(tdp->td_target_full_pathname,
 							tdp->td_file_desc,

@@ -230,13 +230,13 @@ AC_TYPE_SIZE_T
 dnl
 dnl Checks for library functions.
 dnl
-AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNCS([memset],, AC_MSG_ERROR([Function memset not found.]))
 AC_CHECK_FUNCS([random rand], break, 
                AC_MSG_ERROR([Neither random() nor rand() is defined.]))
-AC_CHECK_FUNCS([initstate])
-AC_CHECK_FUNCS([nanosleep])
-AC_CHECK_FUNCS([pread])
-AC_CHECK_FUNCS([pwrite])
+AC_CHECK_FUNCS([initstate], break, AC_MSG_ERROR([Function initstate not found.]))
+AC_CHECK_FUNCS([nanosleep],, AC_MSG_ERROR([Function nanosleep not found.]))
+AC_CHECK_FUNCS([pread],, AC_MSG_ERROR([Function pread not found.]))
+AC_CHECK_FUNCS([pwrite],, AC_MSG_ERROR([Function pwrite not found.]))
 
 dnl
 dnl Checks for POSIX functions
@@ -245,9 +245,9 @@ AC_SEARCH_LIBS([clock_gettime], [rt],
 	       [], 
 	       AC_MSG_WARN(Posix function clock_gettime not found.))
 
-AC_CHECK_FUNCS([sched_getcpu])
-AC_CHECK_FUNCS([sched_setscheduler])
-AC_CHECK_FUNCS([posix_memalign])
+AC_CHECK_FUNCS([sched_getcpu],, AC_MSG_ERROR([Function sched_getcpu not found.]))
+AC_CHECK_FUNCS([sched_setscheduler],, AC_MSG_ERROR([Function sched_setscheduler not found.]))
+AC_CHECK_FUNCS([posix_memalign],, AC_MSG_ERROR([Function posix_memalign not found.]))
 
 dnl
 dnl Check for useful non-standard stuff
@@ -257,13 +257,20 @@ AC_CHECK_FUNCS([valloc])
 dnl
 dnl Search for the NUMA function numa_node_to_cpus
 dnl
-AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
-               AC_DEFINE(HAVE_NUMA_NODE_TO_CPUS),
-               AC_MSG_WARN([LibNUMA support for numa_node_to_cpus not found thread binding disabled.]))
+AC_ARG_ENABLE([numa],
+              AS_HELP_STRING([--disable-numa], [Disable LibNUMA support]),
+              [enable_numa="$enableval"],
+              [enable_numa=yes])
+if test "x$enable_numa" = "xyes" ; then
+    AC_DEFINE(HAVE_ENABLE_NUMA)
+    AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
+                   AC_DEFINE(HAVE_NUMA_NODE_TO_CPUS),
+                   AC_MSG_ERROR([Function numa_node_to_cpus not found.  Use --disable-numa]))
 
-AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
-               AC_DEFINE(HAVE_NUMA_ALLOCATE_CPUMASK),
-               AC_MSG_WARN([LibNUMA support for numa_allocate_cpumask not found thread binding disabled.]))
+    AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
+                   AC_DEFINE(HAVE_NUMA_ALLOCATE_CPUMASK),
+                   AC_MSG_WARN([Function numa_allocate_cpumask not found.  Use --disable-numa.]))
+fi
 
 dnl
 dnl Check for Linux CPU_SET(3)
@@ -274,17 +281,18 @@ AC_TRY_COMPILE([#include <sched.h>],
             [])
 
 dnl
-dnl Check for optional Infiniband headers
+dnl Check for Infiniband headers
 dnl
-ib_enabled="yes"
 AC_ARG_ENABLE([ib],
-              [AS_HELP_STRING(--disable-ib, Disable Infiniband support)],
-              [ib_enabled="$enableval"], [])
-if test "x$ib_enabled" = "xyes" ; then
-  
-  AC_CHECK_HEADERS([infiniband/verbs.h], [AC_DEFINE(HAVE_ENABLE_IB)], [])
-  AC_SEARCH_LIBS([ibv_get_device_list], [ibverbs],
-                 AC_DEFINE(HAVE_IBV_GET_DEVICE_LIST), [])
+              AS_HELP_STRING([--disable-ib], [Disable Infiniband support]),
+              [enable_ib="$enableval"], 
+              [enable_ib=yes])
+if test "x$enable_ib" = "xyes" ; then
+    AC_DEFINE(HAVE_ENABLE_IB)
+    AC_CHECK_HEADERS([infiniband/verbs.h])
+    AC_SEARCH_LIBS([ibv_get_device_list], [ibverbs],
+                   AC_DEFINE(HAVE_IBV_GET_DEVICE_LIST), 
+                   AC_MSG_ERROR([Function ibv_get_device_list not found.  Use --disable-ib.]))
 fi
 
 dnl
@@ -293,38 +301,24 @@ dnl
 AX_MPI([],,AC_MSG_WARN(MPI C compiler not found.))
 
 dnl
-dnl Check if XFS support should be enabled
+dnl Enable XFS support by default
 dnl
-xfs_header_support="no"
-AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h],
-                [xfs_header_support="yes"])
-
-dnl
-dnl By default, try to add XFS support, only show errors if user requests XFS
-dnl
-xfs_lib_support="yes"
-xfs_enabled="yes"
-xfs_override="no"
 AC_ARG_ENABLE([xfs],
-              [AS_HELP_STRING(--enable-xfs,Enable XFS preallocation support)],
-              [xfs_override="$enableval"
-               xfs_enabled="$enableval"], [])
+              AS_HELP_STRING([--enable-xfs], [Enable XFS preallocation support]),
+              [enable_xfs="$enableval"],
+              [enable_xfs=yes])
 
-if test "x$xfs_override" = "xyes" ; then
-    if test "x$xfs_header_support" = "xno" ; then
-        AC_MSG_FAILURE("XFS headers not found.")
-    elif test "x$xfs_lib_support" = "xno" ; then
-        AC_MSG_ERROR("XFS libraries not found.")
-    fi
+if test "x$enable_xfs" = "xyes" ; then
     AC_DEFINE(HAVE_ENABLE_XFS)
-    AC_SUBST(CONFIG_XFS_ENABLED, "-DXFS_ENABLED")
-    AC_SUBST(CONFIG_XFS_PACKAGE, "-D$xfs_package")
-elif test "x$xfs_enabled" = "xyes" ; then
-    if test $xfs_header_support = yes -a $xfs_lib_support = yes ; then
-        AC_DEFINE(HAVE_ENABLE_XFS)
-        AC_SUBST(CONFIG_XFS_ENABLED, "-DXFS_ENABLED")
-        AC_SUBST(CONFIG_XFS_PACKAGE, "-D$xfs_package")
-    fi
+    AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h])
+    AC_CHECK_DECLS([xfsctl], 
+                   AC_DEFINE(HAVE_XFSCTL), 
+                   AC_MSG_ERROR([Function xfsctl not found.  Use --disable-xfs.]),
+                   [#if HAVE_XFS_XFS_H
+                    #include <xfs/xfs.h>
+                    #elif HAVE_XFS_LIBXFS_H
+                    #include <xfs/libxfs.h>
+                    #endif])
 fi
 
 dnl
