@@ -36,7 +36,7 @@ case "${buildslave_host}" in
         nightly_base_path=$(pwd)/build_tests
         source_mnt=/data/xfs/$USER/source
         dest_mnt=/data/xfs/$USER/dest
-        configure_flags="$configure_flags"
+        configure_flags="$configure_flags --disable-numa"
         ;;
     pod9)
         nightly_base_path=$(pwd)/build_tests
