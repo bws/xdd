@@ -39,32 +39,34 @@ max_passes=4
 
 for ((num_passes=$min_passes;num_passes<=$max_passes;num_passes++)); do
       xdd_cmd="$XDDTEST_XDD_EXE -op write -target $test_file -numreqs 10 -passes $num_passes -passdelay 1 -reopen $test_file"
-      
-      sys_call=$(2>&1 strace -cfq -e trace=open,close $xdd_cmd |tail -4 |grep -e 'open\|close' |cut -b 32-40,51-)
-      open_num=$(echo $sys_call |cut -f 1 -d ' ') 
-      close_num=$(echo $sys_call |cut -f 3 -d ' ') 
-      
-      open_name=$(echo $sys_call |cut -f 2 -d ' ')
-      close_name=$(echo $sys_call |cut -f 4 -d ' ')
+       
+      sys_call_open=$(2>&1 strace -cfq -e trace=open $xdd_cmd |grep open| tail -1 | cut -b 32-40)
+      sys_call_close=$(2>&1 strace -cfq -e trace=close $xdd_cmd |grep close |cut -b 32-40)
 
-      sys_open[$num_passes]=$open_num
-      sys_close[$num_passes]=$close_num
+      sys_open[$num_passes]=$sys_call_open
+      sys_close[$num_passes]=$sys_call_close
 done
 
-# Verify output 
-test_success=1
+pass_count=0
+
+# Check if the first element is 1 less than the next and so on for n-1 elements 
 for ((i=$min_passes;i<=$(($max_passes-1));i++)); do
-      
-      if [ $((${sys_open[$i]}+1)) -ne ${sys_open[$(($i+1))]} -o "$open_name" != "open" ]; then
-            test_success=0
+     
+      if [ $((${sys_open[$i]}+1)) -eq ${sys_open[$(($i+1))]} ]; then
+            pass_count=$(($pass_count+1))
       fi
-      if [ $((${sys_close[$i]}+1)) -ne ${sys_close[$(($i+1))]} -o "$close_name" != "close" ]; then
-            test_success=0
+      if [ $((${sys_close[$i]}+1)) -eq ${sys_close[$(($i+1))]} ]; then
+            pass_count=$(($pass_count+1))
       fi
 done
+
+correct_count=$(($max_passes-$min_passes))
+correct_count=$(($correct_count*2))
+
+# verify output
 
 echo -n "Acceptance Test - $test_name : "
-if [ $test_success -eq 1 ]; then
+if [ $pass_count -eq $correct_count ]; then
       echo "PASSED"
       exit 0
 else

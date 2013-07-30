@@ -2,7 +2,7 @@
 #
 # Description - synchronizes write ops after each pass, flushing all data to the physical media
 #
-# Test -syncwrite by checking if number of passes equals the number of fdatasync
+# Test -syncwrite by checking if number of passes equals the number of fdatasyncs
 #
 # Source the test configuration environment
 #
@@ -27,13 +27,12 @@ num_passes=10
 
 # get the amount of fdatasyncs
 xdd_cmd="$XDDTEST_XDD_EXE -target $test_file -op write -numreqs 10 -passes $num_passes -syncwrite"
-sys_call=$(2>&1 strace -cfq -e trace=fdatasync $xdd_cmd |tail -3 |head -1)
+sys_call=$(2>&1 strace -cfq -e trace=fdatasync $xdd_cmd |grep "fdatasync")
 sync_num=$(echo $sys_call |cut -f 4 -d ' ')
-sync_name=$(echo $sys_call |cut -f 5 -d ' ')
 
 # Verify output
 echo -n "Acceptance Test - $test_name : "
-if [ $sync_num -eq $num_passes -a $sync_name == "fdatasync" ]; then
+if [ $sync_num -eq $num_passes ]; then
     echo "PASSED"
     exit 0
 else
