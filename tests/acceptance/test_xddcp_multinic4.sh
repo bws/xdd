@@ -127,9 +127,9 @@ done
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance XDDCP: Multinic Test 4 - Check: PASSED."
+  echo "Acceptance Test - $test_name: PASSED."
   exit 0
 else
-  echo "Acceptance XDDCP: Multinic Test 4 - Check: FAILED."
+  echo "Acceptance Test - $test_name: FAILED."
   exit 1
 fi

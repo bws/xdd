@@ -137,9 +137,9 @@ scp $XDDTEST_E2E_DEST:${destination_log} $test_source
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance xdd multi-nic: Test 1 - Check: PASSED."
+  echo "Acceptance Test - $test_name: PASSED."
   exit 0
 else
-  echo "Acceptance xdd multi-nic: Test 2 - Check: FAILED."
+  echo "Acceptance Test - $test_name: FAILED."
   exit 1
 fi

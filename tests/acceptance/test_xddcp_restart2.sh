@@ -28,14 +28,15 @@ fi
 
 
 # Perform pre-test 
-test_dir=$XDDTEST_SOURCE_MOUNT/retry2
-rm -rf $test_dir
-mkdir -p $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry2"
-ssh $XDDTEST_E2E_DEST "mkdir -p $XDDTEST_DEST_MOUNT/retry2"
+src_test_dir=$XDDTEST_SOURCE_MOUNT/${test_name}
+dest_test_dir=$XDDTEST_DEST_MOUNT/${test_name}
+rm -rf $src_test_dir
+mkdir -p $src_test_dir
+ssh $XDDTEST_E2E_DEST "rm -rf $dest_test_dir"
+ssh $XDDTEST_E2E_DEST "mkdir -p $dest_test_dir"
 
-source_file=$test_dir/file1
-dest_file=$XDDTEST_DEST_MOUNT/retry2/file1
+source_file=$src_test_dir/file1
+dest_file=$dest_test_dir/file1
 
 #
 # Create the source file
@@ -53,7 +54,7 @@ pid=$!
 #
 # Kill the destination side
 #
-sleep 10
+sleep 4
 ssh $XDDTEST_E2E_DEST "killall xdd" &>/dev/null
 
 #
@@ -80,10 +81,6 @@ if [ 0 -eq $rc ]; then
 else
     echo "ERROR: XDDCP exited with: $rc"
 fi
-
-# Perform post-test cleanup
-#rm -rf $test_dir
-#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry2"
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

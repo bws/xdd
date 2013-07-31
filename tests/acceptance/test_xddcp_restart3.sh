@@ -28,14 +28,15 @@ if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then
 fi
 
 # Perform pre-test 
-test_dir=$XDDTEST_SOURCE_MOUNT/retry1
-rm -rf $test_dir
-mkdir -p $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry1"
-ssh $XDDTEST_E2E_DEST "mkdir -p $XDDTEST_DEST_MOUNT/retry1"
+src_test_dir=$XDDTEST_SOURCE_MOUNT/${test_name}
+dest_test_dir=$XDDTEST_DEST_MOUNT/${test_name}
+rm -rf $src_test_dir
+mkdir -p $src_test_dir
+ssh $XDDTEST_E2E_DEST "rm -rf $dest_test_dir"
+ssh $XDDTEST_E2E_DEST "mkdir -p $dest_test_dir"
 
-source_file=$test_dir/file1
-dest_file=$XDDTEST_DEST_MOUNT/retry1/file1
+source_file=$src_test_dir/file1
+dest_file=$dest_test_dir/file1
 
 #
 # Create the source file

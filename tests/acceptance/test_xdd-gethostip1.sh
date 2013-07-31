@@ -6,6 +6,13 @@
 #
 # Description - Get the IP address of the local host
 #
+
+#
+# Test identity
+#
+test_name=$(basename $0)
+echo "Beginning test . . ."
+#
 # Source the test configuration environment
 #
 source ./test_config
@@ -21,9 +28,9 @@ fi
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance Test GetHostIP 1: PASSED."
+  echo "Acceptance Test - $test_name: PASSED."
   exit 0
 else
-  echo "Acceptance Test GetHostIP 1: FAILED."
+  echo "Acceptance Test - $test_name: FAILED."
   exit 1
 fi

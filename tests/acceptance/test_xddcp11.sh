@@ -8,6 +8,13 @@
 #   User or scheduler restarts original xddcp line
 #   Modification time changed on a different file every xddcp restart
 #
+
+#
+# Test identity
+#
+test_name=$(basename $0)
+echo "Beginning $test_name . . ."
+
 #
 # Source the test configuration environment
 #
@@ -25,10 +32,10 @@ fi
 
 # Perform pre-test 
 echo "Beginning File List with Restart Test . . ."
-src_dir=$XDDTEST_SOURCE_MOUNT/xddcp_test11/data
-dest_dir=$XDDTEST_DEST_MOUNT/xddcp_test11/data
-rm -rf $XDDTEST_SOURCE_MOUNT/xddcp_test11
-ssh -q $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/xddcp_test11"
+src_dir=$XDDTEST_SOURCE_MOUNT/$test_name/data
+dest_dir=$XDDTEST_DEST_MOUNT/$test_name/data
+rm -rf $$XDDTEST_SOURCE_MOUNT/$test_name
+ssh -q $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/$test_name"
 
 #
 # Create the source directories
@@ -41,7 +48,7 @@ mkdir -p $src_dir/baz1/baz2/baz3/baz4
 # Create the files
 #
 targets=( $src_dir/t1 $src_dir/t2  $src_dir/foo1/t3  $src_dir/foo1/t4 $src_dir/foo1/foo2/t5 $src_dir/foo1/foo2/t6 $src_dir/foo1/foo2/foo3/t7 $src_dir/bar1/bar2/bar3/t8 )
-$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 1024 -qd 4 -datapattern randbytarget 
+$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 1024 -qd 4 -datapattern randbytarget >&2
 
 # Build file list
 cd ${src_dir}
@@ -68,7 +75,7 @@ EOF
 #
 # Perform a list-based copy with a large number of retries
 #
-$XDDTEST_XDDCP_EXE $xddcp_opts -a -n 99 -F $file_list $XDDTEST_E2E_DEST:$dest_dir
+$XDDTEST_XDDCP_EXE $xddcp_opts -a -n 99 -F $file_list $XDDTEST_E2E_DEST:$dest_dir >&2
 rc=$?
 
 # signal killer proc to exit
@@ -97,9 +104,9 @@ done
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance XDDCP: File List with Restart Test - Check: PASSED."
+  echo "Acceptance Test - $test_name: PASSED."
   exit 0
 else
-  echo "Acceptance XDDCP: File List with Restart Test - Check: FAILED."
+  echo "Acceptance Test - $test_name: FAILED."
   exit 1
 fi

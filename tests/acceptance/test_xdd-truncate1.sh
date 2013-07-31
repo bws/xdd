@@ -6,6 +6,14 @@
 #
 # Description - truncates target file to a certain size
 #
+
+#
+# Test identity
+#
+test_name=$(basename $0)
+echo "Beginning $test_name . . ."
+
+#
 # Source the test configuration environment
 #
 source ./test_config
@@ -13,7 +21,10 @@ source ./test_config
 #
 # Create the file to truncate
 #
-tfile=$XDDTEST_LOCAL_MOUNT/truncfile1
+test_dir=$XDDTEST_LOCAL_MOUNT/$test_name
+rm -rf $test_dir
+mkdir -p $test_dir
+tfile=$test_dir/truncfile1
 touch $tfile
 
 #
@@ -36,9 +47,9 @@ fi
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance Test Truncate 1: PASSED."
+  echo "Acceptance Test - $test_name: PASSED."
   exit 0
 else
-  echo "Acceptance Test Truncate 1: FAILED."
+  echo "Acceptance Test - $test_name: FAILED."
   exit 1
 fi
