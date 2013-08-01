@@ -8,4 +8,4 @@ CLIENT_LITE_SRC := $(DIR)/xdd-lite-client.c \
 	$(DIR)/xdd-lite-options.c \
 	$(DIR)/xdd-lite-server.c 
 
-CLIENT_LITE_EXE_SRC := $(DIR)/xdd-lite-main.c 
+XDD_LITE_EXE_SRC := $(DIR)/xdd-lite-main.c 

@@ -64,6 +64,7 @@ LIB_DIR = lib
 SRC_DIR = src
 HDR_DIR = include
 BASE_DIR = $(SRC_DIR)/base
+BX_DIR = $(SRC_DIR)/bx
 CLIENT_DIR = $(SRC_DIR)/client
 CLIENT_LITE_DIR = $(SRC_DIR)/client/lite
 COMMON_DIR = $(SRC_DIR)/common
@@ -78,6 +79,7 @@ XNI_DIR = $(SRC_DIR)/xni
 # Include module makefiles
 #
 include $(BASE_DIR)/module.mk
+include $(BX_DIR)/module.mk
 include $(CLIENT_DIR)/module.mk
 include $(CLIENT_LITE_DIR)/module.mk
 include $(COMMON_DIR)/module.mk
@@ -91,8 +93,9 @@ include $(XNI_DIR)/module.mk
 #
 # Construct information from modules
 #
-XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
-	$(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) $(TOOLS_SRC) $(XNI_SRC)
+XDD_SRC := $(BASE_SRC) $(BX_SRC) $(CLIENT_SRC) $(COMMON_SRC) \
+	$(COMPAT_SRC) $(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) \
+	$(TOOLS_SRC) $(XNI_SRC)
 
 #
 # XDD module build targets
@@ -103,14 +106,15 @@ TOOL_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOL_SRC)))
 #
 # Project executable objects
 #
-CLIENT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
+BXT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(BXT_EXE_SRC) $(BX_SRC)))
 GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
 GETFILESIZE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETFILESIZE_EXE_SRC)))
 GETHOSTIP_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETHOSTIP_EXE_SRC)))
 READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
 TRUNCATE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TRUNCATE_EXE_SRC)))
 TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TS_EXE_SRC)))
-XDD_LITE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_LITE_EXE_SRC) $(CLIENT_LITE_SRC)))
+XDD_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
+XDD_LITE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(XDD_LITE_EXE_SRC) $(CLIENT_LITE_SRC)))
 
 #
 # All objects
@@ -131,6 +135,7 @@ XDD_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(XDD_SRC)))
 TOOLS_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(TOOLS_SRC)))
 CLIENT_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_EXE_SRC)))
 CLIENT_LITE_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_LITE_EXE_SRC)))
+BXT_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(BXT_EXE_SRC)))
 
 #
 # Default build settings
@@ -158,6 +163,8 @@ LIBS = @CONFIG_LIBS@
 .DEFAULT: all
 
 all: xdd xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate libs
+
+bxt: bin/bxt
 
 xdd: bin/xdd
 
@@ -198,6 +205,10 @@ bin/xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
 bin/xdd-lite: $(XDD_LITE_EXE_OBJS) $(LIB_DIR)/libxdd.a 
 	@echo "[LD] $@ ..."
 	$(LD) $(LDFLAGS) -L$(LIB_DIR) -o $@ $(XDD_LITE_EXE_OBJS) -lxdd $(LIBS)
+
+bin/bxt: $(BXT_EXE_OBJS) $(LIB_DIR)/libxdd.a
+	@echo "[LD] $@ ..."
+	$(LD) $(LDFLAGS) -L$(LIB_DIR) -o $@ $(BXT_EXE_OBJS) -lxdd $(LIBS)
 
 bin/xdd-tserver: $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(TS_EXE_OBJS) 
 	@echo "[LD] $@ ..."
@@ -353,6 +364,7 @@ clean: depclean libclean oclean tclean
 		bin/xdd-read-tsdumps \
 		bin/xdd-truncate \
 		bin/xdd-read-tsdumps \
+		bin/bxt \
 		a.out 
 
 .PHONY: testclean depclean docclean libclean oclean clean
