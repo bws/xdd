@@ -44,7 +44,7 @@
 //   		int     (*interactive_func_ptr)(int32_t tokens, char *cmd, uint32_t flags);      /* pointer to the function */
 //  		int     argc;           /* number of arguments */
 // 			char    *help;          /* help string */
-//			char    *ext_help[XDD_EXT_HELP_LINES];   /* Extented help strings */
+//			char    *ext_help[XDD_INTERACTICE_EXTRA_HELP_LINES];   /* Extented help strings */
 //			uint32_t flags;			/* Flags for various parsing functions */
 //      }
 
@@ -61,6 +61,13 @@ xdd_interactive_func_t  xdd_interactive_func[] = {
             1,  
             "  goto <operation number>\n",  
             {"    Will cause the run to resume at the specified operation number\n", 
+            0,0,0,0},
+			0},
+    {"usage", "?",
+            xdd_interactive_help,  
+            1,  
+            "  usage or ? \n",  
+            {"    Will display available commands\n", 
             0,0,0,0},
 			0},
     {"help", "h",

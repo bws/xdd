@@ -169,7 +169,7 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 	}
 
 	// Initialize the worker_thread ordering 
-	status = pthread_cond_init(&wdp->wd_this_worker_thread_is_available_condition, 0);
+	//status = pthread_cond_init(&wdp->wd_this_worker_thread_is_available_condition, 0);
 
 	// Indicate to the Target Thread that this WorkerThread is available
 	pthread_mutex_lock(&tdp->td_any_worker_thread_available_mutex);

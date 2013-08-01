@@ -147,24 +147,24 @@
 struct xdd_occupant {
 	struct		xdd_occupant	*prev_occupant;	// Previous occupant on the chain
 	struct		xdd_occupant	*next_occupant;	// Next occupant on the chain
-	uint64_t				 	occupant_type;	// Bitfield that indicates the type of occupant
+	uint32_t				 	occupant_type;	// Bitfield that indicates the type of occupant
 	char						*occupant_name;	// Pointer to a character string that is the name of this occupant
 	void						*occupant_data;	// Pointer to a Target_Data or Worker_Data if the occupant_type is a Target or Worker Thread
 	nclk_t						entry_time;		// Time stamp of when this occupant entered a barrier - filled in by xdd_barrier()
 	nclk_t						exit_time;		// Time stamp of when this occupant was released from a barrier - filled in by xdd_barrier()
 };
 typedef struct xdd_occupant xdd_occupant_t;
-#define XDD_OCCUPANT_TYPE_TARGET		0x0000000000000001ULL	// Occupant is a Target Thread
-#define XDD_OCCUPANT_TYPE_WORKER_THREAD	0x0000000000000002ULL	// Occupant is a Worker_Thread
-#define XDD_OCCUPANT_TYPE_SUPPORT		0x0000000000000004ULL	// Occupant is a Support Thread: Results Manager, Heartbeat, Restart, Interactive
-#define XDD_OCCUPANT_TYPE_MAIN			0x0000000000000008ULL	// Occupant is the XDD Main parent thread
-#define XDD_OCCUPANT_TYPE_CLEANUP		0x0000000000000010ULL	// Occupant is a Target or Worker_Thread Cleanup function
+#define XDD_OCCUPANT_TYPE_TARGET		0x00000001UL	// Occupant is a Target Thread
+#define XDD_OCCUPANT_TYPE_WORKER_THREAD	0x00000002UL	// Occupant is a Worker_Thread
+#define XDD_OCCUPANT_TYPE_SUPPORT		0x00000004UL	// Occupant is a Support Thread: Results Manager, Heartbeat, Restart, Interactive
+#define XDD_OCCUPANT_TYPE_MAIN			0x00000008UL	// Occupant is the XDD Main parent thread
+#define XDD_OCCUPANT_TYPE_CLEANUP		0x00000010UL	// Occupant is a Target or Worker_Thread Cleanup function
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 // The XDD barrier structure
 //
 #define XDD_BARRIER_MAX_NAME_LENGTH		64	// not to exceed this many characters in length
-#define	XDD_BARRIER_FLAG_INITIALIZED	0x0000000000000001ULL	// Indicates that this barrier has been initialized
+#define	XDD_BARRIER_FLAG_INITIALIZED	0x00000001ULL	// Indicates that this barrier has been initialized
 struct xdd_barrier {
 	struct 	xdd_barrier 	*prev_barrier; 	// Previous barrier in the chain 
 	struct 	xdd_barrier 	*next_barrier; 	// Next barrier in chain 

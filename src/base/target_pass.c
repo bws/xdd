@@ -34,10 +34,10 @@
 #include "xint.h"
 
 /*----------------------------------------------------------------------------*/
-/* xdd_targetpass() - This subroutine will perform a single pass
+/* xdd_target_pass() - This subroutine will perform a single pass
  */
 int32_t
-xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp) {
+xdd_target_pass(xdd_plan_t* planp, target_data_t *tdp) {
 
 	/* Before we get started, check to see if we need to reset the 
 	 * run_status in case we are using the start trigger.
@@ -52,7 +52,7 @@ xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp) {
 
 	/* Check to see if any of the other threads have aborted */
 	if (xgp->abort) {
-		fprintf(xgp->errout,"%s: ERROR: xdd_targetpass: Target number %d name '%s' Aborting due to failure with another target\n",
+		fprintf(xgp->errout,"%s: ERROR: xdd_target_pass: Target number %d name '%s' Aborting due to failure with another target\n",
 			xgp->progname,
 			tdp->td_target_number,
 			tdp->td_target_full_pathname);
@@ -73,28 +73,20 @@ xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp) {
 	// Things to do before this pass is started
 	xdd_target_ttd_before_pass(tdp);
 
-	// Get the next available worker thread and give it a task to perform
-	// We stay in the following loop for a single PASS
-	tdp->td_counters.tc_current_byte_offset = 0;
-	tdp->td_counters.tc_current_op_number = 0;
-	tdp->td_current_bytes_issued = 0;
-	tdp->td_current_bytes_completed = 0;
-	tdp->td_current_bytes_remaining = tdp->td_target_bytes_to_xfer_per_pass;
-
 /////////////////////////////// PSEUDO-Loop Starts Here ////////////////////////
 // The PSEUDO-Loop just means that the actual "looping" in done in 
-// the xdd_targetpass_loop() subroutine (or the e2e equivalent).
+// the xdd_target_pass_loop() subroutine (or the e2e equivalent).
 	// The pass loops are handled by one of two subroutines depending on 
 	// whether this is the Destination Side of an E2E operation or not. 
-	tdp->td_current_state &= ~CURRENT_STATE_PASS_COMPLETE;
+	tdp->td_current_state &= ~TARGET_CURRENT_STATE_PASS_COMPLETE;
 	if (tdp->td_target_options & TO_ENDTOEND) { // E2E operations are *different*
 		if (tdp->td_target_options & TO_E2E_SOURCE)
 		    xdd_targetpass_e2e_loop_src(planp, tdp);
 		else xdd_targetpass_e2e_loop_dst(planp, tdp);
 	} else { // Normal operations (other than E2E)
-	    xdd_targetpass_loop(planp, tdp);
+	    xdd_target_pass_loop(planp, tdp);
 	}
-	tdp->td_current_state |= CURRENT_STATE_PASS_COMPLETE;
+	tdp->td_current_state |= TARGET_CURRENT_STATE_PASS_COMPLETE;
 /////////////////////////////// PSEUDO-Loop Ends  Here /////////////////////////
 	// If this is an E2E operation and we had gotten canceled - just return
 	if ((tdp->td_target_options & TO_ENDTOEND) && (xgp->canceled))
@@ -117,16 +109,16 @@ xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp) {
 
 	// This pass is complete - return to the Target Thread
 	return(0);
-} // End of xdd_targetpass()
+} // End of xdd_target_pass()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_targetpass_loop() - This subroutine will assign tasks to Worker Threads 
+/* xdd_target_pass_loop() - This subroutine will assign tasks to Worker Threads 
  * until all bytes have been processed. 
  * 
- * This subroutine is called by xdd_targetpass().
+ * This subroutine is called by xdd_target_pass().
  */
 void
-xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
+xdd_target_pass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 	worker_data_t	*wdp;
 	int		q;
 	int32_t	status;	// Return status from various subroutines
@@ -168,7 +160,7 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 		}
 
 		// Set up the task for the Worker Thread
-		xdd_targetpass_task_setup(wdp);
+		xdd_target_pass_task_setup(wdp);
 
 		// Release the Worker Thread to let it start working on this task.
 		// This effectively causes the I/O operation to be issued.
@@ -180,7 +172,7 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 
 	// Check to see if we've been canceled - if so, we need to leave 
 	if (xgp->canceled) {
-		fprintf(xgp->errout,"\n%s: xdd_targetpass_loop: Target %d: ERROR: Canceled!\n",
+		fprintf(xgp->errout,"\n%s: xdd_target_pass_loop: Target %d: ERROR: Canceled!\n",
 			xgp->progname,
 			tdp->td_target_number);
 		return;
@@ -192,19 +184,20 @@ xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp) {
 		wdp = xdd_get_specific_worker_thread(tdp,q);
 		pthread_mutex_lock(&wdp->wd_worker_thread_target_sync_mutex);
 		wdp->wd_worker_thread_target_sync &= ~WTSYNC_BUSY; // Mark this Worker Thread NOT Busy
+		tdp->td_any_worker_thread_available++;
 		pthread_mutex_unlock(&wdp->wd_worker_thread_target_sync_mutex);
 	}
 	if (tdp->td_counters.tc_current_io_status != 0) 
 		planp->target_errno[tdp->td_target_number] = XDD_RETURN_VALUE_IOERROR;
 
 	return;
-} // End of xdd_targetpass_loop()
+} // End of xdd_target_pass_loop()
 
 /*----------------------------------------------------------------------------*/
-/* xdd_targetpass_task_setup() - This subroutine will set up the task info for an I/O
+/* xdd_target_pass_task_setup() - This subroutine will set up the task info for an I/O
  */
 void
-xdd_targetpass_task_setup(worker_data_t *wdp) {
+xdd_target_pass_task_setup(worker_data_t *wdp) {
 	target_data_t	*tdp;
 	xdd_ts_tte_t	*ttep;
 
@@ -256,7 +249,7 @@ xdd_targetpass_task_setup(worker_data_t *wdp) {
 		ttep->tte_op_number = wdp->wd_task.task_op_number;
 		ttep->tte_byte_offset = wdp->wd_task.task_byte_offset;
 	}
-if (xgp->global_options & GO_DEBUG_TASK) fprintf(stderr,"DEBUG_TASK: %lld: xdd_targetpass_task_setup_src: Target: %d: Worker: %d: task_request: 0x%x: file_desc: %d: datap: %p: op_type: %d, op_string: %s: op_number: %lld: xfer_size: %d, byte_offset: %lld\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,wdp->wd_task.task_request,wdp->wd_task.task_file_desc,wdp->wd_task.task_datap,wdp->wd_task.task_op_type,wdp->wd_task.task_op_string,(unsigned long long int)wdp->wd_task.task_op_number,(int)wdp->wd_task.task_xfer_size,(long long int)wdp->wd_task.task_byte_offset);
+if (xgp->global_options & GO_DEBUG_TASK) fprintf(stderr,"DEBUG_TASK: %lld: xdd_target_pass_task_setup_src: Target: %d: Worker: %d: task_request: 0x%x: file_desc: %d: datap: %p: op_type: %d, op_string: %s: op_number: %lld: xfer_size: %d, byte_offset: %lld\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,wdp->wd_task.task_request,wdp->wd_task.task_file_desc,wdp->wd_task.task_datap,wdp->wd_task.task_op_type,wdp->wd_task.task_op_string,(unsigned long long int)wdp->wd_task.task_op_number,(int)wdp->wd_task.task_xfer_size,(long long int)wdp->wd_task.task_byte_offset);
 	// Update the pointers/counters in the Target Data Struct to get 
 	// ready for the next I/O operation
 	tdp->td_counters.tc_current_byte_offset += wdp->wd_task.task_xfer_size;
@@ -264,7 +257,7 @@ if (xgp->global_options & GO_DEBUG_TASK) fprintf(stderr,"DEBUG_TASK: %lld: xdd_t
 	tdp->td_current_bytes_issued += wdp->wd_task.task_xfer_size;
 	tdp->td_current_bytes_remaining -= wdp->wd_task.task_xfer_size;
 
-} // End of xdd_targetpass_task_setup()
+} // End of xdd_target_pass_task_setup()
 
 /*
  * Local variables:

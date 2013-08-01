@@ -159,7 +159,7 @@ if (xgp->global_options & GO_DEBUG_LOCKSTEP) fprintf(stdout,"%lld:lockstep_befor
 
 if (xgp->global_options & GO_DEBUG_LOCKSTEP) fprintf(stdout,"%lld:lockstep_before_io_op:p:%p:::wdp:%p:DONE_WITH_THINGS_TO_DO_BEFORE_IO bytes_remaining=%lld\n",(long long int)pclk_now()-xgp->debug_base_time,tdp,wdp, (long long int)tdp->td_current_bytes_remaining);
 			// Set up the task for the WORKER_Thread
-			xdd_targetpass_task_setup(wdp);
+			xdd_target_pass_task_setup(wdp);
 	
 			// Release the WORKER_Thread to let it start working on this task.
 			// This effectively causes the I/O operation to be issued.

@@ -240,7 +240,7 @@ xdd_restart_monitor(void *data) {
 				continue;
 			} else {
 				// Put the "Last Committed Block" information in the restart structure...
-				// In the case of Restart processing it is ok to use the tot_byte_location
+				// In the case of Restart processing it is ok to use the tot_byte_offset
 				// rather than the tot_op_number.
 				// Scan the Target Offset Table (TOT) for the *lowest* committed offset 
 				// then add N blocks to that number where N = number of TOT entries
@@ -249,36 +249,36 @@ xdd_restart_monitor(void *data) {
 				lowest_offset = LONGLONG_MAX;
 				for (te = 0; te < current_tdp->td_totp->tot_entries; te++) {
 					tep = &current_tdp->td_totp->tot_entry[te];
-					if (tep->tot_byte_location < 0) {
-						// A byte_location of -1 indicates that this TOT Entry has not been updated yet.
+					if (tep->tot_byte_offset < 0) {
+						// A byte_offset of -1 indicates that this TOT Entry has not been updated yet.
 						// Thus the number of bytes of data processed up to this point is equal to
 						// te-1 times the iosize. 
 						if (te == 0) { // No restart offset is available yet
 							// The *byte_offset* is the offset into the file where the first new byte should be written
 							rp->byte_offset = 0;
-							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
-							rp->last_committed_byte_location = -1;
+							// The *last_committed_byte_offset* is the offset into the file where the last block of data was written
+							rp->last_committed_byte_offset = -1;
 							rp->last_committed_length = -1;
 							rp->last_committed_op = -1;
 						} else { // Restart point is te times the iosize
 							// The *byte_offset* is the offset into the file where the first new byte should be written
 							rp->byte_offset = (long long int)te * (long long int)current_tdp->td_xfer_size;
-							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
-							rp->last_committed_byte_location = (long long int)(te - 1) * (long long int)current_tdp->td_xfer_size;
+							// The *last_committed_byte_offset* is the offset into the file where the last block of data was written
+							rp->last_committed_byte_offset = (long long int)(te - 1) * (long long int)current_tdp->td_xfer_size;
 							rp->last_committed_length = (long long int)current_tdp->td_xfer_size;
-							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_tdp->td_xfer_size;
+							rp->last_committed_op = rp->last_committed_byte_offset / (long long int)current_tdp->td_xfer_size;
 						}
 						break;
 					} else {
 						// Check to see if this is the lowest-numbered offset and use it as the restart point if it is.
-						if (tep->tot_byte_location < lowest_offset) {
-							lowest_offset = tep->tot_byte_location;
+						if (tep->tot_byte_offset < lowest_offset) {
+							lowest_offset = tep->tot_byte_offset;
 							// The *byte_offset* is the offset into the file where the first new byte should be written
-							rp->byte_offset = tep->tot_byte_location + (long long int)((long long int)current_tdp->td_xfer_size * (long long int)current_tdp->td_totp->tot_entries);
-							// The *last_committed_byte_location* is the offset into the file where the last block of data was written
-							rp->last_committed_byte_location = tep->tot_byte_location + ((long long int)current_tdp->td_xfer_size *(long long int)(current_tdp->td_totp->tot_entries-1));
+							rp->byte_offset = tep->tot_byte_offset + (long long int)((long long int)current_tdp->td_xfer_size * (long long int)current_tdp->td_totp->tot_entries);
+							// The *last_committed_byte_offset* is the offset into the file where the last block of data was written
+							rp->last_committed_byte_offset = tep->tot_byte_offset + ((long long int)current_tdp->td_xfer_size *(long long int)(current_tdp->td_totp->tot_entries-1));
 							rp->last_committed_length = (long long int)tep->tot_io_size;
-							rp->last_committed_op = rp->last_committed_byte_location / (long long int)current_tdp->td_xfer_size;
+							rp->last_committed_op = rp->last_committed_byte_offset / (long long int)current_tdp->td_xfer_size;
 						}
 					}
 					

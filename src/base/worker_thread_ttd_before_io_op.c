@@ -70,7 +70,6 @@ xdd_dio_before_io_op(worker_data_t *wdp) {
 	}
 
 	// Otherwise, it is necessary to open this target file with DirectIO disabaled
-//FIXME?	tdp->td_current_pass_number = wdp->target_ptds->current_pass_number;
 	tdp->td_target_options &= ~TO_DIO;
 #if (SOLARIS || WIN32)
 	// In this OS it is necessary to close the file descriptor before reopening in BUFFERED I/O Mode
@@ -224,15 +223,15 @@ xdd_e2e_before_io_op(worker_data_t *wdp) {
 
 	// Lets read a packet of data from the Source side
 	// The call to xdd_e2e_dest_recv() will block until there is data to read 
-	tdp->td_current_state |= CURRENT_STATE_DEST_RECEIVE;
+	wdp->wd_current_state |= WORKER_CURRENT_STATE_DEST_RECEIVE;
 
-//if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Calling xdd_e2e_dest_recv...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Calling xdd_e2e_dest_recv...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 
 	status = xdd_e2e_dest_receive(wdp);
 
-//if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Returning from xdd_e2e_dest_recv: e2e header:\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Returning from xdd_e2e_dest_recv: e2e header:\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 
-	tdp->td_current_state &= ~CURRENT_STATE_DEST_RECEIVE;
+	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_DEST_RECEIVE;
 
 	// If status is "-1" then soemthing happened to the connection - time to leave
 	if (status == -1) 
@@ -270,7 +269,7 @@ xdd_throttle_before_io_op(worker_data_t *wdp) {
 
 
 	tdp = wdp->wd_tdp;
-//if (xgp->global_options & GO_DEBUG_THROTTLE) fprintf(stderr,"DEBUG_THROTTLE: %lld: xdd_throttle_before_io_op: Target: %d: Worker: %d: ENTER: td_throtp: %p: throttle: %f:\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,tdp->td_throtp,(tdp->td_throtp != NULL)?tdp->td_throtp->throttle:-69.69);
+if (xgp->global_options & GO_DEBUG_THROTTLE) fprintf(stderr,"DEBUG_THROTTLE: %lld: xdd_throttle_before_io_op: Target: %d: Worker: %d: ENTER: td_throtp: %p: throttle: %f:\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,tdp->td_throtp,(tdp->td_throtp != NULL)?tdp->td_throtp->throttle:-69.69);
 	if ((tdp->td_throtp == NULL) || (tdp->td_throtp->throttle <= 0.0)) 
 		return;
 

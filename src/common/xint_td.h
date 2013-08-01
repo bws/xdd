@@ -104,18 +104,12 @@ struct xint_target_data {
 	pthread_mutex_t 	td_current_state_mutex; 	// Mutex for locking when checking or updating the state info
 	int32_t				td_current_state;			// State of this thread at any given time (see Current State definitions below)
 	// State Definitions for "my_current_state"
-#define	CURRENT_STATE_INIT								0x0000000000000001	// Initialization 
-#define	CURRENT_STATE_IO								0x0000000000000002	// Waiting for an I/O operation to complete
-#define	CURRENT_STATE_DEST_RECEIVE						0x0000000000000004	// Waiting to receive data - Destination side of an E2E operation
-#define	CURRENT_STATE_SRC_SEND							0x0000000000000008	// Waiting for "send" to send data - Source side of an E2E operation
-#define	CURRENT_STATE_BARRIER							0x0000000000000010	// Waiting inside a barrier
-#define	CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE	0x0000000000000020	// Waiting on the "any Worker Thread available" semaphore
-#define	CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE	0x0000000000000040	// Waiting on the "This Worker Thread Available" semaphore
-#define	CURRENT_STATE_PASS_COMPLETE						0x0000000000000080	// Indicates that this Target Thread has completed a pass
-#define	CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE	0x0000000000000100	// Worker Thread is waiting for the TOT lock in order to update the block number
-#define	CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE	0x0000000000000200	// Worker Thread is waiting for the TOT lock in order to release the next I/O
-#define	CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS		0x0000000000000400	// Worker Thread is waiting for the TOT lock to set the "wait" time stamp
-#define	CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO		0x0000000000000800	// Waiting on the previous I/O op semaphore
+#define	TARGET_CURRENT_STATE_INIT									0x00000001	// Initialization 
+#define	TARGET_CURRENT_STATE_IO										0x00000002	// Waiting for an I/O operation to complete
+#define	TARGET_CURRENT_STATE_BARRIER								0x00000004	// Waiting inside a barrier
+#define	TARGET_CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE	0x00000008	// Waiting on the "any Worker Thread available" semaphore
+#define	TARGET_CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE	0x00000010	// Waiting on the "This Worker Thread Available" semaphore
+#define	TARGET_CURRENT_STATE_PASS_COMPLETE							0x00000020	// Indicates that this Target Thread has completed a pass
 
     // Target-specific semaphores and associated pointers
     tot_t				*td_totp;								// Pointer to the target_offset_table for this target

@@ -150,12 +150,12 @@ xdd_init_barrier_chain(xdd_plan_t* planp) {
 /* xdd_init_barrier_occupant() - Initialize the barrier occupant structure
  */
 void
-xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, target_data_t *tdp) {
+xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, void *datap) {
 	bop->prev_occupant = NULL;
 	bop->next_occupant = NULL;
 	bop->occupant_name = name;
 	bop->occupant_type = type;
-	bop->occupant_data = tdp;
+	bop->occupant_data = datap;
 	return;
 } /* end of xdd_init_barrier_occupant() */
 /*----------------------------------------------------------------------------*/
@@ -340,12 +340,16 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 		bp->last_occupant->next_occupant = occupantp;
 		bp->last_occupant = occupantp;
 	} // Done adding this barrier to the chain
-	if ((occupantp->occupant_type & XDD_OCCUPANT_TYPE_TARGET ) ||
-		(occupantp->occupant_type & XDD_OCCUPANT_TYPE_WORKER_THREAD)) {
+	if (occupantp->occupant_type & XDD_OCCUPANT_TYPE_TARGET ) {
 		// Put the barrier pointer into this thread's Target_Data->current_barrier
-		((target_data_t *)(occupantp->occupant_data))->td_current_state |= CURRENT_STATE_BARRIER;
+		((target_data_t *)(occupantp->occupant_data))->td_current_state |= TARGET_CURRENT_STATE_BARRIER;
 		((target_data_t *)(occupantp->occupant_data))->td_current_barrier = bp;
+	} else if (occupantp->occupant_type & XDD_OCCUPANT_TYPE_WORKER_THREAD) {
+		// Put the barrier pointer into this thread's Worker_Data->current_barrier
+		((worker_data_t *)(occupantp->occupant_data))->wd_current_state |= WORKER_CURRENT_STATE_BARRIER;
+		((worker_data_t *)(occupantp->occupant_data))->wd_current_barrier = bp;
 	}
+	
 	bp->counter++;
 	pthread_mutex_unlock(&bp->mutex);
 
@@ -372,11 +376,14 @@ xdd_barrier(struct xdd_barrier *bp, xdd_occupant_t *occupantp, char owner) {
 	}
 #endif
 
-	if ((occupantp->occupant_type & XDD_OCCUPANT_TYPE_TARGET ) ||
-		(occupantp->occupant_type & XDD_OCCUPANT_TYPE_WORKER_THREAD)) {
+	if (occupantp->occupant_type & XDD_OCCUPANT_TYPE_TARGET ) {
 		// Clear this thread's Target_Data->current_barrier
 		((target_data_t *)(occupantp->occupant_data))->td_current_barrier = NULL;
-		((target_data_t *)(occupantp->occupant_data))->td_current_state &= ~CURRENT_STATE_BARRIER;
+		((target_data_t *)(occupantp->occupant_data))->td_current_state &= ~TARGET_CURRENT_STATE_BARRIER;
+	} else if (occupantp->occupant_type & XDD_OCCUPANT_TYPE_WORKER_THREAD) {
+		// Put the barrier pointer into this thread's Worker_Data->current_barrier
+		((worker_data_t *)(occupantp->occupant_data))->wd_current_barrier = NULL;
+		((worker_data_t *)(occupantp->occupant_data))->wd_current_state &= ~WORKER_CURRENT_STATE_BARRIER;
 	}
 	// Clear this occupant chain if we are the owner of this barrier
 	if (owner) {
