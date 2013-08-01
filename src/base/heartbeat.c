@@ -137,7 +137,7 @@ xdd_heartbeat(void *data) {
 			// From that we can calculate the estimated BW for the target as a whole 
 
 			tdp = planp->target_datap[i];
-			if (tdp->td_current_state & CURRENT_STATE_PASS_COMPLETE) {
+			if (tdp->td_current_state & TARGET_CURRENT_STATE_PASS_COMPLETE) {
 				now = tdp->td_counters.tc_pass_end_time;
 				prior_activity_index = activity_index;
 				activity_index = 4;
@@ -322,7 +322,7 @@ xdd_heartbeat_values(target_data_t *tdp, int64_t bytes, int64_t ops, double elap
 	}
 	// Estimated time is based on "unadjusted bytes" otherwise the ETC would be skewed
 	if (tdp->td_hb.hb_options & HB_ET) {  // Display Estimated Time to Completion
-		if (tdp->td_current_state & CURRENT_STATE_PASS_COMPLETE) 
+		if (tdp->td_current_state & TARGET_CURRENT_STATE_PASS_COMPLETE) 
 			d = 0.0;
 		else if (ops > 0) {
 			// Estimate the time to completion -> ((total_ops/ops_completed)*elapsed_time - elapsed)

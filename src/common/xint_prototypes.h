@@ -43,7 +43,7 @@ int32_t	xdd_load_seek_list(target_data_t *p);
 
 // barrier.c
 int32_t	xdd_init_barrier_chain(xdd_plan_t* planp);
-void	xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, target_data_t *p);
+void	xdd_init_barrier_occupant(xdd_occupant_t *bop, char *name, uint32_t type, void *datap);
 void	xdd_destroy_all_barriers(xdd_plan_t* planp);
 int32_t	xdd_init_barrier(xdd_plan_t* planp, struct xdd_barrier *bp, int32_t threads, char *barrier_name);
 void	xdd_destroy_barrier(xdd_plan_t* planp, struct xdd_barrier *bp);
@@ -120,29 +120,30 @@ int32_t	xdd_initialization(int32_t argc,char *argv[], xdd_plan_t* planp);
 
 // interactive.c
 void 	*xdd_interactive(void *debugger);
-int 	xdd_interactive_parse_command(int tokens, char *cmd);
+int 	xdd_interactive_parse_command(int tokens, char *cmd, xdd_plan_t *planp);
 void	xdd_interactive_usage(int32_t fullhelp);
 
 // interactive_func.c
-int 	xdd_interactive_exit(int32_t tokens, char *cmdline, uint32_t flags);
-int 	xdd_interactive_goto(int32_t tokens, char *cmdline, uint32_t flags);
-int 	xdd_interactive_help(int32_t tokens, char *cmdline, uint32_t flags);
-int 	xdd_interactive_run(int32_t tokens, char *cmdline, uint32_t flags);
-int 	xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags);
-int 	xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags);
-int 	xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags);
-int	xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags);
+int 	xdd_interactive_exit(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+int 	xdd_interactive_help(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+int 	xdd_interactive_goto(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+int 	xdd_interactive_help(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+int 	xdd_interactive_run(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+int 	xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+int 	xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+int 	xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+int		xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+void	xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+void	xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+void	xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+void	xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
 void	xdd_interactive_display_state_info(worker_data_t *wdp);
-void	xdd_interactive_show_worker_data(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags);
+void	xdd_interactive_show_worker_data(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+void	xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+void	xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
 void	xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp);
-void	xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags);
-void	xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags);
+void	xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+void	xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
 
 // io_buffers.c
 unsigned char *xdd_init_io_buffers(worker_data_t *wdp);
@@ -326,7 +327,7 @@ void	xdd_sg_get_version(target_data_t *tdp, int fd);
 
 // signals.c
 void	xdd_signal_handler(int signum, siginfo_t *sip, void *ucp);
-int32_t	xdd_signal_init(void);
+int32_t	xdd_signal_init(xdd_plan_t *planp);
 void	xdd_signal_start_debugger();
 
 // target_cleanup.c
@@ -346,12 +347,12 @@ int32_t	xdd_target_existence_check(target_data_t *p);
 int32_t	xdd_target_open_for_os(target_data_t *p);
 
 // target_pass.c
-int32_t	xdd_targetpass(xdd_plan_t* planp, target_data_t *tdp);
-void	xdd_targetpass_loop(xdd_plan_t* planp, target_data_t *tdp);
-void	xdd_targetpass_e2e_monitor(target_data_t *tdp);
-void	xdd_targetpass_task_setup(worker_data_t *wdp);
-void 	xdd_targetpass_end_of_pass(target_data_t *tdp);
-int32_t xdd_targetpass_count_active_worker_threads(target_data_t *tdp);
+int32_t	xdd_target_pass(xdd_plan_t* planp, target_data_t *tdp);
+void	xdd_target_pass_loop(xdd_plan_t* planp, target_data_t *tdp);
+void	xdd_target_pass_e2e_monitor(target_data_t *tdp);
+void	xdd_target_pass_task_setup(worker_data_t *wdp);
+void 	xdd_target_pass_end_of_pass(target_data_t *tdp);
+int32_t xdd_target_pass_count_active_worker_threads(target_data_t *tdp);
 
 // target_pass_e2e_specific.c
 void	xdd_targetpass_e2e_loop_dst(xdd_plan_t* planp, target_data_t *tdp);

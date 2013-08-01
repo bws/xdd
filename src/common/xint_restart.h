@@ -39,7 +39,7 @@ struct xint_restart {
 	char			*destination_host;		// Name of the destination host
 	char			*destination_filename;	// Name of the file on the destination side of an xddcp
 	int64_t			byte_offset;			// Offset into the file of a "resume" operation
-	int64_t			last_committed_byte_location;// Location (aka byte offset into file) that was last sent/written
+	int64_t			last_committed_byte_offset;// Byte offset into file that was last sent/written
 	int64_t			last_committed_length;	// Length of data that was last sent/written
 	int64_t			last_committed_op;		// Location (aka byte offset into file) that was last sent/written
 	nclk_t			last_update;			// Time stamp of last update to restart file

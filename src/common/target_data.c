@@ -124,7 +124,7 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 	}
 
 	sprintf(tdp->td_occupant_name,"TARGET%04d",tdp->td_target_number);
-	xdd_init_barrier_occupant(&tdp->td_occupant, tdp->td_occupant_name, XDD_OCCUPANT_TYPE_TARGET, tdp);
+	xdd_init_barrier_occupant(&tdp->td_occupant, tdp->td_occupant_name, XDD_OCCUPANT_TYPE_TARGET, (void *)tdp);
 
 } /* end of xdd_init_new_target_data() */
 
@@ -235,7 +235,7 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
 	}
 
 	sprintf(wdp->wd_occupant_name,"TARGET%04d_WORKER%04d",tdp->td_target_number,wdp->wd_worker_number); 
-	xdd_init_barrier_occupant(&wdp->wd_occupant, wdp->wd_occupant_name, XDD_OCCUPANT_TYPE_WORKER_THREAD, tdp);
+	xdd_init_barrier_occupant(&wdp->wd_occupant, wdp->wd_occupant_name, XDD_OCCUPANT_TYPE_WORKER_THREAD, (void *)wdp);
 	
 	return(wdp);
 

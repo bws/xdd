@@ -32,26 +32,54 @@
  * This file contains the subroutines that support the Target threads.
  */
 #include "xint.h"
+#include "parse.h"
+#include "interactive.h"
+extern xdd_interactive_func_t xdd_interactive_func[];
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_exit()
  * Tell a all targets to abort and exit
  */
 int
-xdd_interactive_exit(int32_t tokens, char *cmdline, uint32_t flags) {
-#ifdef ndef
+xdd_interactive_exit(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	xdd_occupant_t	barrier_occupant;	// Used by the xdd_barrier() function to track who is inside a barrier
 
 	xdd_init_barrier_occupant(&barrier_occupant, "INTERACTIVE_EXIT", (XDD_OCCUPANT_TYPE_SUPPORT), NULL);
 	xgp->global_options |= GO_INTERACTIVE_EXIT;
 
 	// Enter the FINAL barrier to tell XDD MAIN that everything is complete
-	xdd_barrier(&xgp->main_results_final_barrier,&barrier_occupant,0);
+	xdd_barrier(&planp->main_results_final_barrier,&barrier_occupant,0);
 
-#endif
 	pthread_exit(0);
 
 } // End of xdd_interactive_goto()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_interactive_usage() - Display usage information
+ */
+void
+xdd_interactive_usage(int32_t fullhelp) {
+    int i,j;
+
+    fprintf(stderr,"Available interactive commands\n");
+    i = 0;
+    while(xdd_interactive_func[i].func_name) {
+		if (xdd_interactive_func[i].flags & XDD_INTERACTIVE_FUNC_INVISIBLE) { // This function is not visible
+			i++;
+			continue;
+		}
+        fprintf(stderr,"%s",xdd_interactive_func[i].help);
+        if (fullhelp) {
+            j=0;
+            while (xdd_interactive_func[i].ext_help[j] && (j < XDD_INTERACTIVE_EXTRA_HELP_LINES)) {
+                fprintf(stderr,"%s",xdd_interactive_func[i].ext_help[j]);
+                j++;
+            }
+            fprintf(stderr,"\n");
+        }
+        i++;
+    }
+} // End of xdd_interactive_usage()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_help()
@@ -59,11 +87,44 @@ xdd_interactive_exit(int32_t tokens, char *cmdline, uint32_t flags) {
  *
  */
 int
-xdd_interactive_help(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_help(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
+    int i,j;
+	int	found;
+
+
+	if (tokens <= 1) {
+		xdd_interactive_usage(0);
+		return(0);
+	}
+	fprintf(stderr,"Help for the '%s' command: \n",cmdline);
+    i = 0;
+	found=0;
+    while(xdd_interactive_func[i].func_name) {
+		if ((strcmp(xdd_interactive_func[i].func_name, cmdline) == 0) ||
+			(strcmp(xdd_interactive_func[i].func_alt, cmdline) == 0)) { 
+			found=1;
+            fprintf(stderr,"Option name is %s or abbreviated as %s",
+				xdd_interactive_func[i].func_name,
+				xdd_interactive_func[i].func_alt);
+            fprintf(stderr,"%s",xdd_interactive_func[i].help);
+            j=0;
+            while (xdd_interactive_func[i].ext_help[j] && (j < XDD_INTERACTIVE_EXTRA_HELP_LINES)) {
+                fprintf(stderr,"%s",xdd_interactive_func[i].ext_help[j]);
+                j++;
+            }
+            fprintf(stderr,"\n");
+        }
+        i++;
+    }
+	if (found == 0) {
+		fprintf(stderr,"xdd_help: cannot find specified option '%s' to provide help on\n", cmdline);
+	    xdd_interactive_usage(0);
+	}
 
 	return(0);
 
 } // End of xdd_interactive_help()
+
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_show()
  * Display any one of a number of things including:
@@ -77,30 +138,30 @@ xdd_interactive_help(int32_t tokens, char *cmdline, uint32_t flags) {
  *
  */
 int
-xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	char	*cp;
 
 	cp = cmdline;
 	while ((*cp != TAB) && (*cp != SPACE) && (*cp != '\0')) cp++;
 	while ((*cp == TAB) || (*cp == SPACE) || (*cp == '\0')) cp++;
 	if (strcmp(cp, "barrier") == 0) 
-		xdd_interactive_show_barrier(tokens, cp, flags);
+		xdd_interactive_show_barrier(tokens, cp, flags, planp);
 	else if (strcmp(cp, "target_data") == 0) 
-		xdd_interactive_show_target_data(tokens, cp, flags);
+		xdd_interactive_show_target_data(tokens, cp, flags, planp);
 	else if (strcmp(cp, "worker_data") == 0) 
-		xdd_interactive_show_worker_data(tokens, cp, flags);
+		xdd_interactive_show_worker_data(tokens, cp, flags, planp);
 	else if (strcmp(cp, "worker_state") == 0) 
-		xdd_interactive_show_worker_state(tokens, cp, flags);
+		xdd_interactive_show_worker_state(tokens, cp, flags, planp);
 	else if (strcmp(cp, "tot") == 0) 
-		xdd_interactive_show_tot(tokens, cp, flags);
+		xdd_interactive_show_tot(tokens, cp, flags, planp);
 	else if (strcmp(cp, "printtot") == 0) 
-		xdd_interactive_show_print_tot(tokens, cp, flags);
+		xdd_interactive_show_print_tot(tokens, cp, flags, planp);
 	else if (strcmp(cp, "trace") == 0) 
-		xdd_interactive_show_trace(tokens, cp, flags);
+		xdd_interactive_show_trace(tokens, cp, flags, planp);
 	else if (strcmp(cp, "global") == 0) 
-		xdd_interactive_show_global_data(tokens, cp, flags);
+		xdd_interactive_show_global_data(tokens, cp, flags, planp);
 	else if (strcmp(cp, "data") == 0) 
-		xdd_interactive_show_rwbuf(tokens, cp, flags);
+		xdd_interactive_show_rwbuf(tokens, cp, flags, planp);
 	else { // Show a list of what one can show
 		fprintf(xgp->output,"show: please specify: barrier, target_data, worker_data, worker_state, trace, global, or data\n");
 	}
@@ -114,12 +175,10 @@ xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags) {
  *
  */
 int
-xdd_interactive_run(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_run(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 
-#ifdef ndef
 	// Signal the target threads to start running
-	xdd_barrier(&xgp->interactive_barrier,&xgp->interactive_occupant,1);
-#endif
+	xdd_barrier(&planp->interactive_barrier,&planp->interactive_occupant,1);
 	return(0);
 
 } // End of xdd_interactive_run()
@@ -129,7 +188,7 @@ xdd_interactive_run(int32_t tokens, char *cmdline, uint32_t flags) {
  *
  */
 int
-xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	return(0);
 
 } // End of xdd_interactive_step()
@@ -140,11 +199,9 @@ xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags) {
  *
  */
 int
-xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 
-#ifdef ndef
 	xgp->global_options |= GO_INTERACTIVE_STOP;
-#endif
 
 	return(0);
 
@@ -156,7 +213,7 @@ xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags) {
  *
  */
 int
-xdd_interactive_goto(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_goto(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 
 	// Set the current operation number in each target to the specified value
 
@@ -169,9 +226,9 @@ xdd_interactive_goto(int32_t tokens, char *cmdline, uint32_t flags) {
  * Display the data in the rw buffer of a specific Worker Thread
  */
 void
-xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 
-	// Display the offset and data bytes in hex and text for the data buffer of each qthread
+	// Display the offset and data bytes in hex and text for the data buffer of each Worker Thread
 
 } // End of xdd_interactive_show_rwbuf()
 
@@ -180,11 +237,9 @@ xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags) {
  * Display the global_data for this run
  */
 void
-xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 
-#ifdef ndef
 	xdd_show_global_data();
-#endif
 
 } // End of xdd_interactive_show_global_data()
 
@@ -193,19 +248,17 @@ xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags) 
  * Display the Data Struct of a specific Worker Thread or Target Thread
  */
 void
-xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags) {
-#ifdef ndef
+xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	int		target_number;
 
 	/* Target Specific variables */
-	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		if (xgp->target_datap[target_number]) {
-			xdd_show_target_data(xgp->target_datap[target_number]);
+	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
+		if (planp->target_datap[target_number]) {
+			xdd_show_target_data(planp->target_datap[target_number]);
 		} else {
 				fprintf(xgp->output,"ERROR: Target %d does not seem to have a TARGE_DATA structure\n", target_number);
 		}
 	}
-#endif
 
 } // End of xdd_interactive_show_target_data()
 
@@ -214,18 +267,17 @@ xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags) 
  * Display the state of each Worker Thread
  */
 void
-xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags) {
-#ifdef ndef
+xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	int		target_number;
 	target_data_t	*tdp;
 	worker_data_t	*wdp;
 
 
-	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		p = xgp->target_datap[target_number];
-		if (p) {
+	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
+		tdp = planp->target_datap[target_number];
+		if (tdp) {
 			fprintf(xgp->output,"Target %d\n",tdp->td_target_number);
-			xdd_interactive_display_state_info(p);
+			xdd_interactive_display_state_info(wdp);
 			wdp = tdp->td_next_wdp;
 			while (wdp) {
 				fprintf(xgp->output,"Target %d Worker thread %d\n",tdp->td_target_number, wdp->wd_worker_number);
@@ -236,7 +288,6 @@ xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags)
 		fprintf(xgp->output,"ERROR: Target %d does not seem to have a Data Struct\n", target_number);
 		}
 	}
-#endif
 } // End of xdd_interactive_show_worker_state()
 
 /*----------------------------------------------------------------------------*/
@@ -245,7 +296,6 @@ xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags)
  */
 void
 xdd_interactive_display_state_info(worker_data_t *wdp) {
-#ifdef ndef
 	int64_t			tmp;
 	nclk_t			now;		// Current time
 	int32_t			tot_offset; // Offset into TOT
@@ -255,92 +305,98 @@ xdd_interactive_display_state_info(worker_data_t *wdp) {
 
 	tdp = wdp->wd_tdp;
 	nclk_now(&now);		// Current time
-	fprintf(xgp->output,"    Current State is 0x%08x\n",qp->tgtstp->my_current_state);
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_INIT)
+	fprintf(xgp->output,"    Target %d Worker %d Current State is 0x%08x\n",tdp->td_target_number,wdp->wd_worker_number,wdp->wd_current_state);
+	if (wdp->wd_current_state & WORKER_CURRENT_STATE_INIT)
 		fprintf(xgp->output,"    Initializing\n");
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_IO) {
-		tmp = (long long int)(now - qp->tgtstp->my_current_op_start_time)/BILLION;
+	if (wdp->wd_current_state & WORKER_CURRENT_STATE_IO) {
+		tmp = (long long int)(now - wdp->wd_counters.tc_current_op_start_time)/BILLION;
 		fprintf(xgp->output,"    Doing I/O - op %lld, location %lld, started at %lld or %lld milliseconds ago, end time is %lldn",
-			(long long int)qp->target_op_number, 
-			(long long int)qp->tgtstp->my_current_byte_location,
-			(long long int)qp->tgtstp->my_current_op_start_time,
+			(long long int)wdp->wd_counters.tc_current_op_number, 
+			(long long int)wdp->wd_counters.tc_current_byte_offset,
+			(long long int)wdp->wd_counters.tc_current_op_start_time,
 			(long long int)tmp,
-			(long long int)qp->tgtstp->my_current_op_end_time);
+			(long long int)wdp->wd_counters.tc_current_op_end_time);
 	}
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_DEST_RECEIVE) 
+	if (wdp->wd_current_state & WORKER_CURRENT_STATE_DEST_RECEIVE) {
 		fprintf(xgp->output,"    Destination Side of an E2E - waiting to receive data from Source, target op number %lld, location %lld, length %lld, recvfrom status is %d\n", 
-			(long long int)qp->target_op_number, 
-			(long long int)qp->e2ep->e2e_header.location, 
-			(long long int)qp->e2ep->e2e_header.length, 
-			qp->e2ep->e2e_recv_status);
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_SRC_SEND) 
+			(long long int)wdp->wd_counters.tc_current_op_number, 
+			(long long int)wdp->wd_e2ep->e2e_hdrp->e2eh_byte_offset, 
+			(long long int)wdp->wd_e2ep->e2e_hdrp->e2eh_data_length, 
+			wdp->wd_e2ep->e2e_recv_status);
+	}
+	if (wdp->wd_current_state & WORKER_CURRENT_STATE_SRC_SEND) {
 		fprintf(xgp->output,"    Source Side of an E2E - waiting to send data to Destination, target op number %lld, location %lld, length %lld, sendto status is %d\n", 
-			(long long int)qp->target_op_number, 
-			(long long int)qp->e2ep->e2e_header.location, 
-			(long long int)qp->e2ep->e2e_header.length, 
-			qp->e2ep->e2e_send_status);
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_BARRIER)
-		fprintf(xgp->output,"    Inside barrier '%s'\n",qp->current_barrier->name);
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE)
-		fprintf(xgp->output,"    Waiting on the any_qthread_available semaphore\n");
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE)
-		fprintf(xgp->output,"    Waiting on the sem_this_qthread_is_available semaphore\n");
-	if (qp->qthread_target_sync & WORKER_THREAD_SYNC_BUSY)
-		fprintf(xgp->output,"    This Worker Thread is BUSY\n");
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_WORKER_THREAD_WAITING_FOR_TOT_LOCK_UPDATE) {
-		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
-		tep = &p->totp->tot_entry[tot_offset];
+			(long long int)wdp->wd_counters.tc_current_op_number, 
+			(long long int)wdp->wd_e2ep->e2e_hdrp->e2eh_byte_offset, 
+			(long long int)wdp->wd_e2ep->e2e_hdrp->e2eh_data_length, 
+			wdp->wd_e2ep->e2e_send_status);
+	}
+	if (wdp->wd_current_state & WORKER_CURRENT_STATE_BARRIER) {
+		fprintf(xgp->output,"    Inside barrier '%s'\n",wdp->wd_occupant_name);
+	}
+	if (wdp->wd_current_state & WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE) {
+		tot_offset = ((wdp->wd_counters.tc_current_byte_offset/tdp->td_xfer_size) % tdp->td_totp->tot_entries);
+		tep = &tdp->td_totp->tot_entry[tot_offset];
 		fprintf(xgp->output,"    Waiting for TOT lock to update TOT Offset %d: \n",tot_offset);
-		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_location, %lld, block, %lld, delta, %lld, ops/blocks\n",
+		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_offset, %lld, block, %lld, delta, %lld, ops/blocks\n",
 			tot_offset,
 			(long long int)tep->tot_op_number,
-			(long long int)tep->tot_byte_location,
-			(long long int)(tep->tot_byte_location / p->iosize),
-			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+			(long long int)tep->tot_byte_offset,
+			(long long int)(tep->tot_byte_offset / tdp->td_xfer_size),
+			(long long int)((long long int)(wdp->wd_counters.tc_current_byte_offset - tep->tot_byte_offset) / tdp->td_xfer_size));
 	}
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_WORKER_THREAD_WAITING_FOR_TOT_LOCK_RELEASE) {
-		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries);
-		tep = &p->totp->tot_entry[tot_offset];
+	if (wdp->wd_current_state & WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE) {
+		tot_offset = ((wdp->wd_counters.tc_current_byte_offset/tdp->td_xfer_size) % tdp->td_totp->tot_entries);
+		tep = &tdp->td_totp->tot_entry[tot_offset];
 		fprintf(xgp->output,"    Waiting for TOT lock to release TOT Offset %d: \n",tot_offset);
-		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_location, %lld, block, %lld, delta, %lld, ops/blocks\n",
+		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_offset, %lld, block, %lld, delta, %lld, ops/blocks\n",
 			tot_offset,
 			(long long int)tep->tot_op_number,
-			(long long int)tep->tot_byte_location,
-			(long long int)(tep->tot_byte_location / p->iosize),
-			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+			(long long int)tep->tot_byte_offset,
+			(long long int)(tep->tot_byte_offset / tdp->td_xfer_size),
+			(long long int)((long long int)(wdp->wd_counters.tc_current_byte_offset - tep->tot_byte_offset) / tdp->td_xfer_size));
 	}
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_WORKER_THREAD_WAITING_FOR_TOT_LOCK_TS) {
-		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
+	if (wdp->wd_current_state & WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS) {
+		tot_offset = ((wdp->wd_counters.tc_current_byte_offset/tdp->td_xfer_size) % tdp->td_totp->tot_entries) - 1;
 		if (tot_offset < 0) 
-			tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
-		tep = &p->totp->tot_entry[tot_offset];
+			tot_offset = tdp->td_totp->tot_entries - 1; // The last TOT_ENTRY
+		tep = &tdp->td_totp->tot_entry[tot_offset];
 		fprintf(xgp->output,"    Waiting for TOT lock to time stamp TOT Offset %d before waiting\n", tot_offset);
-		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_location, %lld, block, %lld, delta, %lld, ops/blocks\n",
+		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_offset, %lld, block, %lld, delta, %lld, ops/blocks\n",
 			tot_offset,
 			(long long int)tep->tot_op_number,
-			(long long int)tep->tot_byte_location,
-			(long long int)(tep->tot_byte_location / p->iosize),
-			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+			(long long int)tep->tot_byte_offset,
+			(long long int)(tep->tot_byte_offset / tdp->td_xfer_size),
+			(long long int)((long long int)(wdp->wd_counters.tc_current_byte_offset - tep->tot_byte_offset) / tdp->td_xfer_size));
 	}
-	if (qp->tgtstp->my_current_state & CURRENT_STATE_WORKER_THREAD_WAITING_FOR_PREVIOUS_IO) {
-		tot_offset = ((qp->tgtstp->my_current_byte_location/p->iosize) % p->totp->tot_entries) - 1;
+	if (wdp->wd_current_state & WORKER_CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO) {
+		tot_offset = ((wdp->wd_counters.tc_current_byte_offset/tdp->td_xfer_size) % tdp->td_totp->tot_entries) - 1;
 		if (tot_offset < 0) 
-			tot_offset = p->totp->tot_entries - 1; // The last TOT_ENTRY
-		tep = &p->totp->tot_entry[tot_offset];
+			tot_offset = tdp->td_totp->tot_entries - 1; // The last TOT_ENTRY
+		tep = &tdp->td_totp->tot_entry[tot_offset];
 		fprintf(xgp->output,"    Waiting for previous I/O at TOT Offset, %d, my current op number, %lld, my current byte offset, %lld, my current block offset, %lld, waiting for block, %lld\n",
 			tot_offset,
-			(long long int)qp->tgtstp->my_current_op_number,
-			(long long int)qp->tgtstp->my_current_byte_location,
-			(long long int)(qp->tgtstp->my_current_byte_location / p->iosize),
-			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - p->iosize) / p->iosize));
-		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_location, %lld, block, %lld, delta, %lld, ops/blocks\n",
+			(long long int)wdp->wd_counters.tc_current_op_number,
+			(long long int)wdp->wd_counters.tc_current_byte_offset,
+			(long long int)(wdp->wd_counters.tc_current_byte_offset / tdp->td_xfer_size),
+			(long long int)((long long int)(wdp->wd_counters.tc_current_byte_offset - tdp->td_xfer_size) / tdp->td_xfer_size));
+		fprintf(xgp->output,"    TOT Offset, %d, tot_op_number, %lld, tot_byte_offset, %lld, block, %lld, delta, %lld, ops/blocks\n",
 			tot_offset,
 			(long long int)tep->tot_op_number,
-			(long long int)tep->tot_byte_location,
-			(long long int)(tep->tot_byte_location / p->iosize),
-			(long long int)((long long int)(qp->tgtstp->my_current_byte_location - tep->tot_byte_location) / p->iosize));
+			(long long int)tep->tot_byte_offset,
+			(long long int)(tep->tot_byte_offset / tdp->td_xfer_size),
+			(long long int)((long long int)(wdp->wd_counters.tc_current_byte_offset - tep->tot_byte_offset) / tdp->td_xfer_size));
 	}
-#endif
+	fprintf(xgp->output,"wd_worker_thread_target_sync:");
+	if (wdp->wd_worker_thread_target_sync & WTSYNC_AVAILABLE)
+		fprintf(xgp->output," AVAILABLE");
+	if (wdp->wd_worker_thread_target_sync & WTSYNC_BUSY)
+		fprintf(xgp->output," BUSY");
+	if (wdp->wd_worker_thread_target_sync & WTSYNC_TARGET_WAITING)
+		fprintf(xgp->output," TARGET_WAITING");
+	if (wdp->wd_worker_thread_target_sync & WTSYNC_EOF_RECEIVED)
+		fprintf(xgp->output," EOF_RECEIVED");
+	fprintf(xgp->output,"\n");
 
 } // End of xdd_interactive_display_state_info()
 
@@ -349,28 +405,24 @@ xdd_interactive_display_state_info(worker_data_t *wdp) {
  * Display the Worker Thread Data
  */
 void
-xdd_interactive_show_worker_data(int32_t tokens, char *cmdline, uint32_t flags) {
-#ifdef ndef
+xdd_interactive_show_worker_data(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	int		target_number;
 	target_data_t	*tdp;
 	worker_data_t	*wdp;
 
-	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		p = xgp->ptdsp[target_number];
-		if (p) {
-			qp = p->next_qp;
-			while (qp) {
-				fprintf(xgp->output,"Target %d Worker thread %d current barrier is %p",qp->my_target_number, qp->my_qthread_number, qp->current_barrier);
-				if (qp->current_barrier) 
-					fprintf(xgp->output," name is '%s'",qp->current_barrier->name);
-				fprintf(xgp->output,"\n");
-				qp = qp->next_qp;
+	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
+		tdp = planp->target_datap[target_number];
+		if (tdp) {
+			wdp = tdp->td_next_wdp;
+			while (wdp) {
+				fprintf(xgp->output,"Target %d Worker thread %d\n",tdp->td_target_number, wdp->wd_worker_number);
+				xdd_show_worker_data(wdp);
+				wdp = wdp->wd_next_wdp;
 			}
 		} else {
 		fprintf(xgp->output,"ERROR: Target %d does not seem to have a Worker Data Struct\n", target_number);
 		}
 	}
-#endif
 
 } // End of xdd_interactive_show_worker_data()
 
@@ -380,7 +432,7 @@ xdd_interactive_show_worker_data(int32_t tokens, char *cmdline, uint32_t flags) 
  * 'composite' view of the trace buffers from all Worker Threads for a specific Target
  */
 void
-xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags) {
+xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 
 } // End of xdd_interactive_show_trace()
 
@@ -389,20 +441,18 @@ xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags) {
  * Display the data in the target_offset_table for a specific target
  */
 void
-xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags) {
-#ifdef ndef
+xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	int		target_number;
 	target_data_t	*tdp;
 
-	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		p = xgp->ptdsp[target_number];
-		if (p)  {
-			xdd_interactive_show_tot_display_fields(p,xgp->output);
+	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
+		tdp = planp->target_datap[target_number];
+		if (tdp)  {
+			xdd_interactive_show_tot_display_fields(tdp,xgp->output);
 		} else {
 			fprintf(xgp->output,"ERROR: Target %d does not seem to have a Data Struct\n", target_number);
 		}
 	}
-#endif
 } // End of  xdd_interactive_show_tot()
 
 /*----------------------------------------------------------------------------*/
@@ -410,25 +460,23 @@ xdd_interactive_show_tot(int32_t tokens, char *cmdline, uint32_t flags) {
  * Display the data in the target_offset_table for a specific target
  */
 void
-xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags) {
-#ifdef ndef
+xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	int		target_number;
 	target_data_t	*tdp;
 
-	for (target_number = 0; target_number < xgp->number_of_targets; target_number++) {
-		p = xgp->ptdsp[target_number];
-		if (p)  {
+	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
+		tdp = planp->target_datap[target_number];
+		if (tdp)  {
 			if (xgp->csvoutput == 0) {
 				fprintf(xgp->errout,"No CSV file specified to write the TOT information to, sending to standard out\n");
-				xdd_interactive_show_tot_display_fields(p,xgp->output);
+				xdd_interactive_show_tot_display_fields(tdp,xgp->output);
 			} else { 
-				xdd_interactive_show_tot_display_fields(p,xgp->csvoutput);
+				xdd_interactive_show_tot_display_fields(tdp,xgp->csvoutput);
 			}
 		} else {
 			fprintf(xgp->output,"ERROR: Target %d does not seem to have a Data Struct\n", target_number);
 		}
 	}
-#endif
 
 } // End of  xdd_interactive_show_print_tot()
 
@@ -439,7 +487,6 @@ xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags) {
 void
 xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 
-#ifdef ndef
 	char		*tot_mutex_state;
 	int32_t		tot_offset; // Offset into TOT
 	tot_entry_t	*tep;		// Pointer to a TOT Entry
@@ -450,20 +497,12 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 
 
 	fprintf(fp,"Target %d has %d TOT Entries, queue depth of %d\n",
-		p->my_target_number, 
-		p->totp->tot_entries, 
-		p->queue_depth);
+		tdp->td_target_number, 
+		tdp->td_totp->tot_entries, 
+		tdp->td_queue_depth);
 	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitWorkerThread,PostWorkerThread,UpdateWorkerThread,SemVal,Mutex State\n");
-	for (tot_offset = 0; tot_offset < p->totp->tot_entries; tot_offset++) {
-		tep = &p->totp->tot_entry[tot_offset];
-		//status = sem_getvalue(&tep->tot_sem, &sem_val);
-		//if (status) {
-		//	save_errno = errno;
-		//	fprintf(fp,"Error getting semaphore value for tot_sem at offset %d in the TOT\n",tot_offset);
-		//	errno = save_errno;
-		//	perror("Reason");
-		//	sem_val = -1;
-		//}
+	for (tot_offset = 0; tot_offset < tdp->td_totp->tot_entries; tot_offset++) {
+		tep = &tdp->td_totp->tot_entry[tot_offset];
 		status = pthread_mutex_trylock(&tep->tot_mutex);
 		if (status == 0) {
 			tot_mutex_state = "unlocked";
@@ -481,7 +520,7 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 		}
 			
 		if (tep->tot_io_size) 
-			tot_block = (long long int)((long long int)tep->tot_byte_location / tep->tot_io_size);
+			tot_block = (long long int)((long long int)tep->tot_byte_offset / tep->tot_io_size);
 		else  tot_block = -1;
 		fprintf(fp,"%5d,%lld,%lld,%lld,%lld,%lld,%lld,%d,%d,%d,%d,%d,%s\n",
 			tot_offset,
@@ -489,16 +528,15 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 			(long long int)tep->tot_post_ts,
 			(long long int)(tep->tot_post_ts - (long long int)tep->tot_wait_ts),
 			(long long int)tep->tot_update_ts,
-			(long long int)tep->tot_byte_location,
+			(long long int)tep->tot_byte_offset,
 			(long long int)tot_block,
 			tep->tot_io_size,
-			tep->tot_wait_qthread_number,
-			tep->tot_post_qthread_number,
-			tep->tot_update_qthread_number,
+			tep->tot_wait_worker_thread_number,
+			tep->tot_post_worker_thread_number,
+			tep->tot_update_worker_thread_number,
 			sem_val,
 			tot_mutex_state);
 	} // End of FOR loop that displays all the TOT entries
-#endif
 } // End of xdd_interactive_show_tot_display_fields()
 
 
@@ -507,21 +545,20 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
  * Display the Data Struct of a specific Worker Thread or Target Thread
  */
 void
-xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags) {
-#ifdef ndef
+xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	xdd_barrier_t	*bp;			// Pointer to a barrier
 	xdd_occupant_t	*occupantp;		// Pointer to an occupant 
 	int				i,j;			// counter
 
 
 	fprintf(xgp->output, "\n--------------- Begin Barrier Information --------------\n");
-	fprintf(xgp->output, "Barrier count is %d\n",xgp->barrier_count);
-	fprintf(xgp->output, "Barrier_chain_first is %p\n",xgp->barrier_chain_first);
-	fprintf(xgp->output, "Barrier_chain_last is %p\n",xgp->barrier_chain_last);
-	bp = xgp->barrier_chain_first;
+	fprintf(xgp->output, "Barrier count is %d\n",planp->barrier_count);
+	fprintf(xgp->output, "Barrier_chain_first is %p\n",planp->barrier_chain_first);
+	fprintf(xgp->output, "Barrier_chain_last is %p\n",planp->barrier_chain_last);
+	bp = planp->barrier_chain_first;
 	
 	fprintf(xgp->output, "Barrier Pointer, Previous, Next, Name, Counter, Threads, First Occupant, Last Occupant\n");
-	for (i = 0; i < xgp->barrier_count; i++) { // Go through and display information about each barrier
+	for (i = 0; i < planp->barrier_count; i++) { // Go through and display information about each barrier
 		if (bp == NULL) { // Yikes! This should be a valid pointer....
 			fprintf(xgp->output,"YIKES! Barrier %d has no pointer even though the count is non-zero\n",i);
 			break;
@@ -540,12 +577,12 @@ xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags) {
 				occupantp = bp->first_occupant;
 				for (j = 0; j < bp->counter; j++) {
 					if (occupantp) {
-						fprintf(xgp->output,"\tOccupant %d <%p> is %s, type %lld, ptds %p, entry %lld, prev=%p, next=%p\n", 
+						fprintf(xgp->output,"\tOccupant %d <%p> is %s, type %lld, target/worker data pointer %p, entry %lld, prev=%p, next=%p\n", 
 							j+1, 
 							occupantp, 
 							occupantp->occupant_name,
 							(long long int)occupantp->occupant_type,
-							occupantp->occupant_ptds,
+							(void *)occupantp->occupant_data,
 							(long long int)occupantp->entry_time,
 							occupantp->prev_occupant,
 							occupantp->next_occupant);
@@ -562,7 +599,6 @@ xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags) {
 		bp = bp->next_barrier;
 	} // End of FOR loop that displays information about ALL the barriers
 	fprintf(xgp->output, "\n--------------- End of Barrier Information --------------\n");
-#endif
 
 } // End of xdd_interactive_show_barrier()
 
@@ -571,22 +607,20 @@ xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags) {
  * Generate the time stamp report 
  */
 int
-xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags) {
-#ifdef ndef
+xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
 	int		target_number;
-	ptds_t	*p;
+	struct	xint_target_data	*tdp;
 
 	// Process TimeStamp reports for the -ts option
-	for (target_number=0; target_number<xgp->number_of_targets; target_number++) { 
-		p = xgp->ptdsp[target_number]; /* Get the ptds for this target */
+	for (target_number=0; target_number<planp->number_of_targets; target_number++) { 
+		tdp = planp->target_datap[target_number]; /* Get the Target Data Pointer for this target */
 		/* Display and write the time stamping information if requested */
-		if (p->tsp->ts_options & (TS_ON | TS_TRIGGERED)) {
-			if (p->tsp->ts_current_entry > p->ttp->tt_size) 
-				p->ttp->numents = p->ttp->tt_size;
-			else p->ttp->numents = p->tsp->ts_current_entry;
-			xdd_ts_reports(p);  /* generate reports if requested */
+		if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
+			if (tdp->td_ts_table.ts_current_entry > tdp->td_ts_table.ts_size) 
+				tdp->td_ts_table.ts_hdrp->tsh_numents = tdp->td_ts_table.ts_size;
+			else tdp->td_ts_table.ts_hdrp->tsh_numents = tdp->td_ts_table.ts_current_entry;
+			xdd_ts_reports(tdp);  /* generate reports if requested */
 		}
 	} // End of processing TimeStamp reports
-#endif
 	return(0);
 } // End of xdd_interactive_timestamp_report()

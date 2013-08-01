@@ -281,7 +281,7 @@ xdd_ts_reports(target_data_t *tdp) {
 #endif
     if(tsp->ts_options & TS_SUPPRESS_OUTPUT)
 	return;
-    if (!(tdp->td_current_state & CURRENT_STATE_PASS_COMPLETE)) {
+    if (!(tdp->td_current_state & TARGET_CURRENT_STATE_PASS_COMPLETE)) {
 	fprintf(xgp->errout,"%s: ALERT! ts_reports: target %d has not yet completed! Results beyond this point are unpredictable!\n",
 		xgp->progname, tdp->td_target_number);
 	fflush(xgp->errout);

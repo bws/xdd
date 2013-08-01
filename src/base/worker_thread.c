@@ -79,14 +79,11 @@ xdd_worker_thread(void *pin) {
 		nclk_now(&checktime);
 		xdd_barrier(&wdp->wd_thread_targetpass_wait_for_task_barrier,&wdp->wd_occupant,1);
 
-		nclk_now(&checktime);
 		// Look at Task request 
 		switch (wdp->wd_task.task_request) {
 			case TASK_REQ_IO:
 				// Perform the requested I/O operation
-		nclk_now(&checktime);
 				xdd_worker_thread_io(wdp);
-		nclk_now(&checktime);
 				break;
 			case TASK_REQ_REOPEN:
 				// Reopen the target as requested

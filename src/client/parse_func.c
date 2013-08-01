@@ -652,6 +652,11 @@ xddfunc_debug(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			   (strcmp(argv[1], "throt") == 0) ||
 			   (strcmp(argv[1], "throttle") == 0)) {
 			xgp->global_options |= GO_DEBUG_THROTTLE;
+	} else if ((strcmp(argv[1], "TIMELIMIT") == 0) ||
+			   (strcmp(argv[1], "timelimit") == 0) ||
+			   (strcmp(argv[1], "TL") == 0) ||
+			   (strcmp(argv[1], "tl") == 0)) {
+			xgp->global_options |= GO_DEBUG_TIME_LIMIT;
 	} else if ((strcmp(argv[1], "USER1") == 0) ||
 			   (strcmp(argv[1], "user1") == 0)) {
 			xgp->global_options |= GO_DEBUG_USER1;

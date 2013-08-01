@@ -241,13 +241,13 @@ if (xgp->global_options & GO_DEBUG_E2E) xdd_show_task(&wdp->wd_task);
 
 			// Send the data to the Destination machine
 			wdp->wd_e2ep->e2e_hdrp->e2eh_magic = XDD_E2E_DATA_READY;
-			tdp->td_current_state |= CURRENT_STATE_SRC_SEND;
+			wdp->wd_current_state |= WORKER_CURRENT_STATE_SRC_SEND;
 
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Calling xdd_e2e_src_send...\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 			xdd_e2e_src_send(wdp);
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Returned from xdd_e2e_src_send...\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 
-			tdp->td_current_state &= ~CURRENT_STATE_SRC_SEND;
+			wdp->wd_current_state &= ~WORKER_CURRENT_STATE_SRC_SEND;
 
 		} // End of me being the SOURCE in an End-to-End test 
 	} // End of processing a End-to-End
