@@ -66,7 +66,7 @@ xdd_initialization(int32_t argc,char *argv[], xdd_plan_t *planp) {
 
 	// initialize the signal handlers 
 	// See signals.c
-	xdd_signal_init();
+	xdd_signal_init(planp);
 
 
 #if WIN32

@@ -97,7 +97,7 @@ int tot_init(tot_t** table, size_t queue_depth, size_t num_reqs)
         }
         tp->tot_entry[i].is_released = 0;
         tp->tot_entry[i].tot_op_number = -1;
-        tp->tot_entry[i].tot_byte_location = -1;
+        tp->tot_entry[i].tot_byte_offset = -1;
         tp->tot_entry[i].tot_io_size = 0;
     }
 
@@ -162,7 +162,7 @@ int tot_update(tot_t* table,
 		"last updated by worker_thread %d\n",
 		xgp->progname, worker_thread_number,
 		idx, tep->tot_op_number,
-		tep->tot_byte_location, tep->tot_byte_location/tep->tot_io_size,
+		tep->tot_byte_offset, tep->tot_byte_offset/tep->tot_io_size,
 		req_number,
 		offset, offset/size,
 		tep->tot_update_worker_thread_number);
@@ -171,7 +171,7 @@ int tot_update(tot_t* table,
 	nclk_now(&tep->tot_update_ts);
 	tep->tot_update_worker_thread_number = worker_thread_number;
 	tep->tot_op_number = req_number;
-	tep->tot_byte_location = offset;
+	tep->tot_byte_offset = offset;
 	tep->tot_io_size = size;
     }
 

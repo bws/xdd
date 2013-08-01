@@ -116,9 +116,9 @@ xdd_worker_thread_io(worker_data_t *wdp) {
 		xdd_worker_thread_release_next_io(wdp);
 
 	// Call the OS-appropriate IO routine to perform the I/O
-	tdp->td_current_state |= CURRENT_STATE_IO;
+	wdp->wd_current_state |= WORKER_CURRENT_STATE_IO;
 	xdd_io_for_os(wdp);
-	tdp->td_current_state &= ~CURRENT_STATE_IO;
+	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_IO;
 
 	// Update counters and status in this Worker Thread's Data
 	xdd_worker_thread_update_local_counters(wdp);
@@ -172,19 +172,19 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worke
 
 
 	tep = &tdp->td_totp->tot_entry[tot_offset];
-	tdp->td_current_state |= CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS;
+	wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS;
 	pthread_mutex_lock(&tep->tot_mutex);
-	tdp->td_current_state &= ~CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS;
+	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS;
 	nclk_now(&tep->tot_wait_ts);
 	tep->tot_wait_worker_thread_number = wdp->wd_worker_number;
 
 if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worker_thread_wait_for_previous_io: Target: %d: Worker: %d: tot_offset: %d: I AM WAITING FOR PREVIOUS IO starting at %lld\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,tot_offset,(long long int)tep->tot_wait_ts);
 if (xgp->global_options & GO_DEBUG_TOT) xdd_show_tot_entry(tdp->td_totp,tot_offset);
-	tdp->td_current_state |= CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO;
+	wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO;
 	while (1 != tep->is_released) {
 	    pthread_cond_wait(&tep->tot_condition, &tep->tot_mutex);
 	}
-	tdp->td_current_state &= ~CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO;
+	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO;
 	tep->is_released = 0;
 	pthread_mutex_unlock(&tep->tot_mutex);
 if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worker_thread_wait_for_previous_io: Target: %d: Worker: %d: tot_offset: %d: I AM DONE WAITING FOR PREVIOUS IO - released by worker %d\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,tot_offset,tep->tot_post_worker_thread_number);
@@ -214,9 +214,9 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worke
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
 
 	tep = &tdp->td_totp->tot_entry[tot_offset];
-	tdp->td_current_state |= CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE;
+	wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE;
 	pthread_mutex_lock(&tep->tot_mutex);
-	tdp->td_current_state &= ~CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE;
+	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE;
 	tep->tot_post_worker_thread_number = wdp->wd_worker_number;
 	nclk_now(&tep->tot_post_ts);
 
@@ -392,13 +392,13 @@ xdd_worker_thread_update_target_counters(worker_data_t *wdp) {
 	// Since the TOT is a resource owned by the Target Thread and shared by the Worker Threads
 	// it will be updated here.
 	if (tdp->td_target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) {
-	    tdp->td_current_state |= CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
+	    wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
 	    tot_update(tdp->td_totp,
 		       wdp->wd_task.task_op_number,
 		       wdp->wd_worker_number,
 		       wdp->wd_task.task_byte_offset,
 		       wdp->wd_task.task_xfer_size);
-	    tdp->td_current_state &= ~CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
+	    wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
 	}
 } // End of xdd_worker_thread_update_target_counters()
 

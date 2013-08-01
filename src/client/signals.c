@@ -39,6 +39,7 @@
  * SIGINT (ctrl-c)
  */
 static int enter_debugger_on_sigint = 0;
+static xdd_plan_t *xdd_signal_planp = NULL;
 
 /*----------------------------------------------------------------------------*/
 /* xdd_signal_handler() - Routine that gets called when a signal gets caught. 
@@ -87,9 +88,11 @@ xdd_signal_handler(int signum, siginfo_t *sip, void *ucp) {
 /* xdd_signal_init() - Initialize all the signal handlers
  */
 int32_t
-xdd_signal_init(void) {
+xdd_signal_init(xdd_plan_t *planp) {
 	int		status;			// status of the sigaction() system call
 
+	
+	xdd_signal_planp = planp;
 	xgp->sa.sa_sigaction = xdd_signal_handler;			// Pointer to the signal handler
  	sigemptyset( &xgp->sa.sa_mask );				// The "empty set" - don't mask any signals
 	xgp->sa.sa_flags = SA_SIGINFO; 					// This indicates that the signal handler will get a pointer to a siginfo structure indicating what happened
@@ -122,13 +125,18 @@ xdd_signal_start_debugger() {
 	int32_t		status;			// Status of a subroutine call
 
 
-	status = pthread_create(&xgp->Interactive_Thread, NULL, xdd_interactive, (void *)(unsigned long)1);
-	if (status) {
-		fprintf(xgp->errout,"%s: xdd_signal_start_debugger: ERROR: Could not start debugger control processor\n", xgp->progname);
+	if (xdd_signal_planp) {
+		status = pthread_create(&xgp->Interactive_Thread, NULL, xdd_interactive, (void *)xdd_signal_planp);
+		if (status) {
+			fprintf(xgp->errout,"%s: xdd_signal_start_debugger: ERROR: Could not start debugger control processor\n", xgp->progname);
+			fflush(xgp->errout);
+			exit(1);
+		}
+	} else {
+		fprintf(xgp->errout,"%s: xdd_signal_start_debugger: ERROR: Could not start debugger control processor - no planp pointer\n", xgp->progname);
 		fflush(xgp->errout);
-		//FIXME xdd_destroy_all_barriers();
-		exit(1);
-	}
+		return;
+	} 
 
 } // End of xdd_signal_start_debugger()
 

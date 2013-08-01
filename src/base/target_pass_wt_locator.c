@@ -68,7 +68,7 @@ xdd_get_specific_worker_thread(target_data_t *tdp, int32_t q) {
 	if (wdp->wd_worker_thread_target_sync & WTSYNC_BUSY) { 
             // Set the "target waiting" bit, unlock the mutex,
             // and lets wait for this Worker Thread to become available - i.e. not busy
-            tdp->td_current_state |= CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE;
+            tdp->td_current_state |= TARGET_CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE;
             wdp->wd_worker_thread_target_sync |= WTSYNC_TARGET_WAITING;
             nclk_now(&checktime);
 
@@ -76,7 +76,7 @@ xdd_get_specific_worker_thread(target_data_t *tdp, int32_t q) {
                 pthread_cond_wait(&wdp->wd_this_worker_thread_is_available_condition,
                                   &wdp->wd_worker_thread_target_sync_mutex);            
             }
-            tdp->td_current_state &= ~CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE;
+            tdp->td_current_state &= ~TARGET_CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE;
         }
         
         // Indicate that this Worker Thread is now busy, and unlock
@@ -105,9 +105,9 @@ xdd_get_any_available_worker_thread(target_data_t *tdp) {
     while (0 == wdp && eof != tdp->td_queue_depth) {
 		pthread_mutex_lock(&tdp->td_any_worker_thread_available_mutex);
 		while (tdp->td_any_worker_thread_available <= 0) {
-	    	tdp->td_current_state |= CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
+	    	tdp->td_current_state |= TARGET_CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
 	    	pthread_cond_wait(&tdp->td_any_worker_thread_available_condition, &tdp->td_any_worker_thread_available_mutex);
-	    	tdp->td_current_state &= ~CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
+	    	tdp->td_current_state &= ~TARGET_CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE;
 		}
 		tdp->td_any_worker_thread_available--;
         

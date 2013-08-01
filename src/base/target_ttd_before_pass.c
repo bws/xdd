@@ -203,6 +203,7 @@ xdd_e2e_before_pass(target_data_t *tdp) {
  */
 void 
 xdd_init_target_data_before_pass(target_data_t *tdp) {
+	worker_data_t	*wdp;	// Pointer to Worker Thread Data Struct 
     
 	// Init all the pass-related variables to 0
 	tdp->td_counters.tc_pass_elapsed_time = 0;
@@ -243,19 +244,30 @@ xdd_init_target_data_before_pass(target_data_t *tdp) {
 
 	tdp->td_time_limit_expired = 0;		// The time limit expiration indicator
 	tdp->td_abort = 0;	
+	tdp->td_current_bytes_issued = 0;
+	tdp->td_current_bytes_completed = 0;
+	tdp->td_current_bytes_remaining = tdp->td_target_bytes_to_xfer_per_pass;
+	tdp->td_xfer_size = tdp->td_reqsize * tdp->td_block_size;
+
+	/* Get the starting time stamp */
+	nclk_now(&tdp->td_counters.tc_pass_start_time);
+	times(&tdp->td_counters.tc_starting_cpu_times_this_pass);
+	if ((tdp->td_target_options & TO_ENDTOEND) && (tdp->td_target_options & TO_E2E_DESTINATION)) {
+		// Same as above... Pass numbers greater than one will be used when the
+		// multi-file copy support is added
+		tdp->td_counters.tc_pass_start_time = NCLK_MAX;
+	} 
+
+	wdp = tdp->td_next_wdp;
+	while (wdp) { // Set up the pass_start_times for all the Worker Threads 
+		wdp->wd_counters.tc_pass_start_time = tdp->td_counters.tc_pass_start_time;
+		if (tdp->td_counters.tc_pass_number == 1) 
+			times(&wdp->wd_counters.tc_starting_cpu_times_this_run);
+		times(&wdp->wd_counters.tc_starting_cpu_times_this_pass);
+		wdp = wdp->wd_next_wdp;
+	}
 
 } // End of xdd_init_target_data_before_pass()
- 
-/*----------------------------------------------------------------------------*/
-/* xdd_init_worker_data_before_pass() - Reset variables to known state
- * 
- * This subroutine is called within the context of a Target Thread.
- *
- */
-void 
-xdd_init_worker_data_before_pass(worker_data_t *wdp) {
-    
-} // End of xdd_init_worker_data_before_pass()
  
 /*----------------------------------------------------------------------------*/
 /* xdd_target_ttd_before_pass() - This subroutine is called by targetpass()
@@ -267,7 +279,6 @@ xdd_init_worker_data_before_pass(worker_data_t *wdp) {
  */
 int32_t
 xdd_target_ttd_before_pass(target_data_t *tdp) {
-	worker_data_t	*wdp;	// Pointer to Worker Thread Data Struct 
 
 
 	// Timer Calibration and Information
@@ -286,40 +297,6 @@ xdd_target_ttd_before_pass(target_data_t *tdp) {
 	xdd_e2e_before_pass(tdp);
 
 	xdd_init_target_data_before_pass(tdp);
-
-	/* Initialize counters, barriers, clocks, ...etc */
-	tdp->td_xfer_size = tdp->td_reqsize * tdp->td_block_size;
-
-	/* Get the starting time stamp */
-	if (tdp->td_counters.tc_pass_number == 1) { // For the *first* pass...
-		nclk_now(&tdp->td_counters.tc_time_first_op_issued_this_pass);
-		tdp->td_counters.tc_pass_start_time = tdp->td_counters.tc_time_first_op_issued_this_pass;
-		// Get the current CPU user and system times 
-		times(&tdp->td_counters.tc_starting_cpu_times_this_run);
-	} else { // For pass number greater than 1
-		if ((tdp->td_target_options & TO_ENDTOEND) && (tdp->td_target_options & TO_E2E_DESTINATION)) {
-			// Same as above... Pass numbers greater than one will be used when the
-			// multi-file copy support is added
-			tdp->td_counters.tc_pass_start_time = NCLK_MAX;
-		} else { // This is either a non-E2E run or this is the Source Side of an E2E
-			nclk_now(&tdp->td_counters.tc_pass_start_time);
-		}
-		times(&tdp->td_counters.tc_starting_cpu_times_this_pass);
-	}
-
-	wdp = tdp->td_next_wdp;
-	while (wdp) { // Set up the pass_start_times for all the Worker Threads 
-		if (tdp->td_counters.tc_pass_number == 1) {
-			wdp->wd_counters.tc_pass_start_time = tdp->td_counters.tc_time_first_op_issued_this_pass;
-			// Get the current CPU user and system times 
-			times(&wdp->wd_counters.tc_starting_cpu_times_this_run);
-		} else { 
-			wdp->wd_counters.tc_pass_start_time = tdp->td_counters.tc_pass_start_time;
-			times(&wdp->wd_counters.tc_starting_cpu_times_this_pass);
-		}
-		xdd_init_worker_data_before_pass(wdp);
-		wdp = wdp->wd_next_wdp;
-	}
 
 	return(0);
 		

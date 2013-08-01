@@ -139,6 +139,7 @@ xdd_timelimit_before_io_op(target_data_t *tdp) {
 	if (tdp->td_time_limit_ticks) { 
 		nclk_now(&current_time);
 		elapsed_time = current_time - tdp->td_counters.tc_pass_start_time;
+if (xgp->global_options & GO_DEBUG_TIME_LIMIT) fprintf(stderr,"DEBUG_TIME_LIMIT: %lld: xdd_timelimit_before_io_op: Target: %d: Worker: -: current_time: %lld: tc_pass_start_time: %lld: elapsed_time: %lld: time_limit_ticks: %lld\n", (long long int)pclk_now(),tdp->td_target_number,(long long int)current_time, (long long int)tdp->td_counters.tc_pass_start_time, (long long int)elapsed_time, (long long int)tdp->td_time_limit_ticks);
 		if (elapsed_time >= tdp->td_time_limit_ticks) {
 			tdp->td_time_limit_expired = 1;
 			fprintf(xgp->output,"\n%s: xdd_timelimit_before_io_op: Target %d: Specified time limit of %f seconds exceeded.\n",

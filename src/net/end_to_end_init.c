@@ -55,9 +55,9 @@ xdd_e2e_target_init(target_data_t *tdp) {
 	}
 	// Restart processing if necessary
 	if ((tdp->td_target_options & TO_RESTART_ENABLE) && (tdp->td_restartp)) { // Check to see if restart was requested
-		// Set the last_committed_byte_location to 0
+		// Set the last_committed_byte_offset to 0
 		rp = tdp->td_restartp;
-		rp->last_committed_byte_location = rp->byte_offset;
+		rp->last_committed_byte_offset = rp->byte_offset;
 		rp->last_committed_length = 0;
 	}
 

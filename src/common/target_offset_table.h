@@ -41,15 +41,15 @@ struct tot_entry {
     pthread_cond_t tot_condition;
     int is_released;
     
-    nclk_t tot_wait_ts;			// Time that another Worker Thread starts to wait on this
-    nclk_t tot_post_ts;			// Time that the responsible Worker Thread posts this semaphore
-    nclk_t tot_update_ts;			// Time that the responsible Worker Thread updates the byte_location and io_size
-    int64_t tot_byte_location;		// Byte Location that was just processed
-    int64_t tot_op_number;			// Target Operation Number for the op that processed this block
-    int32_t tot_io_size;			// Size of I/O in bytes that was just processed
+    nclk_t tot_wait_ts;						// Time that another Worker Thread starts to wait on this
+    nclk_t tot_post_ts;						// Time that the responsible Worker Thread posts this semaphore
+    nclk_t tot_update_ts;					// Time that the responsible Worker Thread updates the byte_location and io_size
+    int64_t tot_byte_offset;				// Byte Location that was just processed
+    int64_t tot_op_number;					// Target Operation Number for the op that processed this block
+    int32_t tot_io_size;					// Size of I/O in bytes that was just processed
     int32_t tot_wait_worker_thread_number;	// Number of the Worker Thread that is waiting for this TOT entry to be posted
     int32_t tot_post_worker_thread_number;	// Number of the Worker Thread that posted this TOT entry 
-    int32_t tot_update_worker_thread_number;	// Number of the Worker Thread that last updated this TOT Entry
+    int32_t tot_update_worker_thread_number;// Number of the Worker Thread that last updated this TOT Entry
 };
 typedef struct tot_entry tot_entry_t;
 

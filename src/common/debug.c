@@ -111,7 +111,7 @@ xdd_show_plan_data(xdd_plan_t* planp) {
  */
 void
 xdd_show_target_data(target_data_t *tdp) {
-    char *sp;
+    char option_string[1024];
 
     fprintf(stderr,"\nxdd_show_target_data:********* Start of TARGET_DATA 0x%p **********\n", tdp);
 
@@ -143,36 +143,20 @@ xdd_show_target_data(target_data_t *tdp) {
     fprintf(stderr,"xdd_show_target_data: char                    td_abort=%d\n",tdp->td_abort);                       // Abort this operation (either a Worker Thread or a Target Thread)
     fprintf(stderr,"xdd_show_target_data: char                    td_time_limit_expired=%d\n",tdp->td_time_limit_expired); // The time limit for this target has expired
     fprintf(stderr,"xdd_show_target_data: pthread_mutex_t         td_current_state_mutex\n");                          // Mutex for locking when checking or updating the state info
-    switch (tdp->td_current_state) {
-        case CURRENT_STATE_INIT:
-                sp="CURRENT_STATE_INIT";
-        case CURRENT_STATE_IO:
-                sp="CURRENT_STATE_IO";
-        case CURRENT_STATE_DEST_RECEIVE:
-                sp="CURRENT_STATE_DEST_RECEIVE";
-        case CURRENT_STATE_SRC_SEND:
-                sp="CURRENT_STATE_SRC_SEND";
-        case CURRENT_STATE_BARRIER:
-                sp="CURRENT_STATE_BARRIER";
-        case CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE:
-                sp="CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE";
-        case CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE:
-                sp="CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE";
-        case CURRENT_STATE_PASS_COMPLETE:
-                sp="CURRENT_STATE_PASS_COMPLETE";
-        case CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE:
-                sp="CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE";
-        case CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE:
-                sp="CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE";
-        case CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS:
-                sp="CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS";
-        case CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO:
-                sp="CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO";
-        default:
-                sp="UNDEFINED STATE";
-                break;
-    }
-    fprintf(stderr,"xdd_show_target_data: int32_t                 td_current_state=0x%08x: '%s'\n",tdp->td_current_state,sp);            // State of this thread at any given time (see Current State definitions below)
+	option_string[0]='\0';
+    if (tdp->td_current_state & TARGET_CURRENT_STATE_INIT)
+		strcat(option_string, "TARGET_CURRENT_STATE_INIT  ");
+	if (tdp->td_current_state & TARGET_CURRENT_STATE_IO)
+		strcat(option_string, "TARGET_CURRENT_STATE_IO  ");
+	if (tdp->td_current_state & TARGET_CURRENT_STATE_BARRIER)
+		strcat(option_string, "TARGET_CURRENT_STATE_BARRIER  ");
+   	if (tdp->td_current_state & TARGET_CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE)
+		strcat(option_string, "TARGET_CURRENT_STATE_WAITING_ANY_WORKER_THREAD_AVAILABLE  ");
+	if (tdp->td_current_state & TARGET_CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE)
+		strcat(option_string,"TARGET_CURRENT_STATE_WAITING_THIS_WORKER_THREAD_AVAILABLE  ");
+	if (tdp->td_current_state & TARGET_CURRENT_STATE_PASS_COMPLETE)
+		strcat(option_string, "TARGET_CURRENT_STATE_PASS_COMPLETE");
+    fprintf(stderr,"xdd_show_target_data: int32_t                 td_current_state=0x%08x: '%s'\n",tdp->td_current_state,option_string);            // State of this thread at any given time (see Current State definitions below)
     fprintf(stderr,"xdd_show_target_data: tot_t                   *td_totp=%p\n",tdp->td_totp);                                // Pointer to the target_offset_table for this target
     fprintf(stderr,"xdd_show_target_data: pthread_cond_t          td_any_worker_thread_available_condition\n");
     fprintf(stderr,"xdd_show_target_data: pthread_mutex_t         td_any_worker_thread_available_mutex\n");
@@ -233,7 +217,7 @@ xdd_show_target_data(target_data_t *tdp) {
  */
 void
 xdd_show_worker_data(worker_data_t *wdp) {
-    char *sp;
+    char option_string[1024];
 
     fprintf(stderr,"\nxdd_show_worker_data:********* Start of Worker Data at 0x%p **********\n",wdp);
 
@@ -255,31 +239,45 @@ xdd_show_worker_data(worker_data_t *wdp) {
 
     fprintf(stderr,"xdd_show_worker_data: pthread_mutex_t         wd_worker_thread_target_sync_mutex\n");    // Used to serialize access to the Worker_Thread-Target Synchronization flags
 
-    switch (wdp->wd_worker_thread_target_sync) {
-        case WTSYNC_AVAILABLE:
-              sp="WTSYNC_AVAILABLE";
-              break;
-        case WTSYNC_BUSY:
-              sp="WTSYNC_BUSY";
-              break;
-        case WTSYNC_TARGET_WAITING:
-              sp="WTSYNC_BUSY";
-              break;
-        case WTSYNC_EOF_RECEIVED:
-              sp="WTSYNC_EOF_RECEIVED";
-              break;
-        default:
-              sp="UNDEFINED";
-              break;
-    }
-    fprintf(stderr,"xdd_show_worker_data: int32_t                 wd_worker_thread_target_sync=0x%08x:%s\n",wdp->wd_worker_thread_target_sync,sp);        // Flags used to synchronize a Worker_Thread with its Target
+	option_string[0]='\0';
+	if (wdp->wd_worker_thread_target_sync & WTSYNC_AVAILABLE)
+		strcat(option_string,"WTSYNC_AVAILABLE ");
+	if (wdp->wd_worker_thread_target_sync & WTSYNC_BUSY)
+		strcat(option_string,"WTSYNC_BUSY ");
+	if (wdp->wd_worker_thread_target_sync & WTSYNC_TARGET_WAITING)
+		strcat(option_string,"WTSYNC_BUSY ");
+	if (wdp->wd_worker_thread_target_sync & WTSYNC_EOF_RECEIVED)
+   		strcat(option_string,"WTSYNC_EOF_RECEIVED ");
+    fprintf(stderr,"xdd_show_worker_data: int32_t                 wd_worker_thread_target_sync=0x%08x:%s\n",wdp->wd_worker_thread_target_sync,option_string);        // Flags used to synchronize a Worker_Thread with its Target
     fprintf(stderr,"xdd_show_worker_data: pthread_cond_t          wd_this_worker_thread_is_available_condition\n");
+    fprintf(stderr,"xdd_show_worker_data: xdd_barrier_t           *wd_current_barrier:%p: '%s'\n",wdp->wd_current_barrier, wdp->wd_current_barrier?wdp->wd_current_barrier->name:"NA");    // The barrier where the Worker_Thread waits for targetpass() to release it with a task to perform
     fprintf(stderr,"xdd_show_worker_data: xdd_barrier_t           wd_thread_targetpass_wait_for_task_barrier:\n");    // The barrier where the Worker_Thread waits for targetpass() to release it with a task to perform
     fprintf(stderr,"xdd_show_worker_data: xdd_occupant_t          wd_occupant:\n");        // Used by the barriers to keep track of what is in a barrier at any given time
     xdd_show_occupant(&wdp->wd_occupant);
     fprintf(stderr,"xdd_show_worker_data: char                    wd_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH]='%s'\n",wdp->wd_occupant_name);    // For a Target thread this is "TARGET####", for a Worker_Thread it is "TARGET####WORKER####"
     fprintf(stderr,"xdd_show_worker_data: xint_e2e_t              *wd_e2ep=%p\n",wdp->wd_e2ep);            // Pointer to the e2e struct when needed
     fprintf(stderr,"xdd_show_worker_data: xdd_sgio_t              *wd_sgiop=%p\n",wdp->wd_sgiop);            // SGIO Structure Pointer
+    
+	option_string[0]='\0';
+	if(wdp->wd_current_state & WORKER_CURRENT_STATE_INIT)
+		strcat(option_string,"WORKER_CURRENT_STATE_INIT ");
+	if(wdp->wd_current_state & WORKER_CURRENT_STATE_IO)
+		strcat(option_string,"WORKER_CURRENT_STATE_IO ");
+	if(wdp->wd_current_state & WORKER_CURRENT_STATE_DEST_RECEIVE)
+		strcat(option_string,"WORKER_CURRENT_STATE_DEST_RECEIVE ");
+	if(wdp->wd_current_state & WORKER_CURRENT_STATE_SRC_SEND)
+		strcat(option_string,"WORKER_CURRENT_STATE_SRC_SEND ");
+	if(wdp->wd_current_state & WORKER_CURRENT_STATE_BARRIER)
+		strcat(option_string,"WORKER_CURRENT_STATE_BARRIER ");
+	if(wdp->wd_current_state & WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE)
+		strcat(option_string,"WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE ");
+	if(wdp->wd_current_state & WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE)
+		strcat(option_string,"WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE ");
+	if(wdp->wd_current_state & WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS)
+		strcat(option_string,"WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS ");
+	if(wdp->wd_current_state & WORKER_CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO)
+		strcat(option_string,"WORKER_CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO ");
+    fprintf(stderr,"xdd_show_worker_data: uint32_t                 wd_current_state=0x%08x: '%s'\n",wdp->wd_current_state,option_string);            // State of this thread at any given time (see Current State definitions below)
 
     fprintf(stderr,"xdd_show_worker_data:********* End of Worker Data **********\n");
 
@@ -335,7 +333,7 @@ xdd_show_occupant(xdd_occupant_t *op) {
 
     fprintf(stderr,"\txdd_show_occupant: struct xdd_occupant   *prev_occupant=%p\n",op->prev_occupant);    // Previous occupant on the chain
     fprintf(stderr,"\txdd_show_occupant: struct xdd_occupant   *next_occupant=%p\n",op->prev_occupant);    // Next occupant on the chain
-    fprintf(stderr,"\txdd_show_occupant: uint64_t              occupant_type=0x%016llx\n",(unsigned long long int)op->occupant_type);    // Bitfield that indicates the type of occupant
+    fprintf(stderr,"\txdd_show_occupant: uint32_t              occupant_type=0x%08x\n",op->occupant_type);    // Bitfield that indicates the type of occupant
     fprintf(stderr,"\txdd_show_occupant: char                  *occupant_name='%s'\n",op->occupant_name);    // Pointer to a character string that is the name of this occupant
     fprintf(stderr,"\txdd_show_occupant: void                  *occupant_data=%p\n",op->occupant_data);    // Pointer to a Target_Data or Worker_Data if the occupant_type is a Target or Worker Thread
     fprintf(stderr,"\txdd_show_occupant: nclk_t                entry_time=%lld\n",(unsigned long long int)op->entry_time);        // Time stamp of when this occupant entered a barrier - filled in by xdd_barrier()
@@ -478,7 +476,7 @@ xdd_show_tot_entry(tot_t *totp, int i) {
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_wait_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_wait_ts);			// Time that another Worker Thread starts to wait on this
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_post_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_post_ts);			// Time that the responsible Worker Thread posts this semaphore
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_update_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_update_ts);		// Time that the responsible Worker Thread updates the byte_location and io_size
-   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int64_t tot_byte_location=%lld\n",i,(long long int)totp->tot_entry[i].tot_byte_location);	// Byte Location that was just processed
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int64_t tot_byte_offset=%lld\n",i,(long long int)totp->tot_entry[i].tot_byte_offset);	// Byte Location that was just processed
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int64_t tot_op_number=%lld\n",i,(long long int)totp->tot_entry[i].tot_op_number);		// Target Operation Number for the op that processed this block
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_io_size=%d\n",i,totp->tot_entry[i].tot_io_size);							// Size of I/O in bytes that was just processed
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_wait_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_wait_worker_thread_number);	// Number of the Worker Thread that is waiting for this TOT entry to be posted

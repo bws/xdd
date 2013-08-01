@@ -97,7 +97,7 @@ xdd_interactive(void *data) {
 		tokens = xdd_tokenize(cp);
 
 		// Call xdd_interactive_parse_command() to execute this command
-		cmd_status = xdd_interactive_parse_command(tokens, cp);
+		cmd_status = xdd_interactive_parse_command(tokens, cp, planp);
 
 		if (cmd_status) {
 			fprintf(stdout, "\n %s Exiting\n",identity);
@@ -127,7 +127,7 @@ xdd_interactive(void *data) {
  * "-operation" but I am lazy so there you have it. 
  */
 int
-xdd_interactive_parse_command(int tokens, char *cmd) {
+xdd_interactive_parse_command(int tokens, char *cmd, xdd_plan_t *planp) {
 	int	flags;
     int funci;      // Index into xdd_interactive_func[] table
     int status;     // Status from the command-specific subroutine
@@ -139,7 +139,7 @@ xdd_interactive_parse_command(int tokens, char *cmd) {
 	while (xdd_interactive_func[funci].func_name) { // The last entry in the xddfunc table is 0 which will kick us out of this loop.
 		if ((strcmp(xdd_interactive_func[funci].func_name,cmd) == 0) || 
 			(strcmp(xdd_interactive_func[funci].func_alt, cmd) == 0)) {
-			status = (int)xdd_interactive_func[funci].interactive_func_ptr(tokens, cmd, flags);
+			status = (int)xdd_interactive_func[funci].interactive_func_ptr(tokens, cmd, flags, planp);
 			not_found = 0;
 			break;
 		}
@@ -152,30 +152,3 @@ xdd_interactive_parse_command(int tokens, char *cmd) {
 	}      
 	return(status);
 } /* End of xdd_interactive_parse_command() */
-
-/*----------------------------------------------------------------------------*/
-/* xdd_interactive_usage() - Display interactive_usage information
- */
-void
-xdd_interactive_usage(int32_t fullhelp) {
-    int i,j;
-
-    fprintf(stderr,"Commands:\n");
-    i = 0;
-    while(xdd_interactive_func[i].func_name) {
-		if (xdd_interactive_func[i].flags & XDD_FUNC_INVISIBLE) { // This function is not visible
-			i++;
-			continue;
-		}
-        fprintf(stderr,"%s",xdd_interactive_func[i].help);
-        if (fullhelp) {
-            j=0;
-            while (xdd_interactive_func[i].ext_help[j] && (j < XDD_EXT_HELP_LINES)) {
-                fprintf(stderr,"%s",xdd_interactive_func[i].ext_help[j]);
-                j++;
-            }
-            fprintf(stderr,"\n");
-        }
-        i++;
-    }
-}

@@ -47,9 +47,9 @@
  */
 void *
 xdd_target_thread(void *pin) {
-	int32_t  	status;		// Status of various function calls
-	target_data_t		*tdp;			// Pointer to this Target's Data Struct
-	xdd_plan_t* planp;
+	int32_t  		status;		// Status of various function calls
+	target_data_t	*tdp;		// Pointer to this Target's Data Struct
+	xdd_plan_t		*planp;
 
 	tdp = (target_data_t *)pin;
 	planp = tdp->td_planp;
@@ -82,7 +82,7 @@ xdd_target_thread(void *pin) {
 	/* Start the main pass loop */
 	while (1) {
 		// Perform a single pass
-	    xdd_targetpass(planp, tdp);
+	    xdd_target_pass(planp, tdp);
 
 		// Check to see if we got canceled or if we need to abort for some reason
 		if ((xgp->canceled) || (xgp->abort) || (tdp->td_abort)) {
