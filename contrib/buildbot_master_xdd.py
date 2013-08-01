@@ -34,12 +34,12 @@ def loadConfig(config):
     # about source code changes.  Here we point to the buildbot clone of pyflakes.
     from buildbot.changes.gitpoller import GitPoller
     from buildbot.changes.filter import ChangeFilter
-    config['change_source'] = GitPoller( 
+    config['change_source'].append( GitPoller( 
       repourl = '/ccs/proj/csc040/var/git/xdd.git',
       workdir='gitpoller-workdir-xdd-master', 
       pollinterval=120, 
       branch='master',
-      project='xdd')
+      project='xdd'))
 
     xdd_filter = ChangeFilter(
       project = 'xdd',
