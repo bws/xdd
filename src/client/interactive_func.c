@@ -277,7 +277,6 @@ xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags,
 		tdp = planp->target_datap[target_number];
 		if (tdp) {
 			fprintf(xgp->output,"Target %d\n",tdp->td_target_number);
-			xdd_interactive_display_state_info(wdp);
 			wdp = tdp->td_next_wdp;
 			while (wdp) {
 				fprintf(xgp->output,"Target %d Worker thread %d\n",tdp->td_target_number, wdp->wd_worker_number);
