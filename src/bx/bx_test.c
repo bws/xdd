@@ -12,14 +12,13 @@
 // NOTE: Global variables are defined in bx_data_structures.h and live here
 #undef THIS_IS_A_SUBROUTINE
 #include "bx_data_structures.h"
-
+int qb_init();
 
 /**************************************************************************
 *   MAIN
 **************************************************************************/
 // Start the program
 int main(int argc, char *argv[]) {
-	struct	bx_buffer_header	*bp;
 	int i;
     int status;
 

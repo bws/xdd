@@ -109,10 +109,9 @@ fprintf(stderr,"\n %s Target Thread %d: Initialization Complete\n",
 // Therefore, this thread can 
 int
 target_input(struct bx_td *p) {
-    int 			status;
 	long long int	bytes_remaining;
-	struct bx_wd		*bx_wdp;
-	struct bx_buffer_header	*bufhdrp;
+	struct bx_wd		*bx_wdp = 0;
+	struct bx_buffer_header	*bufhdrp = 0;
 	struct bx_buffer_queue *qp;
 	int				i;
 	int				transfer_size;
@@ -197,9 +196,8 @@ fprintf(stderr,"\n Target Input  %d: DONE\n",p->bx_td_my_target_number);
 // Just like the INPUT target thread only backwards.
 int
 target_output(struct bx_td *p) {
-    int 			status;
-	struct bx_wd	*bx_wdp;
-	struct bx_buffer_header	*bufhdrp;
+	struct bx_wd	*bx_wdp = 0;
+	struct bx_buffer_header	*bufhdrp = 0;
 	int				buffers_written;
 	int				i;
 
@@ -266,7 +264,7 @@ fprintf(stderr,"\n %s Target Thread %d: Starting\n",
 	status = target_init(p);
 	if (status != 0) {
 		fprintf(stderr,"Target Thread %d: Error during initialization - exiting\n",p->bx_td_my_target_number);
-		return;
+		return NULL;
 	}
 
 	// Wait here for all other Targets to initialize
@@ -302,5 +300,5 @@ fprintf(stderr,"\n %s Target Thread %d: Leaving\n",
 			(p->bx_td_flags & BX_TD_INPUT)?"INPUT":"OUTPUT", 
 			p->bx_td_my_target_number);
 
-    return;
+    return NULL;
 } // End of target_main()

@@ -16,7 +16,7 @@ int
 bufhdr_show(struct bx_buffer_header *bp) {
 
 
-	fprintf(stderr,"BUFHDR: bp=%p, next=%p, prev=%p, flags=0x%016x\n", bp, bp->bh_next, bp->bh_prev, bp->bh_flags); 
+	fprintf(stderr,"BUFHDR: bp=%p, next=%p, prev=%p, flags=0x%016llu\n", bp, bp->bh_next, bp->bh_prev, bp->bh_flags); 
 	fprintf(stderr,"BUFHDR: bp=%p, startp=%p, size=%d\n", bp, bp->bh_startp, bp->bh_size);
 	fprintf(stderr,"BUFHDR: bp=%p, valid_startp=%p, valid_size=%d\n", bp, bp->bh_valid_startp, bp->bh_valid_size);
 	fprintf(stderr,"BUFHDR: bp=%p, file_offset=%lld, sequence=%lld\n", bp, (long long int)bp->bh_file_offset,(long long int)bp->bh_sequence);
@@ -149,8 +149,8 @@ bh_enqueue(struct bx_buffer_header *bp, struct bx_buffer_queue *bq) {
 struct bx_buffer_header *
 bh_dequeue(struct bx_buffer_queue *bq) {
 	struct	bx_buffer_header	*bp;
-	struct	bx_buffer_header	*tmp;
-	int		status;
+	//struct	bx_buffer_header	*tmp;
+	//int		status;
 
 	// Get the lock for this item queue
 	pthread_mutex_lock(&bq->bq_mutex);

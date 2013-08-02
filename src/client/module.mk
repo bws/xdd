@@ -16,4 +16,4 @@ CLIENT_SRC := $(DIR)/info_display.c \
 	$(DIR)/signals.c \
 	$(DIR)/utils.c
 
-CLIENT_EXE_SRC := $(DIR)/xdd.c
+XDD_EXE_SRC := $(DIR)/xdd.c

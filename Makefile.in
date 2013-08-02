@@ -93,7 +93,7 @@ include $(XNI_DIR)/module.mk
 #
 # Construct information from modules
 #
-XDD_SRC := $(BASE_SRC) $(BX_SRC) $(CLIENT_SRC) $(COMMON_SRC) \
+XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) \
 	$(COMPAT_SRC) $(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) \
 	$(TOOLS_SRC) $(XNI_SRC)
 
@@ -113,17 +113,18 @@ GETHOSTIP_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETHOSTIP_EXE_SRC)))
 READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
 TRUNCATE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TRUNCATE_EXE_SRC)))
 TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TS_EXE_SRC)))
-XDD_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
+XDD_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(XDD_EXE_SRC)))
 XDD_LITE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(XDD_LITE_EXE_SRC) $(CLIENT_LITE_SRC)))
 
 #
 # All objects
 #
 ALL_OBJS = \
+	$(BXT_EXE_OBJS) \
 	$(XDD_OBJS) \
 	$(TOOL_OBJS) \
 	$(CLIENT_EXE_OBJS) \
-	$(CLIENT_LITE_EXE_OBJS) \
+	$(XDD_LITE_EXE_OBJS) \
 	$(GETTIME_EXE_OBJS) \
 	$(READ_TSDUMPS_EXE_OBJS) \
 	$(TS_EXE_OBJS) 
@@ -133,8 +134,8 @@ ALL_OBJS = \
 #
 XDD_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(XDD_SRC)))
 TOOLS_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(TOOLS_SRC)))
-CLIENT_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_EXE_SRC)))
-CLIENT_LITE_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_LITE_EXE_SRC)))
+XDD_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_EXE_SRC)))
+XDD_LITE_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_LITE_EXE_SRC)))
 BXT_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(BXT_EXE_SRC)))
 
 #
@@ -198,7 +199,7 @@ $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
 #
 # Build rules for executable targets
 #
-bin/xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
+bin/xdd: $(XDD_OBJS) $(XDD_EXE_OBJS)
 	@echo "[LD] $@ ..."
 	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 

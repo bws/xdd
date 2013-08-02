@@ -18,7 +18,7 @@ bx_wd_show(struct bx_wd *bx_wdp) {
 
 	fprintf(stderr,"Worker Thread Data Structure: bx_wdp=%p, next=%p, prev=%p, flags=0x%016x\n", bx_wdp, bx_wdp->bx_wd_next, bx_wdp->bx_wd_prev, bx_wdp->bx_wd_flags); 
 	fprintf(stderr,"Worker Thread Data Structure: bx_wdp=%p, my_worker_thread_number=%d, fd=%d\n", bx_wdp, bx_wdp->bx_wd_my_worker_thread_number, bx_wdp->bx_wd_fd); 
-	fprintf(stderr,"Worker Thread Data Structure: bx_wdp=%p, bufhdrp=%p, next_buffer_queue=%p, my_queue=%p\n", bx_wdp, bx_wdp->bx_wd_bufhdrp, bx_wdp->bx_wd_next_buffer_queue, bx_wdp->bx_wd_my_queue); 
+	fprintf(stderr,"Worker Thread Data Structure: bx_wdp=%p, bufhdrp=%p, next_buffer_queue=%d, my_queue=%p\n", bx_wdp, bx_wdp->bx_wd_bufhdrp, bx_wdp->bx_wd_next_buffer_queue, bx_wdp->bx_wd_my_queue); 
 	return(0);
 } // End of bx_wd_show()
 
@@ -110,8 +110,6 @@ bx_wd_enqueue(struct bx_wd *bx_wdp, struct bx_wd_queue *qp) {
 struct bx_wd *
 bx_wd_dequeue(struct bx_wd_queue *qp) {
 	struct	bx_wd	*bx_wdp;
-	struct	bx_wd	*tmp;
-	int		status;
 
 
 	// Get the lock for this item queue

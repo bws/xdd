@@ -60,8 +60,6 @@
 //
 int
 get_target_file_options(int target_number, int index, int argc, char *argv[]) {
-	int 	i;
-	int		status;
 
 fprintf(stderr,"get_target_file_options: target_number=%d, index=%d, argc=%d\n",target_number,index,argc);
 	// Sanity check the number of remaining arguments
@@ -78,7 +76,7 @@ fprintf(stderr,"get_target_file_options: target_number=%d,file name=%s\n",target
 
 	// FILE SIZE
 	bx_td[target_number].bx_td_file_size = atoll(argv[index+TARGET_FILE_SIZE]);
-fprintf(stderr,"get_target_file_options: target_number=%d,file size=%d\n",target_number, bx_td[target_number].bx_td_file_size);
+fprintf(stderr,"get_target_file_options: target_number=%d,file size=%lld\n",target_number, bx_td[target_number].bx_td_file_size);
 
 	// TRANSFER SIZE
 	bx_td[target_number].bx_td_transfer_size = atoi(argv[index+TARGET_FILE_XFER_SIZE]);
@@ -111,7 +109,6 @@ int
 get_target_network_options(int target_number, int index, int argc, char *argv[]) {
 	int 	i;
 	int		length;
-	int		status;
 	char	*cp;
 
 	// Sanity check the number of remaining arguments
@@ -184,8 +181,6 @@ get_target_network_options(int target_number, int index, int argc, char *argv[])
 //
 int
 get_target_sg_options(int target_number, int index, int argc, char *argv[]) {
-	int 	i;
-	int		status;
 
 	// Sanity check the number of remaining arguments
 	if (index+TARGET_SG_LASTARG >= argc-1) {
@@ -210,7 +205,6 @@ get_target_sg_options(int target_number, int index, int argc, char *argv[]) {
 //
 int
 get_target_options(int index, int argc, char *argv[]) {
-	int 	i;
 	int		status;
 	int		target_number;
 	int		worker_threads;
@@ -363,7 +357,7 @@ int
 ui(int argc, char *argv[]) {
 	int		i;
 	int 	current_argc;
-	int		status;
+	int		status = 0;
 
 	// Scan the arguments and mark the "options"
 	//
@@ -407,7 +401,7 @@ fprintf(stderr,"ui: got sequence options - current_argc=%d, status=%d, i=%d\n",c
 			usage(argv[0]);
 			return(-1);
 		}
-fprintf(stderr,"ui: end of WHILE - current_argc=%d, argc=%d\n",current_argc,status,argc);
+fprintf(stderr,"ui: end of WHILE - current_argc=%d, status=%d, argc=%d\n",current_argc,status,argc);
 
 	} 
 
