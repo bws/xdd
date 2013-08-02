@@ -101,11 +101,6 @@ int xdd_plan_init(xdd_planpub_t* plan, xdd_targetattr_t* tattrs, size_t ntattr, 
     struct xint_plan *private_planp;
     xdd_occupant_t barrier_occupant;
 
-	// Allocate the plan
-	struct xdd_plan_pub *tmp = calloc(1, sizeof(*tmp));
-	if (0 == tmp)
-		return 1;
-	
     // Initialize the global data
     xint_global_data_initialization("libxdd");
     if (0 == xgp) {
@@ -127,6 +122,13 @@ int xdd_plan_init(xdd_planpub_t* plan, xdd_targetattr_t* tattrs, size_t ntattr, 
 	// Add the targets to the plan
 	rc = add_targets_to_plan(private_planp, tattrs, ntattr, pattr);
 	if (0 != rc) {
+		xdd_destroy_all_barriers(private_planp);
+		return 1;
+	}
+	
+	// Allocate the plan
+	struct xdd_plan_pub *tmp = calloc(1, sizeof(*tmp));
+	if (0 == tmp) {
 		xdd_destroy_all_barriers(private_planp);
 		return 1;
 	}
@@ -172,8 +174,11 @@ int add_targets_to_plan(xdd_plan_t *planp,
 	size_t num_iothreads = 0;
 	
 	// Create all the targets in an array
-	target_data_t* target_array = calloc(ntattr, sizeof(*target_array));
-										 
+	target_data_t* target_array = 0;
+	if (ntattr > 0) {
+		target_array = calloc(ntattr, sizeof(*target_array));
+	}
+	
 	// Process the targets in order
 	size_t max_buffers_req = 0;
 	for (size_t i = 0; i < ntattr; i++) {
@@ -181,7 +186,11 @@ int add_targets_to_plan(xdd_plan_t *planp,
 		target_data_t *tdp = target_array + i;
 
 		// Initialize/set the target data
-		local_target_init(tdp, i, tap, pattr);
+		rc = local_target_init(tdp, i, tap, pattr);
+		if (0 != rc) {
+			free(target_array);
+			return 1;
+		}
 		
 		// Determine if this target needs more buffers
 		if (max_buffers_req < tap->num_threads)
