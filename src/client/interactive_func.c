@@ -152,6 +152,8 @@ xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *
 		xdd_interactive_show_worker_data(tokens, cp, flags, planp);
 	else if (strcmp(cp, "worker_state") == 0) 
 		xdd_interactive_show_worker_state(tokens, cp, flags, planp);
+	else if (strcmp(cp, "results") == 0) 
+		xdd_interactive_show_results(tokens, cp, flags, planp);
 	else if (strcmp(cp, "tot") == 0) 
 		xdd_interactive_show_tot(tokens, cp, flags, planp);
 	else if (strcmp(cp, "printtot") == 0) 
@@ -288,6 +290,26 @@ xdd_interactive_show_worker_state(int32_t tokens, char *cmdline, uint32_t flags,
 		}
 	}
 } // End of xdd_interactive_show_worker_state()
+
+/*----------------------------------------------------------------------------*/
+/* xdd_interactive_show_results()
+ * Display the current results data
+ */
+void
+xdd_interactive_show_results(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp) {
+	int				target_number;
+	results_t		*rp;
+
+
+	for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
+		rp = planp->target_average_resultsp[target_number];
+		if (rp) {
+			xdd_show_results_data(rp,0,planp);
+		} else {
+		fprintf(xgp->output,"ERROR: Target %d does not seem to have a Results Data Struct\n", target_number);
+		}
+	}
+} // End of xdd_interactive_show_results()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_interactive_display_state_info()
