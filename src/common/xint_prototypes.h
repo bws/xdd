@@ -67,6 +67,7 @@ void 	xdd_show_tot(tot_t *totp);
 void 	xdd_show_tot_entry(tot_t *totp, int i);
 void 	xdd_show_ts_table(xint_timestamp_t *ts_tablep, int target_number);
 void 	xdd_show_ts_header(xdd_ts_header_t *ts_hdrp, int target_number);
+void    xdd_show_results_data(results_t *rp, char *dumptype, xdd_plan_t *planp);
 
 // end_to_end.c
 int32_t	xdd_e2e_src_send(worker_data_t *wdp);
@@ -307,13 +308,12 @@ void	xdd_results_format_id_add( char *sp, char *format_stringp  );
 
 // results_manager.c
 void    *xdd_results_manager(void *data);
-int32_t xdd_results_manager_init(xdd_plan_t *planp);
+int32_t	xdd_results_manager_init(xdd_plan_t *planp);
 void    *xdd_results_header_display(results_t *tmprp, xdd_plan_t *planp);
 void    *xdd_process_pass_results(xdd_plan_t *planp);
 void    *xdd_process_run_results(xdd_plan_t *planp);
 void    xdd_combine_results(results_t *to, results_t *from, xdd_plan_t *planp);
 void    *xdd_extract_pass_results(results_t *rp, target_data_t *p, xdd_plan_t *planp);
-void    *xdd_results_dump(results_t *rp, char *dumptype, xdd_plan_t *planp);
 
 // schedule.c
 void	xdd_schedule_options(void);

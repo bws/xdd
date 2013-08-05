@@ -41,28 +41,28 @@
 void
 xdd_show_global_data(void) {
     fprintf(stderr,"\nxdd_show_global_data:********* Start of Global Data **********\n");
-    fprintf(xgp->output,"xdd_show_global_data: global_options          0x%016llx - I/O Options valid for all targets \n",(long long int)xgp->global_options);
-    fprintf(xgp->output,"xdd_show_global_data: progname                  %s - Program name from argv[0] \n",xgp->progname);
-    fprintf(xgp->output,"xdd_show_global_data: argc                      %d - The original arg count \n",xgp->argc);
-    fprintf(xgp->output,"xdd_show_global_data: max_errors                %lld - max number of errors to tollerate \n",(long long int)xgp->max_errors);
-    fprintf(xgp->output,"xdd_show_global_data: max_errors_to_print       %lld - Maximum number of compare errors to print \n",(long long int)xgp->max_errors_to_print);
-    fprintf(xgp->output,"xdd_show_global_data: output_filename          '%s' - name of the output file \n",(xgp->output_filename != NULL)?xgp->output_filename:"NA");
-    fprintf(xgp->output,"xdd_show_global_data: errout_filename          '%s' - name fo the error output file \n",(xgp->errout_filename != NULL)?xgp->errout_filename:"NA");
-    fprintf(xgp->output,"xdd_show_global_data: csvoutput_filename       '%s' - name of the csv output file \n",(xgp->csvoutput_filename != NULL)?xgp->csvoutput_filename:"NA");
-    fprintf(xgp->output,"xdd_show_global_data: combined_output_filename '%s' - name of the combined output file \n",(xgp->combined_output_filename != NULL)?xgp->combined_output_filename:"NA");
-    fprintf(xgp->output,"xdd_show_global_data: output                  0x%p - Output file pointer \n",xgp->output);
-    fprintf(xgp->output,"xdd_show_global_data: errout                  0x%p - Error Output file pointer \n",xgp->errout);
-    fprintf(xgp->output,"xdd_show_global_data: csvoutput               0x%p - Comma Separated Values output file \n",xgp->csvoutput);
-    fprintf(xgp->output,"xdd_show_global_data: combined_output         0x%p - Combined output file \n",xgp->combined_output);
-    fprintf(xgp->output,"xdd_show_global_data: id                       '%s' - ID string pointer \n",(xgp->id != NULL)?xgp->id:"NA");
-    fprintf(xgp->output,"xdd_show_global_data: number_of_processors      %d - Number of processors \n",xgp->number_of_processors);
-    fprintf(xgp->output,"xdd_show_global_data: clock_tick                %d - Number of clock ticks per second \n",xgp->clock_tick);
-    fprintf(xgp->output,"xdd_show_global_data: id_firsttime              %d - ID first time through flag \n",xgp->id_firsttime);
-    fprintf(xgp->output,"xdd_show_global_data: run_error_count_exceeded  %d - The alarm that goes off when the number of errors for this run has been exceeded \n",xgp->run_error_count_exceeded);
-    fprintf(xgp->output,"xdd_show_global_data: run_time_expired          %d - The alarm that goes off when the total run time has been exceeded \n",xgp->run_time_expired);
-    fprintf(xgp->output,"xdd_show_global_data: run_complete              %d - Set to a 1 to indicate that all passes have completed \n",xgp->run_complete);
-    fprintf(xgp->output,"xdd_show_global_data: abort                     %d - abort the run due to some catastrophic failure \n",xgp->abort);
-    fprintf(xgp->output,"xdd_show_global_data: random_initialized        %d - Random number generator has been initialized \n",xgp->random_initialized);
+    fprintf(stderr,"xdd_show_global_data: global_options          0x%016llx - I/O Options valid for all targets \n",(long long int)xgp->global_options);
+    fprintf(stderr,"xdd_show_global_data: progname                  %s - Program name from argv[0] \n",xgp->progname);
+    fprintf(stderr,"xdd_show_global_data: argc                      %d - The original arg count \n",xgp->argc);
+    fprintf(stderr,"xdd_show_global_data: max_errors                %lld - max number of errors to tollerate \n",(long long int)xgp->max_errors);
+    fprintf(stderr,"xdd_show_global_data: max_errors_to_print       %lld - Maximum number of compare errors to print \n",(long long int)xgp->max_errors_to_print);
+    fprintf(stderr,"xdd_show_global_data: output_filename          '%s' - name of the output file \n",(xgp->output_filename != NULL)?xgp->output_filename:"NA");
+    fprintf(stderr,"xdd_show_global_data: errout_filename          '%s' - name fo the error output file \n",(xgp->errout_filename != NULL)?xgp->errout_filename:"NA");
+    fprintf(stderr,"xdd_show_global_data: csvoutput_filename       '%s' - name of the csv output file \n",(xgp->csvoutput_filename != NULL)?xgp->csvoutput_filename:"NA");
+    fprintf(stderr,"xdd_show_global_data: combined_output_filename '%s' - name of the combined output file \n",(xgp->combined_output_filename != NULL)?xgp->combined_output_filename:"NA");
+    fprintf(stderr,"xdd_show_global_data: output                  0x%p - Output file pointer \n",xgp->output);
+    fprintf(stderr,"xdd_show_global_data: errout                  0x%p - Error Output file pointer \n",xgp->errout);
+    fprintf(stderr,"xdd_show_global_data: csvoutput               0x%p - Comma Separated Values output file \n",xgp->csvoutput);
+    fprintf(stderr,"xdd_show_global_data: combined_output         0x%p - Combined output file \n",xgp->combined_output);
+    fprintf(stderr,"xdd_show_global_data: id                       '%s' - ID string pointer \n",(xgp->id != NULL)?xgp->id:"NA");
+    fprintf(stderr,"xdd_show_global_data: number_of_processors      %d - Number of processors \n",xgp->number_of_processors);
+    fprintf(stderr,"xdd_show_global_data: clock_tick                %d - Number of clock ticks per second \n",xgp->clock_tick);
+    fprintf(stderr,"xdd_show_global_data: id_firsttime              %d - ID first time through flag \n",xgp->id_firsttime);
+    fprintf(stderr,"xdd_show_global_data: run_error_count_exceeded  %d - The alarm that goes off when the number of errors for this run has been exceeded \n",xgp->run_error_count_exceeded);
+    fprintf(stderr,"xdd_show_global_data: run_time_expired          %d - The alarm that goes off when the total run time has been exceeded \n",xgp->run_time_expired);
+    fprintf(stderr,"xdd_show_global_data: run_complete              %d - Set to a 1 to indicate that all passes have completed \n",xgp->run_complete);
+    fprintf(stderr,"xdd_show_global_data: abort                     %d - abort the run due to some catastrophic failure \n",xgp->abort);
+    fprintf(stderr,"xdd_show_global_data: random_initialized        %d - Random number generator has been initialized \n",xgp->random_initialized);
     fprintf(stderr,"xdd_show_global_data: ********* End of Global Data **********\n");
 
 } /* end of xdd_show_global_data() */ 
@@ -76,31 +76,31 @@ xdd_show_plan_data(xdd_plan_t* planp) {
 
 
     fprintf(stderr,"\nxdd_show_plan_data:********* Start of Plan Data **********\n");
-    fprintf(xgp->output,"xdd_show_plan_data: passes                    %d - number of passes to perform \n",planp->passes);
-    fprintf(xgp->output,"xdd_show_plan_data: pass_delay                %f - number of seconds to delay between passes \n",planp->pass_delay);
-    fprintf(xgp->output,"xdd_show_plan_data: max_errors                %lld - max number of errors to tollerate \n",(long long int)xgp->max_errors);
-    fprintf(xgp->output,"xdd_show_plan_data: max_errors_to_print       %lld - Maximum number of compare errors to print \n",(long long int)xgp->max_errors_to_print);
-    fprintf(xgp->output,"xdd_show_plan_data: ts_binary_filename_prefix '%s' - timestamp binary filename prefix \n",(planp->ts_binary_filename_prefix != NULL)?planp->ts_binary_filename_prefix:"NA");
-    fprintf(xgp->output,"xdd_show_plan_data: ts_output_filename_prefix '%s' - timestamp report output filename prefix \n",(planp->ts_output_filename_prefix != NULL)?planp->ts_output_filename_prefix:"NA");
-    fprintf(xgp->output,"xdd_show_plan_data: restart_frequency         %d - seconds between restart monitor checks \n",planp->restart_frequency);
-    fprintf(xgp->output,"xdd_show_plan_data: syncio                    %d - the number of I/Os to perform btw syncs \n",planp->syncio);
-    fprintf(xgp->output,"xdd_show_plan_data: target_offset             %lld - offset value \n",(long long int)planp->target_offset);
-    fprintf(xgp->output,"xdd_show_plan_data: number_of_targets         %d - number of targets to operate on \n",planp->number_of_targets);
-    fprintf(xgp->output,"xdd_show_plan_data: number_of_iothreads       %d - number of threads spawned for all targets \n",planp->number_of_iothreads);
-    fprintf(xgp->output,"xdd_show_plan_data: run_time                  %f - Length of time to run all targets  all passes \n",planp->run_time);
-    fprintf(xgp->output,"xdd_show_plan_data: base_time                 %lld - The time that xdd was started - set during initialization \n",(long long int)planp->base_time);
-    fprintf(xgp->output,"xdd_show_plan_data: run_start_time            %lld - The time that the targets start their first pass - set after initialization \n",(long long int)planp->run_start_time);
-    fprintf(xgp->output,"xdd_show_plan_data: estimated_end_time        %lld - The time at which this run (all passes) should end \n",(long long int)planp->estimated_end_time);
-    fprintf(xgp->output,"xdd_show_plan_data: number_of_processors      %d - Number of processors \n",planp->number_of_processors);
-    fprintf(xgp->output,"xdd_show_plan_data: clock_tick                %d - Number of clock ticks per second \n",planp->clock_tick);
-    fprintf(xgp->output,"xdd_show_plan_data: barrier_count             %d Number of barriers on the chain \n",planp->barrier_count);                         
-    fprintf(xgp->output,"xdd_show_plan_data: format_string             '%s'\n",(planp->format_string != NULL)?planp->format_string:"NA");
-    fprintf(xgp->output,"xdd_show_plan_data: results_header_displayed   %d\n",planp->results_header_displayed);
-    fprintf(xgp->output,"xdd_show_plan_data: heartbeat_holdoff          %d\n",planp->heartbeat_holdoff);
+    fprintf(stderr,"xdd_show_plan_data: passes                    %d - number of passes to perform \n",planp->passes);
+    fprintf(stderr,"xdd_show_plan_data: pass_delay                %f - number of seconds to delay between passes \n",planp->pass_delay);
+    fprintf(stderr,"xdd_show_plan_data: max_errors                %lld - max number of errors to tollerate \n",(long long int)xgp->max_errors);
+    fprintf(stderr,"xdd_show_plan_data: max_errors_to_print       %lld - Maximum number of compare errors to print \n",(long long int)xgp->max_errors_to_print);
+    fprintf(stderr,"xdd_show_plan_data: ts_binary_filename_prefix '%s' - timestamp binary filename prefix \n",(planp->ts_binary_filename_prefix != NULL)?planp->ts_binary_filename_prefix:"NA");
+    fprintf(stderr,"xdd_show_plan_data: ts_output_filename_prefix '%s' - timestamp report output filename prefix \n",(planp->ts_output_filename_prefix != NULL)?planp->ts_output_filename_prefix:"NA");
+    fprintf(stderr,"xdd_show_plan_data: restart_frequency         %d - seconds between restart monitor checks \n",planp->restart_frequency);
+    fprintf(stderr,"xdd_show_plan_data: syncio                    %d - the number of I/Os to perform btw syncs \n",planp->syncio);
+    fprintf(stderr,"xdd_show_plan_data: target_offset             %lld - offset value \n",(long long int)planp->target_offset);
+    fprintf(stderr,"xdd_show_plan_data: number_of_targets         %d - number of targets to operate on \n",planp->number_of_targets);
+    fprintf(stderr,"xdd_show_plan_data: number_of_iothreads       %d - number of threads spawned for all targets \n",planp->number_of_iothreads);
+    fprintf(stderr,"xdd_show_plan_data: run_time                  %f - Length of time to run all targets  all passes \n",planp->run_time);
+    fprintf(stderr,"xdd_show_plan_data: base_time                 %lld - The time that xdd was started - set during initialization \n",(long long int)planp->base_time);
+    fprintf(stderr,"xdd_show_plan_data: run_start_time            %lld - The time that the targets start their first pass - set after initialization \n",(long long int)planp->run_start_time);
+    fprintf(stderr,"xdd_show_plan_data: estimated_end_time        %lld - The time at which this run (all passes) should end \n",(long long int)planp->estimated_end_time);
+    fprintf(stderr,"xdd_show_plan_data: number_of_processors      %d - Number of processors \n",planp->number_of_processors);
+    fprintf(stderr,"xdd_show_plan_data: clock_tick                %d - Number of clock ticks per second \n",planp->clock_tick);
+    fprintf(stderr,"xdd_show_plan_data: barrier_count             %d Number of barriers on the chain \n",planp->barrier_count);                         
+    fprintf(stderr,"xdd_show_plan_data: format_string             '%s'\n",(planp->format_string != NULL)?planp->format_string:"NA");
+    fprintf(stderr,"xdd_show_plan_data: results_header_displayed   %d\n",planp->results_header_displayed);
+    fprintf(stderr,"xdd_show_plan_data: heartbeat_holdoff          %d\n",planp->heartbeat_holdoff);
 
-    fprintf(xgp->output,"xdd_show_plan_data: Target_Data pointers\n");
+    fprintf(stderr,"xdd_show_plan_data: Target_Data pointers\n");
     for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
-        fprintf(xgp->output,"xdd_show_plan_data:\tTarget_Data pointer for target %d of %d is 0x%p\n",target_number, planp->number_of_targets, planp->target_datap[target_number]);
+        fprintf(stderr,"xdd_show_plan_data:\tTarget_Data pointer for target %d of %d is 0x%p\n",target_number, planp->number_of_targets, planp->target_datap[target_number]);
     }
     fprintf(stderr,"xdd_show_plan_data: ********* End of Plan Data **********\n");
 
@@ -604,6 +604,127 @@ xdd_show_ts_header(xdd_ts_header_t *ts_hdrp, int target_number) {
 
 } // End of xdd_show_ts_header()
 
+/*----------------------------------------------------------------------------*/
+// xdd_results_dump 
+void
+xdd_show_results_data(results_t *rp, char *dumptype, xdd_plan_t *planp) {
+
+    fprintf(stderr,"\nxdd_show_results_data:********* Start of Results Data at 0x%p **********\n",rp);
+	fprintf(stderr,"	flags = 0x%016x\n",(unsigned int)rp->flags);				// Flags that tell the display function what to display
+	fprintf(stderr,"	*what = '%s'\n",rp->what);					// The type of information line to display - Queue Pass, Target Pass, Queue Avg, Target Avg, Combined
+	fprintf(stderr,"	*output = 0x%016x\n",(unsigned int)rp->output);			// This points to the output file 
+	fprintf(stderr,"	delimiter = 0x%1x\n",rp->delimiter);		// The delimiter to use between fields - i.e. a space or tab or comma
+
+	// Fundamental Variables
+	fprintf(stderr,"	*format_string = '%s'\n",rp->format_string);		// Format String for the xdd_results_display_processor() 
+	fprintf(stderr,"	my_target_number = %d\n",rp->my_target_number); 	// Target number of instance 
+	fprintf(stderr,"	my_worker_thread_number = %d\n",rp->my_worker_thread_number);	// Qthread number of this instance 
+	fprintf(stderr,"	queue_depth = %d\n",rp->queue_depth);		 	// The queue depth of this target
+	fprintf(stderr,"	xfer_size_bytes = %12.0f\n",rp->xfer_size_bytes);		// Transfer size in bytes 
+	fprintf(stderr,"	xfer_size_blocks = %12.3f\n",rp->xfer_size_blocks);		// Transfer size in blocks 
+	fprintf(stderr,"	xfer_size_kbytes = %12.3f\n",rp->xfer_size_kbytes);		// Transfer size in Kbytes 
+	fprintf(stderr,"	xfer_size_mbytes = %12.3f\n",rp->xfer_size_mbytes);		// Transfer size in Mbytes 
+	fprintf(stderr,"	reqsize = %d\n",rp->reqsize); 			// RequestSize from the target_data 
+	fprintf(stderr,"	pass_number = %d\n",rp->pass_number); 	// Pass number of this set of results 
+	fprintf(stderr,"	*optype = '%s'\n",rp->optype);			// Operation type - read, write, or mixed
+
+	// Incremented Counters
+	fprintf(stderr,"	bytes_xfered = %lld\n",(long long)rp->bytes_xfered);		// Bytes transfered 
+	fprintf(stderr,"	bytes_read = %lld\n",(long long)rp->bytes_read);			// Bytes transfered during read operations
+	fprintf(stderr,"	bytes_written = %lld\n",(long long)rp->bytes_written);		// Bytes transfered during write operations
+	fprintf(stderr,"	op_count = %lld\n",(long long)rp->op_count);    			// Operations performed 
+	fprintf(stderr,"	read_op_count = %lld\n",(long long)rp->read_op_count);		// Read operations performed 
+	fprintf(stderr,"	write_op_count = %lld\n",(long long)rp->write_op_count); 	// Write operations performed 
+	fprintf(stderr,"	error_count = %lld\n",(long long)rp->error_count);  		// Number of I/O errors 
+
+	// Timing Information - calculated from time stamps/values of when things hapened 
+	fprintf(stderr,"	accumulated_op_time = %8.3f\n",rp->accumulated_op_time);		// Total Accumulated Time in seconds processing I/O ops 
+	fprintf(stderr,"	accumulated_read_op_time = %8.3f\n",rp->accumulated_read_op_time);	// Total Accumulated Time in seconds processing read I/O ops 
+	fprintf(stderr,"	accumulated_write_op_time = %8.3f\n",rp->accumulated_write_op_time);	// Total Accumulated Time in seconds processing write I/O ops 
+	fprintf(stderr,"	accumulated_pattern_fill_time = %8.3f\n",rp->accumulated_pattern_fill_time);	// Total Accumulated Time in seconds doing pattern fills 
+	fprintf(stderr,"	accumulated_flush_time = %8.3f\n",rp->accumulated_flush_time);	// Total Accumulated Time in seconds doing buffer flushes 
+	fprintf(stderr,"	earliest_start_time_this_run = %8.3f\n",rp->earliest_start_time_this_run);	// usec, For a Worker Thread this is simply the start time of pass 1, for a target it is the earliest start time of all threads
+	fprintf(stderr,"	earliest_start_time_this_pass = %8.3f\n",rp->earliest_start_time_this_pass);	// usec, For a Worker Thread this is simply the start time of pass 1, for a target it is the earliest start time of all threads
+	fprintf(stderr,"	latest_end_time_this_run = %8.3f\n",rp->latest_end_time_this_run);			// usec, For a Worker Thread this is the end time of the last pass, for a target it is the latest end time of all Worker Threads
+	fprintf(stderr,"	latest_end_time_this_pass = %8.3f\n",rp->latest_end_time_this_pass);			// usec, For a Worker Thread this is the end time of the last pass, for a target it is the latest end time of all Worker Threads
+	fprintf(stderr,"	elapsed_pass_time = %8.3f\n",rp->elapsed_pass_time);		// usec, Total time from start of pass to the end of the last operation 
+	fprintf(stderr,"	elapsed_pass_time_from_first_op = %8.3f\n",rp->elapsed_pass_time_from_first_op); // usec, Total time from start of first op in pass to the end of the last operation 
+	fprintf(stderr,"	pass_start_lag_time = %8.3f\n",rp->pass_start_lag_time); 	// usec, Lag time from start of pass to the start of the first operation 
+	fprintf(stderr,"	bandwidth = %8.3f\n",rp->bandwidth);				// Measured data rate in MB/sec from start of first op to end of last op
+	fprintf(stderr,"	read_bandwidth = %8.3f\n",rp->read_bandwidth);			// Measured read data rate in MB/sec  from start of first op to end of last op
+	fprintf(stderr,"	write_bandwidth = %8.3f\n",rp->write_bandwidth);		// Measured write data rate in MB/sec from start of first op to end of last op 
+	fprintf(stderr,"	iops = %8.3f\n",rp->iops);					// Measured I/O Operations per second from start of first op to end of last op 
+	fprintf(stderr,"	read_iops = %8.3f\n",rp->read_iops);				// Measured read I/O Operations per second from start of first op to end of last op 
+	fprintf(stderr,"	write_iops = %8.3f\n",rp->write_iops);				// Measured write I/O Operations per second from start of first op to end of last op 
+	fprintf(stderr,"	latency = %8.3f\n",rp->latency); 				// Latency in milliseconds 
+
+	// CPU Utilization Information >> see user_time, system_time, and us_time below
+	fprintf(stderr,"	user_time = %8.3f\n",rp->user_time); 				// Amount of CPU time used by the application for this pass 
+	fprintf(stderr,"	system_time = %8.3f\n",rp->system_time); 			// Amount of CPU time used by the system for this pass 
+	fprintf(stderr,"	us_time = %8.3f\n",rp->us_time); 				// Total CPU time used by this process: user+system time for this pass 
+	fprintf(stderr,"	percent_user = %8.3f\n",rp->percent_user); 			// Percent of User CPU used by this process 
+	fprintf(stderr,"	percent_system = %8.3f\n",rp->percent_system); 		// Percent of SYSTEM CPU used by this process 
+	fprintf(stderr,"	percent_cpu = %8.3f\n",rp->percent_cpu); 		// Percent of CPU used by this process 
+
+	// Other information - only valid when certain options are used
+	fprintf(stderr,"	compare_errors = %lld\n",(long long)rp->compare_errors);			// Number of compare errors on a sequenced data pattern check 
+	fprintf(stderr,"	e2e_io_time_this_pass = %8.3f\n",rp->e2e_io_time_this_pass); 			// Time spent sending or receiving messages for E2E option 
+	fprintf(stderr,"	e2e_sr_time_this_pass = %8.3f\n",rp->e2e_sr_time_this_pass); 			// Time spent sending or receiving messages for E2E option 
+	fprintf(stderr,"	e2e_sr_time_percent_this_pass = %8.3f\n",rp->e2e_sr_time_percent_this_pass); 	// Percentage of total Time spent sending or receiving messages for E2E option 
+	fprintf(stderr,"	e2e_io_time_this_pass = %8.3f\n",rp->e2e_io_time_this_run); 			// Time spent sending or receiving messages for E2E option 
+	fprintf(stderr,"	e2e_sr_time_this_pass = %8.3f\n",rp->e2e_sr_time_this_run); 			// Time spent sending or receiving messages for E2E option 
+	fprintf(stderr,"	e2e_sr_time_percent_this_pass = %8.3f\n",rp->e2e_sr_time_percent_this_run); 	// Percentage of total Time spent sending or receiving messages for E2E option 
+	fprintf(stderr,"	e2e_wait_1st_msg = %8.3f\n",rp->e2e_wait_1st_msg);    	// Time spent waiting on the destination side of an E2E operation for the first msg 
+	fprintf(stderr,"	open_start_time = %8.3f\n",rp->open_start_time); 		// Time stamp at the beginning of openning the target
+	fprintf(stderr,"	open_end_time = %8.3f\n",rp->open_end_time); 			// Time stamp after openning the target 
+	fprintf(stderr,"	open_time = %8.3f\n",rp->open_time); 				// Time spent openning the target: end_time-start_time
+
+	// Individual Op bandwidths - Only used when -extendedstats option is specified
+	fprintf(stderr,"	longest_op_time = %12.3f\n",rp->longest_op_time); 		// Longest op time that occured during this pass
+	fprintf(stderr,"	longest_read_op_time = %12.3f\n",rp->longest_read_op_time); 	// Longest read op time that occured during this pass
+	fprintf(stderr,"	longest_write_op_time = %12.3f\n",rp->longest_write_op_time); 	// Longest write op time that occured during this pass
+	fprintf(stderr,"	shortest_op_time = %12.3f\n",rp->shortest_op_time); 		// Shortest op time that occurred during this pass
+	fprintf(stderr,"	shortest_read_op_time = %12.3f\n",rp->shortest_read_op_time); 	// Shortest read op time that occured during this pass
+	fprintf(stderr,"	shortest_write_op_time = %12.3f\n",rp->shortest_write_op_time); // Shortest write op time that occured during this pass
+
+	fprintf(stderr,"	longest_op_bytes = %lld\n",(long long)rp->longest_op_bytes); 			// Bytes xfered when the longest op time occured during this pass
+	fprintf(stderr," 	longest_read_op_bytes = %lld\n",(long long)rp->longest_read_op_bytes);	 	// Bytes xfered when the longest read op time occured during this pass
+	fprintf(stderr," 	longest_write_op_bytes = %lld\n",(long long)rp->longest_write_op_bytes); 	// Bytes xfered when the longest write op time occured during this pass
+	fprintf(stderr," 	shortest_op_bytes = %lld\n",(long long)rp->shortest_op_bytes); 			// Bytes xfered when the shortest op time occured during this pass
+	fprintf(stderr," 	shortest_read_op_bytes = %lld\n",(long long)rp->shortest_read_op_bytes); 	// Bytes xfered when the shortest read op time occured during this pass
+	fprintf(stderr," 	shortest_write_op_bytes = %lld\n",(long long)rp->shortest_write_op_bytes);	// Bytes xfered when the shortest write op time occured during this pass
+
+	fprintf(stderr,"	longest_op_number = %lld\n",(long long)rp->longest_op_number); 			// Operation Number when the longest op time occured during this pass
+	fprintf(stderr," 	longest_read_op_number = %lld\n",(long long)rp->longest_read_op_number); 	// Operation Number when the longest read op time occured during this pass
+	fprintf(stderr," 	longest_write_op_number = %lld\n",(long long)rp->longest_write_op_number); 	// Operation Number when the longest write op time occured during this pass
+	fprintf(stderr," 	shortest_op_number = %lld\n",(long long)rp->shortest_op_number); 		// Operation Number when the shortest op time occured during this pass
+	fprintf(stderr," 	shortest_read_op_number = %lld\n",(long long)rp->shortest_read_op_number); 	// Operation Number when the shortest read op time occured during this pass
+	fprintf(stderr," 	shortest_write_op_number = %lld\n",(long long)rp->shortest_write_op_number);	// Operation Number when the shortest write op time occured during this pass
+
+	fprintf(stderr,"	longest_op_pass_number = %lld\n",(long long)rp->longest_op_pass_number);		// Pass Number when the longest op time occured during this pass
+	fprintf(stderr,"	longest_read_op_pass_number = %lld\n",(long long)rp->longest_read_op_pass_number);// Pass Number when the longest read op time occured
+	fprintf(stderr,"	longest_write_op_pass_number = %lld\n",(long long)rp->longest_write_op_pass_number);// Pass Number when the longest write op time occured 
+	fprintf(stderr,"	shortest_op_pass_number = %lld\n",(long long)rp->shortest_op_pass_number);	// Pass Number when the shortest op time occured 
+	fprintf(stderr,"	shortest_read_op_pass_number = %lld\n",(long long)rp->shortest_read_op_pass_number);// Pass Number when the shortest read op time occured 
+	fprintf(stderr,"	shortest_write_op_pass_number = %lld\n",(long long)rp->shortest_write_op_pass_number);// Pass Number when the shortest write op time occured 
+
+	fprintf(stderr,"	highest_bandwidth = %12.3f\n",rp->highest_bandwidth);		// Highest individual op data rate in MB/sec
+	fprintf(stderr,"	highest_read_bandwidth = %12.3f\n",rp->highest_read_bandwidth);	// Highest individual op read data rate in MB/sec 
+	fprintf(stderr,"	highest_write_bandwidth = %12.3f\n",rp->highest_write_bandwidth);// Highest individual op write data rate in MB/sec 
+	fprintf(stderr,"	lowest_bandwidth = %12.3f\n",rp->lowest_bandwidth);		// Lowest individual op data rate in MB/sec
+	fprintf(stderr,"	lowest_read_bandwidth = %12.3f\n",rp->lowest_read_bandwidth);	// Lowest individual op read data rate in MB/sec 
+	fprintf(stderr,"	lowest_write_bandwidth = %12.3f\n",rp->lowest_write_bandwidth);	// Lowest individual op write data rate in MB/sec 
+
+	fprintf(stderr,"	highest_iops = %12.3f\n",rp->highest_iops);			// Highest individual op I/O Operations per second 
+	fprintf(stderr,"	highest_read_iops = %12.3f\n",rp->highest_read_iops);		// Highest individual op read I/O Operations per second 
+	fprintf(stderr,"	highest_write_iops = %12.3f\n",rp->highest_write_iops);		// Highest individual op write I/O Operations per second 
+	fprintf(stderr,"	lowest_iops = %12.3f\n",rp->lowest_iops);			// Lowest individual op I/O Operations per second 
+	fprintf(stderr,"	lowest_read_iops = %12.3f\n",rp->lowest_read_iops);		// Lowest individual op read I/O Operations per second 
+	fprintf(stderr,"	lowest_write_iops = %12.3f\n",rp->lowest_write_iops);		// Lowest individual op write I/O Operations per second 
+
+    fprintf(stderr,"\nxdd_show_results_data:********* End of Results Data at 0x%p **********\n",rp);
+	return;
+}
 /*
  * Local variables:
  *  indent-tabs-mode: t
