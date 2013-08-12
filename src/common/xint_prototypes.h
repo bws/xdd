@@ -134,6 +134,7 @@ int 	xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags, xdd_pla
 int 	xdd_interactive_step(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
 int 	xdd_interactive_stop(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
 int		xdd_interactive_ts_report(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
+void	xdd_interactive_show_results(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
 void	xdd_interactive_show_rwbuf(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
 void	xdd_interactive_show_global_data(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
 void	xdd_interactive_show_target_data(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);

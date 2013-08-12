@@ -153,7 +153,7 @@ xdd_interactive_show(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *
 	else if (strcmp(cp, "worker_state") == 0) 
 		xdd_interactive_show_worker_state(tokens, cp, flags, planp);
 	else if (strcmp(cp, "results") == 0) 
-		xdd_interactive_show_results(tokens, cp, flags, planp);
+            xdd_interactive_show_results(tokens, cp, flags, planp);
 	else if (strcmp(cp, "tot") == 0) 
 		xdd_interactive_show_tot(tokens, cp, flags, planp);
 	else if (strcmp(cp, "printtot") == 0) 
