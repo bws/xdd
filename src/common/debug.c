@@ -612,7 +612,7 @@ xdd_show_results_data(results_t *rp, char *dumptype, xdd_plan_t *planp) {
     fprintf(stderr,"\nxdd_show_results_data:********* Start of Results Data at 0x%p **********\n",rp);
 	fprintf(stderr,"	flags = 0x%016x\n",(unsigned int)rp->flags);				// Flags that tell the display function what to display
 	fprintf(stderr,"	*what = '%s'\n",rp->what);					// The type of information line to display - Queue Pass, Target Pass, Queue Avg, Target Avg, Combined
-	fprintf(stderr,"	*output = 0x%016x\n",(unsigned int)rp->output);			// This points to the output file 
+	fprintf(stderr,"	*output = 0x%16p\n",rp->output);			// This points to the output file 
 	fprintf(stderr,"	delimiter = 0x%1x\n",rp->delimiter);		// The delimiter to use between fields - i.e. a space or tab or comma
 
 	// Fundamental Variables
