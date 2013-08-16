@@ -1258,7 +1258,7 @@ else
     src_log=/dev/null
 fi
 
-xdd_cmd="\${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} -restart enable -restart offset ${g_xddcpResumeOffset} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
+xdd_cmd="\${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} -restart enable -restart offset ${g_xddcpResumeOffset} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -hb bw -stoponerror"
 
 # Set iotrace settings log files location
 if [ 1 -eq $g_xddcpKernelTraceFlag ]; then
