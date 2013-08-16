@@ -2,11 +2,11 @@
 #
 # Acceptance test for XDD.
 #
-# See if xddcp/xdd works robustly on a simple file transfer with 
-# resume flag set -a to invoke an additional thread (restart thread)
+# Description - See if xddcp/xdd works robustly on a simple file transfer 
+# with resume flag set -a to invoke an additional thread (restart thread)
 # and over more than one network interface
 #
-
+# Description -
 #
 # Test identity
 #
@@ -112,9 +112,9 @@ done
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-    echo "Acceptance XDDCP: Robust Multinic with Restart Recovery Transfer Test - Check: PASSED."
+    echo "Acceptance Test - $test_name: PASSED."
     exit 0
 else
-    echo "Acceptance XDDCP: Robust Multinic with Restart Recovery Transfer Test - Check: FAILED."
+    echo "Acceptance Test - $test_name: FAILED."
     exit 1
 fi

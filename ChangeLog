@@ -3,6 +3,13 @@ XDD Release ChangeLog
 -----------------------
 XDD-7.0.0 RC24
 ==============
+* XDD: Update the TOT even when no ordering is suggested so
+       that a restart value is properly emitted
+* XDDCP: Fix restart functionality
+* XDDCP: Type check that the thread count is numeric
+
+XDD-7.0.0 RC24
+==============
 * XDD: Remove more out of range memory reads
 * XDD: Fix a bunch of nightly tests
 * XDD: Get lockstep working for some basic cases

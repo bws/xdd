@@ -118,8 +118,8 @@ xdd_target_thread(void *pin) {
 					}
 					
 					// Put the Normal Completion information into the restart file
-					fprintf(p->restartp->fp,"File Copy Operation completed successfully.\n");
-					fprintf(p->restartp->fp,"%lld bytes written to file %s\n",(long long int)p->my_current_bytes_xfered,p->target_full_pathname);
+					//fprintf(p->restartp->fp,"File Copy Operation completed successfully.\n");
+					//fprintf(p->restartp->fp,"%lld bytes written to file %s\n",(long long int)p->my_current_bytes_xfered,p->target_full_pathname);
 					fflush(p->restartp->fp);
 					fclose(p->restartp->fp);
 				}

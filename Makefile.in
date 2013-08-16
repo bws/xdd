@@ -29,21 +29,26 @@ INSTALL_DIR := @prefix@
 XDDCP_ENABLED := @XDDCP_ENABLED@
 CC_EXE := @CC@
 DEPC_EXE := @DEPC_PATH@
+TAR_EXE := @TAR@
 
 #
 # Tools
 #
 AR = ar
+AUTOCONF = autoconf
 CC = $(CC_EXE)
 CP = cp
 DEPC = $(DEPC_EXE)
 DEPGEN = $(XDD_DIR)/support/depend.sh
+FIND = find
 INSTALL = $(XDD_DIR)/support/install-sh
+MKDIR = mkdir -p
 LD = $(CC_EXE)
 LN = ln -sf
-MKDIR = mkdir -p
 MV = mv -f
 RM = rm -f
+RMDIR = rmdir -f
+TAR = $(TAR_EXE)
 
 #
 # Configuration
@@ -60,6 +65,7 @@ SRC_DIR = src
 HDR_DIR = include
 BASE_DIR = $(SRC_DIR)/base
 CLIENT_DIR = $(SRC_DIR)/client
+CLIENT_LITE_DIR = $(SRC_DIR)/client/lite
 COMMON_DIR = $(SRC_DIR)/common
 COMPAT_DIR = $(SRC_DIR)/compat
 FS_DIR = $(SRC_DIR)/fs
@@ -71,6 +77,7 @@ TOOLS_DIR = $(SRC_DIR)/tools
 #
 include $(BASE_DIR)/module.mk
 include $(CLIENT_DIR)/module.mk
+include $(CLIENT_LITE_DIR)/module.mk
 include $(COMMON_DIR)/module.mk
 include $(COMPAT_DIR)/module.mk
 include $(FS_DIR)/module.mk
@@ -80,8 +87,9 @@ include $(TOOLS_DIR)/module.mk
 #
 # Construct information from modules
 #
-XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) $(COMPAT_SRC) \
-	$(FS_SRC) $(NET_SRC) $(TOOLS_SRC)
+XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) \
+	$(COMPAT_SRC) $(FS_SRC) $(NET_SRC) \
+	$(TOOLS_SRC)
 
 #
 # XDD module build targets
@@ -92,21 +100,23 @@ TOOL_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TOOL_SRC)))
 #
 # Project executable objects
 #
-CLIENT_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(CLIENT_EXE_SRC)))
 GETTIME_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETTIME_EXE_SRC)))
 GETFILESIZE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETFILESIZE_EXE_SRC)))
 GETHOSTIP_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(GETHOSTIP_EXE_SRC)))
 READ_TSDUMPS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(READ_TSDUMPS_EXE_SRC)))
 TRUNCATE_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TRUNCATE_EXE_SRC)))
 TS_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(TS_EXE_SRC)))
+XDD_EXE_OBJS := $(patsubst %.c, %.o, $(filter %.c, $(XDD_EXE_SRC)))
 
 #
 # All objects
 #
 ALL_OBJS = \
+	$(BXT_EXE_OBJS) \
 	$(XDD_OBJS) \
 	$(TOOL_OBJS) \
 	$(CLIENT_EXE_OBJS) \
+	$(XDD_LITE_EXE_OBJS) \
 	$(GETTIME_EXE_OBJS) \
 	$(READ_TSDUMPS_EXE_OBJS) \
 	$(TS_EXE_OBJS) 
@@ -116,19 +126,19 @@ ALL_OBJS = \
 #
 XDD_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(XDD_SRC)))
 TOOLS_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(TOOLS_SRC)))
-CLIENT_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_EXE_SRC)))
+XDD_EXE_DEPENDS := $(patsubst %.c, %.d, $(filter %.c, $(CLIENT_EXE_SRC)))
 
 #
 # Default build settings
 #
 INCLUDES = -I$(BASE_DIR) -I$(CLIENT_DIR) -I$(COMMON_DIR) \
 		-I$(COMPAT_DIR) -I$(FS_DIR) -I$(NET_DIR) \
-		-I$(TOOLS_DIR)
+		-I$(PUBLIC_DIR) -I$(TOOLS_DIR)
 
 ARFLAGS = @CONFIG_ARFLAGS@
 
 CPPFLAGS = @CONFIG_CPPFLAGS@ \
-	@DEFS@ @CONFIG_XFS_ENABLED@ \
+	@DEFS@ \
 	$(CONFIDENCE_ENABLED) \
 	$(INCLUDES)
 
@@ -159,7 +169,7 @@ xdd-read-tsdumps: bin/xdd-read-tsdumps
 
 xdd-truncate: bin/xdd-truncate
 
-.PHONY: all xdd xdd-tserver xdd-getfilesize xdd-gethostip xdd-gettime xdd-read-tsdumps xdd-truncate
+.PHONY: all xdd xdd-lite xdd-tserver xdd-getfilesize xdd-gethostip xdd-gettime xdd-read-tsdumps xdd-truncate
 
 #
 # Build rules for libraries
@@ -167,33 +177,41 @@ xdd-truncate: bin/xdd-truncate
 libs: $(LIB_DIR)/libxdd.a
 
 $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
-	$(AR) $(ARFLAGS) $@ $^
+	@echo "[AR] $@"
+	@$(AR) $(ARFLAGS) $@ $^
 
 .PHONY: libs
 
 #
 # Build rules for executable targets
 #
-bin/xdd: $(XDD_OBJS) $(CLIENT_EXE_OBJS)
+bin/xdd: $(XDD_OBJS) $(XDD_EXE_OBJS)
+	@echo "[LD] $@ ..."
 	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-tserver: $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(TS_EXE_OBJS) 
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-gettime: $(COMMON_DIR)/global_time.o $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(GETTIME_EXE_OBJS) 
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-read-tsdumps: $(READ_TSDUMPS_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-getfilesize: $(GETFILESIZE_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-gethostip: $(GETHOSTIP_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 bin/xdd-truncate: $(TRUNCATE_EXE_OBJS)
-	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 #
 # Build rules for installation
@@ -243,16 +261,12 @@ XDDVERSION := $(VERSION)
 baseversion:
 	echo "#define XDD_BASE_VERSION $(XDDVERSION)" > $(BASE_DIR)/xdd_base_version.h
 
-dist: clean baseversion tarball
-	echo "Base Version $(XDDVERSION) Source Only"
-
-fulldist: clean baseversion all tarball
-	echo "Base Version $(XDDVERSION) built"
-
 TARPATH := $(shell basename ${PWD})
+TARFILE := xdd-$(shell date +%s).tgz
 TARFLAGS := --exclude \*.o --exclude \*~ --exclude .DS_STORE --exclude .git
 tarball:
-	pushd .; cd .. && tar $(TARFLAGS) -czf xdd-$(shell date +%s).tgz $(TARPATH); popd
+	@echo "[TAR] $(TARFILE)"
+	@pushd .; cd .. && $(TAR) $(TARFLAGS) -czf $(TARFILE) $(TARPATH); popd
 
 .PHONY: baseversion dist fulldist tarball
 
@@ -274,7 +288,21 @@ contrib/mpil: contrib/mpil.o
 contrib/mpil.o: contrib/mpil.c
 	$(MPICC) -c $^ -o $@
 
-test: contrib/mpil
+#
+# Build other tests
+#
+bin/basic-ib-test: tests/other/xni/basic-ib-test.c $(LIB_DIR)/libxdd.a
+	$(CC) $(CPPFLAGS) $(CFLAGS) -L$(LIB_DIR) $< -lxdd $(LIBS) -o $@
+
+bin/basic-xni-test: tests/other/xni/basic-xni-test.c $(LIB_DIR)/libxdd.a
+	$(CC) $(CPPFLAGS) $(CFLAGS) -L$(LIB_DIR) $< -lxdd $(LIBS) -o $@
+
+test: contrib/mpil bin/basic-xni-test
+
+check: bin/basic-xni-test bin/basic-ib-test
+	@# This should somehow run all of the tests.
+
+.PHONY: test check
 
 #
 # Build rules for cleaning up derived files
@@ -306,7 +334,8 @@ tclean:
 
 clean: depclean libclean oclean tclean
 	$(info Cleaning the $(OS) executable files )
-	$(RM) 	bin/xdd \
+	@$(RM) 	bin/xdd \
+	 	bin/xdd-lite \
 		bin/xdd-tserver\
 		bin/xdd-getfilesize \
 		bin/xdd-gethostip \
@@ -314,15 +343,45 @@ clean: depclean libclean oclean tclean
 		bin/xdd-read-tsdumps \
 		bin/xdd-truncate \
 		bin/xdd-read-tsdumps \
+		bin/bxt \
 		a.out 
 
-distclean: clean
-	$(info Cleaning the distribution.)
-	$(RM) GNUMakefile
-	$(RM) Makefile
-	$(RM) config.log config.status
+.PHONY: testclean depclean docclean libclean oclean clean
 
-.PHONY: testclean depclean docclean libclean oclean clean distclean
+#
+# Rules for building the distribution
+#
+DISTCHECK_DIR := $(PWD)/tests/distcheck
+
+xdd-$(XDDVERSION):
+	git archive --format=tar --prefix=$@/ master | $(TAR) xf -
+	$(FIND) $@ -name .gitignore -exec rm {} \;
+	cd $@ && $(AUTOCONF)
+
+xdd-$(XDDVERSION).tar.gz: xdd-$(XDDVERSION)
+	$(TAR) cfz $@ $<
+	$(RM) -r $<
+
+distclean: clean
+	$(info Cleaning the distribution)
+	@$(RM) GNUMakefile
+	@$(RM) Makefile
+	@$(RM) config.log config.status
+	@$(RM) -r xdd-$(VERSION)
+	@$(RM) xdd-$(VERSION).tar.gz
+
+distcheck: dist
+	$(RM) -r $(DISTCHECK_DIR)
+	$(MKDIR) $(DISTCHECK_DIR)
+	$(TAR) -C $(DISTCHECK_DIR) -xzf xdd-$(XDDVERSION).tar.gz
+	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && ./configure --prefix=$(DISTCHECK_DIR)
+	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make
+	#cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make check
+	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make install
+
+dist: xdd-$(XDDVERSION).tar.gz
+
+.PHONY: dist distcheck distclean
 
 #
 # Include dependency makefiles if building source target
@@ -334,10 +393,16 @@ ifeq ($(strip $(DEPFILTER_MAKECMDGOALS)),)
 endif
 
 #
+# Overload default rules so that compilation is prettier
+#
+%.o: %.c
+	@echo "[CC] $< . . ."
+	@$(CC) -c $(CPPFLAGS) $(CFLAGS) $< -o $@
+#
 # Additional rule for building dependencies
 #
 %.d: %.c
-	@echo "Generating dependencies for $< . . ."
+	@echo "[DEPC] $< . . ."
 	@mkdir -p $(shell dirname $@)
 	@$(DEPGEN) $(shell dirname $<) $(DEPC) -MM $(INCLUDES) $< > $@
 

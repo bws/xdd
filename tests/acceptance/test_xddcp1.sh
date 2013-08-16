@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate a vanilla transfer
+# Description - Validate a vanilla transfer
 #
-
 #
 # Test identity
 #
@@ -45,7 +44,7 @@ $XDDTEST_XDD_EXE -target $source_file -op write -reqsize 4096 -mbytes 4096 -qd 4
 # Start a long copy
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-$XDDTEST_XDDCP_EXE $xddcp_opts $source_file $XDDTEST_E2E_DEST:$dest_file
+$XDDTEST_XDDCP_EXE -v $xddcp_opts $source_file $XDDTEST_E2E_DEST:$dest_file
 rc=$?
 
 # Check validity

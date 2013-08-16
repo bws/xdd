@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate that non verbose transfers produce no logs
+# Description - Validate that non verbose transfers produce no logs
 #
-
 #
 # Test identity
 #

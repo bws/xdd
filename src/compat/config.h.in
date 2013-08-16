@@ -63,6 +63,9 @@
 #undef HAVE_INTTYPES_H
 
 /* Define to 1 if you have the <linux/magic.h> header file. */
+#undef HAVE_LIBGEN_H
+
+/* Define to 1 if you have the <linux/magic.h> header file. */
 #undef HAVE_LINUX_MAGIC_H
 
 /* Define to 1 if you have the <memory.h> header file. */
@@ -103,9 +106,24 @@
 /* Define to 1 if you have the <sched.h> header file. */
 #undef HAVE_SCHED_H
 
+/* Define to 1 if you have the <scsi/sg.h> header file. */
+#undef HAVE_SCSI_SG_H
+
+/* Define to 1 if you have the <gtest/gtest.h> header file. */
+#undef HAVE_GTEST_GTEST_H
+
+/* Define to 1 if you have the <infiniband/verbs.h> header file. */
+#undef HAVE_INFINIBAND_VERBS_H
+
 /********************************************************************************
  * Defines for functions
  *******************************************************************************/
+
+/* Define to 1 if you have the `clock_gettime' function. */
+#undef HAVE_CLOCK_GETTIME
+
+/* Define to 1 if you have the `ibv_get_device_list' function. */
+#undef HAVE_IBV_GET_DEVICE_LIST
 
 /* Define to 1 if you have the `initstate' function. */
 #undef HAVE_INITSTATE
@@ -125,8 +143,14 @@
 /* Define to 1 if you have the `posix_memalign' function. */
 #undef HAVE_POSIX_MEMALIGN
 
+/* Define to 1 if you have the `pread' function. */
+#undef HAVE_PREAD
+
 /* Define to 1 if you have the `pthread_attr_setaffinity_np' function. */
 #undef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
+
+/* Define to 1 if you have the `pwrite' function. */
+#undef HAVE_PWRITE
 
 /* Define to 1 if you have the `random' function. */
 #undef HAVE_RANDOM
@@ -141,7 +165,7 @@
 #undef HAVE_SCHED_SETSCHEDULER
 
 /********************************************************************************
- * Defines for featuress
+ * Defines for features
  *******************************************************************************/
 
 /* Define if you have cpu_set_t type */
@@ -162,6 +186,13 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
+
+/* Define to 1 if you wish to enable XFS support */
+#undef HAVE_ENABLE_XFS
+
+/* Define to 1 if you wish to enable Infiniband support */
+#undef HAVE_ENABLE_IB
+
 
 #endif
 

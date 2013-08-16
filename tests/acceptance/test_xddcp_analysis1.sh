@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the post analysis with kernel tracing flag with xddcp for the -w flag
+# Description - Validate the post analysis with kernel tracing flag with xddcp for the -w flag
 #
-
 #
 # Source the test configuration environment
 #
@@ -21,23 +20,28 @@ if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then
 fi
 
 # check for existence of iotrace_init, decode, kernel module
+# Skip test on non-Linux platforms
 \which iotrace_init
 if [ 0 -ne $? ]; then
-  echo "Acceptance XDDCP-w: XDDCP Post Analysis w/o Kernel Tracing - iotrace_init missing...SKIP test: PASSED."
+  echo "Acceptance XDDCP-w: XDDCP Post Analysis w/o Kernel Tracing - iotrace_init missing...test: SKIPPED."
   exit 1
 fi
 \which decode
 if [ 0 -ne $? ]; then
-  echo "Acceptance XDDCP-w: XDDCP Post Analysis w/o Kernel Tracing - decode missing...SKIP test: PASSED."
+  echo "Acceptance XDDCP-w: XDDCP Post Analysis w/o Kernel Tracing - decode missing...test: SKIPPED."
   exit 1
 fi
 if [ ! -e /dev/iotrace_data ]; then
-  echo "Acceptance XDDCP-w: XDDCP Post Analysis w/o Kernel Tracing - /dev/iotrace_data missing...SKIP test: PASSED."
+  echo "Acceptance XDDCP-w: XDDCP Post Analysis w/o Kernel Tracing - /dev/iotrace_data missing...test: SKIPPED."
   exit 1
 fi
 
 # Perform pre-test 
 echo "Beginning XDDCP Post Analysis w/o Kernel Tracing Test 1 . . ."
+
+test_name=$(basename $0)
+test_name="${test_name%.*}"
+test_dir=$XDDTEST_LOCAL_MOUNT/$test_name
 test_dir=$XDDTEST_SOURCE_MOUNT/postanalysis-w
 rm -rf $test_dir
 mkdir -p $test_dir

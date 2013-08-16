@@ -2,11 +2,10 @@
 #
 # Acceptance test for XDD.
 #
-# Ensure that restarts occur when the transfer dies during EOF processing
+# Description - Ensure that restarts occur when the transfer dies during EOF processing
 # Note that the sleep time may need to be tuned depending on the storage
 # and connect time.
 #
-
 #
 # Test identity
 #
@@ -29,25 +28,26 @@ if [ -n $XDDTEST_XDD_LOCAL_PATH ] ; then
 fi
 
 # Perform pre-test 
-test_dir=$XDDTEST_SOURCE_MOUNT/retry1
-rm -rf $test_dir
-mkdir -p $test_dir
-ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry1"
-ssh $XDDTEST_E2E_DEST "mkdir -p $XDDTEST_DEST_MOUNT/retry1"
+src_test_dir=$XDDTEST_SOURCE_MOUNT/${test_name}
+dest_test_dir=$XDDTEST_DEST_MOUNT/${test_name}
+rm -rf $src_test_dir
+mkdir -p $src_test_dir
+ssh $XDDTEST_E2E_DEST "rm -rf $dest_test_dir"
+ssh $XDDTEST_E2E_DEST "mkdir -p $dest_test_dir"
 
-source_file=$test_dir/file1
-dest_file=$XDDTEST_DEST_MOUNT/retry1/file1
+source_file=$src_test_dir/file1
+dest_file=$dest_test_dir/file1
 
 #
 # Create the source file
 #
-$XDDTEST_XDD_EXE -target $source_file -op write -reqsize 32768 -numreqs 128 -qd 128 -datapattern random >/dev/null
+$XDDTEST_XDD_EXE -target $source_file -op write -reqsize 32768 -numreqs 192 -qd 128 -datapattern random >/dev/null
 
 #
 # Start a long copy
 #
 export PATH=$(dirname $XDDTEST_XDD_EXE):/usr/bin:$PATH
-bash $XDDTEST_XDDCP_EXE $xddcp_opts -a -n 1 -t 128 $source_file $XDDTEST_E2E_DEST:$dest_file &
+$XDDTEST_XDDCP_EXE $xddcp_opts -a -n 1 -t 128 $source_file $XDDTEST_E2E_DEST:$dest_file &
 pid=$!
 
 #
@@ -62,6 +62,9 @@ ssh $XDDTEST_E2E_DEST "pkill -f \"\\-op write\""
 wait $pid
 rc=$?
 
+#
+# Verify result as correct
+#
 test_passes=0
 if [ 0 -eq $rc ]; then
 
@@ -80,10 +83,6 @@ if [ 0 -eq $rc ]; then
 else
     echo "ERROR: XDDCP exited with: $rc"
 fi
-
-# Perform post-test cleanup
-#rm -rf $test_dir
-#ssh $XDDTEST_E2E_DEST "rm -rf $XDDTEST_DEST_MOUNT/retry1"
 
 # Output test result
 if [ "1" == "$test_passes" ]; then

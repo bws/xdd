@@ -2,9 +2,8 @@
 #
 # Acceptance test for XDD.
 #
-# Validate that data dump transfers produce a log and csv
+# Description - Validate that data dump transfers produce a log and csv
 #
-
 #
 # Test identity
 #

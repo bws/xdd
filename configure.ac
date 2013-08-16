@@ -23,7 +23,7 @@ dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
 AC_PREREQ(2.59)
-AC_INIT([xdd], [7.0.0.rc24], bug@xdd.org)
+AC_INIT([xdd], [7.0.0.rc25], bug@xdd.org)
 AC_CONFIG_HEADER([src/compat/config.h])
 
 
@@ -88,7 +88,7 @@ if test "$CC" = "xlc_r"; then
    CFLAGS="-q64 -qcpluscmt -qthreaded"
    LDFLAGS="-q64 -qthreaded"
 elif test "$CC" = "clang"; then
-   CFLAGS="-g -pedantic -Wall -Wextra"
+   CFLAGS="-g -pedantic -Wall -Wextra -Wno-unused-parameter"
    LDFLAGS="-g"
 elif test "$CC" = "gcc"; then
    AX_CFLAGS_GCC_OPTION([-std=c99])
@@ -96,6 +96,8 @@ elif test "$CC" = "gcc"; then
    AX_CFLAGS_GCC_OPTION([-fno-strict-aliasing])
    AX_CFLAGS_GCC_OPTION([-fPIC])
    AX_CFLAGS_GCC_OPTION([-Wall])
+   AX_CFLAGS_GCC_OPTION([-Wextra])
+   AX_CFLAGS_GCC_OPTION([-Wno-unused-parameter])
 else
    AC_MSG_ERROR(Unsupported compiler type: $CC)
 fi
@@ -129,6 +131,14 @@ AC_PATH_PROG([depc_exists],
              AC_MSG_ERROR(gcc is required to generate C code dependencies.))
 DEPC_PATH=$depc_exists
 AC_SUBST(DEPC_PATH)
+
+dnl
+dnl Check for a GNU compatible tar program
+dnl
+tar_cmd=""
+AC_PATH_PROGS([tar_cmd], [gnutar tar], AC_MSG_WARN(Unable to find a valid tar program))
+TAR=$tar_cmd
+AC_SUBST(TAR)
 
 dnl 
 dnl Check for Standard C headers
@@ -169,6 +179,7 @@ AC_CHECK_HEADER([sys/utsname.h],
 dnl
 dnl Check for optional POSIX headers
 dnl
+AC_CHECK_HEADERS([libgen.h], [], []) 
 AC_CHECK_HEADERS([sched.h], [], []) 
 AC_CHECK_HEADERS([utmpx.h], [], [])
 AC_CHECK_HEADERS([numa.h], [], [])
@@ -219,11 +230,13 @@ AC_TYPE_SIZE_T
 dnl
 dnl Checks for library functions.
 dnl
-AC_CHECK_FUNCS([memset])
+AC_CHECK_FUNCS([memset],, AC_MSG_ERROR([Function memset not found.]))
 AC_CHECK_FUNCS([random rand], break, 
                AC_MSG_ERROR([Neither random() nor rand() is defined.]))
-AC_CHECK_FUNCS([initstate])
-AC_CHECK_FUNCS([nanosleep])
+AC_CHECK_FUNCS([initstate], break, AC_MSG_ERROR([Function initstate not found.]))
+AC_CHECK_FUNCS([nanosleep],, AC_MSG_ERROR([Function nanosleep not found.]))
+AC_CHECK_FUNCS([pread],, AC_MSG_ERROR([Function pread not found.]))
+AC_CHECK_FUNCS([pwrite],, AC_MSG_ERROR([Function pwrite not found.]))
 
 dnl
 dnl Checks for POSIX functions
@@ -231,26 +244,32 @@ dnl
 AC_SEARCH_LIBS([clock_gettime], [rt],
 	       [], 
 	       AC_MSG_WARN(Posix function clock_gettime not found.))
-
-AC_CHECK_FUNCS([sched_getcpu])
-AC_CHECK_FUNCS([sched_setscheduler])
-AC_CHECK_FUNCS([posix_memalign])
+AC_CHECK_FUNCS([posix_memalign],, AC_MSG_ERROR([Function posix_memalign not found.]))
 
 dnl
 dnl Check for useful non-standard stuff
 dnl
 AC_CHECK_FUNCS([valloc])
+AC_CHECK_FUNCS([sched_getcpu])
+AC_CHECK_FUNCS([sched_setscheduler])
 
 dnl
 dnl Search for the NUMA function numa_node_to_cpus
 dnl
-AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
-               AC_DEFINE(HAVE_NUMA_NODE_TO_CPUS),
-               AC_MSG_WARN([LibNUMA support for numa_node_to_cpus not found thread binding disabled.]))
+AC_ARG_ENABLE([numa],
+              AS_HELP_STRING([--disable-numa], [Disable LibNUMA support]),
+              [enable_numa="$enableval"],
+              [enable_numa=yes])
+if test "x$enable_numa" = "xyes" ; then
+    AC_DEFINE(HAVE_ENABLE_NUMA)
+    AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
+                   AC_DEFINE(HAVE_NUMA_NODE_TO_CPUS),
+                   AC_MSG_ERROR([Function numa_node_to_cpus not found.  Use --disable-numa]))
 
-AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
-               AC_DEFINE(HAVE_NUMA_ALLOCATE_CPUMASK),
-               AC_MSG_WARN([LibNUMA support for numa_allocate_cpumask not found thread binding disabled.]))
+    AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
+                   AC_DEFINE(HAVE_NUMA_ALLOCATE_CPUMASK),
+                   AC_MSG_ERROR([Function numa_allocate_cpumask not found.  Use --disable-numa.]))
+fi
 
 dnl
 dnl Check for Linux CPU_SET(3)
@@ -260,43 +279,35 @@ AC_TRY_COMPILE([#include <sched.h>],
             AC_DEFINE(HAVE_CPU_SET_T,1,[Define if you have the cpu_set_t type.]),
             [])
 
-
 dnl
 dnl Check for MPI compiler
 dnl
 AX_MPI([],,AC_MSG_WARN(MPI C compiler not found.))
 
 dnl
-dnl Check if XFS support should be enabled
+dnl Enable XFS support by default
 dnl
-xfs_header_support="no"
-AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h],
-                [xfs_header_support="yes"])
-
-dnl
-dnl By default, try to add XFS support, only show errors if user requests XFS
-dnl
-xfs_lib_support="yes"
-xfs_enabled="yes"
-xfs_override="no"
 AC_ARG_ENABLE([xfs],
-              [AS_HELP_STRING(--enable-xfs,Enable XFS preallocation support)],
-              [xfs_override="$enableval"
-               xfs_enabled="$enableval"], [])
+              AS_HELP_STRING([--enable-xfs], [Enable XFS preallocation support]),
+              [enable_xfs="$enableval"],
+              [enable_xfs=yes])
 
-if test "x$xfs_override" = "xyes" ; then
-    if test "x$xfs_header_support" = "xno" ; then
-        AC_MSG_FAILURE("XFS headers not found.")
-    elif test "x$xfs_lib_support" = "xno" ; then
-        AC_MSG_ERROR("XFS libraries not found.")
-    fi
-    AC_SUBST(CONFIG_XFS_ENABLED, "-DXFS_ENABLED")
-    AC_SUBST(CONFIG_XFS_PACKAGE, "-D$xfs_package")
-elif test "x$xfs_enabled" = "xyes" ; then
-    if test $xfs_header_support = yes -a $xfs_lib_support = yes ; then
-        AC_SUBST(CONFIG_XFS_ENABLED, "-DXFS_ENABLED")
-        AC_SUBST(CONFIG_XFS_PACKAGE, "-D$xfs_package")
-    fi
+if test "x$enable_xfs" = "xyes" ; then
+    AC_DEFINE(HAVE_ENABLE_XFS)
+    xfs_header="no"
+    AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h],
+                     xfs_header="yes"; break, [])
+    if test "x$xfs_header" = "xno" ; then
+        AC_MSG_ERROR([No valid XFS header found (sometimes this is caused by missing libuuid headers).  Use --disable-xfs.])
+    fi 
+    AC_CHECK_DECLS([xfsctl], 
+                   AC_DEFINE(HAVE_XFSCTL), 
+                   AC_MSG_ERROR([Function xfsctl not found.  Use --disable-xfs.]),
+                   [#if HAVE_XFS_XFS_H
+                    #include <xfs/xfs.h>
+                    #elif HAVE_XFS_LIBXFS_H
+                    #include <xfs/libxfs.h>
+                    #endif])
 fi
 
 dnl
@@ -308,11 +319,6 @@ AC_CHECK_HEADERS([linux/magic.h],
                                  [[#include <linux/magic.h>]]),
                  [])
 
-
-dnl
-dnl Check whether to enable assertions
-dnl
-dnl AC_HEADER_ASSERT
 
 dnl
 dnl Ensure that XDDCP required utilities are present
@@ -366,10 +372,34 @@ dnl
 AC_CHECK_HEADERS([gtest/gtest.h], [], [], [/opt/local/includes])
 
 dnl
+dnl Search for the SCSI Generic I/O interface
+dnl
+AC_CHECK_HEADERS([scsi/sg.h], [], [], [/usr/include])
+
+dnl
 dnl Set the default installation prefix
 dnl
 install_prefix='/opt/xdd'
 AC_PREFIX_DEFAULT("$install_prefix")
+
+dnl
+dnl As a very last step, turn on options that improve debugging:
+dnl   make warnings trigger errors.  
+dnl
+dnl This has to be dnl done after all checks because it may cause
+dnl autoconf checks to fail
+dnl
+AC_ARG_ENABLE([debug], [Enable options supporting debug (Default: no)],
+			enable_debug="$enableval", enable_debug="no")
+if test "x$enable_debug" = "xyes"; then
+    if test "$CC" = "clang"; then
+        CFLAGS="$CFLAGS -Werror"
+    elif test "$CC" = "gcc"; then
+        AX_CFLAGS_GCC_OPTION([-Werror])
+    fi
+    dnl Only works with recent-ish versions of autoconf
+    dnl AC_HEADER_ASSERT
+fi
 
 dnl
 dnl Sets the compilation options

@@ -34,6 +34,11 @@
  */
 #include "xdd.h"
 
+/* Create a global symbol that indicates XFS is enabled */
+#ifdef HAVE_ENABLE_XFS
+const int xgp_xfs_enabled = 1;
+#endif
+
 #if  LINUX
 /*----------------------------------------------------------------------------*/
 /* xdd_target_preallocate() - Preallocate routine for linux
@@ -46,7 +51,7 @@
 int32_t
 xdd_target_preallocate_for_os(ptds_t *p) {
 	
-#ifdef XFS_ENABLED
+#ifdef HAVE_ENABLE_XFS
 	int32_t 	status;		// Status of various system calls
 	struct statfs 	sfs;		// File System Information struct
 	xfs_flock64_t 	xfs_flock;	// Used to pass preallocation information to xfsctl()

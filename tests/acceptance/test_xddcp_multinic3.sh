@@ -2,14 +2,13 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the recursive flag -r with restart option -a using xddcp
+# Description - Validate the recursive flag -r with restart option -a using xddcp
 # and more than one network interface
 # Scenario:
 #   Destination xdd hangs (killed)
 #   User or scheduler restarts original xddcp line
 #   Modification time changed on a different file every xddcp restart
 #
-
 #
 # Test identity
 #
@@ -69,7 +68,7 @@ ssh -q $XDDTEST_E2E_DEST "mkdir -p $XDDTEST_DEST_MOUNT/test_xddcp_multinic3"
 # Create the files
 #
 targets=( $src_dir/t1 $src_dir/t2  $src_dir/foo1/t3  $src_dir/foo1/t4 $src_dir/foo1/foo2/t5 $src_dir/foo1/foo2/t6 $src_dir/foo1/foo2/foo3/t7 $src_dir/bar1/bar2/bar3/t8 )
-$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 4096 -qd 4 -datapattern randbytarget 
+$XDDTEST_XDD_EXE -targets ${#targets[@]} ${targets[@]:0} -op write -reqsize 4096 -mbytes 8192 -qd 4 -datapattern randbytarget 
      
 #
 # Start killer process. Runs until timeout
@@ -132,9 +131,9 @@ done
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance XDDCP: Multinic Test 3 - Check: PASSED."
+  echo "Acceptance Test - $test_name: PASSED."
   exit 0
 else
-  echo "Acceptance XDDCP: Multinic Test 3 - Check: FAILED."
+  echo "Acceptance Test - $test_name: FAILED."
   exit 1
 fi

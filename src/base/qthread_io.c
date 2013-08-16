@@ -387,7 +387,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 	// Update the TOT entry for this last I/O
 	// Since the TOT is a resource owned by the Target Thread and shared by the QThreads
 	// it will be updated here.
-	if (p->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) {
+	//if (p->target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) {
 	    qp->my_current_state |= CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
 	    tot_update(p->totp,
 		       qp->target_op_number,
@@ -395,7 +395,7 @@ xdd_qthread_update_target_counters(ptds_t *qp) {
 		       qp->my_current_byte_location,
 		       qp->my_current_io_size);
 	    qp->my_current_state &= ~CURRENT_STATE_QT_WAITING_FOR_TOT_LOCK_UPDATE;
-	}
+	//}
 } // End of xdd_qthread_update_target_counters()
 
 /*

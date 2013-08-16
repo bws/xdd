@@ -2,14 +2,13 @@
 #
 # Acceptance test for XDD.
 #
-# Validate the recursive flag -r with restart option -a using xddcp
+# Description - Validate the recursive flag -r with restart option -a using xddcp
 # and more than one network interface
 # Scenario:
 #   Destination xdd hangs (killed)
 #   User or scheduler restarts original xddcp line
 #   Modification time changed on a different file every xddcp restart
 #
-
 #
 # Test identity
 #
@@ -128,9 +127,9 @@ done
 
 # Output test result
 if [ "1" == "$test_passes" ]; then
-  echo "Acceptance XDDCP: Multinic Test 4 - Check: PASSED."
+  echo "Acceptance Test - $test_name: PASSED."
   exit 0
 else
-  echo "Acceptance XDDCP: Multinic Test 4 - Check: FAILED."
+  echo "Acceptance Test - $test_name: FAILED."
   exit 1
 fi
