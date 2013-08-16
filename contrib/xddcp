@@ -177,7 +177,7 @@ function print_usage {
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
     echo " -l           - local path containing remote XDD binaries"
-    echo " -n		- If operation fails for any reason, retry up to n times [Default: 3]"
+    echo " -n retries	- If operation fails for any reason, retry up to n times [Default: $XDDCP_DEFAULT_RETRY_COUNT]"
     echo " -p portnum	- First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo " -o s|d|b	- Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
     echo " -r		- Copy sub-directories and contents recursively"
@@ -1821,6 +1821,13 @@ function xddcp_main {
                 ;;
 	    n)
 		retryCount=$OPTARG
+                case $retryCount in
+                    ''|*[!0-9]*)
+                        echo "INFO: Invalid number of retries: $retryCount"
+                        error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+                        ;;
+                esac
+
 		;;
             o) 
 		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then

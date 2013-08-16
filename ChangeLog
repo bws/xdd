@@ -7,6 +7,8 @@ XDD-7.0.0 RC24
        that a restart value is properly emitted
 * XDDCP: Fix restart functionality
 * XDDCP: Type check that the thread count is numeric
+* XDDCP: Type check that the retry count is numeric
+* XDDCP: Fix the retry documentation
 
 XDD-7.0.0 RC24
 ==============
