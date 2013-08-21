@@ -391,15 +391,14 @@ xdd_worker_thread_update_target_counters(worker_data_t *wdp) {
 	// Update the TOT entry for this last I/O
 	// Since the TOT is a resource owned by the Target Thread and shared by the Worker Threads
 	// it will be updated here.
-	if (tdp->td_target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE)) {
-	    wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
-	    tot_update(tdp->td_totp,
+	wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
+	tot_update(tdp->td_totp,
 		       wdp->wd_task.task_op_number,
 		       wdp->wd_worker_number,
 		       wdp->wd_task.task_byte_offset,
 		       wdp->wd_task.task_xfer_size);
-	    wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
-	}
+	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
+	
 } // End of xdd_worker_thread_update_target_counters()
 
 /*

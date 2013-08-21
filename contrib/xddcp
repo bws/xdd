@@ -114,6 +114,7 @@ readonly XDDCP_ERR_CODE_FIFO_ACCESS=124
 readonly XDDCP_ERR_CODE_FIFO_FAILED=125
 readonly XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT=126
 readonly XDDCP_ERR_CODE_INV_RESTART=127
+readonly XDDCP_ERR_CODE_RECURSIVE_FAIL=128
 
 # XDDCP Restart Token String
 readonly XDDCP_RESTART_DELIM="XDD_RESTART: "
@@ -176,7 +177,7 @@ function print_usage {
     echo " -F		- Transfer a list of files named in source_file"
     echo " -h		- Print out usage information"
     echo " -l           - local path containing remote XDD binaries"
-    echo " -n		- If operation fails for any reason, retry up to n times [Default: 3]"
+    echo " -n retries	- If operation fails for any reason, retry up to n times [Default: $XDDCP_DEFAULT_RETRY_COUNT]"
     echo " -p portnum	- First port to use for transfer [Default: $XDDCP_DEFAULT_E2E_PORT]" 
     echo " -o s|d|b	- Perform file I/O in serial order on end specified (s for source, d for dest, b for both)"
     echo " -r		- Copy sub-directories and contents recursively"
@@ -248,7 +249,7 @@ function error_print {
             echo "ERROR: Invalid restart offset location" >&2
             ;;
         $XDDCP_ERR_CODE_SSH_FAILURE) 
-            echo "ERROR: Failure spawing process via SSH" >&2
+            echo "ERROR: Failure spawning process via SSH" >&2
             ;;
         $XDDCP_ERR_CODE_SSH_ERROR) 
             echo "ERROR: Remote session failure" >&2
@@ -305,6 +306,9 @@ function error_print {
         $XDDCP_ERR_CODE_INV_RESTART)
 	    echo "ERROR: Could not restart correctly." >&2
 	    ;;
+        $XDDCP_ERR_CODE_RECURSIVE_FAIL)
+	    echo "ERROR: Recursive transfer failed." >&2
+	    ;;
         \?) 
             echo "ERROR: Unknown error code" >&2
             ;;
@@ -320,23 +324,23 @@ function handle_signal_common {
     #echo "SrcPid: $g_xddcpSrcXddPid SSHPid: $g_xddcpDestSSHPid Fifo: $g_xddcpFifoPath RecursiveList: $g_xddcpRecursiveListFileName"
     # Attempt to deliver the signal to source-side XDD
     if [ -1 -ne $g_xddcpSrcXddPid ]; then
-        kill -$signum $g_xddcpSrcXddPid &>$XDDCP_DEV_NULL
+        kill -$signum $g_xddcpSrcXddPid 2>$XDDCP_DEV_NULL
 	sleep 1
     fi
 
     # Attempt to destroy any open SSH sessions
     if [ -1 -ne $g_xddcpDestSSHPid ]; then
-	kill $g_xddcpDestSSHPid &>$XDDCP_DEV_NULL
+	kill $g_xddcpDestSSHPid 2>$XDDCP_DEV_NULL
     fi
 
     # Remove the FIFO if it still exists
     if [ -e "$g_xddcpFifoPath" ]; then
-	rm -f $g_xddcpFifoPath &>$XDDCP_DEV_NULL
+	rm -f $g_xddcpFifoPath 2>$XDDCP_DEV_NULL
     fi
 
     # Remove the recursive file list if it exists
     if [ -e "$g_xddcpRecursiveListFileName" ]; then
-        rm -f $g_xddcpRecursiveListFileName &>$XDDCP_DEV_NULL
+        rm -f $g_xddcpRecursiveListFileName 2>$XDDCP_DEV_NULL
     fi
 
     echo "INFO:  Transfer cancelled by user."
@@ -438,13 +442,13 @@ function check_host_preconditions {
     local forceFlag=${6}
 
     # Check for xdd binary
-    \type $XDDCP_XDD_EXE &>$XDDCP_DEV_NULL
+    \type $XDDCP_XDD_EXE >$XDDCP_DEV_NULL 2>&1
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_XDD_NOT_FOUND
     fi
 
     # Check for gethostip binary
-    \type $XDDCP_GETHOSTIP_EXE &>$XDDCP_DEV_NULL
+    \type $XDDCP_GETHOSTIP_EXE >$XDDCP_DEV_NULL 2>&1
     if [ 0 -ne $? ]; then
         error_exit $XDDCP_ERR_CODE_GETHOSTIP_NOT_FOUND
     fi
@@ -802,7 +806,7 @@ function remote_exec_with_fifo {
     fi
 
     # Create a new fifo
-    \mkfifo $fifoPath &>$XDDCP_DEV_NULL
+    \mkfifo $fifoPath 2>$XDDCP_DEV_NULL
     rc=$?
     if [ 0 -ne $rc ]; then
 	echo "INFO: Unable to create FIFO: $fifoPath"
@@ -937,7 +941,7 @@ function get_destination_cmds {
 if [ "x${g_xddcpRemotePathAppend}" != "x" ] ; then
   export PATH=\${PATH}:${g_xddcpRemotePathAppend}
 fi
-\type ${XDDCP_XDD_EXE} &>/dev/null
+\type ${XDDCP_XDD_EXE} >/dev/null 2>&1
 if [ 0 -ne \$? ]; then
     echo "xdd binary is not in destination host PATH" >&2
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
@@ -946,7 +950,7 @@ fi
 # Check that the correct version of XDD is available
 dest_version=\$(${XDDCP_XDD_EXE} -version)
 if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
-    echo "XDD source and destination version mismatch." >&2
+    echo "XDD source and destionation version mismatch." >&2
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
@@ -963,7 +967,7 @@ fi
 if [ "$(\uname)" != "Linux" ]; then
     # Check that ports are available for binding (Linux only)
     declare -i port_conflict=0
-    \type $XDDCP_GETHOSTIP_EXE &>/dev/null
+    \type $XDDCP_GETHOSTIP_EXE >/dev/null 2>&1
     hasIpTranslator=\$?
     if [ 1 -ne \$hasIpTranslator ]; then
         declare -i tcount_idx=0
@@ -1069,7 +1073,13 @@ if [ 1 -eq $resumeFlag ]; then
 
     # Add restart filename (cookie) to restart command
     restart_logfile="\${destination_dir}/.\${destination_base}.xrt"
-    destination_restart="-restart enable -restart offset ${g_xddcpResumeOffset} -restart file \${restart_logfile}"
+
+    # Get a restart value if it exists
+    restart_offset_cmd="-restart offset 0"
+    if [ -r "\${restart_logfile}" ]; then
+        restart_offset_cmd="\$(cat \${restart_logfile})"
+    fi
+    destination_restart="-restart enable \${restart_offset_cmd} -restart file \${restart_logfile}"
 fi
 
 # If insufficient permissions for the log exist, direct to HOME
@@ -1120,7 +1130,7 @@ xdd_cmd="\${xdd_exe_path} -target \${destination_file} -op write -minall ${order
 echo "Destination-side invocation: \${xdd_cmd}" > \${destination_log}
 
 # Write out the restart offset - this has to be the final output
-if [ -x "\${restart_logfile}" ]; then
+if [ -r "\${restart_logfile}" ]; then
     restart_file_contents="\$(cat \${restart_logfile})"
 else
     restart_file_contents="-restart offset 0"
@@ -1128,7 +1138,11 @@ fi
 echo "$XDDCP_RESTART_DELIM \${restart_file_contents}"
 
 # Invoke XDD
-\${xdd_cmd} >> \${destination_log} 2>&1 &
+if [ 1 -eq $resumeFlag ]; then
+    \${xdd_cmd} >> \${destination_log} 2>&1 && rm -f \${restart_logfile} &
+else
+    \${xdd_cmd} >> \${destination_log} 2>&1
+fi
 EOF
 }
 
@@ -1215,7 +1229,7 @@ function get_source_cmds {
 if [ "x${g_xddcpRemotePathAppend}" != "x" ] ; then
   export PATH=\${PATH}:${g_xddcpRemotePathAppend}
 fi
-\type ${XDDCP_XDD_EXE} &>/dev/null
+\type ${XDDCP_XDD_EXE} >/dev/null 2>&1
 if [ 0 -ne \$? ]; then
     echo "xdd binary is not in the source host PATH"
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
@@ -1244,7 +1258,7 @@ else
     src_log=/dev/null
 fi
 
-xdd_cmd="\${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} -restart enable -restart offset ${g_xddcpResumeOffset} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -stoponerror"
+xdd_cmd="\${xdd_exe_path} -targets 1  ${srcFile} -op read -minall ${orderedOpt} ${verboseOpt} ${binaryDumpOpt} -bytes ${totalBytes} -reqsize ${reqSize} -e2e issource ${e2eDestinations} ${srcDIO} -restart enable -restart offset ${g_xddcpResumeOffset} -output \${src_log} -hb ${XDDCP_DEFAULT_HEARTBEAT_SECS} -hb pct -hb bw -stoponerror"
 
 # Set iotrace settings log files location
 if [ 1 -eq $g_xddcpKernelTraceFlag ]; then
@@ -1365,10 +1379,11 @@ function start_destination_xdd {
         while read line; do
             # Parse out the resume offset if needed
             restartLine=$(\echo $line |grep $XDDCP_RESTART_DELIM)
+            #echo "DEBUG restart line is: $restartLine"
             if [ ! -z "$restartLine" ]; then
-                resumeOffset=$(/bin/echo $restartLine |cut -d ' ' -f 3 |rev) &> ${XDDCP_DEV_NULL}
+                resumeOffset=$(/bin/echo $restartLine |cut -d ' ' -f 4) 2> ${XDDCP_DEV_NULL}
 	        # If the restart value is non-numeric, just set it to 0
-		echo "$resumeOffset" |egrep "^[0-9]+$" &> ${XDDCP_DEV_NULL}
+		#echo "DEBUG $resumeOffset" |egrep "^[0-9]+$" 2> ${XDDCP_DEV_NULL}
 		if [ 0 -ne $? ]; then
 		    resumeOffset=0
 		fi
@@ -1383,7 +1398,7 @@ function start_destination_xdd {
         done < ${g_xddcpFifoPath}
     fi
     g_xddcpResumeOffset=${resumeOffset}
-
+    #echo "DEBUG resume offset is: $g_xddcpResumeOffset"
     # Remove the fifo
     \rm -f ${g_xddcpFifoPath}
 
@@ -1487,6 +1502,7 @@ function transfer_file_list {
         local progressFileNameBase="$(\basename $srcFileList)"
         progressFilePath=${progressFileDir}/.${progressFileNameBase}.xpg
     fi
+    #echo "DEBUG File list progress file is: $progressFilePath"
 
     # Process each of the files in the list
     local transferCount=0
@@ -1503,6 +1519,7 @@ function transfer_file_list {
             completed=$(grep -c "$srcFilePath to $destFilePath" ${progressFilePath})
             if [ 0 -ne $completed ]; then
                 # Skip this transfer, as its marked as already complete
+                #echo "DEBUG Skipping transfer of $srcFilePath"
                 continue
             fi
         fi
@@ -1545,7 +1562,7 @@ function transfer_file_list {
 
     # Cleanup the progress file
     if [ 0 -lt ${transferCount} -a 0 -eq $rc ]; then
-        rm -f ${progressFilePath} &> ${XDDCP_DEV_NULL}
+        rm -f ${progressFilePath} 2> ${XDDCP_DEV_NULL}
     fi
 
     return $rc
@@ -1589,12 +1606,12 @@ function transfer_recursive_file_list {
 
     # Check recursive transfer preconditions
     local fileList="${srcDirParent}/.${srcDirName}-$$.xrf"
-    if [ -x "${fileList}" ]; then
+    if [ -e "${fileList}" ]; then
         echo "Cannot create file list, it already exists: $fileList"
-        error_exit TODO
+        error_exit $XDDCP_ERR_CODE_RECURSIVE_FAIL
     elif [ -w "${fileList}" ]; then
         echo "Cannot create file list: $fileList"
-        error_exit TODO
+        error_exit $XDDCP_ERR_CODE_RECURSIVE_FAIL
     fi
 
     # Populate the file list
@@ -1602,10 +1619,13 @@ function transfer_recursive_file_list {
 
     # If this is a restart, try to find an existing restart cookie and name it 
     # to match the new file list
+    #echo "DEBUG Resume flag is: $resumeFlag"
     if [ 1 -eq $resumeFlag ]; then
-        (mostRecentRestart="$(\ls -t ${srcDirParent}/..${srcDirName}-*.xrf.xpg |head -1)") &> ${XDDCP_DEV_NULL}
+        mostRecentRestart="$(\ls -at ${srcDirParent}/..${srcDirName}-*.xrf.xpg 2> ${XDDCP_DEV_NULL}|head -1)"
+        #echo "DEBUG most recent restart is: $mostRecentRestart"
         if [ ! -z "${mostRecentRestart}" ]; then
-            \cp "${mostRecentRestart}" "${srcDirParent}/..${srcDirName}-$$.xrf.xpg" 
+            \mv "${mostRecentRestart}" "${srcDirParent}/..${srcDirName}-$$.xrf.xpg" #2> ${XDDCP_DEV_NULL}
+            #echo "DEBUG Setting up restart as: ${srcDirParent}/..${srcDirName}-$$.xrf.xpg"
         fi
     fi
 
@@ -1623,7 +1643,7 @@ function transfer_recursive_file_list {
     local rc=$?
 
     # Clean up the file list
-    \rm -f "${fileList}" &> ${XDDCP_DEV_NULL}
+    \rm -f "${fileList}" 2> ${XDDCP_DEV_NULL}
     g_xddcpRecursiveListFileName=""
 
     # Return the transfer code
@@ -1691,7 +1711,7 @@ function transfer_file {
 	if [ 0 -ne $srcRC ]; then
 	    rc=$srcRC
 	    echo "INFO: Source-side XDD exited with an error: $srcRC"
-            kill -9 "${g_xddcpDestSSHPid}" &> $XDDCP_DEV_NULL
+            kill -9 "${g_xddcpDestSSHPid}" 2> $XDDCP_DEV_NULL
         else
 	    wait
 	    destRC=$?
@@ -1801,6 +1821,13 @@ function xddcp_main {
                 ;;
 	    n)
 		retryCount=$OPTARG
+                case $retryCount in
+                    ''|*[!0-9]*)
+                        echo "INFO: Invalid number of retries: $retryCount"
+                        error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+                        ;;
+                esac
+
 		;;
             o) 
 		if [ "$OPTARG" = "dest" -o "$OPTARG" = "d" ]; then
@@ -1823,6 +1850,12 @@ function xddcp_main {
                 ;;
 	    t) 
                 queueDepth="${OPTARG}"
+                case $queueDepth in
+                    ''|*[!0-9]*) 
+                        echo "INFO: Invalid thread count: $queueDepth"
+                        error_exit $XDDCP_ERR_CODE_INVALID_ARGS
+                        ;;
+                esac
                 ;;
 	    v) 
 		if [ $verbosity -lt 1 ]; then
