@@ -1109,9 +1109,12 @@ fi
 
 # Truncate the destination to the correct size if necessary
 if [ -e \$destination_file ]; then
-    cur_size=\$($XDDCP_GETFILESIZE_EXE \${destination_file} | cut -f 1 -d " ")
-    if [ \$cur_size -gt $totalBytes ]; then
-        $XDDCP_TRUNCATE_EXE -s $totalBytes \${destination_file}
+    ftype=\$(file -b \${destination_file})
+    if [ "character special" != "\$ftype" ]; then
+        cur_size=\$($XDDCP_GETFILESIZE_EXE \${destination_file})
+        if [ \$cur_size -gt $totalBytes ]; then
+            $XDDCP_TRUNCATE_EXE -s $totalBytes \${destination_file}
+        fi
     fi
 fi
 
@@ -1685,7 +1688,7 @@ function transfer_file {
 
     # Determine the source side file size if none specified
     if [ 0 -eq $fileSizeFlag ]; then
-        totalBytes="$($XDDCP_GETFILESIZE_EXE $srcPath | cut -f 1 -d ' ')"
+        totalBytes="$($XDDCP_GETFILESIZE_EXE $srcPath)"
     fi
 
     # Start destination-side XDD (also sets resume offset if needed)

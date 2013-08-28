@@ -1,6 +1,24 @@
 -----------------------
 XDD Release ChangeLog
 -----------------------
+XDD-7.0.0 RC26
+==============
+* XDD: Organize XDD around the concept of plans
+* XDD-GETFILESIZE:  Determine size of block devices correctly.
+* XDDCP: Add ETA as a heartbeat output in XDD
+* XDDCP:  Enable block device transfers
+
+XDD-7.0.0 RC25
+==============
+* XDD: Update the TOT even when no ordering is suggested so
+       that a restart value is properly emitted
+* XDD: Inject the symbol xgp_xfs_enabled when XDD is built with XFS support
+* XDDCP: Fix restart functionality
+* XDDCP: Type check that the thread count is numeric
+* XDDCP: Type check that the retry count is numeric
+* XDDCP: Fix the retry documentation
+* XDDCP: Output bandwidth in addition to pct complete.
+
 XDD-7.0.0 RC24
 ==============
 * XDD: Remove more out of range memory reads

@@ -46,7 +46,7 @@
 int32_t
 xint_target_preallocate_for_os(target_data_t *tdp) {
 	
-#ifdef XFS_ENABLED
+#ifdef HAVE_ENABLE_XFS
 	int32_t 	status;		// Status of various system calls
 	struct statfs 	sfs;		// File System Information struct
 	xfs_flock64_t 	xfs_flock;	// Used to pass preallocation information to xfsctl()

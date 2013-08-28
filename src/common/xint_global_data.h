@@ -127,6 +127,12 @@ typedef	struct 		xdd_global_data 	xdd_global_data_t;
 // NOTE that this is where the xdd_globals structure *pointer* is defined to occupy physical memory if this is xdd.c
 #ifdef XDDMAIN
 xdd_global_data_t   		*xgp;   					// pointer to the xdd global data that xdd_main uses
+
+// Inject a symbol into the namespace is xfs support is configured
+#ifdef HAVE_ENABLE_XFS
+int xgp_xfs_enabled;
+#endif
+
 #else
 extern  xdd_global_data_t   *xgp;						// pointer to the xdd global data that all routines use 
 #endif

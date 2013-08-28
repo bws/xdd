@@ -73,9 +73,9 @@
 #endif
 
 /* Platform headers */
-#if XFS_ENABLED && HAVE_XFS_XFS_H
+#if HAVE_ENABLE_XFS && HAVE_XFS_XFS_H
 #include <xfs/xfs.h>
-#elif XFS_ENABLED && HAVE_XFS_LIBXFS_H
+#elif HAVE_ENABLE_XFS && HAVE_XFS_LIBXFS_H
 #include <xfs/xfs.h>
 #include <xfs/libxfs.h>
 #elif XFS_ENABLED
