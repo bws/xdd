@@ -272,7 +272,7 @@ fullinstall: install_pre
 	$(INSTALL) -c -m 755 contrib/xdd-plot-tsdumps-dk $(INSTALL_DIR)/bin/xdd-plot-tsdumps-dk
 	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
 
-install: install_pre fullinstall install_libs install_xddcp
+install: all install_pre fullinstall install_libs install_xddcp
 
 .PHONY: install install_pre install_libs install_xddcp
 
