@@ -518,8 +518,8 @@ function check_transfer_preconditions {
     fi
 
     # Check if file is a character special device (like zero or null)
-    local sfType=$(file -b ${sourceSideFilename} |cut -c 1-17 2>$XDDCP_DEV_NULL)
-    local dfType=$(file -b ${destSidePathname} |cut -c 1-17 2>$XDDCP_DEV_NULL)
+    local sfType=$(file -bL ${sourceSideFilename} |cut -c 1-17 2>$XDDCP_DEV_NULL)
+    local dfType=$(file -bL ${destSidePathname} |cut -c 1-17 2>$XDDCP_DEV_NULL)
 
     # Ensure file is large enough
     if [ "$sfType" != "character special" ]; then
@@ -1109,11 +1109,16 @@ fi
 
 # Truncate the destination to the correct size if necessary
 if [ -e \$destination_file ]; then
-    ftype=\$(file -b \${destination_file})
-    if [ "character special" != "\$ftype" ]; then
-        cur_size=\$($XDDCP_GETFILESIZE_EXE \${destination_file})
-        if [ \$cur_size -gt $totalBytes ]; then
-            $XDDCP_TRUNCATE_EXE -s $totalBytes \${destination_file}
+    # Check that the file is a regular file
+    ftype=$(file -bL \$destination_file)
+    if [ "character special" != "\$ftype" -a "block special" != "\$ftype" ]; then
+        
+        cur_size=\$($XDDCP_GETFILESIZE_EXE \${destination_file} 2>/dev/null)
+        rc=\$?
+        if [ 0 -eq \$rc ]; then
+            if [ \$cur_size -gt $totalBytes ]; then
+                $XDDCP_TRUNCATE_EXE -s $totalBytes \${destination_file}
+            fi
         fi
     fi
 fi

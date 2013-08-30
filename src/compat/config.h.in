@@ -82,6 +82,12 @@
 /* Define to 1 if you have the <string.h> header file. */
 #undef HAVE_STRING_H
 
+/* Define to 1 if you have the <sys/disk.h> header file. */
+#undef HAVE_SYS_DISK_H
+
+/* Define to 1 if you have the <sys/mount.h> header file. */
+#undef HAVE_SYS_MOUNT_H
+
 /* Define to 1 if you have the <sys/stat.h> header file. */
 #undef HAVE_SYS_STAT_H
 
@@ -168,12 +174,24 @@
  * Defines for features
  *******************************************************************************/
 
+/* Define if you have BLKGETSIZE64 ioctl */
+#undef HAVE_DECL_BLKGETSIZE64
+
 /* Define if you have cpu_set_t type */
 #undef HAVE_CPU_SET_T
+
+/* Define if you have BLKGETSIZE64 ioctl */
+#undef HAVE_DECL_DKIOCGETBLOCKCOUNT
+
+/* Define if you have BLKGETSIZE64 ioctl */
+#undef HAVE_DECL_DKIOCGETBLOCKSIZE
 
 /* Define to 1 if you have the declaration of `XFS_SUPER_MAGIC', and to 0 if
    you don't. */
 #undef HAVE_DECL_XFS_SUPER_MAGIC
+
+/* Define to 1 if you have the declaration of xfsctl, and to 0 if you don't. */
+#undef HAVE_DECL_XFSCTL
 
 /* Define if you have the MPI library. */
 #undef HAVE_MPI

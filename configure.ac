@@ -183,6 +183,9 @@ AC_CHECK_HEADERS([libgen.h], [], [])
 AC_CHECK_HEADERS([sched.h], [], []) 
 AC_CHECK_HEADERS([utmpx.h], [], [])
 AC_CHECK_HEADERS([numa.h], [], [])
+AC_CHECK_HEADERS([sys/disk.h], [], [])
+AC_CHECK_HEADERS([sys/ioctl.h], [], [])
+AC_CHECK_HEADERS([sys/mount.h], [], [])
 
 dnl
 dnl Check for C standard library 
@@ -244,7 +247,9 @@ dnl
 AC_SEARCH_LIBS([clock_gettime], [rt],
 	       [], 
 	       AC_MSG_WARN(Posix function clock_gettime not found.))
-AC_CHECK_FUNCS([posix_memalign],, AC_MSG_ERROR([Function posix_memalign not found.]))
+AC_CHECK_FUNCS([posix_memalign], [], 
+               AC_MSG_ERROR([Function posix_memalign not found.]))
+AC_CHECK_FUNCS([ioctl], [], AC_MSG_ERROR([Function ioctl not found.]))
 
 dnl
 dnl Check for useful non-standard stuff
@@ -278,6 +283,13 @@ AC_TRY_COMPILE([#include <sched.h>],
             [cpu_set_t pb;],
             AC_DEFINE(HAVE_CPU_SET_T,1,[Define if you have the cpu_set_t type.]),
             [])
+
+dnl
+dnl Check for block device IOCTLs
+dnl
+AC_CHECK_DECLS(BLKGETSIZE64, [], [], [[#include <sys/mount.h>]])
+AC_CHECK_DECLS(DKIOCGETBLOCKCOUNT, [], [], [[#include <sys/disk.h>]])
+AC_CHECK_DECLS(DKIOCGETBLOCKSIZE, [], [], [[#include <sys/disk.h>]])
 
 dnl
 dnl Check for Infiniband headers
@@ -329,9 +341,8 @@ dnl
 dnl Check for Linux Magic numbers
 dnl
 AC_CHECK_HEADERS([linux/magic.h],
-		 AC_CHECK_DECLS(XFS_SUPER_MAGIC,
-                                 [], [], [],
-                                 [[#include <linux/magic.h>]]),
+		 AC_CHECK_DECLS(XFS_SUPER_MAGIC, [], [],
+                                [[#include <linux/magic.h>]]),
                  [])
 
 
