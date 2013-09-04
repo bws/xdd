@@ -523,7 +523,7 @@ function check_transfer_preconditions {
 
     # Ensure file is large enough
     if [ "$sfType" != "character special" ]; then
-        local trueSize="$($XDDCP_GETFILESIZE_EXE $sourceSideFilename | cut -f 1 -d " ")"
+        local trueSize="$($XDDCP_GETFILESIZE_EXE $sourceSideFilename)"
         if [ $XDDCP_DEFAULT_XFER_SIZE -gt $trueSize ]; then
             error_exit $XDDCP_ERR_CODE_SMALL_FILE
         fi
@@ -1112,7 +1112,6 @@ if [ -e \$destination_file ]; then
     # Check that the file is a regular file
     ftype=$(file -bL \$destination_file)
     if [ "character special" != "\$ftype" -a "block special" != "\$ftype" ]; then
-        
         cur_size=\$($XDDCP_GETFILESIZE_EXE \${destination_file} 2>/dev/null)
         rc=\$?
         if [ 0 -eq \$rc ]; then
