@@ -214,9 +214,9 @@ function error_exit {
     exit $errorCode
 
     # Used to print the call stack which can be useful for debugging
-    echo "Call stack: $FUNCNAME"
+    echo "Call stack: $FUNCNAME" 1>&2
     for ((i=0; i < ${#FUNCNAME[*]}; i=$i+1)); do
-	echo "INFO: Call Stack ${FUNCNAME[$i]}"
+	echo "INFO: Call Stack ${FUNCNAME[$i]}" 1>&2
     done
     exit $errorCode
 }
@@ -343,7 +343,7 @@ function handle_signal_common {
         rm -f $g_xddcpRecursiveListFileName 2>$XDDCP_DEV_NULL
     fi
 
-    echo "INFO:  Transfer cancelled by user."
+    echo "INFO:  Transfer cancelled by user." 1>&2
 }
 
 #
@@ -458,19 +458,19 @@ function check_host_preconditions {
 
     # Ensure flag combinations are valid
     if [ 1 -eq $fileListFlag -a 1 -eq $fileSizeFlag ]; then
-        echo "INFO: -F option does not take an argument"
+        echo "INFO: -F option does not take an argument" 1>&2
         error_exit $XDDCP_ERR_CODE_INV_FLAGS
     elif [ 1 -eq $fileListFlag -a 1 -eq $recursiveFlag ]; then
-        echo "INFO: -F and -r flags cannot both be specified"
+        echo "INFO: -F and -r flags cannot both be specified" 1>&2
         error_exit $XDDCP_ERR_CODE_INV_FLAGS
     elif [ 1 -eq $recursiveFlag -a 1 -eq $fileSizeFlag ]; then
-        echo "INFO: -r option does not take an argument"
+        echo "INFO: -r option does not take an argument" 1>&2
         error_exit $XDDCP_ERR_CODE_INV_FLAGS
     fi
 
     # Restarts require write permission to the current directory
     if [ 1 -eq $resumeFlag -a ! -w $PWD ]; then
-        echo "INFO: Resume/restart flag requires write permission to current directory."
+        echo "INFO: Resume/restart flag requires write permission to current directory." 1>&2
         error_exit $XDDCP_ERR_CODE_INV_FLAGS
     fi
 }
@@ -488,7 +488,7 @@ function check_file_list_preconditions {
 
     # Ensure source side file list filename exists and is readable
     if [ 1 -eq $fileListFlag -a ! -r "${sourceSideFilename}" ]; then
-	echo "INFO: Cannot read ${sourceSideFilename}"
+	echo "INFO: Cannot read ${sourceSideFilename}" 1>&2
 	error_exit $XDDCP_ERR_CODE_SRC_XST
     fi
 }
@@ -513,7 +513,7 @@ function check_transfer_preconditions {
 
     # Ensure source side file exists
     if [ ! -r "${sourceSideFilename}" ]; then
-	echo "INFO: Cannot read ${sourceSideFilename}"
+	echo "INFO: Cannot read ${sourceSideFilename}" 1>&2
 	error_exit $XDDCP_ERR_CODE_SRC_XST
     fi
 
@@ -579,7 +579,7 @@ function post_transfer_analysis {
 
 	# check dataDir for writability
 	if [ ! -d ${dataDir} ] || [ ! -w ${dataDir} ]; then
-	    echo "INFO: Can not write to ${dataDir}.  Skipping analysis."
+	    echo "INFO: Can not write to ${dataDir}.  Skipping analysis." 1>&2
             #echo "TODO: Fix this error condition."
 	    return 1
 	fi
@@ -596,7 +596,7 @@ function post_transfer_analysis {
 	if [ ! -z "${destUser}" ]; then
 	    sshOpts="$sshOpts -l $destUser"
 	fi
-	(ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
+	(ssh ${sshOpts} ${destIP} /bin/bash --login --noprofile <<EOF
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
 destination_dir=\$(\\dirname ${destPath})
@@ -621,7 +621,7 @@ EOF
 	destRC=$?
 
 	# get/copy destination log file from destination to source host
-        (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
+        (ssh ${sshOpts} ${destIP} /bin/bash --login --noprofile <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
@@ -646,7 +646,7 @@ EOF
         ) | /bin/cpio -i >> ${myLogFile} 2>&1
 
         # get/copy destination timestamp csv file from destination to source host
-        (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
+        (ssh ${sshOpts} ${destIP} /bin/bash --login --noprofile <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
@@ -672,7 +672,7 @@ EOF
 
 	# get/copy destination iotrace_data.out file from destination to source host
 	if [ 1 -eq $kernelTrace ]; then
-            (ssh ${sshOpts} ${destIP} /bin/bash --login <<EOF
+            (ssh ${sshOpts} ${destIP} /bin/bash --login --noprofile <<EOF
 # Really after destination log file which should be here by all previous checks
 # If the supplied destination is a directory, append the source file name
 destination_file=${destPath}
@@ -698,7 +698,7 @@ EOF
         fi
 	destRC=$?
 	if [ 0 -ne $destRC ]; then
-	    echo "INFO: Failed to copy iotrace_data.pid.out over ssh.  Skipping analysis"
+	    echo "INFO: Failed to copy iotrace_data.pid.out over ssh.  Skipping analysis" 1>&2
             #echo "TODO: Fix this error handling."
 	    return 1
 	fi
@@ -712,7 +712,7 @@ EOF
 	    $XDDCP_READTSDUMPS_EXE -t ${windowSize}    -o ${tsPlotPrefix} ${srcBinDump} ${dstBinDump} >> ${myLogFile} 2>&1
 	fi
 	if [ 0 -ne $? ]; then
-	    echo "INFO: Failed to read timestamp dumps with prefix ${dataPrefix} in ${dataDir}.  Skipping analysis"
+	    echo "INFO: Failed to read timestamp dumps with prefix ${dataPrefix} in ${dataDir}.  Skipping analysis" 1>&2
             #echo "TODO: Fix this error handling."
 	    return 1
 	fi
@@ -724,7 +724,7 @@ EOF
 #
 function local_exec {
     local cmds="$1"
-    /bin/bash --login <<EOF
+    /bin/bash --login --noprofile <<EOF
 $cmds
 EOF
     
@@ -739,7 +739,7 @@ EOF
 # Execute xdd commands on remote host
 #
 function remote_exec {
-    #echo "remote_exec Args: $@" >/dev/stderr
+    #echo "remote_exec Args: $@" 1>&2
     local cmds="$1"
     local remoteHost="$2"
     local remoteUser="$3"
@@ -756,30 +756,30 @@ function remote_exec {
     local remoteOutput=""
     #remoteOutput=$(ssh ${sshOpts} ${remoteHost} /bin/bash --login <<EOF
    if [ 2 -ne "${errorCheck}" ]; then
-       (ssh ${sshOpts} ${remoteHost} /bin/bash --login <<EOF
+       (ssh ${sshOpts} ${remoteHost} /bin/bash --login --noprofile <<EOF
 $cmds
 EOF
        ) > $XDDCP_DEV_NULL 2>&1
    else
-       (ssh ${sshOpts} ${remoteHost} /bin/bash --login <<EOF
+       (ssh ${sshOpts} ${remoteHost} /bin/bash --login --noprofile <<EOF
 $cmds
 EOF
        )
    fi
    destRC=$?
 
-   remoteOutput="$(echo "ssh ${sshOpts} ${remoteHost} /bin/bash --login ${cmds}")"
+   remoteOutput="$(echo "ssh ${sshOpts} ${remoteHost} /bin/bash --login --noprofile ${cmds}")"
    if [ 0 -ne "${errorCheck}" ]; then
        # Check the status of remote operations
        if [ 255 -eq $destRC ]; then
-           echo "INFO: Remote output - $remoteOutput"
+           echo "INFO: Remote output - $remoteOutput" 1>&2
            error_exit $XDDCP_ERR_CODE_SSH_FAILURE
        elif [ 0 -ne $destRC -a ! -z "$remoteOutput" ]; then
-           echo "INFO: Remote RC: $destRC Remote Error: $remoteOutput"
+           echo "INFO: Remote RC: $destRC Remote Error: $remoteOutput" 1>&2
            error_print $destRC
            error_exit $XDDCP_ERR_CODE_SSH_ERROR
        elif [ 0 -ne $destRC ]; then
-           echo "INFO: Remote operation failure, no cause detected"
+           echo "INFO: Remote operation failure, no cause detected" 1>&2
            error_exit $XDDCP_ERR_CODE_SSH_ERROR
        fi
    fi
@@ -789,7 +789,7 @@ EOF
 # Perform a remote execution using a FIFO to capture stdout
 #
 function remote_exec_with_fifo {
-    #echo "remote_exec Args: $@" >/dev/stderr
+    #echo "remote_exec Args: $@" 1>&2
     local cmds="$1"
     local fifoPath="$2"
     local remoteHost="$3"
@@ -800,7 +800,7 @@ function remote_exec_with_fifo {
 	\rm -f $fifoPath
 	rc=$?
 	if [ 0 -ne $rc ]; then
-	    echo "INFO: Unable to remove existing FIFO: $fifoPath"
+	    echo "INFO: Unable to remove existing FIFO: $fifoPath" 1>&2
 	    error_exit $XDDCP_ERR_CODE_FIFO_ACCESS
 	fi
     fi
@@ -809,7 +809,7 @@ function remote_exec_with_fifo {
     \mkfifo $fifoPath 2>$XDDCP_DEV_NULL
     rc=$?
     if [ 0 -ne $rc ]; then
-	echo "INFO: Unable to create FIFO: $fifoPath"
+	echo "INFO: Unable to create FIFO: $fifoPath" 1>&2
 	error_exit $XDDCP_ERR_CODE_FIFO_FAILED
     fi
     
@@ -820,7 +820,7 @@ function remote_exec_with_fifo {
     fi
 
     # Local decl must be on seperate line so $? is correct
-    (ssh ${sshOpts} ${remoteHost} /bin/bash --login <<EOF
+    (ssh ${sshOpts} ${remoteHost} /bin/bash --login --noprofile <<EOF
 $cmds
 wait
 EOF
@@ -837,7 +837,7 @@ EOF
 # Return the file size
 #
 function get_file_size {
-    #echo "get_file_size Args: $@" >/dev/stderr
+    #echo "get_file_size Args: $@" 1>&2
     local filename=$1
     local remoteFlag=$2
     local host=$3
@@ -855,7 +855,7 @@ function get_file_size {
 # Return the destination side program
 #
 function get_destination_cmds {
-    #echo "get_destination_cmds Args: $@" >/dev/stderr
+    #echo "get_destination_cmds Args: $@" 1>&2
     local destHostArray=(${1})
     local destIPArray=(${2})
     local destNodeArray=(${3})
@@ -943,24 +943,24 @@ if [ "x${g_xddcpRemotePathAppend}" != "x" ] ; then
 fi
 \type ${XDDCP_XDD_EXE} >/dev/null 2>&1
 if [ 0 -ne \$? ]; then
-    echo "xdd binary is not in destination host PATH" >&2
+    echo "INFO: xdd binary is not in destination host PATH" >&2
     exit ${XDDCP_ERR_CODE_XDD_NOT_FOUND}
 fi
 
 # Check that the correct version of XDD is available
 dest_version=\$(${XDDCP_XDD_EXE} -version)
 if [ "\$dest_version" != "$g_xddcpXddVersion" ]; then
-    echo "XDD source and destionation version mismatch." >&2
+    echo "INFO: XDD source and destionation version mismatch." >&2
     exit ${XDDCP_ERR_CODE_VERSION_MATCH}
 fi
 
 # Ensure valid flag combinations
 platform=\$(\uname)
 if [ "Linux" != "\$platform" -a 0 -ne $forceFlag ]; then
-    echo "INFO: Force flag only supported on Linux platform: platform:
+    echo "INFO: Force flag only supported on Linux platform: \${platform}" 1>&2
     exit ${XDDCP_INVALID_FLAGS}
 elif [ "Linux" != "\$platform" -a 0 -ne $g_xddcpKernelTraceFlag ]; then
-    echo "INFO: Force flag only supported on Linux platform: platform:
+    echo "INFO: Tracing flag only supported on Linux platform: \${platform}" 1>&2
     exit ${XDDCP_INVALID_FLAGS}
 fi
 
@@ -1157,7 +1157,7 @@ EOF
 # Return the source side program
 #
 function get_source_cmds {
-    #echo "get_source_cmds Args: $@" >/dev/stderr
+    #echo "get_source_cmds Args: $@" 1>&2
     local destIPArray=(${1})
     local srcNodeArray=(${2})
     local srcFile=${3}
@@ -1254,7 +1254,7 @@ xdd_exe_path=\$(\\type -P ${XDDCP_XDD_EXE})
 
 # Ensure source side file exists
 if [ ! -r "${srcFile}" ]; then
-    echo "ERROR: Cannot read source file: ${srcFile}"
+    echo "ERROR: Cannot read source file: ${srcFile}" 1>&2
     exit ${XDDCP_ERR_CODE_SRC_XST}
 fi
 
@@ -1340,7 +1340,7 @@ function create_destination_directories {
 # Start XDD on the destination side.  Set g_xddcpResumeOffset as a side effect. 
 #
 function start_destination_xdd {
-    #echo "start_destination_xdd Args: $@" >/dev/stderr
+    #echo "start_destination_xdd Args: $@" 1>&2
     local srcPath=${1}
     local destPath=${2}
     local totalBytes=${3}
@@ -1498,7 +1498,7 @@ function transfer_file_list {
         "${destRemoteFlag}" "${destHostArray[0]}" "${destIPArray[0]}" "${destUser}"
     rc=$?
     if [ 0 -ne $rc ]; then
-	echo "INFO: Failure while creating destination directory ${destPath}"
+	echo "INFO: Failure while creating destination directory ${destPath}" 1>&2
 	error_exit $rc
     fi
 
@@ -1561,7 +1561,7 @@ function transfer_file_list {
                 echo "$srcFilePath to $destFilePath" >> ${progressFilePath}
             fi
 	else
-	    echo "INFO: Failure while transferring ${srcFilename} to ${destFilename}"
+	    echo "INFO: Failure while transferring ${srcFilename} to ${destFilename}" 1>&2
             return $rc
 	fi
         transferCount=$((transferCount + 1))
@@ -1614,10 +1614,10 @@ function transfer_recursive_file_list {
     # Check recursive transfer preconditions
     local fileList="${srcDirParent}/.${srcDirName}-$$.xrf"
     if [ -e "${fileList}" ]; then
-        echo "Cannot create file list, it already exists: $fileList"
+        echo "INFO: Cannot create file list, it already exists: $fileList" 1>&2
         error_exit $XDDCP_ERR_CODE_RECURSIVE_FAIL
     elif [ -w "${fileList}" ]; then
-        echo "Cannot create file list: $fileList"
+        echo "INFO: Cannot create file list: $fileList" 1>&2
         error_exit $XDDCP_ERR_CODE_RECURSIVE_FAIL
     fi
 
@@ -1717,7 +1717,7 @@ function transfer_file {
 	# Wait on the destination side
 	if [ 0 -ne $srcRC ]; then
 	    rc=$srcRC
-	    echo "INFO: Source-side XDD exited with an error: $srcRC"
+	    echo "INFO: Source-side XDD exited with an error: $srcRC" 1>&2
             kill -9 "${g_xddcpDestSSHPid}" 2> $XDDCP_DEV_NULL
         else
 	    wait
@@ -1725,8 +1725,8 @@ function transfer_file {
 
 	    if [ 0 -ne $destRC ]; then
 	        rc=$destRC
-	        echo "INFO: Destination-side XDD exited with an error: $destRC"
-	        echo "INFO: Source-side XDD exited with code: $srcRC"
+	        echo "INFO: Destination-side XDD exited with an error: $destRC" 1>&2
+	        echo "INFO: Source-side XDD exited with code: $srcRC" 1>&2
 	    else
 	        # Signal success
 	        rc=0
@@ -1734,7 +1734,7 @@ function transfer_file {
         fi
     else
 	rc=$destRC
-	echo "INFO: Destination-side XDD exited with an error during launch: $destRC"
+	echo "INFO: Destination-side XDD exited with an error during launch: $destRC" 1>&2
     fi
  
     return $rc
@@ -1812,7 +1812,7 @@ function xddcp_main {
 		    destDIOFlag=1
 		    srcDIOFlag=1
 		else
-                    echo "INFO: Unsupported dio argument: -$option $OPTARG"
+                    echo "INFO: Unsupported dio argument: -$option $OPTARG" 1>&2
                     error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		fi
                 ;;
@@ -1830,7 +1830,7 @@ function xddcp_main {
 		retryCount=$OPTARG
                 case $retryCount in
                     ''|*[!0-9]*)
-                        echo "INFO: Invalid number of retries: $retryCount"
+                        echo "INFO: Invalid number of retries: $retryCount" 1>&2
                         error_exit $XDDCP_ERR_CODE_INVALID_ARGS
                         ;;
                 esac
@@ -1845,7 +1845,7 @@ function xddcp_main {
 		    destOrderedFlag=1
 		    srcOrderedFlag=1
 		else
-                    echo "INFO: Unsupported order argument: -$option $OPTARG"
+                    echo "INFO: Unsupported order argument: -$option $OPTARG" 1>&2
                     error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		fi
                 ;;
@@ -1859,7 +1859,7 @@ function xddcp_main {
                 queueDepth="${OPTARG}"
                 case $queueDepth in
                     ''|*[!0-9]*) 
-                        echo "INFO: Invalid thread count: $queueDepth"
+                        echo "INFO: Invalid thread count: $queueDepth" 1>&2
                         error_exit $XDDCP_ERR_CODE_INVALID_ARGS
                         ;;
                 esac
@@ -1880,10 +1880,10 @@ function xddcp_main {
 		windowSize=$OPTARG
 		expr $windowSize + 1 >$XDDCP_DEV_NULL 2>&1
 		if [ $? -ne 0 ]; then
-			echo "INFO: Window size (-w arg) must be an integer."
+			echo "INFO: Window size (-w arg) must be an integer." 1>&2
 			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		elif [ $windowSize -le 0 ]; then
-			echo "INFO: Window size (-w arg) must be greater than zero."
+			echo "INFO: Window size (-w arg) must be greater than zero." 1>&2
 			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		fi
                 ;;
@@ -1895,29 +1895,29 @@ function xddcp_main {
 		windowSize=$OPTARG
 		expr $windowSize + 1 >$XDDCP_DEV_NULL 2>&1
 		if [ $? -ne 0 ]; then
-			echo "INFO: Window size (-w arg) must be an integer."
+			echo "INFO: Window size (-w arg) must be an integer." 1>&2
 			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		elif [ $windowSize -le 0 ]; then
-			echo "INFO: Window size (-w arg) must be greater than zero."
+			echo "INFO: Window size (-w arg) must be greater than zero." 1>&2
 			error_exit $XDDCP_ERR_CODE_INVALID_ARGS
 		fi
                 type -P XDDCP_IOTRACE_EXE
                 if [ $? -ne 0 ]; then
-                    echo "INFO: kernel trace mode requires the '$XDDCP_IOTRACE_EXE' command. Install or use -w option."
+                    echo "INFO: kernel trace mode requires the '$XDDCP_IOTRACE_EXE' command. Install or use -w option." 1>&2
                     error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
                 fi
                 if [ ! -c /dev/iotrace_data ]; then
-                    echo "INFO: kernel trace mode requires the '/dev/iotrace_data' device. Install or use -w option."
+                    echo "INFO: kernel trace mode requires the '/dev/iotrace_data' device. Install or use -w option." 1>&2
                     error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
                 fi
                 type -P XDDCP_IOTRACE_DECODE_EXE
                 if [ $? -ne 0 ]; then
-                    echo "INFO: kernel trace mode requires the '$XDDCP_IOTRACE_DECODE_EXE' command. Install or use -w option."
+                    echo "INFO: kernel trace mode requires the '$XDDCP_IOTRACE_DECODE_EXE' command. Install or use -w option." 1>&2
                     error_exit $XDDCP_ERR_CODE_MISSING_KERNEL_TRACE_COMPONENT
                 fi
                 ;;
             \?)
-                echo "INFO: Unsupported option: -$option $OPTARG"
+                echo "INFO: Unsupported option: -$option $OPTARG" 1>&2
                 error_exit $XDDCP_ERR_CODE_INVALID_ARGS
                 ;;
         esac
@@ -1927,7 +1927,7 @@ function xddcp_main {
     # The force flag only works on Linux, disable it everywhere else
     if [ 0 -ne $forceFlag -a "Linux" != "$(\uname)" ]; then
 	forceFlag=0
-	echo "Warning: File transfer forcing disabled for non-Linux platforms."
+	echo "Warning: File transfer forcing disabled for non-Linux platforms." 1>&2
     fi
 
     # Get the source path
@@ -2018,7 +2018,8 @@ function xddcp_main {
 	echo ""
 	echo "Transfer complete.  Verify results with md5sum."
     else
-	echo "Transfer failed.  Error code: ${transferRC}  Retries: $((retries-1)) of $retryCount"
+	echo "Transfer failed.  Error code: ${transferRC}  Retries: $((retries-1)) of $retryCount" 1>&2
+        error_exit ${transferRC}
     fi
     return "${transferRC}"
 }
