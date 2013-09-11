@@ -153,6 +153,7 @@ int tot_update(tot_t* table,
     // Do not update if a newer entry is using this slot
     if (tep->tot_op_number >= req_number) {
 	rc = -1;
+#ifdef ndef
 	fprintf(xgp->errout,
 		"%s: tot_update: Worker Thread %d: "
 		"WARNING: TOT Collision at entry %d, op number %"PRId64", "
@@ -166,6 +167,7 @@ int tot_update(tot_t* table,
 		req_number,
 		offset, offset/size,
 		tep->tot_update_worker_thread_number);
+#endif
     }
     else {
 	nclk_now(&tep->tot_update_ts);
