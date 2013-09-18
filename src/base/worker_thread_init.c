@@ -169,7 +169,15 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 	}
 
 	// Initialize the worker_thread ordering 
-	//status = pthread_cond_init(&wdp->wd_this_worker_thread_is_available_condition, 0);
+	status = pthread_cond_init(&wdp->wd_this_worker_thread_is_available_condition, 0);
+	if (status) {
+		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: WARNING: Bad status from pthread_cond_init on wd_this_worker_thread_is_available_condition : status=%d, errno=%d\n",
+			xgp->progname,
+			tdp->td_target_number,
+			wdp->wd_worker_number,
+			status,
+			errno);
+	}
 
 	// Indicate to the Target Thread that this WorkerThread is available
 	pthread_mutex_lock(&tdp->td_any_worker_thread_available_mutex);

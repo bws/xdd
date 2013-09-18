@@ -89,6 +89,7 @@ xdd_interactive(void *data) {
 			fprintf(stdout, "\nHuh?\n");
 			continue;
 		}
+fprintf(stderr,"received command: '%s' %d bytes\n",cmdline,len);
 		cp = cmdline;
 		// Skip over any leading white space in the command line
 		while ((*cp == TAB) || (*cp == SPACE)) cp++;
@@ -96,6 +97,7 @@ xdd_interactive(void *data) {
 		// Find out how many words/arguments are in the command line
 		tokens = xdd_tokenize(cp);
 
+fprintf(stderr,"parsing command: '%s' %d tokens\n",cmdline,tokens);
 		// Call xdd_interactive_parse_command() to execute this command
 		cmd_status = xdd_interactive_parse_command(tokens, cp, planp);
 
