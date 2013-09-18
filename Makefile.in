@@ -71,6 +71,7 @@ COMMON_DIR = $(SRC_DIR)/common
 COMPAT_DIR = $(SRC_DIR)/compat
 FS_DIR = $(SRC_DIR)/fs
 NET_DIR = $(SRC_DIR)/net
+XNET_DIR = $(SRC_DIR)/xnet
 PUBLIC_DIR = $(SRC_DIR)/public
 TOOLS_DIR = $(SRC_DIR)/tools
 XNI_DIR = $(SRC_DIR)/xni
@@ -89,13 +90,14 @@ include $(NET_DIR)/module.mk
 include $(PUBLIC_DIR)/module.mk
 include $(TOOLS_DIR)/module.mk
 include $(XNI_DIR)/module.mk
+include $(XNET_DIR)/module.mk
 
 #
 # Construct information from modules
 #
 XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) \
 	$(COMPAT_SRC) $(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) \
-	$(TOOLS_SRC) $(XNI_SRC)
+	$(TOOLS_SRC) $(XNI_SRC) $(XNET_SRC)
 
 #
 # XDD module build targets
