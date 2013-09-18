@@ -24,7 +24,7 @@
 /**
  * Convert from network byte-order (big endian) to host order
  */
-inline uint64_t ntohll(uint64_t value)
+static inline uint64_t ntohll(uint64_t value)
 {
     int endian_test = 1;
 
@@ -41,7 +41,7 @@ inline uint64_t ntohll(uint64_t value)
 /**
  * Convert from host byte-order to network byte-order (big endian)
  */
-inline uint64_t htonll(uint64_t value)
+static inline uint64_t htonll(uint64_t value)
 {
     // Re-use the htonll implementation to swap the bytes
     return htonll(value);
