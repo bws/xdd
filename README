@@ -1,19 +1,31 @@
-Build Instructions for Linux and AIX (currently, no other platforms supported).
+Build Instructions for XDD release
 --
+Supported OS:  Linux, AIX, OSX
 
-On Linux:
+On supported OS:
 > ./configure
 > make
 > make install
 
-On AIX (requires the xlc_r compiler):
-> ./configure
-> gmake
-> gmake install
+By default, XDD and supporting scripts are installed in /usr/bin and /usr/lib, 
+in order to change the installation path, use --prefix=<new path> during the 
+configure step.  By default, the following features are enabled: XFS support,
+NUMA support, and Infiniband support.  If you do not need these features, or
+cannot install the relevant support libraries, you can disable each of these
+features individually during configure with the following flags, respectively:
+--disable-xfs, --disable-numa, and --disable-ib.
 
-By default, XDD and supporting scripts are installed in /opt/xdd, in order
-to change the installation path, use --prefix=<new path> during the configure
-step.
+Build instructions for XDD repository code
+--
+If you are using the git repository version of XDD (i.e. you are a
+prospective XDD developer), you will need to add one more step during the 
+software build process.  We also suggest enabling debug mode.
+
+On supported OS:
+> autoconf
+> ./configure --enable-debug
+> make
+> make install
 
 XFS pre-allocation support
 --
