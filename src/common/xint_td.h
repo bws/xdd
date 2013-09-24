@@ -28,6 +28,7 @@
  *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
  *  and the wonderful people at I/O Performance, Inc.
  */
+#include "xni.h"
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the Target_Data Struct
 #define TO_READAFTERWRITE              0x0000000000000001ULL  // Read-After-Write - the -raw option 
@@ -182,6 +183,7 @@ struct xint_target_data {
 	struct stat64				td_statbuf;			// Target File Stat buffer used by xdd_target_open()
 #endif
 	int32_t				td_op_delay; 		// Number of seconds to delay between operations 
+	xni_protocol_t      *td_xni;
 };
 typedef struct xint_target_data target_data_t;
 

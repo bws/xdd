@@ -34,6 +34,7 @@
  */
 
 #include "xint.h"
+#include "xni.h"
 #include "parse.h"
 #include <ctype.h>
 
@@ -4942,6 +4943,60 @@ xddfunc_target_inout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fla
 //	}
     return(args);
 }
+
+int
+xddfunc_xni(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
+{
+	int args; 
+	int target_number;
+	char* xni_mode_str = 0;
+	xni_protocol_t* xni_proto = 0;
+
+	args = xdd_parse_target_number(planp, argc, &argv[0],
+								   flags, &target_number);
+	if (args < 0)
+		return(-1);
+
+	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
+		return(0);
+
+	/* Get the XNI Mode */
+	xni_mode_str = argv[args + 1];
+	if (0 == strcmp(xni_mode_str, "tcp"))
+		xni_proto = &xni_protocol_tcp;
+	else if (0 == strcmp(xni_mode_str, "ib"))
+		xni_proto = &xni_protocol_ib;
+	else {
+		fprintf(stderr, "Invalid XNI mode: %s\n", xni_mode_str);
+		return -1;
+	}
+	
+	/* Enable XNI in the plan */
+	planp->plan_options &= PLAN_ENABLE_XNI;
+
+	/* Add the XNI mode to relevant targets */
+	if (target_number >= 0) {
+		/* Set this option value for a specific target */
+		target_data_t *tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL)
+			return(-1);
+		tdp->td_xni = xni_proto;
+		return(args+2);
+	} else {
+        /* Put this option into all Targets */ 
+		if (flags & XDD_PARSE_PHASE2) {
+			target_data_t *tdp = planp->target_datap[0];
+			int i = 0;
+			while (tdp) {
+				tdp->td_xni = xni_proto;
+				i++;
+				tdp = planp->target_datap[i];
+			}
+		}
+		return(2);
+	}
+} // End of xddfunc_xni()
+
 /*
  * Local variables:
  *  indent-tabs-mode: t

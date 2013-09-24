@@ -831,6 +831,13 @@ xdd_func_t  xdd_func[] = {
             {"  see 'endtoend or e2e'\n",
             0,0,0,0},
 			XDD_FUNC_INVISIBLE},
+    {"xni", "xni",
+            xddfunc_xni,
+            1,
+            "  -xni tcp|ib\n",   
+            {" Enable XNI networking package rather than SWH sockets\n",
+            0,0,0,0},
+			XDD_FUNC_INVISIBLE},
     {0,0,0,0,0,{0,0,0,0,0},0}
 }; // This is the end of the command line options definitions
 
