@@ -32,8 +32,7 @@ typedef struct xni_protocol *xni_protocol_t;
 /*! \brief Opaque type representing a control block.
  *
  * Control blocks store settings specific to the underlying XNI
- * implementation (e.g. TCP). Every control block stores at least an
- * #xni_allocate_fn_t and an #xni_free_fn_t.
+ * implementation (e.g. TCP).
  */
 typedef void *xni_control_block_t;
 
@@ -150,6 +149,13 @@ int xni_context_destroy(xni_context_t *context);
  *
  * This function provides XNI drivers to perform optimizations based on
  * the adress of the memory buffers in use.
+ *
+ * \param[in,out] context The context to register the buffer with.
+ * \param[in] buf The memory buffer to register.
+ * \param[in] nbytes The total size of the buffer in bytes.
+ * \param[in] reserved The offset into the buffer at which the caller will
+ *  insert application data.  Although this seems backwards, it ensures both
+ *  the caller and XNI can align data per their own requirements.
  *
  * \return #XNI_OK if registration was successful.
  * \return #XNI_ERR if registration failed.

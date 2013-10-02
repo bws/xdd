@@ -47,6 +47,12 @@ xdd_e2e_target_init(target_data_t *tdp) {
 	xint_restart_t	*rp;	// pointer to a restart structure
 	int status;
 
+	// Perform XNI initialization if required
+	xdd_plan_t *planp = tdp->td_planp;
+	if (PLAN_ENABLE_XNI & planp->plan_options) {
+		xint_e2e_xni_init(tdp);
+	}
+	
 	// Init the sockets - This is actually just for Windows that requires some additional initting
 	status = xdd_sockets_init();
 	if (status == -1) {

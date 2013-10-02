@@ -29,6 +29,8 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 #include "xint.h"
+#include "xni.h"
+
 /*----------------------------------------------------------------------------*/
 /* xint_plan_data_initialization() - Initialize a xdd plan variables  
  */
@@ -87,6 +89,11 @@ xdd_plan_t* xint_plan_data_initialization() {
 int xint_plan_start(xdd_plan_t* planp, xdd_occupant_t* barrier_occupant) {
 	int rc;
 	
+	/* Initialize subsystems */
+	if (PLAN_ENABLE_XNI & planp->plan_options) {
+		xni_initialize();
+	}
+	
 	/* Initialize the plan barriers */
 	rc =  xdd_init_barrier(planp, &planp->main_general_init_barrier, 2,
 						   "main_general_init_barrier");
@@ -116,7 +123,7 @@ int xint_plan_start(xdd_plan_t* planp, xdd_occupant_t* barrier_occupant) {
 		xdd_destroy_all_barriers(planp);
 		return -1;
 	}
-	
+
 	/* Start the Results Manager */
 	xint_plan_start_results_manager(planp);
 
@@ -275,6 +282,15 @@ void xint_plan_start_interactive(xdd_plan_t *planp) {
 	}
 
 } // End of xdd_start_interactive()
+
+/*
+ * Plan finalize
+ */
+void xint_plan_finalize(xdd_plan_t *planp) {
+/* Initialize subsystems */
+	if (PLAN_ENABLE_XNI & planp->plan_options)
+		xni_finalize();
+}
 
 /*
  * Local variables:

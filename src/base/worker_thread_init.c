@@ -29,6 +29,7 @@
  *  and the wonderful people at I/O Performance, Inc.
  */
 #include "xint.h"
+#include "xni.h"
 
 #ifdef HAVE_SCHED_H
 #include <sched.h>
@@ -112,7 +113,8 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 	// The xdd_init_io_buffers() routine will set wd_bufp and wd_buf_size to appropriate values.
 	// The size of the buffer depends on whether it is being used for network
 	// I/O as in an End-to-end operation. For End-to-End operations, the size
-	// of the buffer is 1 page larger than for non-End-to-End operations.
+	// of the buffer is at least 1 page larger than for non-End-to-End
+	// operations.
 	//
 	// For normal (non-E2E operations) the buffer pointers are as follows:
 	//                   |<----------- wd_buf_size = N Pages ----------------->|
@@ -145,9 +147,24 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 	//	      +-e2e_hdrp 
 	//
 	if (tdp->td_target_options & TO_ENDTOEND) {
-		 wdp->wd_task.task_datap = bufp + getpagesize();
-		 wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
-		 wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (getpagesize() - sizeof(xdd_e2e_header_t)));
+
+		/* If this e2e transfer is xni, register the buffer */
+		 xdd_plan_t *planp = wdp->wd_tdp->td_planp;
+		 if (PLAN_ENABLE_XNI & planp->plan_options) {
+			 /* Mark everything after the first page as reserved */
+			 size_t reserve = wdp->wd_buf_size - getpagesize();
+			 xni_register_buffer(tdp->xni_ctx, bufp, wdp->wd_buf_size, reserve);
+			 /* The first page is XNI, the second page is E2E header */
+			 wdp->wd_task.task_datap = bufp + (2*getpagesize());
+			 wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
+			 wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (2*getpagesize() - sizeof(xdd_e2e_header_t)));
+		 }
+		 else {
+			 /* Use the first page for the E2E header */
+			 wdp->wd_task.task_datap = bufp + getpagesize();
+			 wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
+			 wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (getpagesize() - sizeof(xdd_e2e_header_t)));
+		 }
 	} else {
 		// For normal (non-E2E) operations the data portion is the entire buffer
 		wdp->wd_task.task_datap = bufp;

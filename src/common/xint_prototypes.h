@@ -418,6 +418,9 @@ void	xdd_start_heartbeat(xdd_plan_t *planp);
 void	xdd_start_restart_monitor(xdd_plan_t *planp);
 void	xdd_start_interactive(xdd_plan_t *planp);
 
+// xnet_end_to_end_init.c
+int32_t xint_e2e_xni_init(target_data_t *tdp);
+
 #endif
 /*
  * Local variables:

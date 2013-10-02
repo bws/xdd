@@ -4980,7 +4980,7 @@ xddfunc_xni(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		target_data_t *tdp = xdd_get_target_datap(planp, target_number, argv[0]);
 		if (tdp == NULL)
 			return(-1);
-		tdp->td_xni = xni_proto;
+		tdp->xni_pcl = *xni_proto;
 		return(args+2);
 	} else {
         /* Put this option into all Targets */ 
@@ -4988,7 +4988,7 @@ xddfunc_xni(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			target_data_t *tdp = planp->target_datap[0];
 			int i = 0;
 			while (tdp) {
-				tdp->td_xni = xni_proto;
+				tdp->xni_pcl = *xni_proto;
 				i++;
 				tdp = planp->target_datap[i];
 			}

@@ -183,7 +183,11 @@ struct xint_target_data {
 	struct stat64				td_statbuf;			// Target File Stat buffer used by xdd_target_open()
 #endif
 	int32_t				td_op_delay; 		// Number of seconds to delay between operations 
-	xni_protocol_t      *td_xni;
+
+	/* XNI Networking components */
+	xni_protocol_t      xni_pcl;
+	xni_control_block_t xni_cb;
+	xni_context_t xni_ctx;	
 };
 typedef struct xint_target_data target_data_t;
 
