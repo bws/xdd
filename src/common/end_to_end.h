@@ -44,6 +44,7 @@
 #ifdef HAVE_SCHED_H
 #include <sched.h>
 #endif
+#include "xni.h"
 
 #define HOSTNAMELENGTH 1024
 
@@ -132,6 +133,10 @@ struct xint_e2e {
 	int32_t				e2e_address_table_port_count;	// Cumulative number of ports represented in the e2e address table
 	int32_t				e2e_address_table_next_entry;	// Next available entry in the e2e_address_table
 	xdd_e2e_ate_t		e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]; // Used by E2E to stripe over multiple IP Addresses
+
+	/* XNI data */
+	xni_connection_t xni_conn;
+	xni_target_buffer_t xni_bufp;
 }; // End of struct xdd_e2e definition
 typedef struct xint_e2e xint_e2e_t;
 

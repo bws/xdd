@@ -204,7 +204,8 @@ static int ib_context_destroy(xni_context_t *ctx_)
   return XNI_OK;
 }
 
-static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved)
+static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved,
+							  xni_target_buffer_t* xtb)
 {
 	struct ib_context* ctx = (struct ib_context*)ctx_;
 	uintptr_t beginp = (uintptr_t)buf;
@@ -239,6 +240,9 @@ static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size
 	tb->connection = NULL;
 	ctx->num_registered++;
 	pthread_mutex_unlock(&ctx->target_buffers_mutex);
+
+	// Set the outbound target buffer
+	*xtb= (xni_target_buffer_t)&tb;
 	return XNI_OK;
 }
 

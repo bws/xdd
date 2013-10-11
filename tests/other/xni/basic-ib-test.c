@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "config.h"
 #include "xni.h"
 
 #define BUFFER_PREPADDING 4096
@@ -22,6 +23,7 @@ static int fail(int lineno)
 int start_server()
 {
     int rc = 0;
+#ifdef HAVE_INFINIBAND_VERBS_ENABLED
 
     // First, XNI initialization stuff
     xni_initialize();
@@ -34,10 +36,11 @@ int start_server()
     xni_context_create(xni_protocol_ib, xni_cb, &xni_ctx);
 
 	// Third, register the memroy
+	xni_target_buffer_t xtb = 0;
     void* buf = 0;
     posix_memalign(&buf, 4096, BUFFER_PREPADDING + 512);
     memset(buf, 2, BUFFER_PREPADDING + 512);
-    xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING);
+    xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING, &xtb);
     
     // Third, accept connections
     xni_endpoint_t xni_ep = {.host = DEFAULT_HOST, .port = 40000};
@@ -46,7 +49,6 @@ int start_server()
 		FAIL();
     
     // Now pass a little data back and forth
-	xni_target_buffer_t xtb = 0;
     if (xni_receive_target_buffer(xni_conn, &xtb))
 		FAIL();
 	char* payload = xni_target_buffer_data(xtb);
@@ -59,12 +61,16 @@ int start_server()
     xni_unregister_buffer(xni_ctx, buf);
     xni_finalize();
     free(buf);
-    return rc;
+#else
+	FAIL();
+#endif
+	return rc;
 }
 
 int start_client()
 {
     int rc = 0;
+#ifdef HAVE_INFINIBAND_VERBS_ENABLED
 	
     // First, XNI initialization stuff
     xni_initialize();
@@ -76,10 +82,11 @@ int start_client()
     xni_context_create(xni_protocol_ib, xni_cb, &xni_ctx);
  
 	// Third, register the buffers (1 per socket)
+	xni_target_buffer_t xtb = 0;
     void* buf = 0;
     posix_memalign(&buf, 4096, BUFFER_PREPADDING + 512);
     memset(buf, 3, BUFFER_PREPADDING + 512);
-	if (xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING))
+	if (xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING, &xtb))
 		FAIL();
 	
     // Fourth, connect to the server
@@ -89,7 +96,6 @@ int start_client()
  		FAIL();
 	
     // Now pass a little data back and forth
-	xni_target_buffer_t xtb = 0;
 	if (xni_request_target_buffer(xni_conn, &xtb)) FAIL();
 	xni_target_buffer_set_target_offset(0, xtb);
 	xni_target_buffer_set_data_length(512, xtb);
@@ -102,7 +108,9 @@ int start_client()
     // XNI cleanup stuff
     xni_finalize();
     free(buf);
-    
+#else
+	FAIL();
+#endif
     return rc;
 }
 

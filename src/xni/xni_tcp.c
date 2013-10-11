@@ -131,7 +131,7 @@ static int tcp_context_destroy(xni_context_t *ctx_)
   return XNI_OK;
 }
 
-static int tcp_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved) {
+static int tcp_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved, xni_target_buffer_t* tbp) {
 	struct tcp_context* ctx = (struct tcp_context*) ctx_;
     uintptr_t beginp = (uintptr_t)buf;
     uintptr_t datap = (uintptr_t)buf + (uintptr_t)reserved;
@@ -157,6 +157,9 @@ static int tcp_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, siz
 	ctx->registered_buffers[ctx->num_registered] = *tb;
 	ctx->num_registered++;
 	pthread_mutex_unlock(&ctx->buffer_mutex);
+
+	// Set the user's target buffer
+	*tbp = (xni_target_buffer_t)&(tb);
     return XNI_OK;
 }
 

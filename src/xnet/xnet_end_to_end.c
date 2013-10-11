@@ -76,7 +76,6 @@ xnet_e2e_src_send(worker_data_t *wdp) {
 	xint_e2e_t			*e2ep;		// Pointer to the E2E data struct
 	xdd_e2e_header_t	*e2ehp;		// Pointer to the E2E Header
 	int 				bytes_sent;		// Cumulative number of bytes sent 
-	int					send_size; 	// Number of bytes to send for each call to sendto()
 	int					sento_calls;	// Number of times sendto() has been called
 	int					max_xfer;
 	unsigned char 		*bufp;
@@ -114,26 +113,8 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 if (xgp->global_options & GO_DEBUG_E2E) xdd_show_e2e_header((xdd_e2e_header_t *)bufp);
 
 	nclk_now(&wdp->wd_counters.tc_current_net_start_time);
-	while (bytes_sent < e2ep->e2e_xfer_size) {
-		send_size = e2ep->e2e_xfer_size - bytes_sent;
-		if (send_size > max_xfer) 
-			send_size = max_xfer;
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: Actually sending <send_size> %d bytes: e2ep=%p: e2ehp=%p: e2e_datap=%p: bytes_sent=%d: e2ehp+bytes_sent=%p: first 8 bytes=0x%016llx\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, send_size,e2ep,e2ehp,e2ep->e2e_datap,(int)bytes_sent,bufp, *((unsigned long long int *)bufp));
-		e2ep->e2e_send_status = sendto(e2ep->e2e_sd,
-									   bufp,
-									   send_size, 
-									   0, 
-									   (struct sockaddr *)&e2ep->e2e_sname, 
-									   sizeof(struct sockaddr_in));
-		if (e2ep->e2e_send_status <= 0) {
-			xdd_e2e_err(wdp,"xdd_e2e_src_send","ERROR: error sending HEADER+DATA to destination\n");
-			return(-1);
-		}
-		bytes_sent += e2ep->e2e_send_status;
-		bufp += e2ep->e2e_send_status;
-		sento_calls++;
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: Sent %d of %d bytes - %d bytes sent so far: bufp=%p\n",(long long int)pclk_now(),  tdp->td_target_number, wdp->wd_worker_number, e2ep->e2e_send_status,e2ep->e2e_xfer_size,bytes_sent,bufp);
-	}
+	e2ep->e2e_send_status = xni_send_target_buffer(e2ep->xni_conn,
+												   &e2ep->xni_bufp);
 	nclk_now(&wdp->wd_counters.tc_current_net_end_time);
 	// Time stamp if requested
 	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {

@@ -25,9 +25,10 @@ int start_server()
     xni_context_create(xni_protocol_tcp, xni_cb, &xni_ctx);
 
 	// Third, register the memroy
+	xni_target_buffer_t xtb = 0;
     void* buf = 0;
     posix_memalign(&buf, 4096, BUFFER_PREPADDING + 512);
-    xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING);
+    xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING, &xtb);
     
     // Third, accept connections
     xni_ep.host = "127.0.0.1";
@@ -36,7 +37,6 @@ int start_server()
     xni_accept_connection(xni_ctx, &xni_ep, &xni_conn);
     
     // Now pass a little data back and forth
-	xni_target_buffer_t xtb = 0;
     xni_receive_target_buffer(xni_conn, &xtb);
 	char* payload = xni_target_buffer_data(xtb);
 	size_t l = xni_target_buffer_data_length(xtb);
@@ -66,9 +66,10 @@ int start_client()
     xni_context_create(xni_protocol_tcp, xni_cb, &xni_ctx);
  
 	// Third, register the buffers (1 per socket)
+	xni_target_buffer_t xtb = 0;
     void* buf = 0;
     posix_memalign(&buf, 4096, BUFFER_PREPADDING + 512);
-	xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING);
+	xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING, &xtb);
 	
     // Fourth, connect to the server
 	xni_ep.host = "127.0.0.1";
@@ -77,7 +78,6 @@ int start_client()
     xni_connect(xni_ctx, &xni_ep, &xni_conn);
 	
     // Now pass a little data back and forth
-	xni_target_buffer_t xtb = 0;
 	xni_request_target_buffer(xni_conn, &xtb);
 	xni_target_buffer_set_target_offset(0, xtb);
 	xni_target_buffer_set_data_length(512, xtb);
