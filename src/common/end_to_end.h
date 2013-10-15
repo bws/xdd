@@ -136,7 +136,7 @@ struct xint_e2e {
 
 	/* XNI data */
 	xni_connection_t xni_conn;
-	xni_target_buffer_t xni_bufp;
+	xni_target_buffer_t xni_buf;
 }; // End of struct xdd_e2e definition
 typedef struct xint_e2e xint_e2e_t;
 

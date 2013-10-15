@@ -153,7 +153,8 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 		 if (PLAN_ENABLE_XNI & planp->plan_options) {
 			 /* Mark everything after the first page as reserved */
 			 size_t reserve = wdp->wd_buf_size - getpagesize();
-			 xni_register_buffer(tdp->xni_ctx, bufp, wdp->wd_buf_size, reserve, &wdp->wd_e2ep->xni_bufp);
+			 xni_register_buffer(tdp->xni_ctx, bufp, wdp->wd_buf_size, reserve,
+								 &wdp->wd_e2ep->xni_buf);
 			 /* The first page is XNI, the second page is E2E header */
 			 wdp->wd_task.task_datap = bufp + (2*getpagesize());
 			 wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (2*getpagesize() - sizeof(xdd_e2e_header_t)));

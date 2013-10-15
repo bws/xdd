@@ -421,6 +421,9 @@ void	xdd_start_interactive(xdd_plan_t *planp);
 // xnet_end_to_end_init.c
 int32_t xint_e2e_xni_init(target_data_t *tdp);
 
+// xnet_end_to_end.c
+int32_t xint_e2e_xni_send(worker_data_t *wdp);
+int32_t xint_e2e_xni_recv(worker_data_t *wdp);
 #endif
 /*
  * Local variables:
