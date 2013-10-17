@@ -288,7 +288,7 @@ int xni_send_target_buffer(xni_connection_t connection, xni_target_buffer_t *buf
   * arrives and then returns that buffer in \e buffer. This function
   * will set the \e target_offset and \e data_length properties of the
   * target buffer before returning it.  The returned buffer is owned
-  * temporarily by the caller until it is relased by
+  * temporarily by the caller until it is released by
   * xni_release_target_buffer().
   *
   * If the source side has closed the connection then this function
