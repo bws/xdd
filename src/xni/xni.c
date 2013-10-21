@@ -52,9 +52,10 @@ int xni_close_connection(xni_connection_t* conn)
   return (*conn)->context->protocol->close_connection(conn);
 }
 
-int xni_request_target_buffer(xni_connection_t conn, xni_target_buffer_t* buffer)
+int xni_request_target_buffer(xni_context_t context,
+                              xni_target_buffer_t* buffer)
 {
-  return conn->context->protocol->request_target_buffer(conn, buffer);
+  return context->protocol->request_target_buffer(context, buffer);
 }
 
 int xni_send_target_buffer(xni_connection_t conn, xni_target_buffer_t* buffer)

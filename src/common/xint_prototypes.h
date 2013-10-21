@@ -162,7 +162,7 @@ void	xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 void	xdd_unlock_memory(unsigned char *bp, uint32_t bsize, char *sp);
 
 // net_utils.c
-int32_t	xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result);
+int32_t	xint_lookup_addr(const char *name, uint32_t flags, in_addr_t *result);
 
 // parse.c
 void					xdd_parse_args(xdd_plan_t* planp, int32_t argc, char *argv[], uint32_t flags);
@@ -422,6 +422,8 @@ void	xdd_start_interactive(xdd_plan_t *planp);
 int32_t xint_e2e_xni_init(target_data_t *tdp);
 
 // xnet_end_to_end.c
+int32_t xint_e2e_dest_connect(target_data_t *tdp);
+int32_t xint_e2e_src_connect(target_data_t *tdp);
 int32_t xint_e2e_xni_send(worker_data_t *wdp);
 int32_t xint_e2e_xni_recv(worker_data_t *wdp);
 #endif

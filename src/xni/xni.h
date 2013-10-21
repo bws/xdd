@@ -251,7 +251,8 @@ int xni_close_connection(xni_connection_t *connection);
  * temporarily owned by the caller until the buffer is passed to
  * xni_send_target_buffer() or xni_release_target_buffer().
  *
- * \param connection The <em>source-side connection</em> from which to request the buffer.
+ * \param contest The <em>source-side</em> context from which to request
+ *   the buffer.
  * \param[out] buffer The requested target buffer.
  *
  * \return #XNI_OK if a target buffer was reserved.
@@ -259,7 +260,7 @@ int xni_close_connection(xni_connection_t *connection);
  *
  * \sa xni_send_target_buffer();
  */
-int xni_request_target_buffer(xni_connection_t connection, xni_target_buffer_t *buffer);
+int xni_request_target_buffer(xni_context_t ctx, xni_target_buffer_t *buffer);
 /*! \brief Send a target buffer to the remote process.
  *
  * This function transfers the target buffer \e buffer to the remote

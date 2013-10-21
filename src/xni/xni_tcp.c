@@ -344,16 +344,12 @@ static int tcp_close_connection(xni_connection_t *conn_)
   return XNI_OK;
 }
 
-static int tcp_request_target_buffer(xni_connection_t conn_, xni_target_buffer_t *targetbuf_)
+static int tcp_request_target_buffer(xni_context_t ctx_, xni_target_buffer_t *targetbuf_)
 {
-  struct tcp_connection *conn = (struct tcp_connection*)conn_;
-  struct tcp_context *ctx = (struct tcp_context*)conn_->context;
+  struct tcp_context *ctx = (struct tcp_context*)ctx_;
   struct tcp_target_buffer **targetbuf = (struct tcp_target_buffer**)targetbuf_;
-
-  if (conn->destination)
-	  return XNI_ERR;
-
   struct tcp_target_buffer *tb = NULL;
+  
   pthread_mutex_lock(&ctx->buffer_mutex);
   while (tb == NULL) {
 	  for (size_t i = 0; i < ctx->num_registered; i++) {

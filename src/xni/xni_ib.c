@@ -882,16 +882,13 @@ static int ib_close_connection(xni_connection_t *conn_)
   return XNI_OK;
 }
 
-static int ib_request_target_buffer(xni_connection_t conn_, xni_target_buffer_t *targetbuf_)
+static int ib_request_target_buffer(xni_context_t ctx_, xni_target_buffer_t *targetbuf_)
 {
-	struct ib_connection *conn = (struct ib_connection*)conn_;
+	struct ib_context *ctx = (struct ib_context*)ctx_;
 	struct ib_target_buffer **targetbuf = (struct ib_target_buffer**)targetbuf_;
 
-	if (conn->destination)
-		return XNI_ERR;
-
 	struct ib_target_buffer *tb = NULL;
-	pthread_mutex_lock(&conn->context->busy_flag_mutex);
+	pthread_mutex_lock(&ctx->busy_flag_mutex);
 	while (tb == NULL) {
 		for (size_t i = 0; i < conn->context->num_registered; i++) {
 			struct ib_target_buffer* ptr = conn->context->target_buffers + i;
@@ -903,10 +900,10 @@ static int ib_request_target_buffer(xni_connection_t conn_, xni_target_buffer_t 
 			}
 		}
 		if (tb == NULL)
-			pthread_cond_wait(&conn->context->busy_flag_cond,
-							  &conn->context->busy_flag_mutex);
+			pthread_cond_wait(&ctx->busy_flag_cond,
+							  &ctx->busy_flag_mutex);
 	}
-	pthread_mutex_unlock(&conn->context->busy_flag_mutex);
+	pthread_mutex_unlock(&ctx->busy_flag_mutex);
     
 	*targetbuf = tb;
 	return XNI_OK;

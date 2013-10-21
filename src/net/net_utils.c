@@ -74,8 +74,7 @@ static struct {
  * 
  * Return values: 0 is good, -1 is bad
  */
-int32_t
-xdd_lookup_addr(const char *name, uint32_t flags, in_addr_t *result)
+int32_t xint_lookup_addr(const char *name, uint32_t flags, in_addr_t *result)
 {
 	in_addr_t addr = INADDR_LOOPBACK;
 	int hit = 0, found = 0;

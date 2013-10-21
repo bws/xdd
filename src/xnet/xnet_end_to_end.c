@@ -43,6 +43,40 @@
 #define de2eprintf(...)
 #endif
 
+int32_t xint_e2e_src_connect(target_data_t *tdp) {
+
+	int rc;
+
+	/* Resolve name to an IP */
+	rc = xint_lookup_addr(tdp->td_e2ep->e2e_dest_hostname, 0,
+						  &tdp->td_e2ep->e2e_dest_addr);
+	struct in_addr addr = { .s_addr = tdp->td_e2ep->e2e_dest_addr };
+	char* ip_string = inet_ntoa(addr);
+	
+	/* Create an XNI endpoint from the e2e spec */
+	xni_endpoint_t xep = {.host = ip_string,
+						  .port = tdp->td_e2ep->e2e_dest_port};
+	rc = xni_connect(tdp->xni_ctx, &xep, &tdp->td_e2ep->xni_td_conn);
+	return rc;
+}
+
+int32_t xint_e2e_dest_connect(target_data_t *tdp) {
+
+	int rc;
+
+	/* Resolve name to an IP */
+	rc = xint_lookup_addr(tdp->td_e2ep->e2e_dest_hostname, 0,
+						  &tdp->td_e2ep->e2e_dest_addr);
+	struct in_addr addr = { .s_addr = tdp->td_e2ep->e2e_dest_addr };
+	char* ip_string = inet_ntoa(addr);
+	
+	/* Create an XNI endpoint from the e2e spec */
+	xni_endpoint_t xep = {.host = ip_string,
+						  .port = tdp->td_e2ep->e2e_dest_port};
+	rc = xni_accept_connection(tdp->xni_ctx, &xep, &tdp->td_e2ep->xni_td_conn);
+	return rc;
+}
+
 /*
  * xint_e2e_xni_send() - send the data from source to destination 
  *  Using XNI makes sending a bit weird.  The worker thread read a piece
@@ -65,26 +99,11 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 	//int					sento_calls; // Number of times sendto() has been called
 	xdd_ts_tte_t		*ttep;		// Pointer to a time stamp table entry
 
-	/* First transfer the task information into the e2e header */
-	e2ep = wdp->wd_e2ep;
-	e2ehp = e2ep->e2e_hdrp;
-	e2ehp->e2eh_worker_thread_number = wdp->wd_worker_number;
-	e2ehp->e2eh_sequence_number = wdp->wd_task.task_op_number;
-	e2ehp->e2eh_byte_offset = wdp->wd_task.task_byte_offset;
-	e2ehp->e2eh_data_length = wdp->wd_task.task_xfer_size;
-	
-	/* Release the current target buffer */
-	xni_release_target_buffer(&wdp->wd_e2ep->xni_buf);
-	
-	/* Request a target buffer (with an e2e header intact) */
-	xni_request_target_buffer(wdp->wd_e2ep->xni_conn, &wdp->wd_e2ep->xni_buf);
-	uintptr_t xtb_bufp = (uintptr_t)xni_target_buffer_data(wdp->wd_e2ep->xni_buf);
-	wdp->wd_task.task_datap = (unsigned char*)(xtb_bufp + (2*getpagesize()));
-	wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(xtb_bufp + (2*getpagesize() - sizeof(xdd_e2e_header_t)));
-	wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
-
 	/* Local aliases */
 	tdp = wdp->wd_tdp;
+	e2ep = wdp->wd_e2ep;
+	e2ehp = e2ep->e2e_hdrp;
+	
 	de2eprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: ENTER: e2ep=%p: e2ehp=%p: e2e_datap=%p\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep, e2ehp, e2ep->e2e_datap);
 
     /* Some timestamp code */
@@ -103,8 +122,8 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 	//if (xgp->global_options & GO_DEBUG_E2E) xdd_show_e2e_header((xdd_e2e_header_t *)bufp);
 
 	nclk_now(&wdp->wd_counters.tc_current_net_start_time);
-	e2ep->e2e_send_status = xni_send_target_buffer(e2ep->xni_conn,
-												   &e2ep->xni_buf);
+	e2ep->e2e_send_status = xni_send_target_buffer(tdp->td_e2ep->xni_td_conn,
+												   &e2ep->xni_wd_buf);
 	nclk_now(&wdp->wd_counters.tc_current_net_end_time);
 	// Time stamp if requested
 	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
@@ -125,7 +144,6 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 	//}
 
 	de2eprintf("DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: EXIT...\n",(long long int)pclk_now(),tdp->td_target_number, wdp->wd_worker_number);
-
 
     return(0);
 
@@ -149,23 +167,24 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 	nclk_t 				e2e_wait_1st_msg_start_time; // This is the time stamp of when the first message arrived
 	xdd_ts_tte_t		*ttep;		// Pointer to a time stamp table entry
 	
-	/* Release the current target buffer */
-	xni_release_target_buffer(&wdp->wd_e2ep->xni_buf);
+	/* Release the current target buffer to XNI */
+	xni_release_target_buffer(&wdp->wd_e2ep->xni_wd_buf);
 
 	/* Collect the begin time */
 	nclk_now(&e2e_wait_1st_msg_start_time);
 	wdp->wd_counters.tc_current_net_start_time = e2e_wait_1st_msg_start_time;
 
 	/* Receive a target buffer and assemble it into the wdp */
-	status = xni_receive_target_buffer(wdp->wd_e2ep->xni_conn,
-									   &wdp->wd_e2ep->xni_buf);
-	uintptr_t bufp = (uintptr_t)xni_target_buffer_data(wdp->wd_e2ep->xni_buf);
+	tdp = wdp->wd_tdp;
+	status = xni_receive_target_buffer(tdp->td_e2ep->xni_td_conn,
+									   &wdp->wd_e2ep->xni_wd_buf);
+	uintptr_t bufp =
+		(uintptr_t)xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
 	wdp->wd_task.task_datap = (unsigned char*)(bufp + (2*getpagesize()));
 	wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (2*getpagesize() - sizeof(xdd_e2e_header_t)));
 	wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
 
 	/* Local aliases */
-	tdp = wdp->wd_tdp;
 	e2ep = wdp->wd_e2ep;
 	e2ehp = e2ep->e2e_hdrp;
 

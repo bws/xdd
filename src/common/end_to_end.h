@@ -84,10 +84,27 @@ typedef struct xdd_e2e_address_table xdd_e2e_at_t;
 
 #define MAXMIT_TCP     (1<<28)
 
-// -------------------------------------------------------------------
-// The xdd_e2e structure contains variables that are referenced by the 
-// target thread and worker threads. 
-//
+/*
+ * The xint_td_e2e structure contains variables that are referenced by the 
+ * target thread.
+ */
+struct xint_td_e2e {
+	char				*e2e_dest_hostname; 	// Name of the Destination machine 
+	char				*e2e_src_hostname; 		// Name of the Source machine 
+	char				*e2e_src_file_path;     // Full path of source file for destination restart file 
+	time_t				e2e_src_file_mtime;     // stat -c %Y *e2e_src_file_path, i.e., last modification time
+	in_addr_t			e2e_dest_addr;  		// Destination Address number of the E2E socket 
+	in_port_t			e2e_dest_port;  		// Port number to use for the E2E socket 
+
+	/* XNI data */
+	xni_connection_t xni_conn;
+};
+typedef struct xint_td_e2e xint_td_e2e_t;
+	
+/*
+ * The xint_e2e structure contains variables that are referenced by the 
+ * target thread and worker thread.
+ */
 struct xint_e2e {
 	char				*e2e_dest_hostname; 	// Name of the Destination machine 
 	char				*e2e_src_hostname; 		// Name of the Source machine 
@@ -134,10 +151,12 @@ struct xint_e2e {
 	int32_t				e2e_address_table_next_entry;	// Next available entry in the e2e_address_table
 	xdd_e2e_ate_t		e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]; // Used by E2E to stripe over multiple IP Addresses
 
-	/* XNI data */
-	xni_connection_t xni_conn;
-	xni_target_buffer_t xni_buf;
-}; // End of struct xdd_e2e definition
+	/* XNI Target data */
+	xni_connection_t xni_td_conn;
+
+	/* XNI Worker data */
+	xni_target_buffer_t xni_wd_buf;
+}; // End of struct xint_e2e definition
 typedef struct xint_e2e xint_e2e_t;
 
 /*

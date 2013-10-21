@@ -51,14 +51,24 @@ xdd_e2e_target_init(target_data_t *tdp) {
 	xdd_plan_t *planp = tdp->td_planp;
 	if (PLAN_ENABLE_XNI & planp->plan_options) {
 		xint_e2e_xni_init(tdp);
+
+		/* Perform the XNI accept/connect */
+		if (tdp->td_target_options & TO_E2E_DESTINATION) { 
+			status = xint_e2e_dest_connect(tdp);
+		} else {
+			status = xint_e2e_src_connect(tdp);
+		}
+	}
+	else {
+	
+		// Init the sockets - This is actually just for Windows that requires some additional initting
+		status = xdd_sockets_init();
+		if (status == -1) {
+			fprintf(xgp->errout,"%s: xdd_e2e_target_init: could not initialize sockets for e2e target\n",xgp->progname);
+			return(-1);
+		}
 	}
 	
-	// Init the sockets - This is actually just for Windows that requires some additional initting
-	status = xdd_sockets_init();
-	if (status == -1) {
-		fprintf(xgp->errout,"%s: xdd_e2e_target_init: could not initialize sockets for e2e target\n",xgp->progname);
-		return(-1);
-	}
 	// Restart processing if necessary
 	if ((tdp->td_target_options & TO_RESTART_ENABLE) && (tdp->td_restartp)) { // Check to see if restart was requested
 		// Set the last_committed_byte_offset to 0
@@ -100,7 +110,7 @@ xdd_e2e_worker_init(worker_data_t *wdp) {
 	}
 
 	// Get the IP address of the destination host
-	status = xdd_lookup_addr(wdp->wd_e2ep->e2e_dest_hostname, 0, &addr);
+	status = xint_lookup_addr(wdp->wd_e2ep->e2e_dest_hostname, 0, &addr);
 	if (status) {
 		fprintf(xgp->errout, "%s: xdd_e2e_worker_init: unable to identify host '%s'\n",
 				xgp->progname, wdp->wd_e2ep->e2e_dest_hostname);
@@ -152,11 +162,16 @@ xdd_e2e_src_init(worker_data_t *wdp) {
 		return(-1);
 	}
 
-	status = xdd_e2e_setup_src_socket(wdp);
-	if (status == -1){
-		xdd_e2e_err(wdp,"xdd_e2e_src_init","could not setup sockets for e2e source\n");
-		return(-1);
+	/* Only setup sockets if not using XNI */
+	xdd_plan_t *planp = tdp->td_planp;
+	if (!(PLAN_ENABLE_XNI & planp->plan_options)) {
+		status = xdd_e2e_setup_src_socket(wdp);
+		if (status == -1){
+			xdd_e2e_err(wdp,"xdd_e2e_src_init","could not setup sockets for e2e source\n");
+			return(-1);
+		}
 	}
+	
 	// Init the relevant variables 
 	e2ep->e2e_msg_sent = 0;
 	e2ep->e2e_msg_sequence_number = 0;
@@ -277,42 +292,46 @@ xdd_e2e_dest_init(worker_data_t *wdp) {
 		return(-1);
 	}
 	
-	/* Set up the destination-side sockets */
-	status = xdd_e2e_setup_dest_socket(wdp);
-	if (status == -1) {
-		xdd_e2e_err(wdp,"xdd_e2e_dest_init","could not init e2e destination socket\n");
-		return(-1);
-	}
+	/* Only setup sockets if not using XNI */
+	xdd_plan_t *planp = tdp->td_planp;
+	if (!(PLAN_ENABLE_XNI & planp->plan_options)) {
+		status = xdd_e2e_setup_dest_socket(wdp);
+		if (status == -1){
+			xdd_e2e_err(wdp,"xdd_e2e_dest_init","could not setup sockets for e2e destination\n");
+			return(-1);
+		}
 
-	// Set up the descriptor table for the select() call
-	// This section is used when we are using TCP 
-	/* clear out the csd table */
-	for (wdp->wd_e2ep->e2e_current_csd = 0; wdp->wd_e2ep->e2e_current_csd < FD_SETSIZE; wdp->wd_e2ep->e2e_current_csd++)
-		wdp->wd_e2ep->e2e_csd[wdp->wd_e2ep->e2e_current_csd] = 0;
+		// Set up the descriptor table for the select() call
+		// This section is used when we are using TCP 
+		/* clear out the csd table */
+		for (wdp->wd_e2ep->e2e_current_csd = 0; wdp->wd_e2ep->e2e_current_csd < FD_SETSIZE; wdp->wd_e2ep->e2e_current_csd++)
+			wdp->wd_e2ep->e2e_csd[wdp->wd_e2ep->e2e_current_csd] = 0;
 
-	// Set the current and next csd indices to 0
-	wdp->wd_e2ep->e2e_current_csd = wdp->wd_e2ep->e2e_next_csd = 0;
+		// Set the current and next csd indices to 0
+		wdp->wd_e2ep->e2e_current_csd = wdp->wd_e2ep->e2e_next_csd = 0;
 
-	/* Initialize the socket sets for select() */
-	FD_ZERO(&wdp->wd_e2ep->e2e_readset);
-	FD_SET(wdp->wd_e2ep->e2e_sd, &wdp->wd_e2ep->e2e_readset);
-	wdp->wd_e2ep->e2e_active = wdp->wd_e2ep->e2e_readset;
-	wdp->wd_e2ep->e2e_current_csd = wdp->wd_e2ep->e2e_next_csd = 0;
+		/* Initialize the socket sets for select() */
+		FD_ZERO(&wdp->wd_e2ep->e2e_readset);
+		FD_SET(wdp->wd_e2ep->e2e_sd, &wdp->wd_e2ep->e2e_readset);
+		wdp->wd_e2ep->e2e_active = wdp->wd_e2ep->e2e_readset;
+		wdp->wd_e2ep->e2e_current_csd = wdp->wd_e2ep->e2e_next_csd = 0;
 
-	/* Find out how many sockets are in each set (berkely only) */
+		/* Find out how many sockets are in each set (berkely only) */
 #if (IRIX || WIN32 )
-	wdp->wd_e2ep->e2e_nd = getdtablehi();
+		wdp->wd_e2ep->e2e_nd = getdtablehi();
 #endif
 #if (LINUX || DARWIN)
-	wdp->wd_e2ep->e2e_nd = getdtablesize();
+		wdp->wd_e2ep->e2e_nd = getdtablesize();
 #endif
 #if (AIX)
-	wdp->wd_e2ep->e2e_nd = FD_SETSIZE;
+		wdp->wd_e2ep->e2e_nd = FD_SETSIZE;
 #endif
 #if (SOLARIS )
-	wdp->wd_e2ep->e2e_nd = FD_SETSIZE;
+		wdp->wd_e2ep->e2e_nd = FD_SETSIZE;
 #endif
 
+	}
+	
 	// Initialize the message counter and sequencer to 0
 	wdp->wd_e2ep->e2e_msg_recv = 0;
 	wdp->wd_e2ep->e2e_msg_sequence_number = 0;
@@ -502,8 +521,7 @@ xdd_e2e_err(worker_data_t *wdp, char const *whence, char const *fmt, ...) {
  * (and verifying) a WinSock DLL version 2.2 environment was
  * present, and it worked, so I kept it that way.
  */
-int32_t
-xdd_sockets_init(void) {
+int32_t xdd_sockets_init(void) {
 #ifdef WIN32
 	WSADATA wsaData; /* Data structure used by WSAStartup */
 	int wsastatus; /* status returned by WSAStartup */

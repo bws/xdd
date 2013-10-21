@@ -14,7 +14,7 @@ struct xni_protocol {
     int (*connect)(xni_context_t, struct xni_endpoint*, xni_connection_t*);
     int (*close_connection)(xni_connection_t*);
 
-    int (*request_target_buffer)(xni_connection_t, xni_target_buffer_t*);
+    int (*request_target_buffer)(xni_context_t, xni_target_buffer_t*);
     int (*send_target_buffer)(xni_connection_t, xni_target_buffer_t*);
     int (*receive_target_buffer)(xni_connection_t, xni_target_buffer_t*);
     int (*release_target_buffer)(xni_target_buffer_t*);
