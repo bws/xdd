@@ -134,7 +134,7 @@ static int tcp_context_destroy(xni_context_t *ctx_)
 static int tcp_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved, xni_target_buffer_t* tbp) {
 	struct tcp_context* ctx = (struct tcp_context*) ctx_;
     uintptr_t beginp = (uintptr_t)buf;
-    uintptr_t datap = (uintptr_t)buf + (uintptr_t)reserved;
+    uintptr_t datap = (uintptr_t)buf + (uintptr_t)(nbytes - reserved);
     size_t avail = (size_t)(datap - beginp);
 
 	// Make sure space exists in the registered buffers array

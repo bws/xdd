@@ -58,6 +58,10 @@ xdd_e2e_target_init(target_data_t *tdp) {
 		} else {
 			status = xint_e2e_src_connect(tdp);
 		}
+		if (0 != status) {
+			fprintf(xgp->errout, "Failure during XNI connection.\n");
+			return -1;
+		}
 	}
 	else {
 	

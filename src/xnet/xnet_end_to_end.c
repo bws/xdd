@@ -35,9 +35,10 @@
 #include "xint.h"
 
 /* Generate a useful debug macro */
+#define DEBUG 1
 #if DEBUG
 #define dprintf(flag, ...) if (xgp->global_options & (flag)) fprintf(stderr, __VA_ARGS__)
-#define de2eprintf() dprintf(GO_DEBUG_E2E)
+#define de2eprintf(...) dprintf(GO_DEBUG_E2E, __VA_ARGS__)
 #else
 #define dprintf(...)
 #define de2eprintf(...)
@@ -45,35 +46,60 @@
 
 int32_t xint_e2e_src_connect(target_data_t *tdp) {
 
-	int rc;
-
+	int rc = 0;
+	int e2e_idx = 0;
+	
+	/* Loop through the available addresses, and connect */
+	while (0 == tdp->td_e2ep->e2e_address_table[e2e_idx].port_count)
+		e2e_idx++;
+	
 	/* Resolve name to an IP */
-	rc = xint_lookup_addr(tdp->td_e2ep->e2e_dest_hostname, 0,
+	rc = xint_lookup_addr(tdp->td_e2ep->e2e_address_table[e2e_idx].hostname, 0,
 						  &tdp->td_e2ep->e2e_dest_addr);
 	struct in_addr addr = { .s_addr = tdp->td_e2ep->e2e_dest_addr };
 	char* ip_string = inet_ntoa(addr);
+	fprintf(xgp->errout, "Dest host: %s Connect IP: %s Port: %d\n", tdp->td_e2ep->e2e_address_table[e2e_idx].hostname, ip_string, tdp->td_e2ep->e2e_address_table[e2e_idx].base_port);
 	
 	/* Create an XNI endpoint from the e2e spec */
 	xni_endpoint_t xep = {.host = ip_string,
-						  .port = tdp->td_e2ep->e2e_dest_port};
+						  .port = tdp->td_e2ep->e2e_address_table[e2e_idx].base_port};
 	rc = xni_connect(tdp->xni_ctx, &xep, &tdp->td_e2ep->xni_td_conn);
+	return rc;
+}
+
+int32_t xint_e2e_src_disconnect(target_data_t *tdp) {
+
+	/* Perform XNI disconnect */
+	int rc = xni_close_connection(&tdp->td_e2ep->xni_td_conn);
 	return rc;
 }
 
 int32_t xint_e2e_dest_connect(target_data_t *tdp) {
 
-	int rc;
+	int rc = 0;
+	int e2e_idx = 0;
 
+	/* Loop through the available addresses, and connect */
+	while (0 == tdp->td_e2ep->e2e_address_table[e2e_idx].port_count)
+		e2e_idx++;
+	
 	/* Resolve name to an IP */
-	rc = xint_lookup_addr(tdp->td_e2ep->e2e_dest_hostname, 0,
+	rc = xint_lookup_addr(tdp->td_e2ep->e2e_address_table[e2e_idx].hostname, 0,
 						  &tdp->td_e2ep->e2e_dest_addr);
 	struct in_addr addr = { .s_addr = tdp->td_e2ep->e2e_dest_addr };
 	char* ip_string = inet_ntoa(addr);
 	
 	/* Create an XNI endpoint from the e2e spec */
 	xni_endpoint_t xep = {.host = ip_string,
-						  .port = tdp->td_e2ep->e2e_dest_port};
+						  .port = tdp->td_e2ep->e2e_address_table[e2e_idx].base_port};
 	rc = xni_accept_connection(tdp->xni_ctx, &xep, &tdp->td_e2ep->xni_td_conn);
+	return rc;
+}
+
+int32_t xint_e2e_dest_disconnect(target_data_t *tdp) {
+
+	/* Perform XNI disconnect */
+	int rc = xni_close_connection(&tdp->td_e2ep->xni_td_conn);
 	return rc;
 }
 
@@ -104,7 +130,7 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 	e2ep = wdp->wd_e2ep;
 	e2ehp = e2ep->e2e_hdrp;
 	
-	de2eprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: ENTER: e2ep=%p: e2ehp=%p: e2e_datap=%p\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep, e2ehp, e2ep->e2e_datap);
+	de2eprintf("DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: ENTER: e2ep=%p: e2ehp=%p: e2e_datap=%p\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep, e2ehp, e2ep->e2e_datap);
 
     /* Some timestamp code */
 	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
@@ -112,18 +138,27 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 		ttep->tte_net_processor_start = xdd_get_processor();
 	}
 
-	/* The transfer size is the size of the header buffer (not the header
-	   struct) plus the amount of data in the data portion of the IO buffer.
-	   For EOF operations the amount of data in the data portion should be
-	   zero. */
+	/* Construct the e2e header */
+	e2ehp->e2eh_worker_thread_number = wdp->wd_worker_number;
+	e2ehp->e2eh_sequence_number = wdp->wd_task.task_op_number;
+	e2ehp->e2eh_byte_offset = wdp->wd_task.task_byte_offset;
+	e2ehp->e2eh_data_length = wdp->wd_task.task_xfer_size;
 	e2ep->e2e_xfer_size = sizeof(xdd_e2e_header_t) + e2ehp->e2eh_data_length;
+	e2ep->e2e_xfer_size = getpagesize() + e2ehp->e2eh_data_length;
 
 	de2eprintf("DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: Preparing to send %d bytes: e2ep=%p: e2ehp=%p: e2e_datap=%p: e2e_xfer_size=%d: e2eh_data_length=%lld\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep->e2e_xfer_size,e2ep,e2ehp,e2ep->e2e_datap,e2ep->e2e_xfer_size,(long long int)e2ehp->e2eh_data_length);
-	//if (xgp->global_options & GO_DEBUG_E2E) xdd_show_e2e_header((xdd_e2e_header_t *)bufp);
+	if (xgp->global_options & GO_DEBUG_E2E) xdd_show_e2e_header((xdd_e2e_header_t *)xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf));
 
 	nclk_now(&wdp->wd_counters.tc_current_net_start_time);
-	e2ep->e2e_send_status = xni_send_target_buffer(tdp->td_e2ep->xni_td_conn,
-												   &e2ep->xni_wd_buf);
+	xni_target_buffer_set_data_length(e2ep->e2e_xfer_size, e2ep->xni_wd_buf);
+	xni_target_buffer_set_target_offset(e2ehp->e2eh_byte_offset, e2ep->xni_wd_buf);
+	/* Don't send magic eof anymore */
+	if (XDD_E2E_EOF != e2ehp->e2eh_magic) {
+	    e2ep->e2e_send_status = xni_send_target_buffer(tdp->td_e2ep->xni_td_conn,
+													   &e2ep->xni_wd_buf);
+	} else {
+		e2ep->e2e_send_status = e2ep->e2e_xfer_size;
+	}
 	nclk_now(&wdp->wd_counters.tc_current_net_end_time);
 	// Time stamp if requested
 	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
@@ -178,11 +213,37 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 	tdp = wdp->wd_tdp;
 	status = xni_receive_target_buffer(tdp->td_e2ep->xni_td_conn,
 									   &wdp->wd_e2ep->xni_wd_buf);
-	uintptr_t bufp =
-		(uintptr_t)xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
-	wdp->wd_task.task_datap = (unsigned char*)(bufp + (2*getpagesize()));
-	wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (2*getpagesize() - sizeof(xdd_e2e_header_t)));
-	wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
+
+	if (XNI_OK == status) {
+		/* Assemble pointers into the worker's target buffer */
+		uintptr_t bufp =
+			(uintptr_t)xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
+		//for (int i = 0; i < 256; i++) {
+		//	printf("8 bytes %ld: %d\n", bufp + i, *((int*)bufp + i));
+		//}
+		wdp->wd_task.task_datap = (unsigned char*)(bufp + (1*getpagesize()));
+		wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (1*getpagesize() - sizeof(xdd_e2e_header_t)));
+		wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
+	}
+	else if (XNI_EOF == status) {
+		/* No buffer set on EOF, so just get an available one */
+		xni_request_target_buffer(tdp->xni_ctx, &wdp->wd_e2ep->xni_wd_buf);
+		uintptr_t bufp =
+		    (uintptr_t)xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
+		wdp->wd_task.task_datap = (unsigned char*)(bufp + (1*getpagesize()));
+		wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (1*getpagesize() - sizeof(xdd_e2e_header_t)));
+		wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
+
+		/* Perform EOF Assembly */
+		wdp->wd_e2ep->e2e_hdrp->e2eh_magic = XDD_E2E_EOF;
+	} else {
+		fprintf(xgp->errout, "Error receiving data via XNI.");
+		return -1;
+	}
+
+	//de2eprintf("DEBUG_E2E: %lld: xdd_e2e_dest_recv: Target: %d: Worker: %d: Preparing to send %d bytes: e2ep=%p: e2ehp=%p: e2e_datap=%p: e2e_xfer_size=%d: e2eh_data_length=%lld\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep->e2e_xfer_size,e2ep,e2ehp,e2ep->e2e_datap,e2ep->e2e_xfer_size,(long long int)e2ehp->e2eh_data_length);
+	//xgp->global_options |= GO_DEBUG_E2E;
+	//if (xgp->global_options & GO_DEBUG_E2E) xdd_show_e2e_header(wdp->wd_e2ep->e2e_hdrp);
 
 	/* Local aliases */
 	e2ep = wdp->wd_e2ep;
@@ -193,7 +254,7 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 
 	/* Store timing data */
 	e2ep->e2e_sr_time = (wdp->wd_counters.tc_current_net_end_time - wdp->wd_counters.tc_current_net_start_time);
-	e2ehp->e2eh_recv_time = wdp->wd_counters.tc_current_net_end_time; // This needs to be the net_end_time from this side of the operation
+	//e2ehp->e2eh_recv_time = wdp->wd_counters.tc_current_net_end_time; // This needs to be the net_end_time from this side of the operation
 
 	/* Tabulate timestamp data */
 	if ((tdp->td_ts_table.ts_options & (TS_ON|TS_TRIGGERED))) {

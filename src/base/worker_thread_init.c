@@ -151,6 +151,8 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 		/* If this e2e transfer is xni, register the buffer */
 		 xdd_plan_t *planp = wdp->wd_tdp->td_planp;
 		 if (PLAN_ENABLE_XNI & planp->plan_options) {
+			 /* Clear the two sparsely used pages for header data */
+			 memset(bufp, 0, 2*getpagesize());
 			 /* Mark everything after the first page as reserved */
 			 size_t reserve = wdp->wd_buf_size - getpagesize();
 			 xni_register_buffer(tdp->xni_ctx, bufp, wdp->wd_buf_size, reserve,
