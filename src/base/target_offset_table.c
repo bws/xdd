@@ -152,22 +152,20 @@ int tot_update(tot_t* table,
 
     // Do not update if a newer entry is using this slot
     if (tep->tot_op_number >= req_number) {
-	rc = -1;
-#ifdef ndef
-	fprintf(xgp->errout,
-		"%s: tot_update: Worker Thread %d: "
-		"WARNING: TOT Collision at entry %d, op number %"PRId64", "
-		"byte location is %"PRId64" [block %"PRId64"], "
-		"my current op number is %"PRId64", "
-		"my byte location is %"PRId64" [block %"PRId64"] "
-		"last updated by worker_thread %d\n",
-		xgp->progname, worker_thread_number,
-		idx, tep->tot_op_number,
-		tep->tot_byte_offset, tep->tot_byte_offset/tep->tot_io_size,
-		req_number,
-		offset, offset/size,
-		tep->tot_update_worker_thread_number);
-#endif
+		rc = -1;
+		fprintf(xgp->errout,
+				"%s: tot_update: Worker Thread %d: "
+				"WARNING: TOT Collision at entry %d, op number %"PRId64", "
+				"byte location is %"PRId64" [block %"PRId64"], "
+				"my current op number is %"PRId64", "
+				"my byte location is %"PRId64" [block %"PRId64"] "
+				"last updated by worker_thread %d\n",
+				xgp->progname, worker_thread_number,
+				idx, tep->tot_op_number,
+				tep->tot_byte_offset, tep->tot_byte_offset/tep->tot_io_size,
+				req_number,
+				offset, offset/size,
+				tep->tot_update_worker_thread_number);
     }
     else {
 	nclk_now(&tep->tot_update_ts);

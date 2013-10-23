@@ -150,16 +150,30 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 	if (xgp->global_options & GO_DEBUG_E2E) xdd_show_e2e_header((xdd_e2e_header_t *)xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf));
 
 	nclk_now(&wdp->wd_counters.tc_current_net_start_time);
-	xni_target_buffer_set_data_length(e2ep->e2e_xfer_size, e2ep->xni_wd_buf);
-	xni_target_buffer_set_target_offset(e2ehp->e2eh_byte_offset, e2ep->xni_wd_buf);
-	/* Don't send magic eof anymore */
+	/* Don't send magic eof across wire */
 	if (XDD_E2E_EOF != e2ehp->e2eh_magic) {
+		/* Set XNI parameters and send */
+		xni_target_buffer_set_data_length(e2ep->e2e_xfer_size,
+										  e2ep->xni_wd_buf);
+		xni_target_buffer_set_target_offset(e2ehp->e2eh_byte_offset,
+											e2ep->xni_wd_buf);
 	    e2ep->e2e_send_status = xni_send_target_buffer(tdp->td_e2ep->xni_td_conn,
 													   &e2ep->xni_wd_buf);
+		/* Request a fresh buffer from XNI */
+		xni_request_target_buffer(tdp->xni_ctx, &wdp->wd_e2ep->xni_wd_buf);
+			 
+		/* The first page is XNI, the second page is E2E header */
+		uintptr_t bufp =
+			(uintptr_t) xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
+		wdp->wd_task.task_datap = (unsigned char*)(bufp + getpagesize());
+		wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (getpagesize() - sizeof(xdd_e2e_header_t)));
+		wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
 	} else {
+		fprintf(stderr, "Triggered EOF\n");
 		e2ep->e2e_send_status = e2ep->e2e_xfer_size;
 	}
 	nclk_now(&wdp->wd_counters.tc_current_net_end_time);
+	
 	// Time stamp if requested
 	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
 		ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
