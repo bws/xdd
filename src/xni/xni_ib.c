@@ -887,8 +887,8 @@ static int ib_request_target_buffer(xni_context_t ctx_, xni_target_buffer_t *tar
 	struct ib_target_buffer *tb = NULL;
 	pthread_mutex_lock(&ctx->busy_flag_mutex);
 	while (tb == NULL) {
-		for (size_t i = 0; i < conn->context->num_registered; i++) {
-			struct ib_target_buffer* ptr = conn->context->target_buffers + i;
+		for (size_t i = 0; i < ctx->num_registered; i++) {
+			struct ib_target_buffer* ptr = ctx->target_buffers + i;
 
 			if (!ptr->busy) {
 				tb = ptr;
