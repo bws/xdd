@@ -1,15 +1,3 @@
-/*
- * XDD - a data movement and benchmarking toolkit
- *
- * Copyright (C) 1992-2013 I/O Performance, Inc.
- * Copyright (C) 2009-2013 UT-Battelle, LLC
- *
- * This is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public
- * License version 2, as published by the Free Software
- * Foundation.  See file COPYING.
- *
- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -146,7 +134,7 @@ static int tcp_context_destroy(xni_context_t *ctx_)
 static int tcp_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved) {
 	struct tcp_context* ctx = (struct tcp_context*) ctx_;
     uintptr_t beginp = (uintptr_t)buf;
-    uintptr_t datap = (uintptr_t)buf + (uintptr_t)reserved;
+    uintptr_t datap = (uintptr_t)buf + (uintptr_t)(nbytes - reserved);
     size_t avail = (size_t)(datap - beginp);
 
 	// Make sure space exists in the registered buffers array
@@ -169,6 +157,7 @@ static int tcp_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, siz
 	ctx->registered_buffers[ctx->num_registered] = *tb;
 	ctx->num_registered++;
 	pthread_mutex_unlock(&ctx->buffer_mutex);
+
     return XNI_OK;
 }
 
@@ -353,16 +342,12 @@ static int tcp_close_connection(xni_connection_t *conn_)
   return XNI_OK;
 }
 
-static int tcp_request_target_buffer(xni_connection_t conn_, xni_target_buffer_t *targetbuf_)
+static int tcp_request_target_buffer(xni_context_t ctx_, xni_target_buffer_t *targetbuf_)
 {
-  struct tcp_connection *conn = (struct tcp_connection*)conn_;
-  struct tcp_context *ctx = (struct tcp_context*)conn_->context;
+  struct tcp_context *ctx = (struct tcp_context*)ctx_;
   struct tcp_target_buffer **targetbuf = (struct tcp_target_buffer**)targetbuf_;
-
-  if (conn->destination)
-	  return XNI_ERR;
-
   struct tcp_target_buffer *tb = NULL;
+  
   pthread_mutex_lock(&ctx->buffer_mutex);
   while (tb == NULL) {
 	  for (size_t i = 0; i < ctx->num_registered; i++) {

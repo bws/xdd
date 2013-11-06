@@ -1,15 +1,3 @@
-/*
- * XDD - a data movement and benchmarking toolkit
- *
- * Copyright (C) 1992-2013 I/O Performance, Inc.
- * Copyright (C) 2009-2013 UT-Battelle, LLC
- *
- * This is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public
- * License version 2, as published by the Free Software
- * Foundation.  See file COPYING.
- *
- */
 #ifndef XDD_XNI_INTERNAL_H
 #define XDD_XNI_INTERNAL_H
 
@@ -26,7 +14,7 @@ struct xni_protocol {
     int (*connect)(xni_context_t, struct xni_endpoint*, xni_connection_t*);
     int (*close_connection)(xni_connection_t*);
 
-    int (*request_target_buffer)(xni_connection_t, xni_target_buffer_t*);
+    int (*request_target_buffer)(xni_context_t, xni_target_buffer_t*);
     int (*send_target_buffer)(xni_connection_t, xni_target_buffer_t*);
     int (*receive_target_buffer)(xni_connection_t, xni_target_buffer_t*);
     int (*release_target_buffer)(xni_target_buffer_t*);

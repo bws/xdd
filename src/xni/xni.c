@@ -1,15 +1,3 @@
-/*
- * XDD - a data movement and benchmarking toolkit
- *
- * Copyright (C) 1992-2013 I/O Performance, Inc.
- * Copyright (C) 2009-2013 UT-Battelle, LLC
- *
- * This is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public
- * License version 2, as published by the Free Software
- * Foundation.  See file COPYING.
- *
- */
 #include <sys/types.h>
 
 #include "xni.h"
@@ -63,9 +51,10 @@ int xni_close_connection(xni_connection_t* conn)
   return (*conn)->context->protocol->close_connection(conn);
 }
 
-int xni_request_target_buffer(xni_connection_t conn, xni_target_buffer_t* buffer)
+int xni_request_target_buffer(xni_context_t context,
+                              xni_target_buffer_t* buffer)
 {
-  return conn->context->protocol->request_target_buffer(conn, buffer);
+  return context->protocol->request_target_buffer(context, buffer);
 }
 
 int xni_send_target_buffer(xni_connection_t conn, xni_target_buffer_t* buffer)

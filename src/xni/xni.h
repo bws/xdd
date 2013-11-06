@@ -1,15 +1,3 @@
-/*
- * XDD - a data movement and benchmarking toolkit
- *
- * Copyright (C) 1992-2013 I/O Performance, Inc.
- * Copyright (C) 2009-2013 UT-Battelle, LLC
- *
- * This is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public
- * License version 2, as published by the Free Software
- * Foundation.  See file COPYING.
- *
- */
 #ifndef XDD_XNI_H
 #define XDD_XNI_H
 
@@ -44,8 +32,7 @@ typedef struct xni_protocol *xni_protocol_t;
 /*! \brief Opaque type representing a control block.
  *
  * Control blocks store settings specific to the underlying XNI
- * implementation (e.g. TCP). Every control block stores at least an
- * #xni_allocate_fn_t and an #xni_free_fn_t.
+ * implementation (e.g. TCP).
  */
 typedef void *xni_control_block_t;
 
@@ -163,6 +150,13 @@ int xni_context_destroy(xni_context_t *context);
  * This function provides XNI drivers to perform optimizations based on
  * the adress of the memory buffers in use.
  *
+ * \param[in,out] context The context to register the buffer with.
+ * \param[in] buf The memory buffer to register.
+ * \param[in] nbytes The total size of the buffer in bytes.
+ * \param[in] reserved The offset into the buffer at which the caller will
+ *  insert application data.  Although this seems backwards, it ensures both
+ *  the caller and XNI can align data per their own requirements.
+ *
  * \return #XNI_OK if registration was successful.
  * \return #XNI_ERR if registration failed.
  *
@@ -185,18 +179,13 @@ int xni_unregister_buffer(xni_context_t context, void* buf);
  *
  * This function creates a <em>destination-side connection</em> by
  * listening on the address specified by \e local for a connection
- * from a remote process. This function allocates \e num_buffers
- * target buffers of size \e buffer_size using the #xni_allocate_fn_t
- * provided when \e context was created. These buffers will be aligned
- * on 512-byte boundaries.
+ * from a remote process. 
  *
  * It is forbidden for the \e num_buffers and \e buffer_size arguments
  * to differ from those specified at the remote end to xni_connect().
  *
  * \param context The network context under which to create the connection.
  * \param[in] local The local address to listen on.
- * \param num_buffers The number of buffers to allocate.
- * \param buffer_size The size in bytes of each buffer allocation.
  * \param[out] connection The newly created <em>destination-side connection</em>.
  *
  * \return #XNI_OK if the connection was successfully created.
@@ -221,8 +210,6 @@ int xni_accept_connection(xni_context_t context, struct xni_endpoint *local, xni
  *
  * \param context The network context under which to create the connection.
  * \param[in] remote The remote address to connect to.
- * \param num_buffers The number of buffers to allocate.
- * \param buffer_size The size in bytes of each buffer allocation.
  * \param[out] connection The newly created <em>source-side connection</em>.
  *
  * \return #XNI_OK if the connection was successfully created.
@@ -263,7 +250,8 @@ int xni_close_connection(xni_connection_t *connection);
  * temporarily owned by the caller until the buffer is passed to
  * xni_send_target_buffer() or xni_release_target_buffer().
  *
- * \param connection The <em>source-side connection</em> from which to request the buffer.
+ * \param contest The <em>source-side</em> context from which to request
+ *   the buffer.
  * \param[out] buffer The requested target buffer.
  *
  * \return #XNI_OK if a target buffer was reserved.
@@ -271,7 +259,7 @@ int xni_close_connection(xni_connection_t *connection);
  *
  * \sa xni_send_target_buffer();
  */
-int xni_request_target_buffer(xni_connection_t connection, xni_target_buffer_t *buffer);
+int xni_request_target_buffer(xni_context_t ctx, xni_target_buffer_t *buffer);
 /*! \brief Send a target buffer to the remote process.
  *
  * This function transfers the target buffer \e buffer to the remote
@@ -300,7 +288,7 @@ int xni_send_target_buffer(xni_connection_t connection, xni_target_buffer_t *buf
   * arrives and then returns that buffer in \e buffer. This function
   * will set the \e target_offset and \e data_length properties of the
   * target buffer before returning it.  The returned buffer is owned
-  * temporarily by the caller until it is relased by
+  * temporarily by the caller until it is released by
   * xni_release_target_buffer().
   *
   * If the source side has closed the connection then this function

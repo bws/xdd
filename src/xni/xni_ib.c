@@ -1,15 +1,3 @@
-/*
- * XDD - a data movement and benchmarking toolkit
- *
- * Copyright (C) 1992-2013 I/O Performance, Inc.
- * Copyright (C) 2009-2013 UT-Battelle, LLC
- *
- * This is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public
- * License version 2, as published by the Free Software
- * Foundation.  See file COPYING.
- *
- */
 #include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -220,7 +208,7 @@ static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size
 {
 	struct ib_context* ctx = (struct ib_context*)ctx_;
 	uintptr_t beginp = (uintptr_t)buf;
-	uintptr_t datap = (uintptr_t)buf + (uintptr_t)reserved;
+	uintptr_t datap = (uintptr_t)buf + (uintptr_t)(nbytes - reserved);
 	size_t avail = (size_t)(datap - beginp);
 
 	// Make sure space exists in the registered buffer array
@@ -251,6 +239,7 @@ static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size
 	tb->connection = NULL;
 	ctx->num_registered++;
 	pthread_mutex_unlock(&ctx->target_buffers_mutex);
+
 	return XNI_OK;
 }
 
@@ -890,16 +879,13 @@ static int ib_close_connection(xni_connection_t *conn_)
   return XNI_OK;
 }
 
-static int ib_request_target_buffer(xni_connection_t conn_, xni_target_buffer_t *targetbuf_)
+static int ib_request_target_buffer(xni_context_t ctx_, xni_target_buffer_t *targetbuf_)
 {
-	struct ib_connection *conn = (struct ib_connection*)conn_;
+	struct ib_context *ctx = (struct ib_context*)ctx_;
 	struct ib_target_buffer **targetbuf = (struct ib_target_buffer**)targetbuf_;
 
-	if (conn->destination)
-		return XNI_ERR;
-
 	struct ib_target_buffer *tb = NULL;
-	pthread_mutex_lock(&conn->context->busy_flag_mutex);
+	pthread_mutex_lock(&ctx->busy_flag_mutex);
 	while (tb == NULL) {
 		for (size_t i = 0; i < conn->context->num_registered; i++) {
 			struct ib_target_buffer* ptr = conn->context->target_buffers + i;
@@ -911,10 +897,10 @@ static int ib_request_target_buffer(xni_connection_t conn_, xni_target_buffer_t 
 			}
 		}
 		if (tb == NULL)
-			pthread_cond_wait(&conn->context->busy_flag_cond,
-							  &conn->context->busy_flag_mutex);
+			pthread_cond_wait(&ctx->busy_flag_cond,
+							  &ctx->busy_flag_mutex);
 	}
-	pthread_mutex_unlock(&conn->context->busy_flag_mutex);
+	pthread_mutex_unlock(&ctx->busy_flag_mutex);
     
 	*targetbuf = tb;
 	return XNI_OK;
