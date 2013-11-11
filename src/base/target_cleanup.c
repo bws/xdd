@@ -34,6 +34,13 @@ xdd_target_thread_cleanup(target_data_t *tdp) {
 		// get the next Worker in this chain
 		wdp = wdp->wd_next_wdp;
 	}
+	if (tdp->td_target_options & TO_DELETEFILE) {
+#ifdef WIN32
+		DeleteFile(tdp->td_target_full_pathname);
+#else
+		unlink(tdp->td_target_full_pathname);
+#endif
+	}
 
 } // End of xdd_target_thread_cleanup()
 
