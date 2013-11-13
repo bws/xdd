@@ -78,7 +78,7 @@ xdd_show_plan_data(xdd_plan_t* planp) {
     fprintf(stderr,"xdd_show_plan_data: barrier_count             %d Number of barriers on the chain \n",planp->barrier_count);                         
     fprintf(stderr,"xdd_show_plan_data: format_string             '%s'\n",(planp->format_string != NULL)?planp->format_string:"NA");
     fprintf(stderr,"xdd_show_plan_data: results_header_displayed   %d\n",planp->results_header_displayed);
-    fprintf(stderr,"xdd_show_plan_data: heartbeat_holdoff          %d\n",planp->heartbeat_holdoff);
+    fprintf(stderr,"xdd_show_plan_data: heartbeat_flags          0x%08x\n",planp->heartbeat_flags);
 
     fprintf(stderr,"xdd_show_plan_data: Target_Data pointers\n");
     for (target_number = 0; target_number < planp->number_of_targets; target_number++) {

@@ -639,11 +639,11 @@ xdd_results_display(results_t *rp) {
 	int		namelen;
 	char	*namep;
 	int		found;
+	char	output_delimiter;
 
 	
 	
-	fprintf(rp->output,"\r"); // In case there is a heartbeat line, clear it out
-
+	output_delimiter=0;
 	sp = rp->format_string;
 	splen = strlen(sp);
 	if (splen <= 0) {
@@ -651,7 +651,6 @@ xdd_results_display(results_t *rp) {
 	}
 	cp = sp;
 	remaining = splen;
-//fprintf(stderr,"results_display: sp is 0x%x splen is %d sp is %s", sp, splen, sp); // In case there is a heartbeat line, clear it out
 	while (remaining > 0) {
 		index = 0;	
 		found = 0;
@@ -663,8 +662,11 @@ xdd_results_display(results_t *rp) {
 				continue;
 			}
 			if (strncmp(cp, namep, namelen) == 0) { // This is the right fmt id
+				// Output a "delimiter" character before we output the value
+				if (output_delimiter) 
+					fprintf(rp->output,"%c",rp->delimiter);
+				else output_delimiter = 1;
 				xdd_results_fmt_table[index].func_ptr(rp); // Call the associated routine
-				fprintf(rp->output,"%c",rp->delimiter);
 				found = 1;
 				break;
 			}

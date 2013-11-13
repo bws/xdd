@@ -75,6 +75,7 @@ xdd_results_manager(void *data) {
 		// While the targets are running, we enter this barrier to wait for them to all complete a single pass
 		xdd_barrier(&planp->results_targets_endpass_barrier,&barrier_occupant,1);
 
+
 		if ( xgp->abort == 1) { // Something went wrong during thread initialization so let's just leave
 			xdd_process_run_results(planp);
 			// Release all the Target Threads so that they can do their cleanup and exit
@@ -95,8 +96,10 @@ xdd_results_manager(void *data) {
 			xdd_process_run_results(planp);
 			// Release all the Target Threads so that they can do their cleanup and exit
 			xdd_barrier(&planp->results_targets_display_barrier,&barrier_occupant,1);
+
 			// Wait for all the Target Threads do their cleanup...
 			xdd_barrier(&planp->results_targets_waitforcleanup_barrier,&barrier_occupant,1);
+
 			// Enter the FINAL barrier to tell XDD MAIN that everything is complete
 			xdd_barrier(&planp->main_results_final_barrier,&barrier_occupant,0);
 			return(0);
@@ -106,13 +109,17 @@ xdd_results_manager(void *data) {
 			/* Insert a delay of "pass_delay" seconds if requested */
 			if ((planp->pass_delay_usec > 0) && (planp->current_pass_number < planp->passes)) {
 				nclk_now(&pass_delay_start);
-				planp->heartbeat_holdoff = 1;
+				if (planp->heartbeat_flags & HEARTBEAT_ACTIVE) {
+					planp->heartbeat_flags |= HEARTBEAT_HOLDOFF;
+					fprintf(xgp->output,"\r");
+				}
 				fprintf(xgp->output,"\nStarting Pass Delay of %f seconds...",planp->pass_delay);
 				fflush(xgp->output);
 				usleep(planp->pass_delay_usec);
 				fprintf(xgp->output,"Done\n");
 				fflush(xgp->output);
-				planp->heartbeat_holdoff = 0;
+				if (planp->heartbeat_flags & HEARTBEAT_ACTIVE) 
+					planp->heartbeat_flags &= ~HEARTBEAT_HOLDOFF;
 				nclk_now(&pass_delay_end);
 				// Figure out the accumulated pass delay time so that it can be subtracted later
 				planp->pass_delay_accumulated_time += (pass_delay_end - pass_delay_start);
@@ -154,11 +161,14 @@ xdd_results_manager_init(xdd_plan_t *planp) {
 //
 void *
 xdd_results_header_display(results_t *tmprp, xdd_plan_t *planp) {
-	planp->heartbeat_holdoff = 1;
 	tmprp->format_string = planp->format_string;
 	tmprp->output = xgp->output;
 	tmprp->delimiter = ' ';
 	tmprp->flags = RESULTS_HEADER_TAG;
+	if (planp->heartbeat_flags & HEARTBEAT_ACTIVE) {
+		planp->heartbeat_flags |= HEARTBEAT_HOLDOFF;
+		fprintf(tmprp->output,"\r");
+	}
 	xdd_results_display(tmprp);
 	tmprp->flags = RESULTS_UNITS_TAG;
 	xdd_results_display(tmprp);
@@ -170,7 +180,8 @@ xdd_results_header_display(results_t *tmprp, xdd_plan_t *planp) {
 		tmprp->flags = RESULTS_UNITS_TAG;
 		xdd_results_display(tmprp);
 	}
-	planp->heartbeat_holdoff = 0;
+	if (planp->heartbeat_flags & HEARTBEAT_ACTIVE) 
+		planp->heartbeat_flags &= ~HEARTBEAT_HOLDOFF;
 	return(0);
 	
 } // End of xdd_results_header_display()
@@ -187,12 +198,10 @@ xdd_process_pass_results(xdd_plan_t *planp) {
     results_t	*trp;	// Pointer to the Temporary Target Pass results
     results_t	targetpass_results; // Temporary for target pass results
 
+	
 	// Initialize temporary to 0
 	memset(&targetpass_results, 0, sizeof(targetpass_results));
-
 		   
-    planp->heartbeat_holdoff = 1;
-
     trp = &targetpass_results;
 
     // Next, display pass results for each Target
@@ -202,10 +211,10 @@ xdd_process_pass_results(xdd_plan_t *planp) {
         
         // Init the Target Average Results struct
         tarp = planp->target_average_resultsp[target_number];
-        memset(tarp, 0, sizeof(*tarp));
-        tarp->format_string = planp->format_string;
-        tarp->what = "TARGET_AVERAGE";
         if (tdp->td_counters.tc_pass_number == 1) {
+        	memset(tarp, 0, sizeof(*tarp));
+        	tarp->format_string = planp->format_string;
+        	tarp->what = "TARGET_AVERAGE";
             tarp->earliest_start_time_this_run = (double)DOUBLE_MAX;
             tarp->earliest_start_time_this_pass = (double)DOUBLE_MAX;
             tarp->shortest_op_time = (double)DOUBLE_MAX;
@@ -231,6 +240,10 @@ xdd_process_pass_results(xdd_plan_t *planp) {
         trp->what = "TARGET_PASS   ";
         trp->output = xgp->output;
         trp->delimiter = ' ';
+		if (planp->heartbeat_flags & HEARTBEAT_ACTIVE) {
+			planp->heartbeat_flags |= HEARTBEAT_HOLDOFF;
+			fprintf(trp->output,"\r");
+		}
         if (xgp->global_options & GO_VERBOSE) {
             xdd_results_display(trp);
             if (xgp->csvoutput) { // Display to CSV file if requested
@@ -242,7 +255,8 @@ xdd_process_pass_results(xdd_plan_t *planp) {
 	
     } /* end of FOR loop that looks at all targets */
     
-    planp->heartbeat_holdoff = 0;
+	if (planp->heartbeat_flags & HEARTBEAT_ACTIVE) 
+		planp->heartbeat_flags &= ~HEARTBEAT_HOLDOFF;
 
     return(0);
 } // End of xdd_process_pass_results() 
@@ -265,7 +279,7 @@ xdd_process_run_results(xdd_plan_t *planp) {
 	// to display the AVERAGE and COMBINED results for this run.
 
 	// Tell the heartbeat to stop
-	planp->heartbeat_holdoff = 2; 
+	planp->heartbeat_flags |= HEARTBEAT_EXIT;
 
 	// Initialize the place where the COMBINED results are accumulated
 	crp = &combined_results; 

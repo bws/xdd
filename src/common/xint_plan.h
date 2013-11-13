@@ -140,10 +140,12 @@ struct xint_plan {
 // Variables used by the Results Manager
 	char			*format_string;						// Pointer to the format string used by the results_display() to display results 
 	char			results_header_displayed;			// 1 means that the header has been displayed, 0 means no
-	int32_t			heartbeat_holdoff;					/* set to 1 by the results_manager when it wants to display pass results, 
-											 			 * set back to 0 after everything is displayed
-											 			 * set back to 2 to tell heartbeat to exit 
-														 */
+	uint32_t		heartbeat_flags;					// Tell the heartbeat thread what to do and when
+#define	HEARTBEAT_ACTIVE	0x00000001					// The HEARTBEAT_ACTIVE is set by the heartbeat thread when it is running
+#define HEARTBEAT_HOLDOFF	0x00000002					// The results_manager will set HEARTBEAT_HOLDOFF bit when it wants to display pass results, 
+											 			// and unset HEARTBEAT_HOLDOFF after everything is displayed
+#define HEARTBEAT_EXIT		0x00000004		 			// The results_manager will set HEARTBEAT_EXIT to tell heartbeat to exit 
+														//
 #ifdef WIN32
 	HANDLE			ts_serializer_mutex;        		/* needed to circumvent a Windows bug */
 	char			*ts_serializer_mutex_name;  		/* needed to circumvent a Windows bug */

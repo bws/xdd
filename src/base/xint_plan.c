@@ -58,7 +58,7 @@ xdd_plan_t* xint_plan_data_initialization() {
 	planp->e2e_TCP_Win = DEFAULT_E2E_TCP_WINDOW_SIZE;	 /* e2e TCP Window Size */
 	planp->ActualLocalStartTime = 0;   /* The time to start operations */
 	planp->XDDMain_Thread = pthread_self();
-	planp->heartbeat_holdoff = 0;  	/* used by results manager to suspend or cancel heartbeat displays */
+	planp->heartbeat_flags = 0;  	/* used by results manager to suspend or cancel heartbeat displays */
 	planp->format_string = DEFAULT_OUTPUT_FORMAT_STRING;
 
 	return(planp);
