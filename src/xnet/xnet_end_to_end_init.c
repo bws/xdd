@@ -35,6 +35,14 @@
 #include "xint.h"
 #include "xni.h"
 
+#if HAVE_ENABLE_IB
+/* The name of the InfiniBand device to use when connecting over
+ * IB. Use the `ibv_devices' utility to find the device names on your
+ * system. Examples: "mlx4_0", "mlx4_1", "mlx0".
+ */
+static const char *DEFAULT_IB_DEVICE = "mlx4_0";
+#endif  /* HAVE_ENABLE_IB */
+
 /*----------------------------------------------------------------------*/
 /* xdd_e2e_target_init() - init socket library
  * This routine is called during target initialization to initialize the
@@ -51,8 +59,10 @@ int32_t xint_e2e_xni_init(target_data_t *tdp) {
 		rc = xni_allocate_tcp_control_block(num_threads, &tdp->xni_cb);
 #if HAVE_ENABLE_IB
 	else if (xni_protocol_ib == tdp->xni_pcl)
-		rc = xni_allocate_ib_control_block("mlx0", num_threads, &tdp->xni_cb);
-#endif
+		rc = xni_allocate_ib_control_block(DEFAULT_IB_DEVICE,
+										   num_threads,
+										   &tdp->xni_cb);
+#endif  /* HAVE_ENABLE_IB */
 	else
 		return -1;
 	assert(0 == rc);
