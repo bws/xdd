@@ -40,6 +40,7 @@ CC = $(CC_EXE)
 CP = cp
 DEPC = $(DEPC_EXE)
 DEPGEN = $(XDD_DIR)/support/depend.sh
+ETAGS = etags
 FIND = find
 INSTALL = $(XDD_DIR)/support/install-sh
 MKDIR = mkdir -p
@@ -300,6 +301,10 @@ tarball:
 doc:
 	doxygen doc/Doxyfile
 	cd doc/doxygen/latex && make pdf
+
+TAGS: $(XDD_SRC)
+	@echo "[TAGS]"
+	@$(ETAGS) $^
 
 #
 # Build test support infrastructure
