@@ -248,6 +248,11 @@ xdd_init_target_data_before_pass(target_data_t *tdp) {
 		times(&wdp->wd_counters.tc_starting_cpu_times_this_pass);
 		wdp = wdp->wd_next_wdp;
 	}
+	
+	// Initialize the Target Offset Table
+	tot_init(&(tdp->td_totp), tdp->td_queue_depth, tdp->td_target_ops);
+
+	return;
 
 } // End of xdd_init_target_data_before_pass()
  
