@@ -490,6 +490,7 @@ xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags, xd
 void
 xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 
+	int			i;
 	char		*tot_mutex_state;
 	int32_t		tot_offset; // Offset into TOT
 	tot_entry_t	*tep;		// Pointer to a TOT Entry
@@ -497,13 +498,14 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 	int			status;
 	int			save_errno;
 	int64_t		tot_block;
+	tot_wait_t	*totwp;
 
 
 	fprintf(fp,"Target %d has %d TOT Entries, queue depth of %d\n",
 		tdp->td_target_number, 
 		tdp->td_totp->tot_entries, 
 		tdp->td_queue_depth);
-	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitWorkerThread,PostWorkerThread,UpdateWorkerThread,SemVal,Mutex State\n");
+	fprintf(fp,"TOT Offset,Waitp,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitWorkerThread,PostWorkerThread,UpdateWorkerThread,SemVal,Mutex State\n");
 	for (tot_offset = 0; tot_offset < tdp->td_totp->tot_entries; tot_offset++) {
 		tep = &tdp->td_totp->tot_entry[tot_offset];
 		status = pthread_mutex_trylock(&tep->tot_mutex);
@@ -525,8 +527,9 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 		if (tep->tot_io_size) 
 			tot_block = (long long int)((long long int)tep->tot_byte_offset / tep->tot_io_size);
 		else  tot_block = -1;
-		fprintf(fp,"%5d,%lld,%lld,%lld,%lld,%lld,%lld,%d,%d,%d,%d,%d,%s\n",
+		fprintf(fp,"%5d,%p,%lld,%lld,%lld,%lld,%lld,%lld,%d,%d,%d,%d,%d,%s\n",
 			tot_offset,
+			tep->tot_waitp,
 			(long long int)tep->tot_wait_ts,
 			(long long int)tep->tot_post_ts,
 			(long long int)(tep->tot_post_ts - (long long int)tep->tot_wait_ts),
@@ -539,6 +542,17 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 			tep->tot_update_worker_thread_number,
 			sem_val,
 			tot_mutex_state);
+			if (tep->tot_waitp) {
+				totwp = tep->tot_waitp;
+				i=0;
+ 				fprintf(fp,"TOT Offset,TOTW,TOTW#,tot_wait ptr,next tot_wait ptr,Worker Data ptr,condition,Is Released\n");
+				while (totwp) {
+   					fprintf(fp,"%5d,TOTW,%d,%p,%p,%p,-,%d\n",tot_offset,i,totwp,totwp->totw_nextp,totwp->totw_wdp,totwp->totw_is_released);
+					totwp = totwp->totw_nextp;
+					i++;
+				sleep(1);
+				}
+			}
 	} // End of FOR loop that displays all the TOT entries
 } // End of xdd_interactive_show_tot_display_fields()
 

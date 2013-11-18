@@ -231,6 +231,7 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worke
 		totwp = tep->tot_waitp;
 		tep->tot_waitp = totwp->totw_nextp;
 		totwp->totw_is_released = 1;
+		totwp->totw_nextp = 0;
 		status = pthread_cond_signal(&totwp->totw_condition);
 		if (status) {
 			fprintf(xgp->errout,"%s: xdd_worker_thread_release_next_io: Target %d Worker Thread %d: ERROR: Bad status from pthread_cond_signal: status=%d, errno=%d, task_op_number=%lld, tot_offset=%d\n",

@@ -450,6 +450,8 @@ xdd_show_e2e_header(xdd_e2e_header_t *e2ehp) {
  */
 void
 xdd_show_tot_entry(tot_t *totp, int i) {
+	tot_wait_t	*totwp;
+
 
   	fprintf(stderr,"\txdd_show_tot_entry:---------- TOT %p entry %d ----------\n",totp,i);
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> pthread_mutex_t tot_mutex\n",i);		// Mutex that is locked when updating items in this entry
@@ -464,6 +466,22 @@ xdd_show_tot_entry(tot_t *totp, int i) {
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_post_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_post_worker_thread_number);	// Number of the Worker Thread that posted this TOT entry 
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_update_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_update_worker_thread_number);	// Number of the Worker Thread that last updated this TOT Entry
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t status=%d\n",i,totp->tot_entry[i].tot_status);
+
+	if (totp->tot_entry[i].tot_waitp) {
+		fprintf(stderr,"\t\txdd_show_tot_entry: <%d> TOT WAIT Chain\n",i);
+		totwp = totp->tot_entry[i].tot_waitp;
+		while (totwp) {
+			fprintf(stderr,"\t\txdd_show_tot_entry: ----------------------------------\n");
+   			fprintf(stderr,"\t\txdd_show_tot_entry: <%d> struct tot_wait *tot_waitp=%p\n",i,totp->tot_entry[i].tot_waitp);
+   			fprintf(stderr,"\t\t***xdd_show_tot_entry: <%d> tot_wait_t *totw_nextp=%p\n",i,totwp->totw_nextp);
+			fprintf(stderr,"\t\t***xdd_show_tot_entry: <%d> struct xint_worker_data	*totw_wdp=%p\n",i,totwp->totw_wdp);		// Pointer to the Worker that owns this tot_wait
+    		fprintf(stderr,"\t\t***xdd_show_tot_entry: <%d> pthread_cond_t totw_condition\n",i);; 
+    		fprintf(stderr,"\t\t***xdd_show_tot_entry: <%d> int totw_is_released=%d\n",i,totwp->totw_is_released);
+			totwp = totwp->totw_nextp;
+		}
+	}
+
+
 
 } // End of xdd_show_tot_entry()
 
