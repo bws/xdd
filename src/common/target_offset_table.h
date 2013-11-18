@@ -88,10 +88,10 @@
  * There is one of these per worker thread.
  */
 struct tot_wait {
-	struct tot_wait 	*totw_next;	// Pointer to the next tot_wait 
-	struct worker_data	*totw_wdp;	// Pointer to the Worker that owns this tot_wait
-    pthread_cond_t 		totw_condition; 
-    int 				totw_is_released;
+	struct tot_wait 		*totw_nextp;	// Pointer to the next tot_wait 
+	struct xint_worker_data	*totw_wdp;		// Pointer to the Worker that owns this tot_wait
+    pthread_cond_t 			totw_condition; 
+    int 					totw_is_released;
 	
 };
 typedef struct tot_wait tot_wait_t;
@@ -118,6 +118,7 @@ typedef struct tot_entry tot_entry_t;
  */
 struct tot {
 	int tot_entries;  			// Number of tot entries
+    struct tot_entry tot_entry[1];  // The ToT
 };
 typedef struct tot tot_t;
 

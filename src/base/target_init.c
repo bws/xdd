@@ -118,6 +118,7 @@ xint_target_init(target_data_t *tdp) {
 	    return(-1);
 	
 	// Initialize the Target Offset Table
+	tdp->td_totp = 0;
 	status = tot_init(&(tdp->td_totp), tdp->td_queue_depth, tdp->td_target_ops);
 	if (status) {
 	    return(-1);

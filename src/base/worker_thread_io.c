@@ -134,7 +134,7 @@ xdd_worker_thread_wait_for_previous_io(worker_data_t *wdp) {
 	target_data_t		*tdp;				// Pointer to the Target Data for this Worker Thread
 	int32_t		tot_offset;		// Offset into the TOT
 	tot_entry_t	*tep;			// Pointer to the TOT entry to use
-	tot_wait_t	*totwp,tmpwp;	// A TOT Wait struct pointer
+	tot_wait_t	*totwp,*tmpwp;	// A TOT Wait struct pointer
 
 
 	tdp = wdp->wd_tdp;
@@ -170,8 +170,8 @@ if (xgp->global_options & GO_DEBUG_TOT) xdd_show_tot_entry(tdp->td_totp,tot_offs
 			tep->tot_waitp = totwp;
 		else { // Put this worker thread at the end of the chain
 			tmpwp = tep->tot_waitp;
-			while (tmpwp->tot_waitp != 0) 
-				tmpwp = tmpwp->tot_waitp;
+			while (tmpwp->totw_nextp != 0) 
+				tmpwp = tmpwp->totw_nextp;
 			tmpwp->totw_nextp = totwp;
 		}
 		// Wait for this tot_entry to become available
@@ -211,6 +211,7 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worke
 	// Wait for the I/O operation ahead of this one to complete (if necessary)
 
 	tep = &tdp->td_totp->tot_entry[tot_offset];
+	totwp = &wdp->wd_tot_wait;
 	wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE;
 	pthread_mutex_lock(&tep->tot_mutex);
 	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_RELEASE;
@@ -218,12 +219,17 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worke
 	nclk_now(&tep->tot_post_ts);
 
 if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worker_thread_release_next_io: Target: %d: Worker: %d: task_op_number: %lld: tot_offset: %d: RELEASING worker number %d\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,(long long int)wdp->wd_task.task_op_number,tot_offset,tep->tot_wait_worker_thread_number);
-	// Increment the specified semaphore to let the next Worker Thread run 
+	// Update the TOT Entry counters
+	nclk_now(&tep->tot_update_ts);
+	tep->tot_update_worker_thread_number = wdp->wd_worker_number;
+	tep->tot_op_number = wdp->wd_task.task_op_number;
+	tep->tot_byte_offset = wdp->wd_task.task_byte_offset;
+	tep->tot_io_size = wdp->wd_task.task_xfer_size;
 	tep->tot_status = TOT_ENTRY_AVAILABLE;
 	pthread_mutex_unlock(&tep->tot_mutex); //TMR
 	if (tep->tot_waitp) { // Check to see if another Worker is waiting for this tot entry
 		totwp = tep->tot_waitp;
-		tep->waitp = totwp->totw_nextp;
+		tep->tot_waitp = totwp->totw_nextp;
 		totwp->totw_is_released = 1;
 		status = pthread_cond_signal(&totwp->totw_condition);
 		if (status) {
@@ -393,13 +399,13 @@ xdd_worker_thread_update_target_counters(worker_data_t *wdp) {
 	// Update the TOT entry for this last I/O
 	// Since the TOT is a resource owned by the Target Thread and shared by the Worker Threads
 	// it will be updated here.
-	wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
-	tot_update(tdp->td_totp,
-		       wdp->wd_task.task_op_number,
-		       wdp->wd_worker_number,
-		       wdp->wd_task.task_byte_offset,
-		       wdp->wd_task.task_xfer_size);
-	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
+	//wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
+	//tot_update(tdp->td_totp,
+//		       wdp->wd_task.task_op_number,
+//		       wdp->wd_worker_number,
+//		       wdp->wd_task.task_byte_offset,
+//		       wdp->wd_task.task_xfer_size);
+//	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
 	
 } // End of xdd_worker_thread_update_target_counters()
 

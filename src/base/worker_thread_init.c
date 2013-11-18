@@ -99,9 +99,9 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 			wdp->wd_worker_number);
 		return(-1);
 	}
-	wdp->tot_wait.totw_wdp = wdp;
-	wdp->tot_wait.totw_is_released = 0;
-	wdp->tot_wait.totw_nextp = 0;
+	wdp->wd_tot_wait.totw_wdp = wdp;
+	wdp->wd_tot_wait.totw_is_released = 0;
+	wdp->wd_tot_wait.totw_nextp = 0;
 
 	// Get the I/O buffer
 	// The xdd_init_io_buffers() routine will set wd_bufp and wd_buf_size to appropriate values.
