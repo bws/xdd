@@ -134,6 +134,7 @@ xdd_worker_thread_wait_for_previous_io(worker_data_t *wdp) {
 	target_data_t		*tdp;				// Pointer to the Target Data for this Worker Thread
 	int32_t		tot_offset;		// Offset into the TOT
 	tot_entry_t	*tep;			// Pointer to the TOT entry to use
+	tot_wait_t	*totwp,tmpwp;	// A TOT Wait struct pointer
 
 
 	tdp = wdp->wd_tdp;
@@ -158,16 +159,29 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worke
 	pthread_mutex_lock(&tep->tot_mutex);
 	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS;
 	nclk_now(&tep->tot_wait_ts);
-	tep->tot_wait_worker_thread_number = wdp->wd_worker_number;
 
 if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worker_thread_wait_for_previous_io: Target: %d: Worker: %d: tot_offset: %d: I AM WAITING FOR PREVIOUS IO starting at %lld\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,tot_offset,(long long int)tep->tot_wait_ts);
 if (xgp->global_options & GO_DEBUG_TOT) xdd_show_tot_entry(tdp->td_totp,tot_offset);
 	wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO;
-	while (1 != tep->is_released) {
-	    pthread_cond_wait(&tep->tot_condition, &tep->tot_mutex);
+
+	totwp = &wdp->wd_tot_wait;
+	if (TOT_ENTRY_UNAVAILABLE == tep->tot_status) {
+		if (tep->tot_waitp == 0) 
+			tep->tot_waitp = totwp;
+		else { // Put this worker thread at the end of the chain
+			tmpwp = tep->tot_waitp;
+			while (tmpwp->tot_waitp != 0) 
+				tmpwp = tmpwp->tot_waitp;
+			tmpwp->totw_nextp = totwp;
+		}
+		// Wait for this tot_entry to become available
+		while (1 != totwp->totw_is_released) {
+	    	pthread_cond_wait(&totwp->totw_condition, &tep->tot_mutex);
+		}
+		totwp->totw_is_released = 0; 
 	}
 	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_PREVIOUS_IO;
-	tep->is_released = 0;
+	tep->tot_status = TOT_ENTRY_UNAVAILABLE;
 	pthread_mutex_unlock(&tep->tot_mutex);
 if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worker_thread_wait_for_previous_io: Target: %d: Worker: %d: tot_offset: %d: I AM DONE WAITING FOR PREVIOUS IO - released by worker %d\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,tot_offset,tep->tot_post_worker_thread_number);
 
@@ -187,6 +201,7 @@ xdd_worker_thread_release_next_io(worker_data_t *wdp) {
 	target_data_t		*tdp;				// Pointer to the Target Data for this Worker Thread
 	int32_t		tot_offset;		// Offset into the TOT
 	tot_entry_t	*tep;			// Pointer to the TOT entry to use
+	tot_wait_t	*totwp;			// A TOT Wait struct pointer
 
 
 	tdp = wdp->wd_tdp;
@@ -204,19 +219,24 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worke
 
 if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worker_thread_release_next_io: Target: %d: Worker: %d: task_op_number: %lld: tot_offset: %d: RELEASING worker number %d\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,(long long int)wdp->wd_task.task_op_number,tot_offset,tep->tot_wait_worker_thread_number);
 	// Increment the specified semaphore to let the next Worker Thread run 
-	tep->is_released = 1;
+	tep->tot_status = TOT_ENTRY_AVAILABLE;
 	pthread_mutex_unlock(&tep->tot_mutex); //TMR
-	status = pthread_cond_signal(&tep->tot_condition);
-	if (status) {
-		fprintf(xgp->errout,"%s: xdd_worker_thread_release_next_io: Target %d Worker Thread %d: ERROR: Bad status from pthread_cond_signal: status=%d, errno=%d, task_op_number=%lld, tot_offset=%d\n",
-			xgp->progname,
-			tdp->td_target_number,
-			wdp->wd_worker_number,
-			status,
-			errno,
-			(long long int)wdp->wd_task.task_op_number,
-			tot_offset);
-		return(-1);
+	if (tep->tot_waitp) { // Check to see if another Worker is waiting for this tot entry
+		totwp = tep->tot_waitp;
+		tep->waitp = totwp->totw_nextp;
+		totwp->totw_is_released = 1;
+		status = pthread_cond_signal(&totwp->totw_condition);
+		if (status) {
+			fprintf(xgp->errout,"%s: xdd_worker_thread_release_next_io: Target %d Worker Thread %d: ERROR: Bad status from pthread_cond_signal: status=%d, errno=%d, task_op_number=%lld, tot_offset=%d\n",
+				xgp->progname,
+				tdp->td_target_number,
+				wdp->wd_worker_number,
+				status,
+				errno,
+				(long long int)wdp->wd_task.task_op_number,
+				tot_offset);
+			return(-1);
+		}
 	}
 if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worker_thread_release_next_io: Target: %d: Worker: %d: tot_offset: %d: worker %d has been RELEASED\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number,tot_offset,tep->tot_wait_worker_thread_number);
 if (xgp->global_options & GO_DEBUG_TOT) xdd_show_tot_entry(tdp->td_totp,tot_offset);

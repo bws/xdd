@@ -454,7 +454,6 @@ xdd_show_tot_entry(tot_t *totp, int i) {
   	fprintf(stderr,"\txdd_show_tot_entry:---------- TOT %p entry %d ----------\n",totp,i);
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> pthread_mutex_t tot_mutex\n",i);		// Mutex that is locked when updating items in this entry
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> pthread_cond_t tot_condition\n",i);
-   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int is_released=%d\n",i,totp->tot_entry[i].is_released);
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_wait_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_wait_ts);			// Time that another Worker Thread starts to wait on this
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_post_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_post_ts);			// Time that the responsible Worker Thread posts this semaphore
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_update_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_update_ts);		// Time that the responsible Worker Thread updates the byte_location and io_size
@@ -464,6 +463,7 @@ xdd_show_tot_entry(tot_t *totp, int i) {
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_wait_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_wait_worker_thread_number);	// Number of the Worker Thread that is waiting for this TOT entry to be posted
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_post_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_post_worker_thread_number);	// Number of the Worker Thread that posted this TOT entry 
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_update_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_update_worker_thread_number);	// Number of the Worker Thread that last updated this TOT Entry
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t status=%d\n",i,totp->tot_entry[i].tot_status);
 
 } // End of xdd_show_tot_entry()
 

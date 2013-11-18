@@ -39,6 +39,7 @@ struct xint_worker_data {
 	xdd_barrier_t				wd_thread_targetpass_wait_for_task_barrier;	// The barrier where the Worker_Thread waits for targetpass() to release it with a task to perform
 	xdd_occupant_t				wd_occupant;		// Used by the barriers to keep track of what is in a barrier at any given time
 	char						wd_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH];	// For a Target thread this is "TARGET####", for a Worker_Thread it is "TARGET####WORKER####"
+	tot_wait_t					wd_tot_wait;		// The TOT Wait structure for this worker
 	xint_e2e_t					*wd_e2ep;			// Pointer to the e2e struct when needed
 	xdd_sgio_t					*wd_sgiop;			// SGIO Structure Pointer
 	pthread_mutex_t 			wd_current_state_mutex; 	// Mutex for locking when checking or updating the state info

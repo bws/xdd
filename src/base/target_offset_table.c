@@ -60,24 +60,19 @@ int tot_init(tot_t** table, size_t queue_depth, size_t num_reqs)
     
 
     // Initialize all the table entries
+	// Note: The TOT wait structures reside in the Worker Data Structure
+	// and are initialized as part of worker_thread_init().
     tp = *table;
     tp->tot_entries = num_entries;
     for (i = 0; i < tp->tot_entries; i++) {
-	// Initialize the condvar
-        rc = pthread_cond_init(&tp->tot_entry[i].tot_condition, 0);
-	if (0 != rc) {
-	    tp->tot_entries = i;
-	    break;
-	}
-
-	// Initialize the mutex
+		// Initialize the mutex
         rc = pthread_mutex_init(&tp->tot_entry[i].tot_mutex, 0);
         if (0 != rc) {
-	    pthread_cond_destroy(&tp->tot_entry[i].tot_condition);
-	    tp->tot_entries = i;
-	    break;
+	    	tp->tot_entries = i;
+	    	break;
         }
-        tp->tot_entry[i].is_released = 0;
+        tp->tot_entry[i].tot_status = TOT_ENTRY_AVAILABLE;
+        tp->tot_entry[i].tot_waitp = 0;
         tp->tot_entry[i].tot_op_number = -1;
         tp->tot_entry[i].tot_byte_offset = -1;
         tp->tot_entry[i].tot_io_size = 0;
@@ -134,29 +129,26 @@ int tot_update(tot_t* table,
 
     // Do not update if a newer entry is using this slot
     if (tep->tot_op_number >= req_number) {
-	rc = -1;
-#ifdef ndef
-	fprintf(xgp->errout,
-		"%s: tot_update: Worker Thread %d: "
-		"WARNING: TOT Collision at entry %d, op number %"PRId64", "
-		"byte location is %"PRId64" [block %"PRId64"], "
-		"my current op number is %"PRId64", "
-		"my byte location is %"PRId64" [block %"PRId64"] "
-		"last updated by worker_thread %d\n",
-		xgp->progname, worker_thread_number,
-		idx, tep->tot_op_number,
-		tep->tot_byte_offset, tep->tot_byte_offset/tep->tot_io_size,
-		req_number,
-		offset, offset/size,
-		tep->tot_update_worker_thread_number);
-#endif
-    }
-    else {
-	nclk_now(&tep->tot_update_ts);
-	tep->tot_update_worker_thread_number = worker_thread_number;
-	tep->tot_op_number = req_number;
-	tep->tot_byte_offset = offset;
-	tep->tot_io_size = size;
+		rc = -1;
+		fprintf(xgp->errout,
+			"%s: tot_update: Worker Thread %d: "
+			"WARNING: TOT Collision at entry %d, op number %"PRId64", "
+			"byte location is %"PRId64" [block %"PRId64"], "
+			"my current op number is %"PRId64", "
+			"my byte location is %"PRId64" [block %"PRId64"] "
+			"last updated by worker_thread %d\n",
+			xgp->progname, worker_thread_number,
+			idx, tep->tot_op_number,
+			tep->tot_byte_offset, tep->tot_byte_offset/tep->tot_io_size,
+			req_number,
+			offset, offset/size,
+			tep->tot_update_worker_thread_number);
+    } else {
+		nclk_now(&tep->tot_update_ts);
+		tep->tot_update_worker_thread_number = worker_thread_number;
+		tep->tot_op_number = req_number;
+		tep->tot_byte_offset = offset;
+		tep->tot_io_size = size;
     }
 
     // Unlock entry

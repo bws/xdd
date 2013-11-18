@@ -89,7 +89,20 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 			tdp->td_target_full_pathname);
 		return(-1);
 	}
-        
+	
+	// Initialize the tot_wait structure 
+	status = pthread_cond_init(&wdp->wd_tot_wait.totw_condition, 0);
+	if (0 != status) {
+		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Failed to initialize tot condition variable\n",
+			xgp->progname,
+			tdp->td_target_number,
+			wdp->wd_worker_number);
+		return(-1);
+	}
+	wdp->tot_wait.totw_wdp = wdp;
+	wdp->tot_wait.totw_is_released = 0;
+	wdp->tot_wait.totw_nextp = 0;
+
 	// Get the I/O buffer
 	// The xdd_init_io_buffers() routine will set wd_bufp and wd_buf_size to appropriate values.
 	// The size of the buffer depends on whether it is being used for network
