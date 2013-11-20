@@ -51,17 +51,6 @@ xdd_e2e_target_init(target_data_t *tdp) {
 	xdd_plan_t *planp = tdp->td_planp;
 	if (PLAN_ENABLE_XNI & planp->plan_options) {
 		xint_e2e_xni_init(tdp);
-
-		/* Perform the XNI accept/connect */
-		if (tdp->td_target_options & TO_E2E_DESTINATION) { 
-			status = xint_e2e_dest_connect(tdp);
-		} else {
-			status = xint_e2e_src_connect(tdp);
-		}
-		if (0 != status) {
-			fprintf(xgp->errout, "Failure during XNI connection.\n");
-			return -1;
-		}
 	}
 	else {
 	
