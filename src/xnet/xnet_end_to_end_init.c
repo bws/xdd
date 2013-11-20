@@ -40,7 +40,7 @@
  * IB. Use the `ibv_devices' utility to find the device names on your
  * system. Examples: "mlx4_0", "mlx4_1", "mlx0".
  */
-static const char *DEFAULT_IB_DEVICE = "mlx4_0";
+static const char *DEFAULT_IB_DEVICE = "mlx4_1";
 #endif  /* HAVE_ENABLE_IB */
 
 /*----------------------------------------------------------------------*/

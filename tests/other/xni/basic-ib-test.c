@@ -9,8 +9,10 @@
 #include "xni.h"
 
 #define BUFFER_PREPADDING 4096
+// Bohr03 is 128.219.144.20
 //#define DEFAULT_HOST "127.0.0.1"
 #define DEFAULT_HOST "128.219.144.20"
+#define DEFAULT_IBDEV "mlx4_1"
 
 #define FAIL() fail(__LINE__)
 
@@ -23,7 +25,7 @@ static int fail(int lineno)
 int start_server()
 {
     int rc = 0;
-#ifdef HAVE_INFINIBAND_VERBS_ENABLED
+#ifdef HAVE_ENABLE_IB
 
     // First, XNI initialization stuff
     xni_initialize();
@@ -32,7 +34,7 @@ int start_server()
     xni_control_block_t xni_cb = 0;
     xni_context_t xni_ctx;
 
-    xni_allocate_ib_control_block("mlx4_0", 1, &xni_cb);
+    xni_allocate_ib_control_block(DEFAULT_IBDEV, 1, &xni_cb);
     xni_context_create(xni_protocol_ib, xni_cb, &xni_ctx);
 
 	// Third, register the memroy
@@ -70,7 +72,7 @@ int start_server()
 int start_client()
 {
     int rc = 0;
-#ifdef HAVE_INFINIBAND_VERBS_ENABLED
+#ifdef HAVE_ENABLE_IB
 	
     // First, XNI initialization stuff
     xni_initialize();
@@ -96,7 +98,7 @@ int start_client()
  		FAIL();
 	
     // Now pass a little data back and forth
-	if (xni_request_target_buffer(xni_conn, &xtb)) FAIL();
+	if (xni_request_target_buffer(xni_ctx, &xtb)) FAIL();
 	xni_target_buffer_set_target_offset(0, xtb);
 	xni_target_buffer_set_data_length(512, xtb);
 	char* payload = xni_target_buffer_data(xtb);

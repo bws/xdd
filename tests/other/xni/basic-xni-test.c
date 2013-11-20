@@ -8,6 +8,7 @@
 #include "xni.h"
 
 #define BUFFER_PREPADDING 4096
+#define DEFAULT_HOST "128.219.144.20"
 
 int start_server()
 {
@@ -31,7 +32,7 @@ int start_server()
     xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING, &xtb);
     
     // Third, accept connections
-    xni_ep.host = "127.0.0.1";
+    xni_ep.host = DEFAULT_HOST;
     xni_ep.port = 40000;
     xni_connection_t xni_conn;
     xni_accept_connection(xni_ctx, &xni_ep, &xni_conn);
@@ -72,17 +73,17 @@ int start_client()
 	xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING, &xtb);
 	
     // Fourth, connect to the server
-	xni_ep.host = "127.0.0.1";
+	xni_ep.host = DEFAULT_HOST;
     xni_ep.port = 40000;
     xni_connection_t xni_conn;
     xni_connect(xni_ctx, &xni_ep, &xni_conn);
 	
     // Now pass a little data back and forth
-	xni_request_target_buffer(xni_conn, &xtb);
+	xni_request_target_buffer(xni_ctx, &xtb);
 	xni_target_buffer_set_target_offset(0, xtb);
 	xni_target_buffer_set_data_length(512, xtb);
 	char* payload = xni_target_buffer_data(xtb);
-	memset(payload, 0, 512);
+	memset(payload, 2, 512);
 	memset(payload, 1, 4);
 	printf("First 32 bits set to: %d Second 32 bits set to: %d\n", payload[0], payload[4]);
 	xni_send_target_buffer(xni_conn, &xtb);

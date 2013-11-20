@@ -209,7 +209,7 @@ static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size
 {
 	struct ib_context* ctx = (struct ib_context*)ctx_;
 	uintptr_t beginp = (uintptr_t)buf;
-	uintptr_t datap = (uintptr_t)buf + (uintptr_t)(nbytes - reserved);
+	uintptr_t datap = (uintptr_t)buf + (uintptr_t)(reserved);
 	size_t avail = (size_t)(datap - beginp);
 
 	// Make sure space exists in the registered buffer array
