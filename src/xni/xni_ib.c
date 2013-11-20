@@ -463,13 +463,16 @@ static int send_credits(struct ib_connection *conn, int ncredits)
 		pthread_mutex_unlock(&conn->credit_mutex);
 		return 1;
 	}
-	// don't wait for send completion
 
-#ifdef XNI_TRACE
-	puts("Not waiting for send completion.");
-#endif
+	//TODO: need to make sure the completion event isn't for a data message
+	struct ibv_wc wc;
+	memset(&wc, 0, sizeof(wc));
+	int completed = ibv_poll_cq(conn->send_cq, 1, &wc);
+	if (completed < 0 || wc.status != IBV_WC_SUCCESS) {
+		return XNI_ERR;
+	}
 
-	return 0;
+	return XNI_OK;
 }
 
 static int consume_credit(struct ib_connection *conn)
