@@ -80,7 +80,7 @@ int start_client()
     // Second, create the context
     xni_control_block_t xni_cb = 0;
     xni_context_t xni_ctx;
-	xni_allocate_ib_control_block("mlx4_0", 1, &xni_cb);
+	xni_allocate_ib_control_block(DEFAULT_IBDEV, 1, &xni_cb);
     xni_context_create(xni_protocol_ib, xni_cb, &xni_ctx);
  
 	// Third, register the buffers (1 per socket)
