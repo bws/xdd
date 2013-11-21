@@ -499,10 +499,6 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
     ssize_t cnt = recv(socket->sockd, recvbuf+received, (total - received), 0);
     if (cnt == 0) {  //TODO: handle true EOF; true EOF only on first read
       return_code = XNI_EOF;
-	  //HACK: give xdd back an empty target buffer to keep it happy
-	  // this behavior breaks the postcondition described in the docs
-	  tb->target_offset = 0;
-	  tb->data_length = -1;
       goto socket_out;
     } else if (cnt == -1) {  //TODO: handle EINTR
       perror("recv");
@@ -547,8 +543,13 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
   pthread_mutex_unlock(&conn->socket_mutex);
 
  buffer_out:
-  //HACK: special case added for EOF
-  if (return_code != XNI_OK && return_code != XNI_EOF) {
+  if (XNI_EOF == return_code) {
+	  //HACK: give xdd back an empty target buffer to keep it happy
+	  // this behavior breaks the postcondition described in the docs
+	  tb->target_offset = 0;
+	  tb->data_length = -1;
+	  *targetbuf = tb;
+  } else if (return_code != XNI_OK) {
     // mark the buffer as free
     pthread_mutex_lock(&conn->context->buffer_mutex);
     tb->busy = 0;
