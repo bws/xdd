@@ -242,8 +242,7 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 		wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
 	}
 	else if (XNI_EOF == status) {
-		/* No buffer set on EOF, so just get an available one */
-		xni_request_target_buffer(tdp->xni_ctx, &wdp->wd_e2ep->xni_wd_buf);
+		//HACK: buffer is returned on EOF for our use (please redesign)
 		uintptr_t bufp =
 		    (uintptr_t)xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
 		wdp->wd_task.task_datap = (unsigned char*)(bufp + (1*getpagesize()));
