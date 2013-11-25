@@ -588,6 +588,13 @@ xdd_e2e_eof_source_side(worker_data_t *wdp) {
 
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_eof_source_side: Target %d Worker: %d: ENTER: \n", (long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number);
 
+    /* If this is XNI, just short circuit */
+    if (PLAN_ENABLE_XNI & tdp->td_planp->plan_options) {
+		e2ep->e2e_send_status = 0;
+		e2ep->e2e_sr_time = 0;
+		return 0;
+	}
+	
 	// The following uses strictly TCP
 	max_xfer = MAXMIT_TCP;
 

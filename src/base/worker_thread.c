@@ -95,13 +95,7 @@ xdd_worker_thread(void *pin) {
 				return(0);
 			case TASK_REQ_EOF:
 				// E2E Source Side only - send EOF packets to Destination 
-				if (PLAN_ENABLE_XNI & tdp->td_planp->plan_options) {
-					// use XNI to send the EOF
-					status = xint_e2e_xni_eof_source_side(wdp);
-				} else {
-					// use the legacy end-to-end code to send the EOF
-					status = xdd_e2e_eof_source_side(wdp);
-				}
+				status = xdd_e2e_eof_source_side(wdp);
 				if (status) // Only set the status in the Target Data Struct if it is non-zero
 					tdp->td_counters.tc_current_io_status = status;
 				break;
