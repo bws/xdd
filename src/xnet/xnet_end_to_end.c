@@ -240,13 +240,11 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 		wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
 	}
 	else if (XNI_EOF == status) {
-		/* No buffer set on EOF, so just get an available one */
-		xni_request_target_buffer(tdp->xni_ctx, &wdp->wd_e2ep->xni_wd_buf);
-		uintptr_t bufp =
-		    (uintptr_t)xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
-		wdp->wd_task.task_datap = (unsigned char*)(bufp + (1*getpagesize()));
-		wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (1*getpagesize() - sizeof(xdd_e2e_header_t)));
-		wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
+		/* No buffer set on EOF, so just create a static one */
+		xdd_e2e_header_t *eof_header = malloc(sizeof(*eof_header));
+		wdp->wd_e2ep->e2e_hdrp = eof_header;
+		wdp->wd_task.task_datap = 0;
+		wdp->wd_e2ep->e2e_datap = 0;
 
 		/* Perform EOF Assembly */
 		wdp->wd_e2ep->e2e_hdrp->e2eh_magic = XDD_E2E_EOF;
