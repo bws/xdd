@@ -54,5 +54,11 @@ xdd_target_thread_cleanup(target_data_t *tdp) {
 		wdp = wdp->wd_next_wdp;
 	}
 
+        /* On e2e XNI, part of cleanup includes closing the source side */
+        if ((TO_ENDTOEND & tdp->td_target_options) &&
+            (PLAN_ENABLE_XNI & tdp->td_planp->plan_options)) {
+            xni_close_connection(&tdp->td_e2ep->xni_td_conn);
+        }
+
 } // End of xdd_target_thread_cleanup()
 
