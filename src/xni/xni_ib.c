@@ -1012,20 +1012,18 @@ static int ib_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t 
       if (memcmp(tb->header, DATA_MESSAGE_TAG, TAG_LENGTH) == 0) {
         memcpy(&tb->target_offset, ((char*)tb->header)+TAG_LENGTH, 8);
         tb->data_length = wc.byte_len - (int)((char*)tb->data - (char*)tb->header);
-      } else if (memcmp(tb->header, EOF_MESSAGE_TAG, TAG_LENGTH) == 0) {
-		// source side indicated end of file condition
-		//HACK: give xdd back an empty target buffer to keep it happy
-		// this behavior breaks the postcondition described in the docs
-		tb->target_offset = 0;
-		tb->data_length = -1;
+      } else if (memcmp(tb->header, EOF_MESSAGE_TAG, TAG_LENGTH) == 0)
         conn->eof = 1;
-	  } else
+      else
         return XNI_ERR;
     }
   }
 
+  if (conn->eof)
+    return XNI_EOF;
+
   *targetbuf = tb;
-  return (conn->eof ? XNI_EOF : XNI_OK);
+  return XNI_OK;
 }
 
 static int ib_release_target_buffer(xni_target_buffer_t *targetbuf_)
