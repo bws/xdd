@@ -172,13 +172,10 @@ xdd_e2e_dest_connection(worker_data_t *wdp) {
 	tdp = wdp->wd_tdp;
 	e2ep = wdp->wd_e2ep;
 
-#if (IRIX || WIN32 )
-	e2ep->e2e_nd = getdtablehi();
-#endif
-
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_dest_connection: Target %d Worker: %d: ENTER: e2e_nd=%d: e2e_sd=%d: FD_SETSIZE=%d\n", (long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number,e2ep->e2e_nd,e2ep->e2e_sd,FD_SETSIZE);
 
-	select(e2ep->e2e_nd, &e2ep->e2e_readset, NULL, NULL, NULL);
+	int rc = select(e2ep->e2e_nd, &e2ep->e2e_readset, NULL, NULL, NULL);
+	assert(rc != -1);
 	/* Handle all the descriptors that are ready */
 	/* There are two type of sockets: the one sd socket and multiple 
 	 * client sockets. We first check to see if the sd is in the readset.

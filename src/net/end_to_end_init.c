@@ -309,20 +309,8 @@ xdd_e2e_dest_init(worker_data_t *wdp) {
 		wdp->wd_e2ep->e2e_active = wdp->wd_e2ep->e2e_readset;
 		wdp->wd_e2ep->e2e_current_csd = wdp->wd_e2ep->e2e_next_csd = 0;
 
-		/* Find out how many sockets are in each set (berkely only) */
-#if (IRIX || WIN32 )
-		wdp->wd_e2ep->e2e_nd = getdtablehi();
-#endif
-#if (LINUX || DARWIN)
-		wdp->wd_e2ep->e2e_nd = getdtablesize();
-#endif
-#if (AIX)
+		/* Find out how many sockets are in each set */
 		wdp->wd_e2ep->e2e_nd = FD_SETSIZE;
-#endif
-#if (SOLARIS )
-		wdp->wd_e2ep->e2e_nd = FD_SETSIZE;
-#endif
-
 	}
 	
 	// Initialize the message counter and sequencer to 0
