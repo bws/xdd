@@ -345,7 +345,7 @@ static int move_qp_to_rtr(struct ibv_qp *qp, uint32_t remote_qpnum, uint16_t rem
 	attr.dest_qp_num = remote_qpnum;
 	attr.rq_psn = 1;
 	attr.max_dest_rd_atomic = nbuf;
-	attr.min_rnr_timer = 12;  // recommended value
+	attr.min_rnr_timer = 18;  // about 1.07 seconds (recommended value)
 
 	return ibv_modify_qp(qp, &attr, (IBV_QP_STATE|IBV_QP_AV|IBV_QP_PATH_MTU|
 									 IBV_QP_DEST_QPN|IBV_QP_MAX_DEST_RD_ATOMIC|
