@@ -838,6 +838,13 @@ xdd_func_t  xdd_func[] = {
             {" Enable XNI networking package rather than SWH sockets\n",
             0,0,0,0},
 			XDD_FUNC_INVISIBLE},
+    {"ibdevice", "ibdevice",
+            xddfunc_ibdevice,
+            1,
+            "  -ibdevice device\n",   
+            {" Use the specified InfiniBand device with XNI\n",
+            0,0,0,0},
+			XDD_FUNC_INVISIBLE},
     {0,0,0,0,0,{0,0,0,0,0},0}
 }; // This is the end of the command line options definitions
 

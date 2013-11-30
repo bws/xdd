@@ -153,6 +153,7 @@ int xddfunc_unverbose(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t fl
 int xddfunc_verbose(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_version(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_xni(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_ibdevice(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_invalid_option(int32_t argc, char *argv[], uint32_t flags);
 void xddfunc_currently_undefined_option(char *sp);
  

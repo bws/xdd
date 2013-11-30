@@ -188,6 +188,7 @@ struct xint_target_data {
 	xni_protocol_t      xni_pcl;
 	xni_control_block_t xni_cb;
 	xni_context_t xni_ctx;	
+	const char *xni_ibdevice;
 };
 typedef struct xint_target_data target_data_t;
 
