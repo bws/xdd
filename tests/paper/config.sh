@@ -8,8 +8,10 @@ SRCDIR=$HOME/Code/xdd
 # XDD build system currently needs $BUILDDIR = $SRCDIR
 BUILDDIR=$SRCDIR
 
-UNAME=uname
 AUTORECONF=autoreconf
+MAKE=make
+MKDIR=mkdir
+UNAME=uname
 
 XDD=$BUILDDIR/bin/xdd
 

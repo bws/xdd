@@ -1,5 +1,4 @@
 #!/bin/bash
-set -x
 
 # load configuration defaults
 source ./config.sh
@@ -18,12 +17,12 @@ then
 fi
 
 # move to build directory
-mkdir -p $BUILDDIR
+$MKDIR -p $BUILDDIR
 cd $BUILDDIR
 
 # configure
 $AUTORECONF $SRCDIR
 $SRCDIR/configure $CONFIGUREOPTS
 
-# make
-make
+# (re-)make
+$MAKE -B
