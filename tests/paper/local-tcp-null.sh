@@ -3,10 +3,14 @@
 # load configuration defaults
 source ./config.sh
 
+# default config overrides
+E2ESRC=localhost
+E2EDEST=localhost
+
 # set option variables
 XNIOPT=""  # don't use XNI
 TARGETOPT="-targets 1 null"  # reads/writes are no-ops
-E2EOPT="-e2e dest localhost:${E2EPORT},${E2ETHREADS}"
+E2EOPT="-e2e dest ${E2EDEST}:${E2EPORT},${E2ETHREADS}"
 BYTESOPT="-bytes ${BYTES}"
 REQSIZEOPT="-reqsize ${REQSIZE}"
 
