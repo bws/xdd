@@ -14,7 +14,7 @@ E2EOPT="-e2e dest ${E2EDEST}:${E2EPORT},${E2ETHREADS}"
 BYTESOPT="-bytes ${BYTES}"
 REQSIZEOPT="-reqsize ${REQSIZE}"
 
-# start destination side in background
+# start destination side in background and ignore output
 ${XDD} \
     ${XNIOPT} \
     ${TARGETOPT} \
@@ -22,16 +22,21 @@ ${XDD} \
     ${E2EOPT} \
     ${BYTESOPT} \
     ${REQSIZEOPT} \
+    >/dev/null \
     &
 
 # wait for destination side to start
 sleep 3
 
-# start source side
+# start source side and output
+# pass,target,queue,size,ops,elapsed,bandwidth,iops,latency,cpu,op,reqsize
 ${XDD} \
     ${XNIOPT} \
     ${TARGETOPT} \
     -op read -e2e issrc \
     ${E2EOPT} \
     ${BYTESOPT} \
-    ${REQSIZEOPT}
+    ${REQSIZEOPT} \
+    | grep -o 'COMBINED .*' \
+    | sed 's/  */,/g' \
+    | cut -d ',' -f 2-13
