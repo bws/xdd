@@ -11,6 +11,7 @@ BUILDDIR=$SRCDIR
 AUTORECONF=autoreconf
 MAKE=make
 MKDIR=mkdir
+SSH=ssh
 UNAME=uname
 
 XDD=$BUILDDIR/bin/xdd
