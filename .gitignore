@@ -8,5 +8,6 @@ Makefile
 tests/test_config
 *.tar.gz
 *.o
+*.pyc
 *.csv
 *~
