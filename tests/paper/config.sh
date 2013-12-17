@@ -9,6 +9,7 @@ SRCDIR=$HOME/Code/xdd
 BUILDDIR=$SRCDIR
 
 AUTORECONF=autoreconf
+IPERF=iperf
 MAKE=make
 MKDIR=mkdir
 SSH=ssh
@@ -46,6 +47,6 @@ IBDEVICE="mlx4_0"
 #
 
 # default number of bytes to transfer
-BYTES=10000000000  # 10 GB
+BYTES=$((10*1000000000))  # 10 GB
 # I/O request block size (KiB)
 REQSIZE=8192  #  (8 MiB)
