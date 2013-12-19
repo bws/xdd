@@ -211,6 +211,9 @@
 /* Define to 1 if you wish to enable Infiniband support */
 #undef HAVE_ENABLE_IB
 
+/* Define to 1 if the TCP_CONGESTION setsockopt is available */
+#undef HAVE_DECL_TCP_CONGESTION
+
 
 #endif
 

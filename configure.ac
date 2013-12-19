@@ -404,6 +404,11 @@ dnl
 AC_CHECK_HEADERS([scsi/sg.h], [], [], [/usr/include])
 
 dnl
+dnl Check if the TCP_CONGESTION setsockopt is available
+dnl
+AC_CHECK_DECLS([TCP_CONGESTION], [], [], [[#include <netinet/tcp.h>]])
+
+dnl
 dnl Set the default installation prefix
 dnl
 install_prefix='/opt/xdd'
