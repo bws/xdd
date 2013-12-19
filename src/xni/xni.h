@@ -387,11 +387,15 @@ void xni_target_buffer_set_data_length(int length, xni_target_buffer_t buffer);
 enum {
   XNI_TCP_DEFAULT_NUM_SOCKETS = 0,  /*!< \brief Use the default number of sockets. */
 };
+extern const char *XNI_TCP_DEFAULT_CONGESTION;  /*!< \brief Use the default TCP congestion avoidance algorithm. */
 /*! \brief Create a control block for the TCP implementation.
  *
  * If \e num_sockets is #XNI_TCP_DEFAULT_NUM_SOCKETS then the number
  * of sockets will be equal to the number of target buffers specified
  * when a connection is created.
+ *
+ * If \e congestion is #XNI_TCP_DEFAULT_CONGESTION then the system
+ * default congestion avoidance algorithm will be used.
  *
  * \param num_sockets The number of TCP sockets to create per connection.
  * \param[out] control_block The newly allocated control block.
@@ -401,7 +405,7 @@ enum {
  *
  * \sa xni_free_tcp_control_block()
  */
-int xni_allocate_tcp_control_block(int num_sockets, xni_control_block_t *control_block);
+int xni_allocate_tcp_control_block(int num_sockets, const char *congestion, xni_control_block_t *control_block);
 /*! \brief Free a TCP control block.
  *
  * It is forbidden to call this function more than once with the same

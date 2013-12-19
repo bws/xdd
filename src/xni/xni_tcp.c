@@ -21,10 +21,13 @@
 #define PROTOCOL_NAME "tcp-nlmills-20120809"
 #define ALIGN(val,align) (((val)+(align)-1UL) & ~((align)-1UL))
 
+const char *XNI_TCP_DEFAULT_CONGESTION = "";
+
 static const size_t TCP_DATA_MESSAGE_HEADER_SIZE = 12;
 
 struct tcp_control_block {
   size_t num_sockets;
+  char congestion[16];
 };
 
 struct tcp_context {
@@ -73,7 +76,7 @@ struct tcp_target_buffer {
 };
 
 
-int xni_allocate_tcp_control_block(int num_sockets, xni_control_block_t *cb_)
+int xni_allocate_tcp_control_block(int num_sockets, const char *congestion, xni_control_block_t *cb_)
 {
   struct tcp_control_block **cb = (struct tcp_control_block**)cb_;
 
@@ -81,8 +84,13 @@ int xni_allocate_tcp_control_block(int num_sockets, xni_control_block_t *cb_)
   if (num_sockets < 1 && num_sockets != XNI_TCP_DEFAULT_NUM_SOCKETS)
     return XNI_ERR;
 
+  // check for buffer overflow
+  if (strlen(congestion) >= sizeof((*cb)->congestion))
+    return XNI_ERR;
+
   struct tcp_control_block *tmp = calloc(1, sizeof(*tmp));
   tmp->num_sockets = num_sockets;
+  strncpy(tmp->congestion, congestion, (sizeof(tmp->congestion) - 1));
   *cb = tmp;
   return XNI_OK;
 }
