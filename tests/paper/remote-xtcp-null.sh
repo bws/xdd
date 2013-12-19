@@ -4,6 +4,12 @@
 source ./config.sh
 
 # set option variables
+NUMACMD=""
+if [ "$NUMA" == 'true' ]
+then
+    NUMACMD="${NUMA} --cpunodebind=${NUMANODE}"
+fi
+
 XNIOPT="-xni tcp"  # use XNI TCP
 TARGETOPT="-targets 1 null"  # reads/writes are no-ops
 E2EOPT="-e2e dest ${E2EDEST}:${E2EPORT},${E2ETHREADS}"
@@ -13,13 +19,14 @@ SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"\
 " -o BatchMode=yes"
 
 # start destination side in background and ignore output
-${XDD} \
-    ${XNIOPT} \
-    ${TARGETOPT} \
-    -op write -e2e isdest \
-    ${E2EOPT} \
-    ${BYTESOPT} \
-    ${REQSIZEOPT} \
+${NUMACMD} \
+    ${XDD} \
+        ${XNIOPT} \
+        ${TARGETOPT} \
+        -op write -e2e isdest \
+        ${E2EOPT} \
+        ${BYTESOPT} \
+        ${REQSIZEOPT} \
     >/dev/null \
     &
 
@@ -31,13 +38,14 @@ sleep 3
 ${SSH} \
     ${SSHOPT} \
     ${E2ESRC} \
-        ${XDD} \
-        ${XNIOPT} \
-        ${TARGETOPT} \
-        -op read -e2e issrc \
-        ${E2EOPT} \
-        ${BYTESOPT} \
-        ${REQSIZEOPT} \
+        ${NUMACMD} \
+            ${XDD} \
+            ${XNIOPT} \
+            ${TARGETOPT} \
+            -op read -e2e issrc \
+            ${E2EOPT} \
+            ${BYTESOPT} \
+            ${REQSIZEOPT} \
     | grep -o 'COMBINED .*' \
     | sed 's/  */,/g' \
     | cut -d ',' -f 2-13

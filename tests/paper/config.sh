@@ -12,6 +12,7 @@ AUTORECONF=autoreconf
 IPERF=iperf
 MAKE=make
 MKDIR=mkdir
+NUMACTL=numactl
 SSH=ssh
 UNAME=uname
 
@@ -25,6 +26,15 @@ XDD=$BUILDDIR/bin/xdd
 PLATFORM=`$UNAME`
 # for now debug mode just disables failure on compiler errors
 DEBUG=true
+
+#
+# NUMA parameters
+#
+
+# enable (true) or disable (false) numactl
+NUMA=false
+# value of numactl --cpunodebind option
+NUMANODE=4
 
 #
 # NETWORK PARAMETERS
