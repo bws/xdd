@@ -23,7 +23,7 @@
  */
 int tot_init(tot_t** table, size_t queue_depth, size_t num_reqs)
 {
-    int num_entries, rc, i;
+    int num_entries, i, rc = 0;
     tot_t *tp;
     
     // Preconditions check
