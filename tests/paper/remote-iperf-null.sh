@@ -4,6 +4,12 @@
 source ./config.sh
 
 # set option variables
+NUMACMD=""
+if [ "$NUMA" == 'true' ]
+then
+    NUMACMD="${NUMA} --cpunodebind=${NUMANODE}"
+fi
+
 CLIENTOPT="-c ${E2EDEST}"
 CSVOPT="-y c"
 INTERVALOPT="-i 3600"  # large interval so only the total is output
@@ -13,8 +19,9 @@ SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"\
 " -o BatchMode=yes"
 
 # start destination side in background and ignore output
-${IPERF} \
-    -s \
+${NUMACMD} \
+    ${IPERF} \
+        -s \
     >/dev/null 2>/dev/null \
     &
 
@@ -24,14 +31,15 @@ sleep 3
 # start source side on remote host using ssh and save output
 CSVOUT=$(
     ${SSH} \
-	${SSHOPT} \
-	${E2ESRC} \
-	${IPERF} \
-	    ${CLIENTOPT} \
-	    ${CSVOPT} \
-	    ${INTERVALOPT} \
-	    ${BUFLENOPT} \
-	    ${NUMOPT} \
+        ${SSHOPT} \
+        ${E2ESRC} \
+            ${NUMACMD} \
+                ${IPERF} \
+                ${CLIENTOPT} \
+                ${CSVOPT} \
+                ${INTERVALOPT} \
+                ${BUFLENOPT} \
+                ${NUMOPT} \
     | tail -1
 )
 
