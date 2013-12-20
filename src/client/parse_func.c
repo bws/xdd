@@ -197,6 +197,47 @@ xddfunc_combinedout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flag
 	return(2);
 } // End of xddfunc_combinedout()
 /*----------------------------------------------------------------------------*/
+// Set the congestion control algorithm.
+int xddfunc_congestion(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
+{
+	int args; 
+	int target_number;
+	const char *congestion;
+
+	args = xdd_parse_target_number(planp, argc, &argv[0],
+								   flags, &target_number);
+	if (args < 0)
+		return(-1);
+
+	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
+		return(0);
+
+	/* Get the congestion control algorithm name */
+	congestion = argv[args + 1];
+	
+	/* Set the congestion name for the relevant targets */
+	if (target_number >= 0) {
+		/* Set this option value for a specific target */
+		target_data_t *tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL)
+			return(-1);
+		tdp->xni_tcp_congestion = congestion;
+		return(args+2);
+	} else {
+        /* Put this option into all Targets */ 
+		if (flags & XDD_PARSE_PHASE2) {
+			target_data_t *tdp = planp->target_datap[0];
+			int i = 0;
+			while (tdp) {
+				tdp->xni_tcp_congestion = congestion;
+				i++;
+				tdp = planp->target_datap[i];
+			}
+		}
+		return(2);
+	}
+} // End of xddfunc_congestion()
+/*----------------------------------------------------------------------------*/
 // Create new target files for each pass.
 int
 xddfunc_createnewfiles(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)

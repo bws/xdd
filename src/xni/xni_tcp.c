@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <sys/select.h>
 
@@ -207,6 +208,23 @@ static int tcp_accept_connection(xni_context_t ctx_, struct xni_endpoint* local,
 		int optval = 1;
 		setsockopt(servers[i], SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 
+		const char * const congestion = ctx->control_block.congestion;
+		if (strcmp(congestion, XNI_TCP_DEFAULT_CONGESTION) != 0) {
+#if HAVE_DECL_TCP_CONGESTION
+			if (setsockopt(servers[i],
+						   SOL_TCP,
+						   TCP_CONGESTION,
+						   congestion,
+						   strlen(congestion)) == -1) {
+				perror("setsockopt");
+				goto error_out;
+			}
+#else
+			// operation not supported
+			goto error_out;
+#endif  // HAVE_DECL_TCP_CONGESTION
+		}
+
 		struct sockaddr_in addr;
 		memset(&addr, 0, sizeof(addr));
 		addr.sin_family = AF_INET;
@@ -286,6 +304,23 @@ static int tcp_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conn
 		if ((servers[i].sockd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
 			perror("socket");
 			goto error_out;
+		}
+
+		const char * const congestion = ctx->control_block.congestion;
+		if (strcmp(congestion, XNI_TCP_DEFAULT_CONGESTION) != 0) {
+#if HAVE_DECL_TCP_CONGESTION
+			if (setsockopt(servers[i].sockd,
+						   SOL_TCP,
+						   TCP_CONGESTION,
+						   congestion,
+						   strlen(congestion)) == -1) {
+				perror("setsockopt");
+				goto error_out;
+			}
+#else
+			// operation not supported
+			goto error_out;
+#endif  // HAVE_DECL_TCP_CONGESTION
 		}
 
 		struct sockaddr_in addr;

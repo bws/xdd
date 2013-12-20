@@ -59,6 +59,7 @@ typedef struct xdd_func xdd_func_t;
 int xddfunc_blocksize(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_bytes(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_combinedout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
+int xddfunc_congestion(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_createnewfiles(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_csvout(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
 int xddfunc_datapattern(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags);
