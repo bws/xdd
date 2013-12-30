@@ -15,6 +15,7 @@
 #include <arpa/inet.h>
 #include <sys/select.h>
 
+#include "config.h"
 #include "xni.h"
 #include "xni_internal.h"
 
