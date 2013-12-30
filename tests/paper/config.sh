@@ -52,6 +52,9 @@ E2ETHREADS=1
 # device to use for XNI InfiniBand
 IBDEVICE="mlx4_0"
 
+# TCP congestion control algorithm
+#CONGESTION="htcp"
+
 #
 # I/O PARAMETERS
 #

@@ -15,6 +15,7 @@ CSVOPT="-y c"
 INTERVALOPT="-i 3600"  # large interval so only the total is output
 BUFLENOPT="-l $((${REQSIZE}*1024))"
 NUMOPT="-n ${BYTES}"
+[ -n "${CONGESTION}" ] && CONGESTIONOPT="-Z ${CONGESTION}"
 SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"\
 " -o BatchMode=yes"
 
@@ -22,6 +23,7 @@ SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"\
 ${NUMACMD} \
     ${IPERF} \
         -s \
+    ${CONGESTIONOPT} \
     >/dev/null 2>/dev/null \
     &
 
@@ -40,6 +42,7 @@ CSVOUT=$(
                 ${INTERVALOPT} \
                 ${BUFLENOPT} \
                 ${NUMOPT} \
+                ${CONGESTIONOPT} \
     | tail -1
 )
 

@@ -13,6 +13,7 @@ fi
 XNIOPT="-xni tcp"  # use XNI TCP
 TARGETOPT="-targets 1 null"  # reads/writes are no-ops
 E2EOPT="-e2e dest ${E2EDEST}:${E2EPORT},${E2ETHREADS}"
+[ -n "${CONGESTION}" ] && CONGESTIONOPT="-congestion ${CONGESTION}"
 BYTESOPT="-bytes ${BYTES}"
 REQSIZEOPT="-reqsize ${REQSIZE}"
 SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"\
@@ -25,6 +26,7 @@ ${NUMACMD} \
         ${TARGETOPT} \
         -op write -e2e isdest \
         ${E2EOPT} \
+        ${CONGESTIONOPT} \
         ${BYTESOPT} \
         ${REQSIZEOPT} \
     >/dev/null \
@@ -44,6 +46,7 @@ ${SSH} \
             ${TARGETOPT} \
             -op read -e2e issrc \
             ${E2EOPT} \
+            ${CONGESTIONOPT} \
             ${BYTESOPT} \
             ${REQSIZEOPT} \
     | grep -o 'COMBINED .*' \
