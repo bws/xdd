@@ -7,7 +7,7 @@ source ./config.sh
 NUMACMD=""
 if [ "$NUMA" == 'true' ]
 then
-    NUMACMD="${NUMA} --cpunodebind=${NUMANODE}"
+    NUMACMD="${NUMACTL} --cpunodebind=${NUMANODE}"
 fi
 
 XNIOPT=""  # don't use XNI
