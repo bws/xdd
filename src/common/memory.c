@@ -43,8 +43,10 @@ xdd_lock_memory(unsigned char *bp, uint32_t bsize, char *sp) {
 #else
 #if  (LINUX || SOLARIS || DARWIN || AIX || FREEBSD)
 	if (getuid() != 0) {
-		fprintf(xgp->errout,"(PID %d) %s: You must run as superuser to lock memory for %s\n",
-			getpid(),xgp->progname, sp);
+		 if (xgp->global_options&GO_REALLYVERBOSE) {
+			fprintf(xgp->errout,"(PID %d) %s: You must run as superuser to lock memory for %s\n",
+				getpid(),xgp->progname, sp);
+		 }
 		return;
 	}
 #endif
