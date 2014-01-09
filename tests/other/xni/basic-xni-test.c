@@ -78,7 +78,7 @@ int start_client()
 	
     // Now pass a little data back and forth
 	xni_target_buffer_t xtb = 0;
-	xni_request_target_buffer(xni_conn, &xtb);
+	xni_request_target_buffer(xni_ctx, &xtb);
 	xni_target_buffer_set_target_offset(0, xtb);
 	xni_target_buffer_set_data_length(512, xtb);
 	char* payload = xni_target_buffer_data(xtb);

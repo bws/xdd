@@ -30,8 +30,10 @@ class XDDTransferMasterException(Exception):
 def main():
     # Create the TransferManager
     transferMgr = xdd.TransferManager()
-    transferMgr.setSourceTarget("/dev/zero")
-    transferMgr.setSinkTarget("/dev/null")
+    transferMgr.setRequestSize(8192)
+    transferMgr.setTransferSize(1024*1024*1024)
+    transferMgr.setSourceTarget("/dev/zero", dioFlag=False, serialFlag=False)
+    transferMgr.setSinkTarget("/dev/null", dioFlag=False, serialFlag=False)
     transferMgr.addSource("localhost", 1)
     transferMgr.addSink("bws-mbpro2", 1)
 
@@ -42,9 +44,6 @@ def main():
         if 0 != rc:
             print("ERROR: File data transfer failed during flow creation.")
             raise XDDTransferMasterException()
-
-        while True:
-            pass
 
         # Start the flows
         rc = transferMgr.startFlows()
@@ -61,9 +60,8 @@ def main():
     #except:
     #    print("Exception caught:", sys.exc_info())
     finally:
-        pass
         # Stop all of the flows and get their status
-    #    transferMgr.cleanupFlows()
+        transferMgr.cleanupFlows()
 
     success = transferMgr.completedSuccessfully()
     if False == success:

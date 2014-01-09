@@ -22,6 +22,7 @@ static int fail(int lineno)
 int start_server()
 {
     int rc = 0;
+#ifdef HAVE_ENABLE_IB
 
     // First, XNI initialization stuff
     xni_initialize();
@@ -59,13 +60,16 @@ int start_server()
     xni_unregister_buffer(xni_ctx, buf);
     xni_finalize();
     free(buf);
+#else
+	FAIL();
+#endif
     return rc;
 }
 
 int start_client()
 {
     int rc = 0;
-	
+#ifdef HAVE_ENABLE_IB
     // First, XNI initialization stuff
     xni_initialize();
 
@@ -90,7 +94,7 @@ int start_client()
 	
     // Now pass a little data back and forth
 	xni_target_buffer_t xtb = 0;
-	if (xni_request_target_buffer(xni_conn, &xtb)) FAIL();
+	if (xni_request_target_buffer(xni_ctx, &xtb)) FAIL();
 	xni_target_buffer_set_target_offset(0, xtb);
 	xni_target_buffer_set_data_length(512, xtb);
 	char* payload = xni_target_buffer_data(xtb);
@@ -102,7 +106,9 @@ int start_client()
     // XNI cleanup stuff
     xni_finalize();
     free(buf);
-    
+#else
+	FAIL();
+#endif
     return rc;
 }
 

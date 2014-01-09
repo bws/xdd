@@ -30,6 +30,8 @@ XDDCP_ENABLED := @XDDCP_ENABLED@
 CC_EXE := @CC@
 DEPC_EXE := @DEPC_PATH@
 TAR_EXE := @TAR@
+PYTHON_EXE := @PYTHON_BIN@
+CP_PRESERVE_OPTS := @CP_PRESERVE_OPTS@
 
 #
 # Tools
@@ -38,14 +40,18 @@ AR = ar
 AUTOCONF = autoconf
 CC = $(CC_EXE)
 CP = cp
+CPR = cp -r $(CP_PRESERVE_OPTS)
 DEPC = $(DEPC_EXE)
 DEPGEN = $(XDD_DIR)/support/depend.sh
 FIND = find
 INSTALL = $(XDD_DIR)/support/install-sh
-MKDIR = mkdir -p
 LD = $(CC_EXE)
 LN = ln -sf
+MKDIR = mkdir -p
+MPICC = mpicc
 MV = mv -f
+PYTHON = PYTHONPATH=$(XDD_DIR)/contrib/site-packages:$(PYTHONPATH) $(PYTHON_EXE)
+PYC = $(PYTHON_EXE) -m compileall -f
 RM = rm -f
 RMDIR = rmdir -f
 TAR = $(TAR_EXE)
@@ -237,6 +243,13 @@ bin/xdd-truncate: $(TRUNCATE_EXE_OBJS)
 	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
 #
+# Build rules for Python targets
+#
+site-packages:
+	@$(PYC) -q contrib/
+
+.Phony: site-packages
+#
 # Build rules for installation
 #
 install_pre:
@@ -263,6 +276,18 @@ fastinstall: all
 install_libs: install_pre
 	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
 
+install_site_packages: site-packages
+	$(INSTALL) -d $(INSTALL_DIR)/site-packages
+	$(CPR) contrib/site-packages/Crypto $(INSTALL_DIR)/site-packages
+	$(CPR) contrib/site-packages/Pyro4 $(INSTALL_DIR)/site-packages
+	$(CPR) contrib/site-packages/ecdsa $(INSTALL_DIR)/site-packages
+	$(CPR) contrib/site-packages/paramiko $(INSTALL_DIR)/site-packages
+	$(CPR) contrib/site-packages/serpent.py $(INSTALL_DIR)/site-packages
+	$(INSTALL) -c -m 755 contrib/site-packages/xdd.py $(INSTALL_DIR)/site-packages
+	$(INSTALL) -c -m 644 contrib/site-packages/xdd_settings.py $(INSTALL_DIR)/site-packages
+	$(INSTALL) -c -m 755 contrib/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
+	$(PYC) -q $(INSTALL_DIR)/site-packages
+
 fullinstall: install_pre
 	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd
 	$(INSTALL) -c -m 755 bin/xdd-read-tsdumps $(INSTALL_DIR)/bin/xdd-read-tsdumps
@@ -273,9 +298,9 @@ fullinstall: install_pre
 	$(INSTALL) -c -m 755 contrib/xdd-plot-tsdumps-dk $(INSTALL_DIR)/bin/xdd-plot-tsdumps-dk
 	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
 
-install: all install_pre fullinstall install_libs install_xddcp
+install: all install_pre fullinstall install_libs install_site_packages install_xddcp
 
-.PHONY: install install_pre install_libs install_xddcp
+.PHONY: install install_pre install_libs install_site_packages install_xddcp
 
 #
 # Miscellaneous build rules
@@ -303,7 +328,6 @@ doc:
 #
 # Build test support infrastructure
 #
-MPICC = mpicc
 
 contrib/mpil: contrib/mpil.o
 	$(MPICC) $^ -o $@
@@ -324,7 +348,9 @@ test: contrib/mpil bin/basic-xni-test
 
 check: bin/basic-xni-test bin/basic-ib-test
 	@# This should somehow run all of the tests.
-
+	@$(PYTHON) tests/unit/site-packages/xdd_flow_test.py
+	@$(PYTHON) tests/unit/site-packages/xdd_flow_builder_factory_test.py
+	@$(PYTHON) tests/unit/site-packages/xdd_transfer_manager_test.py
 .PHONY: test check
 
 #
@@ -375,6 +401,7 @@ clean: depclean libclean oclean tclean
 # Rules for building the distribution
 #
 DISTCHECK_DIR := $(PWD)/tests/distcheck
+CONFIG_FLAGS = $(shell grep "\-\-prefix" config.log | cut -f 5- -d ' ')
 
 xdd-$(XDDVERSION):
 	git archive --format=tar --prefix=$@/ master | $(TAR) xf -
@@ -397,9 +424,9 @@ distcheck: dist
 	$(RM) -r $(DISTCHECK_DIR)
 	$(MKDIR) $(DISTCHECK_DIR)
 	$(TAR) -C $(DISTCHECK_DIR) -xzf xdd-$(XDDVERSION).tar.gz
-	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && ./configure --prefix=$(DISTCHECK_DIR)
+	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && ./configure $(CONFIG_FLAGS) --prefix=$(DISTCHECK_DIR)
 	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make
-	#cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make check
+	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make check
 	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make install
 
 dist: xdd-$(XDDVERSION).tar.gz
