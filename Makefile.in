@@ -283,8 +283,7 @@ install_site_packages: site-packages
 	$(CPR) contrib/site-packages/ecdsa $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/paramiko $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/serpent.py $(INSTALL_DIR)/site-packages
-	$(INSTALL) -c -m 755 contrib/site-packages/xdd.py $(INSTALL_DIR)/site-packages
-	$(INSTALL) -c -m 644 contrib/site-packages/xdd_settings.py $(INSTALL_DIR)/site-packages
+	$(CPR) contrib/site-packages/xdd $(INSTALL_DIR)/site-packages
 	$(INSTALL) -c -m 755 contrib/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
 	$(PYC) -q $(INSTALL_DIR)/site-packages
 
@@ -352,6 +351,7 @@ check: bin/basic-xni-test bin/basic-ib-test
 	@$(PYTHON) tests/unit/site-packages/xdd_flow_builder_factory_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_flow_builder_transport_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_transfer_manager_test.py
+
 .PHONY: test check
 
 #
