@@ -260,8 +260,6 @@ install_pre:
 install_xddcp: install_pre
 ifeq (true,$(XDDCP_ENABLED))
 	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
-	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
-	$(INSTALL) -c -m 755 etc/xddmcp.conf.example $(INSTALL_DIR)/etc/xddmcp.conf.example
 endif
 
 fastinstall: all
@@ -284,8 +282,9 @@ install_site_packages: site-packages
 	$(CPR) contrib/site-packages/paramiko $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/serpent.py $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/xdd $(INSTALL_DIR)/site-packages
-	$(INSTALL) -c -m 755 contrib/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
+	$(CPR) contrib/site-packages/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
 	$(PYC) -q $(INSTALL_DIR)/site-packages
+	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
 
 fullinstall: install_pre
 	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd
@@ -347,6 +346,7 @@ test: contrib/mpil bin/basic-xni-test
 
 check: bin/basic-xni-test bin/basic-ib-test
 	@# This should somehow run all of the tests.
+	@$(PYTHON) tests/unit/site-packages/xdd_file_transfer_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_flow_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_flow_builder_factory_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_flow_builder_transport_test.py
