@@ -5,6 +5,7 @@ config.status
 configure
 GNUmakefile
 Makefile
+contrib/xddmcp
 tests/test_config
 *.tar.gz
 *.o
