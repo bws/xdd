@@ -6,6 +6,7 @@ configure
 GNUmakefile
 Makefile
 contrib/xddmcp
+contrib/xddmcp-server
 tests/test_config
 *.tar.gz
 *.o
