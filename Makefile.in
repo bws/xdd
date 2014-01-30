@@ -290,6 +290,7 @@ install_site_packages: site-packages install_optional_site_packages
 	$(CPR) contrib/site-packages/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
 	$(PYC) -q $(INSTALL_DIR)/site-packages
 	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
+	$(INSTALL) -c -m 755 contrib/xddmcp-server $(INSTALL_DIR)/bin/xddmcp-server
 
 fullinstall: install_pre
 	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd
