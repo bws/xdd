@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # This program is free software; you can redistribute it and/or modify 
 # it under the terms of the GNU General Public License as published by 
@@ -38,12 +38,25 @@ CONFIG_PREFIX="@prefix@"
 #
 PYTHON_EXE="$CONFIG_PYTHON"
 XDD_SITE_PACKAGES="${CONFIG_PREFIX}/site-packages"
-PYTHONPATH="${XDD_SITE_PACKAGES}:${PYTHONPATH}"
-XDDCP_SERVER_MODULE="xdd.server"
+export PYTHONPATH="${XDD_SITE_PACKAGES}:${PYTHONPATH}"
+XDDCP_SERVER_MODULE=xdd.server
 
 #
-# Should probably make sure everything exists
+# Start the python in the background
 #
-${PYTHON_EXE} -m XDDCP_SERVER_MODULE
+${PYTHON_EXE} -m $XDDCP_SERVER_MODULE &
+cpid=$!
 
-
+#
+# Watchdog loop that triggers an exit when the parent or child completes
+#
+ppid=$(ps -fp $$ |tail -1 |tr -s ' '|cut -f 3 -d ' ')
+\ps -p $cpid >&-
+rc=$?
+while [ 1 -ne $ppid -a 0 -eq $rc ]; do
+   \sleep 5
+   ppid=$(ps -fp $$ |tail -1 |tr -s ' '|cut -f 3 -d ' ')
+   \ps -p $cpid >&-
+   rc=$?
+done
+exit 0
