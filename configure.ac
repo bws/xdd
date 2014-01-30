@@ -35,6 +35,7 @@ m4_include(m4/ax_cflags_gcc_option.m4)
 m4_include(m4/ax_check_gnu_make.m4)
 m4_include(m4/ax_mpi.m4)
 m4_include(m4/ax_python.m4)
+m4_include(m4/ax_python_module.m4)
 
 dnl
 dnl Check for GNU Make
@@ -407,6 +408,12 @@ dnl
 dnl Check for python
 dnl
 AX_PYTHON()
+
+dnl
+dnl Check for PyCrypto
+dnl
+AX_PYTHON_MODULE([Crypto], 
+                 [XDD requires PyCrypto.  Due to U.S. Export Controls, PyCrypto must be installed separately from XDD.  See README.PyCrypto])
 
 dnl
 dnl Determine options to preserve metadata while performing installs with cp

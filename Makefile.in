@@ -274,9 +274,14 @@ fastinstall: all
 install_libs: install_pre
 	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
 
-install_site_packages: site-packages
+install_optional_site_packages:
+ifneq ("$(wildcard contrib/site-packages/Crypto)", "")
 	$(INSTALL) -d $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/Crypto $(INSTALL_DIR)/site-packages
+endif
+
+install_site_packages: site-packages install_optional_site_packages
+	$(INSTALL) -d $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/Pyro4 $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/ecdsa $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/paramiko $(INSTALL_DIR)/site-packages

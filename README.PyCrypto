@@ -1,0 +1,33 @@
+XDD now uses Python in some components of its toolset.  Unfortunately, one of
+the packages XDD supplies, paramiko, requires the use of PyCrypto which cannot
+be provided within the software package due to U.S. Export Control laws.
+
+To install XDD you will need to install PyCrypto.  Many systems may already
+have a working version of PyCrypto.  However, if your system does not have
+PyCrypto you can use one of the following ways to install PyCrypto:
+
+1.  Contact you system administrator and ask them to install PyCrypto on the 
+    source and destination systems.  The following commands may work as root:
+      pip install pycrypto
+
+    or
+
+      easy_install PyCrypto
+
+3.  There is a chance I've included PyCrypto in the tarball if I know
+    you are a U.S. citizen.  In that case, the following commands will work:
+      cd contrib/PyCrypto
+      python setup.py build
+      python setup.py install
+
+2.  Download PyCrypto and install it yourself:
+      wget http://www.pycrypto.org/
+      cd PyCrypto
+      python setup.py build
+      python setup.py install
+
+NOTE:  You will have to ensure that PyCrypto is available in your PYTHONPATH 
+       environment variables.  To test this you can run the following command:
+         python -c 'import crypto' 
+       which return 0 when PyCrypto is correctly installed.  This is the same 
+       command used in XDD's configure test.
