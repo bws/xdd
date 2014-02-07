@@ -354,11 +354,11 @@ check: bin/basic-xni-test bin/basic-ib-test
 	@# This should somehow run all of the tests.
 	@$(PYTHON) tests/unit/site-packages/xdd_file_transfer_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_flow_test.py
-	@$(PYTHON) tests/unit/site-packages/xdd_flow_builder_factory_test.py
-	@$(PYTHON) tests/unit/site-packages/xdd_flow_builder_transport_test.py
+	@$(PYTHON) tests/unit/site-packages/xdd_factory_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_naming_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_partition_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_transfer_manager_test.py
+	@$(PYTHON) tests/unit/site-packages/xdd_transport_test.py
 
 .PHONY: test check
 
