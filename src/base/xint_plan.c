@@ -51,7 +51,7 @@ xdd_plan_t* xint_plan_data_initialization() {
 	planp->gts_bounce = DEFAULT_BOUNCE;
 	planp->gts_delta = 0;
 	planp->gts_seconds_before_starting = 0; /* number of seconds before starting I/O */
-	planp->restart_frequency = 0;
+	planp->restart_frequency = 1;
 	planp->number_of_iothreads = 0;    /* number of threads spawned for all targets */
 	planp->estimated_end_time = 0;     /* The time at which this run (all passes) should end */
 	planp->number_of_processors = 0;   /* Number of processors */ 
@@ -108,7 +108,7 @@ int xint_plan_start(xdd_plan_t* planp, xdd_occupant_t* barrier_occupant) {
 	/* Start a restart monitor if necessary */
 	xint_plan_start_restart_monitor(planp);
 
-	/* Start a restart monitor if necessary */
+	/* Start interactive mode if requested */
 	xint_plan_start_interactive(planp);
 
 	/* Record a start time and release the target threads from the barrier */

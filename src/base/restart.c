@@ -84,6 +84,14 @@ xdd_restart_create_restart_file(xint_restart_t *rp) {
 		free(rp->restart_filename);
 		return(-1);
 	}
+
+	// And write the initial restart value
+	if (0 != xdd_restart_write_restart_file(rp)) {
+		fprintf(xgp->errout,"%s: Restart file corrupted: %s  Previous restart offset was %lld\n",
+				xgp->progname,
+				rp->restart_filename,
+				rp->initial_restart_offset);
+	}
 	
 	// Success - everything must have worked and we have a restart file
 	fprintf(xgp->output,"%s: RESTART_MONITOR: INFO: Successfully created restart file %s\n",
@@ -104,7 +112,16 @@ xdd_restart_create_restart_file(xint_restart_t *rp) {
 int
 xdd_restart_write_restart_file(xint_restart_t *rp) {
 	int		status;
+	long long int restart_offset;
 
+	// Determine the new offset
+	if (rp->byte_offset > rp->initial_restart_offset) {
+		restart_offset = rp->byte_offset;
+	}
+	else {
+		restart_offset = rp->initial_restart_offset;
+	}
+	
 	// Seek to the beginning of the file 
 	status = fseek(rp->fp, 0L, SEEK_SET);
 	if (status < 0) {
@@ -115,8 +132,7 @@ xdd_restart_write_restart_file(xint_restart_t *rp) {
 	}
 	
 	// Put the ASCII text offset information into the restart file
-	fprintf(rp->fp,"-restart offset %lld\n", 
-		(long long int)rp->byte_offset);
+	fprintf(rp->fp,"-restart offset %lld\n", (long long int)restart_offset);
 
 	// Flush the file for safe keeping
 	fflush(rp->fp);
@@ -210,12 +226,15 @@ xdd_restart_monitor(void *data) {
 		for (target_number=0; target_number < planp->number_of_targets; target_number++) {
 			current_tdp = planp->target_datap[target_number];
 			// If this target does not require restart monitoring then continue
-			if ( !(current_tdp->td_target_options & TO_RESTART_ENABLE) ) // if restart is NOT enabled for this target then continue
+			if ( !(current_tdp->td_target_options & TO_RESTART_ENABLE) ) {
+                // if restart is NOT enabled for this target then continue
 				continue;
-			
+			}
 			rp = current_tdp->td_restartp;
-			if (!rp) // Hmmm... no restart pointer..
+			if (!rp) {
+                // Hmmm... no restart pointer..
 				continue;
+			}
 			pthread_mutex_lock(&rp->restart_lock);
 
 			if (rp->flags & RESTART_FLAG_SUCCESSFUL_COMPLETION) {

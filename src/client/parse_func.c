@@ -3132,7 +3132,8 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	    	if (tdp->td_e2ep == NULL) // If there is still no e2e struct then return -1
 				return(-1);
 
-			rp->byte_offset = atoll(argv[args_index+1]);
+			rp->initial_restart_offset = atoll(argv[args_index+1]);
+			rp->byte_offset = rp->initial_restart_offset;
 			rp->flags |= RESTART_FLAG_RESUME_COPY;
 			tdp->td_e2ep->e2e_total_bytes_written=rp->byte_offset;
 
@@ -3153,7 +3154,8 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	    			if (tdp->td_e2ep == NULL) // If there is still no e2e struct then return -1
 						return(-1);
 
-					rp->byte_offset = atoll(argv[args_index+1]);
+					rp->initial_restart_offset = atoll(argv[args_index+1]);
+					rp->byte_offset = rp->initial_restart_offset;
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
 					tdp->td_e2ep->e2e_total_bytes_written=rp->byte_offset;
 
