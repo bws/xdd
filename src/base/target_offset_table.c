@@ -46,16 +46,16 @@ int tot_init(tot_t** table, size_t queue_depth, size_t num_reqs)
 	// The TOT Entries are allocated if the *table pointer is zero.
 	// Otherwise, just init the tot_entry members.
 	if (*table == 0) {
-    // Initialize the memory
+    // Initialize the memory in the dumbest way possible
 #if HAVE_VALLOC
-    	*table = valloc(num_entries * sizeof(tot_entry_t));
+    	*table = valloc(sizeof(**table) + num_entries * sizeof(tot_entry_t));
     	rc = (NULL != table);
 #elif HAVE_POSIX_MEMALIGN
     	rc = posix_memalign((void**)table,
 				sysconf(_SC_PAGESIZE),
-				num_entries * sizeof(tot_entry_t));
+				sizeof(**table) + num_entries * sizeof(tot_entry_t));
 #else
-    	*table = malloc(num_entries * sizeof(tot_entry_t));
+    	*table = malloc(sizeof(**table) + num_entries * sizeof(tot_entry_t));
     	rc = (NULL != table);
 #endif
     	if (0 != rc)
@@ -77,19 +77,18 @@ int tot_init(tot_t** table, size_t queue_depth, size_t num_reqs)
     // Initialize all the table entries
 	// Note: The TOT wait structures reside in the Worker Data Structure
 	// and are initialized as part of worker_thread_init().
-    tp = *table;
-    tp->tot_entries = num_entries;
+	tp = *table;
     for (i = 0; i < tp->tot_entries; i++) {
-        tp->tot_entry[i].tot_status = TOT_ENTRY_AVAILABLE;
         tp->tot_entry[i].tot_waitp = 0;
         tp->tot_entry[i].tot_op_number = -1;
         tp->tot_entry[i].tot_byte_offset = -1;
         tp->tot_entry[i].tot_io_size = 0;
+        tp->tot_entry[i].tot_status = TOT_ENTRY_AVAILABLE;
     }
 
     // Perform cleanup if inititalization did not complete successfully
     if (0 != rc)
-	tot_destroy(tp);
+		tot_destroy(tp);
     
     return rc;
 }

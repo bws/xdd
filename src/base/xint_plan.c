@@ -51,7 +51,7 @@ xdd_plan_t* xint_plan_data_initialization() {
 	planp->gts_bounce = DEFAULT_BOUNCE;
 	planp->gts_delta = 0;
 	planp->gts_seconds_before_starting = 0; /* number of seconds before starting I/O */
-	planp->restart_frequency = 1;
+	planp->restart_frequency = 0;
 	planp->number_of_iothreads = 0;    /* number of threads spawned for all targets */
 	planp->estimated_end_time = 0;     /* The time at which this run (all passes) should end */
 	planp->number_of_processors = 0;   /* Number of processors */ 
