@@ -14,17 +14,22 @@ PyCrypto you can use one of the following ways to install PyCrypto:
 
       easy_install PyCrypto
 
-3.  There is a chance I've included PyCrypto in the tarball if I know
+2.  There is a chance I've included PyCrypto in the tarball if I know
     you are a U.S. citizen.  In that case, the following commands will work:
       cd contrib/PyCrypto
       python setup.py build
       python setup.py install
 
-2.  Download PyCrypto and install it yourself:
-      wget http://www.pycrypto.org/
-      cd PyCrypto
-      python setup.py build
-      python setup.py install
+3.  Install PyCrypto yourself.  In particular, I suggest installing PyCrypto
+    in the same place you install XDD.  In order to configure XDD, 
+    PYTHONPATH will need to be set to point at PyCrypto.  When running
+    XDD's Python code, XDD takes care of setting the PYTHONPATH it needs.
+    So if you set the XDD installation prefix to XDD_HOME, the following 
+    command will make for a clean installation:
+      export PYTHONPATH=$XDD_HOME/site-packages:$PYTHONPATH
+      easy_install --install-dir $XDD_HOME/site-packages
+
+At which point you should be able to configure and build XDD.
 
 NOTE:  You will have to ensure that PyCrypto is available in your PYTHONPATH 
        environment variables.  To test this you can run the following command:

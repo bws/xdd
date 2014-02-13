@@ -90,7 +90,7 @@ xdd_restart_create_restart_file(xint_restart_t *rp) {
 		fprintf(xgp->errout,"%s: Restart file corrupted: %s  Previous restart offset was %lld\n",
 				xgp->progname,
 				rp->restart_filename,
-				rp->initial_restart_offset);
+				(long long int)rp->initial_restart_offset);
 	}
 	
 	// Success - everything must have worked and we have a restart file
