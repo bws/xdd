@@ -171,9 +171,9 @@ xdd_restart_monitor(void *data) {
 	xdd_occupant_t	barrier_occupant;		// Used by the xdd_barrier() function to track who is inside a barrier
 	xint_restart_t		*rp;
 	int				status;					// Status of mutex init/lock/unlock calls
-	tot_entry_t		*tep;					// Pointer to an entry in the Target Offset Table
-	int				te;						// TOT Entry number
-	int64_t			lowest_offset;			// Lowest Offset in bytes 
+	//tot_entry_t		*tep;					// Pointer to an entry in the Target Offset Table
+	//int				te;						// TOT Entry number
+	//int64_t			lowest_offset;			// Lowest Offset in bytes 
 	xdd_plan_t* planp = (xdd_plan_t*)data;
 
 
@@ -242,6 +242,25 @@ xdd_restart_monitor(void *data) {
 				continue;
 			} else {
 				// Put the "Last Committed Block" information in the restart structure...
+				// In the case of restart processing it is NOT ok to use the target
+				// offset table to determine the restart number.  Rather, we have to
+				// determine how many worker threads exist, and use the smallest offset
+				// in the worker tasks as the restart offset
+				struct xint_worker_data *cur_wdp, *restart_wdp;
+				cur_wdp = restart_wdp = current_tdp->td_next_wdp;
+				while ((cur_wdp = cur_wdp->wd_next_wdp)) {
+					/* Find the lowest byte offset */
+					if (cur_wdp->wd_task.task_byte_offset < restart_wdp->wd_task.task_byte_offset) {
+						restart_wdp = cur_wdp;
+					}
+				}
+					
+				/* The located task effectively becomes the restart point */
+				rp->byte_offset = restart_wdp->wd_task.task_byte_offset;
+				rp->last_committed_byte_offset = -1;
+				rp->last_committed_length = restart_wdp->wd_task.task_xfer_size;
+				rp->last_committed_op = -1;
+				/*
 				// In the case of Restart processing it is ok to use the tot_byte_offset
 				// rather than the tot_op_number.
 				// Scan the Target Offset Table (TOT) for the *lowest* committed offset 
@@ -285,7 +304,7 @@ xdd_restart_monitor(void *data) {
 					}
 					
 				} // End of FOR loop that scans the TOT for the restart offset to use
-	
+	            */
 				// ...and write it to the restart file and sync sync sync
 				if (current_tdp->td_target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
 					xdd_restart_write_restart_file(rp);
