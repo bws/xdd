@@ -29,10 +29,16 @@ PyCrypto you can use one of the following ways to install PyCrypto:
       export PYTHONPATH=$XDD_HOME/site-packages:$PYTHONPATH
       easy_install --install-dir $XDD_HOME/site-packages
 
-At which point you should be able to configure and build XDD.
+At which point you should be able to configure and build XDD.  To test that
+the installation worked, you can try running the following command:
+      python -c 'import crypto'
 
-NOTE:  You will have to ensure that PyCrypto is available in your PYTHONPATH 
-       environment variables.  To test this you can run the following command:
-         python -c 'import crypto' 
-       which return 0 when PyCrypto is correctly installed.  This is the same 
-       command used in XDD's configure test.
+NOTE:  PyCrypto uses libgmp, which in some older versions exhibits a known
+       timing attack vulnerability.  If an older version of libgmp is in 
+       use on your system you will receive the following warning during
+       installation and execution:
+           Not using mpz_powm_sec.  You should rebuild using libgmp >= 5 to 
+           avoid timing attack vulnerability.
+       This warning does not prevent anything from working, but it does
+       indicate a possible attack vector on your system.  If the
+       authentication in use is vulnerable to timing attacks, upgrade libgmp.
