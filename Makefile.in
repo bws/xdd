@@ -419,6 +419,11 @@ xdd-$(XDDVERSION):
 
 xdd-$(XDDVERSION).tar.gz: xdd-$(XDDVERSION)
 	$(TAR) cfz $@ $<
+	@$(RM) -r $<
+
+xdd-$(XDDVERSION)+pycrypto.tar.gz: xdd-$(XDDVERSION)
+	$(CP) ~/Downloads/pycrypto-2.6.1.tar.gz $</contrib
+	$(TAR) cfz $@ $<
 	$(RM) -r $<
 
 distclean: clean
@@ -438,9 +443,11 @@ distcheck: dist
 	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make check
 	cd $(DISTCHECK_DIR)/xdd-$(XDDVERSION) && make install
 
-dist: xdd-$(XDDVERSION).tar.gz
+dist: xdd-$(XDDVERSION).tar.gz 
 
-.PHONY: dist distcheck distclean
+dist-usa: xdd-$(XDDVERSION)+pycrypto.tar.gz
+
+.PHONY: dist dist-usa distcheck distclean
 
 #
 # Include dependency makefiles if building source target
