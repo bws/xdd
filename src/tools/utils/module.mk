@@ -1,7 +1,7 @@
 #
 # Module makefile for the full client
 #
-DIR := src/tools
+DIR := src/tools/utils
 
 TOOLS_SRC :=
 

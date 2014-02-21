@@ -23,7 +23,7 @@ if "@XDD_PYRO_PORT@" != XDD_CONFIG_PYRO_PORT:
 #
 # Setup the python path
 #
-XDD_PYTHONPATH = "workspace/xdd/contrib/site-packages"
+XDD_PYTHONPATH = "workspace/xdd/src/tools/python"
 if "@XDD_PYTHONPATH@" != XDD_CONFIG_PYTHONPATH:
     XDD_PYTHONPATH = XDD_CONFIG_PYTHONPATH
 

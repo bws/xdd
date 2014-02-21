@@ -34,29 +34,6 @@ PYTHON_EXE := @PYTHON_BIN@
 CP_PRESERVE_OPTS := @CP_PRESERVE_OPTS@
 
 #
-# Tools
-#
-AR = ar
-AUTOCONF = autoconf
-CC = $(CC_EXE)
-CP = cp
-CPR = cp -r $(CP_PRESERVE_OPTS)
-DEPC = $(DEPC_EXE)
-DEPGEN = $(XDD_DIR)/support/depend.sh
-FIND = find
-INSTALL = $(XDD_DIR)/support/install-sh
-LD = $(CC_EXE)
-LN = ln -sf
-MKDIR = mkdir -p
-MPICC = mpicc
-MV = mv -f
-PYTHON = PYTHONPATH=$(XDD_DIR)/contrib/site-packages:$(PYTHONPATH) $(PYTHON_EXE)
-PYC = $(PYTHON_EXE) -m compileall -f
-RM = rm -f
-RMDIR = rmdir -f
-TAR = $(TAR_EXE)
-
-#
 # Configuration
 #
 SHELL =	/bin/sh
@@ -79,7 +56,32 @@ FS_DIR = $(SRC_DIR)/fs
 NET_DIR = $(SRC_DIR)/net
 PUBLIC_DIR = $(SRC_DIR)/public
 TOOLS_DIR = $(SRC_DIR)/tools
+TOOLS_PYTHON_DIR = $(SRC_DIR)/tools/python
+TOOLS_UTILS_DIR = $(SRC_DIR)/tools/utils
 XNI_DIR = $(SRC_DIR)/xni
+
+#
+# Tools
+#
+AR = ar
+AUTOCONF = autoconf
+CC = $(CC_EXE)
+CP = cp
+CPR = cp -r $(CP_PRESERVE_OPTS)
+DEPC = $(DEPC_EXE)
+DEPGEN = $(XDD_DIR)/support/depend.sh
+FIND = find
+INSTALL = $(XDD_DIR)/support/install-sh
+LD = $(CC_EXE)
+LN = ln -sf
+MKDIR = mkdir -p
+MPICC = mpicc
+MV = mv -f
+PYTHON = PYTHONPATH=$(TOOLS_PYTHON_DIR):$(XDD_DIR)/contrib/site-packages:$(PYTHONPATH) $(PYTHON_EXE)
+PYC = $(PYTHON_EXE) -m compileall -f
+RM = rm -f
+RMDIR = rmdir -f
+TAR = $(TAR_EXE)
 
 #
 # Include module makefiles
@@ -93,7 +95,7 @@ include $(COMPAT_DIR)/module.mk
 include $(FS_DIR)/module.mk
 include $(NET_DIR)/module.mk
 include $(PUBLIC_DIR)/module.mk
-include $(TOOLS_DIR)/module.mk
+include $(TOOLS_UTILS_DIR)/module.mk
 include $(XNI_DIR)/module.mk
 
 #
@@ -101,7 +103,9 @@ include $(XNI_DIR)/module.mk
 #
 XDD_SRC := $(BASE_SRC) $(CLIENT_SRC) $(COMMON_SRC) \
 	$(COMPAT_SRC) $(FS_SRC) $(NET_SRC) $(PUBLIC_SRC) \
-	$(TOOLS_SRC) $(XNI_SRC)
+	$(XNI_SRC)
+
+TOOLS_SRC := $(TOOLS_UTILS_SRC)
 
 #
 # XDD module build targets
@@ -249,6 +253,7 @@ site-packages:
 	@$(PYC) -q contrib/
 
 .Phony: site-packages
+
 #
 # Build rules for installation
 #
@@ -256,11 +261,6 @@ install_pre:
 	$(INSTALL) -d $(INSTALL_DIR)/bin
 	$(INSTALL) -d $(INSTALL_DIR)/etc
 	$(INSTALL) -d $(INSTALL_DIR)/lib
-
-install_xddcp: install_pre
-ifeq (true,$(XDDCP_ENABLED))
-	$(INSTALL) -c -m 755 contrib/xddcp $(INSTALL_DIR)/bin/xddcp
-endif
 
 fastinstall: all
 	$(RM) /sbin/xdd
@@ -286,13 +286,18 @@ install_site_packages: site-packages install_optional_site_packages
 	$(CPR) contrib/site-packages/ecdsa $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/paramiko $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/serpent.py $(INSTALL_DIR)/site-packages
-	$(CPR) contrib/site-packages/xdd $(INSTALL_DIR)/site-packages
-	$(CPR) contrib/site-packages/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
+	$(CPR) $(TOOLS_DIR)/python/xdd $(INSTALL_DIR)/site-packages
+	$(CPR) $(TOOLS_DIR)/python/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
 	$(PYC) -q $(INSTALL_DIR)/site-packages
-	$(INSTALL) -c -m 755 contrib/xddmcp $(INSTALL_DIR)/bin/xddmcp
-	$(INSTALL) -c -m 755 contrib/xddmcp-server $(INSTALL_DIR)/bin/xddmcp-server
 
-fullinstall: install_pre
+install_tools: install_site_packages
+ifeq (true,$(XDDCP_ENABLED))
+	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddcp/xddcp $(INSTALL_DIR)/bin/xddcp
+endif
+	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddft/xddft $(INSTALL_DIR)/bin/xddft
+	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddmcp/xddmcp $(INSTALL_DIR)/bin/xddmcp
+	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddmcp/xddmcp-server $(INSTALL_DIR)/bin/xddmcp-server
+	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddprof/xddprof $(INSTALL_DIR)/bin/xddprof
 	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd
 	$(INSTALL) -c -m 755 bin/xdd-read-tsdumps $(INSTALL_DIR)/bin/xdd-read-tsdumps
 	$(INSTALL) -c -m 755 bin/xdd-getfilesize $(INSTALL_DIR)/bin/xdd-getfilesize
@@ -300,11 +305,13 @@ fullinstall: install_pre
 	$(INSTALL) -c -m 755 bin/xdd-truncate $(INSTALL_DIR)/bin/xdd-truncate
 	$(INSTALL) -c -m 755 contrib/xdd-plot-tsdumps $(INSTALL_DIR)/bin/xdd-plot-tsdumps
 	$(INSTALL) -c -m 755 contrib/xdd-plot-tsdumps-dk $(INSTALL_DIR)/bin/xdd-plot-tsdumps-dk
-	$(INSTALL) -c -m 755 contrib/xddft $(INSTALL_DIR)/bin/xddft
 
-install: all install_pre fullinstall install_libs install_site_packages install_xddcp
+install_xdd: install_pre
+	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd
 
-.PHONY: install install_pre install_libs install_site_packages install_xddcp
+install: all install_pre install_xdd install_libs install_tools
+
+.PHONY: install install_pre install_libs install_site_packages install_tools install_xdd
 
 #
 # Miscellaneous build rules

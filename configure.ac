@@ -462,7 +462,7 @@ AC_SUBST(CONFIG_LIBS, "$LIBS")
 dnl
 dnl Generate output
 dnl
-AC_OUTPUT([Makefile contrib/xddmcp contrib/xddmcp-server])
+AC_OUTPUT([Makefile src/tools/xddmcp/xddmcp src/tools/xddmcp/xddmcp-server src/tools/xddprof/xddprof])
 
 dnl
 dnl Work around platforms that only have GNU make as some name other than make
