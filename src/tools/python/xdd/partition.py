@@ -117,7 +117,9 @@ class AlignedPartitionStrategy(PartitionStrategy):
  
     def partSize(self, part):
         """@return the size of the partition, part"""
-        if part < self.parts:
+        if 0 == self.parts:
+            diff = self.size
+        elif part < self.parts:
             diff = self.partEnd(part) - self.partBegin(part) + 1
         else:
             diff = 0
