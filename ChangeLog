@@ -1,6 +1,12 @@
 -----------------------
 XDD Release ChangeLog
 -----------------------
+XDD-7.0.0 RC26-1
+==============
+* XDDMCP: Make small files work by fixing partitioner
+* XDDMCP: Use port 40010 by default for XDD
+* XDDMCP: Improve a few error messages
+
 XDD-7.0.0 RC26
 ==============
 * XDD: Organize XDD around the concept of plans
