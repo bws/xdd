@@ -23,7 +23,7 @@ dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
 AC_PREREQ(2.59)
-AC_INIT([xdd], [7.0.0.rc26-1], bug@xdd.org)
+AC_INIT([xdd], [7.0.0.pre-rc27], bug@xdd.org)
 AC_CONFIG_HEADER([src/compat/config.h])
 
 
