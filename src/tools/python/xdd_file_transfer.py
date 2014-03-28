@@ -57,8 +57,8 @@ def createParser():
                       action='store', type='int', default=0, metavar='N',
                       help='on failure, retry up to N times [Default: 0]')
     parser.add_option("-p", "--port", dest='port',
-                      action='store', type='int', default=40000,
-                      help='set the first listen port [Default: 40000]')
+                      action='store', type='int', default=40010,
+                      help='set the first listen port [Default: 40010]')
     parser.add_option('-r', dest='recursive', 
                       action='store_true', default=True,
                       help='copy files recursively [Default: On]')

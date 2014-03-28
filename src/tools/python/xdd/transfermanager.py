@@ -113,7 +113,7 @@ class TransferManager:
             self.sourceTimestampFlag = True
         self.verboseLog = filename
 
-    def addSink(self, user, hostname, threads, ifs = [], port = 40000):
+    def addSink(self, user, hostname, threads, ifs = [], port = 40010):
         """Add a sink to the list of sinks"""
         assert not self.isCreated
         assert hostname
@@ -126,7 +126,7 @@ class TransferManager:
             sink['ifs'].extend(ifs)
         self.sinks.append(sink)
 
-    def addSource(self, user, hostname, threads, ifs = [], port = 40000):
+    def addSource(self, user, hostname, threads, ifs = [], port = 40010):
         """Add a source to the list of sources"""
         assert not self.isCreated
         assert hostname

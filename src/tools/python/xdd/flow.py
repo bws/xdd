@@ -132,7 +132,9 @@ class XDDFlowStatus(FlowStatus):
 
     def errorString(self):
         """@return string describing error"""
-        return 'Generic error message'
+	if self.errorData:
+            return self.erroDatar
+        return 'Unable to connect xdd processes. Ensure ports are free.'
 
     def output(self, flush=False):
         """@return the stdout produced thus far for the flow"""
