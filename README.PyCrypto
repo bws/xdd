@@ -6,19 +6,18 @@ To install XDD you will need to install PyCrypto.  Many systems may already
 have a working version of PyCrypto.  However, if your system does not have
 PyCrypto you can use one of the following ways to install PyCrypto:
 
-1.  Contact you system administrator and ask them to install PyCrypto on the 
+1.  Place pycrypto-2.6.1.tar.gz in the contrib directory.  If XDD detects this
+    file during configuration, the supplied file will be built and installed
+    by default.  There is a chance you may have received XDD in this configuration
+    already if I knew for certain that the recipient was a U.S. Citizen.
+
+2.  Contact you system administrator and ask them to install PyCrypto on the 
     source and destination systems.  The following commands may work as root:
       pip install pycrypto
 
     or
 
       easy_install PyCrypto
-
-2.  There is a chance I've included PyCrypto in the tarball if I know
-    you are a U.S. citizen.  In that case, the following commands will work:
-      cd contrib/PyCrypto
-      python setup.py build
-      python setup.py install
 
 3.  Install PyCrypto yourself.  In particular, I suggest installing PyCrypto
     in the same place you install XDD.  In order to configure XDD, 

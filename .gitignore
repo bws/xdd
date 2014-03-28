@@ -5,10 +5,16 @@ config.status
 configure
 GNUmakefile
 Makefile
+contrib/pycrypto-2.6.1.tar.gz
+contrib/site-packages/Crypto
+contrib/site-packages/pycrypto-2.6.1-*.egg-info
+src/base/xdd_base_version.h
 src/tools/xddmcp/xddmcp
 src/tools/xddmcp/xddmcp-server
 src/tools/xddprof/xddprof
+tests/distcheck
 tests/test_config
+*.DS_STORE
 *.tar.gz
 *.o
 *.pyc

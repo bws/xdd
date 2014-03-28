@@ -32,6 +32,7 @@ DEPC_EXE := @DEPC_PATH@
 TAR_EXE := @TAR@
 PYTHON_EXE := @PYTHON_BIN@
 CP_PRESERVE_OPTS := @CP_PRESERVE_OPTS@
+PYCRYPTO_DIST := @PYCRYPTO_DIST@
 
 #
 # Configuration
@@ -174,7 +175,7 @@ LIBS = @CONFIG_LIBS@
 #
 .DEFAULT: all
 
-all: xdd xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate libs
+all: xdd libs tools
 
 bxt: bin/bxt
 
@@ -182,19 +183,7 @@ xdd: bin/xdd
 
 xdd-lite: bin/xdd-lite
 
-xdd-tserver: bin/xdd-tserver
-
-xdd-gettime: bin/xdd-gettime
-
-xdd-getfilesize: bin/xdd-getfilesize
-
-xdd-gethostip: bin/xdd-gethostip
-
-xdd-read-tsdumps: bin/xdd-read-tsdumps
-
-xdd-truncate: bin/xdd-truncate
-
-.PHONY: all xdd xdd-lite xdd-tserver xdd-getfilesize xdd-gethostip xdd-gettime xdd-read-tsdumps xdd-truncate
+.PHONY: all bxt xdd xdd-lite 
 
 #
 # Build rules for libraries
@@ -208,19 +197,22 @@ $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
 .PHONY: libs
 
 #
-# Build rules for executable targets
+# Build rules for tools
 #
-bin/xdd: $(XDD_OBJS) $(XDD_EXE_OBJS)
-	@echo "[LD] $@ ..."
-	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+tools: xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate pycrypto
 
-bin/xdd-lite: $(XDD_LITE_EXE_OBJS) $(LIB_DIR)/libxdd.a 
-	@echo "[LD] $@ ..."
-	$(LD) $(LDFLAGS) -L$(LIB_DIR) -o $@ $(XDD_LITE_EXE_OBJS) -lxdd $(LIBS)
 
-bin/bxt: $(BXT_EXE_OBJS) $(LIB_DIR)/libxdd.a
-	@echo "[LD] $@ ..."
-	$(LD) $(LDFLAGS) -L$(LIB_DIR) -o $@ $(BXT_EXE_OBJS) -lxdd $(LIBS)
+xdd-gettime: bin/xdd-gettime
+
+xdd-getfilesize: bin/xdd-getfilesize
+
+xdd-gethostip: bin/xdd-gethostip
+
+xdd-read-tsdumps: bin/xdd-read-tsdumps
+
+xdd-truncate: bin/xdd-truncate
+
+xdd-tserver: bin/xdd-tserver
 
 bin/xdd-tserver: $(COMMON_DIR)/nclk.o $(NET_DIR)/net_utils.o $(TS_EXE_OBJS) 
 	@echo "[LD] $@ ..."
@@ -246,13 +238,64 @@ bin/xdd-truncate: $(TRUNCATE_EXE_OBJS)
 	@echo "[LD] $@ ..."
 	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
+.Phony: tools xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate
+
+#
+# Build rules for executable targets
+#
+bin/xdd: $(XDD_OBJS) $(XDD_EXE_OBJS)
+	@echo "[LD] $@ ..."
+	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+bin/bxt: $(BXT_EXE_OBJS) $(LIB_DIR)/libxdd.a
+	@echo "[LD] $@ ..."
+	$(LD) $(LDFLAGS) -L$(LIB_DIR) -o $@ $(BXT_EXE_OBJS) -lxdd $(LIBS)
+
+bin/xdd-lite: $(XDD_LITE_EXE_OBJS) $(LIB_DIR)/libxdd.a 
+	@echo "[LD] $@ ..."
+	$(LD) $(LDFLAGS) -L$(LIB_DIR) -o $@ $(XDD_LITE_EXE_OBJS) -lxdd $(LIBS)
+
+#
+# Special stuff just for PyCrypto
+#
+contrib/pycrypto: $(PYCRYPTO_DIST)
+ifneq ($(PYCRYPTO_DIST),)
+	mkdir $@
+	tar -C $@ -xvzf $< --strip-components 1
+endif
+
+contrib/site-packages/Crypto: contrib/pycrypto
+ifneq ($(PYCRYPTO_DIST),)
+	cd $< && $(PYTHON) setup.py build 
+	cd $< && $(PYTHON) setup.py install --install-lib ../site-packages
+endif
+
+pycrypto: contrib/site-packages/Crypto
+ifneq ($(PYCRYPTO_DIST),)
+endif
+
+install_pycrypto: contrib/site-packages/Crypto
+ifneq ($(PYCRYPTO_DIST),)
+	$(CPR) $< $(INSTALL_DIR)/site-packages
+endif
+
+clean_pycrypto:
+ifneq ($(PYCRYPTO_DIST),)
+	@echo "Cleaning the PyCrypto site package"
+	@$(RM) -r contrib/site-packages/Crypto
+	@$(RM) -r contrib/pycrypto
+	@$(RM) contrib/site-packages/pycrypto-2.6.1-*.egg-info
+endif
+
+.Phony: pycrypto install_pycrypto
+
 #
 # Build rules for Python targets
 #
-site-packages:
+site-packages: pycrypto
 	@$(PYC) -q contrib/
 
-.Phony: site-packages
+.Phony: pycrypto site-packages
 
 #
 # Build rules for installation
@@ -261,6 +304,7 @@ install_pre:
 	$(INSTALL) -d $(INSTALL_DIR)/bin
 	$(INSTALL) -d $(INSTALL_DIR)/etc
 	$(INSTALL) -d $(INSTALL_DIR)/lib
+	$(INSTALL) -d $(INSTALL_DIR)/site-packages
 
 fastinstall: all
 	$(RM) /sbin/xdd
@@ -274,14 +318,9 @@ fastinstall: all
 install_libs: install_pre
 	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
 
-install_optional_site_packages:
-ifneq ("$(wildcard contrib/site-packages/Crypto)", "")
-	$(INSTALL) -d $(INSTALL_DIR)/site-packages
-	$(CPR) contrib/site-packages/Crypto $(INSTALL_DIR)/site-packages
-endif
+install_optional_site_packages: install_pre install_pycrypto
 
-install_site_packages: site-packages install_optional_site_packages
-	$(INSTALL) -d $(INSTALL_DIR)/site-packages
+install_site_packages: install_pre site-packages install_optional_site_packages
 	$(CPR) contrib/site-packages/Pyro4 $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/ecdsa $(INSTALL_DIR)/site-packages
 	$(CPR) contrib/site-packages/paramiko $(INSTALL_DIR)/site-packages
@@ -290,10 +329,8 @@ install_site_packages: site-packages install_optional_site_packages
 	$(CPR) $(TOOLS_DIR)/python/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
 	$(PYC) -q $(INSTALL_DIR)/site-packages
 
-install_tools: install_site_packages
-ifeq (true,$(XDDCP_ENABLED))
+install_tools: install_pre install_site_packages
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddcp/xddcp $(INSTALL_DIR)/bin/xddcp
-endif
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddft/xddft $(INSTALL_DIR)/bin/xddft
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddmcp/xddmcp $(INSTALL_DIR)/bin/xddmcp
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddmcp/xddmcp-server $(INSTALL_DIR)/bin/xddmcp-server
@@ -339,7 +376,6 @@ doc:
 #
 # Build test support infrastructure
 #
-
 contrib/mpil: contrib/mpil.o
 	$(MPICC) $^ -o $@
 
@@ -392,7 +428,7 @@ oclean:
 	$(info Cleaning the $(OS) OBJECT files )
 	@$(RM) $(ALL_OBJS) 
 
-tclean:
+tclean: clean_pycrypto
 	$(info Cleaning the $(OS) TOOLS OBJECT files )
 	@$(RM) src/tools/*.o
 

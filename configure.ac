@@ -412,8 +412,10 @@ AX_PYTHON()
 dnl
 dnl Check for PyCrypto
 dnl
-AX_PYTHON_MODULE([Crypto], 
-                 [XDD requires PyCrypto.  Due to U.S. Export Controls, PyCrypto must be installed separately from XDD.  See README.PyCrypto])
+AC_CHECK_FILES([contrib/pycrypto-2.6.1.tar.gz], 
+               AC_SUBST(PYCRYPTO_DIST, [contrib/pycrypto-2.6.1.tar.gz]),
+               [AX_PYTHON_MODULE([Crypto], 
+                                 [XDD requires PyCrypto.  Due to U.S. Export Controls, PyCrypto must be installed separately from XDD.  See README.PyCrypto])])
 
 dnl
 dnl Determine options to preserve metadata while performing installs with cp
