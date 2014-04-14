@@ -26,7 +26,6 @@ correct_size=1073741824
 
 data_files="$data_file.00000001 $data_file.00000002 $data_file.00000003 $data_file.00000004"
 for f in $data_files; do 
-  stat $f
   file_size=$($XDDTEST_XDD_GETFILESIZE_EXE $f)
   if [ "$correct_size" != "$file_size" ]; then
     test_passes=0

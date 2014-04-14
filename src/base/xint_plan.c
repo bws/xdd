@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-23 I/O Performance, Inc.
+ * Copyright (C) 2009-23 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 #include "xint.h"
 #include "xni.h"
@@ -78,7 +60,7 @@ xdd_plan_t* xint_plan_data_initialization() {
 	planp->e2e_TCP_Win = DEFAULT_E2E_TCP_WINDOW_SIZE;	 /* e2e TCP Window Size */
 	planp->ActualLocalStartTime = 0;   /* The time to start operations */
 	planp->XDDMain_Thread = pthread_self();
-	planp->heartbeat_holdoff = 0;  	/* used by results manager to suspend or cancel heartbeat displays */
+	planp->heartbeat_flags = 0;  	/* used by results manager to suspend or cancel heartbeat displays */
 	planp->format_string = DEFAULT_OUTPUT_FORMAT_STRING;
 
 	return(planp);
@@ -133,7 +115,7 @@ int xint_plan_start(xdd_plan_t* planp, xdd_occupant_t* barrier_occupant) {
 	/* Start a restart monitor if necessary */
 	xint_plan_start_restart_monitor(planp);
 
-	/* Start a restart monitor if necessary */
+	/* Start interactive mode if requested */
 	xint_plan_start_interactive(planp);
 
 	/* Record a start time and release the target threads from the barrier */

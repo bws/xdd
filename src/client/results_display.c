@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-2013 I/O Performance, Inc.
+ * Copyright (C) 2009-2013 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 /*
  * This file contains the subroutines necessary to compose the output of a display line.
@@ -657,11 +639,11 @@ xdd_results_display(results_t *rp) {
 	int		namelen;
 	char	*namep;
 	int		found;
+	char	output_delimiter;
 
 	
 	
-	fprintf(rp->output,"\r"); // In case there is a heartbeat line, clear it out
-
+	output_delimiter=0;
 	sp = rp->format_string;
 	splen = strlen(sp);
 	if (splen <= 0) {
@@ -669,7 +651,6 @@ xdd_results_display(results_t *rp) {
 	}
 	cp = sp;
 	remaining = splen;
-//fprintf(stderr,"results_display: sp is 0x%x splen is %d sp is %s", sp, splen, sp); // In case there is a heartbeat line, clear it out
 	while (remaining > 0) {
 		index = 0;	
 		found = 0;
@@ -681,8 +662,11 @@ xdd_results_display(results_t *rp) {
 				continue;
 			}
 			if (strncmp(cp, namep, namelen) == 0) { // This is the right fmt id
+				// Output a "delimiter" character before we output the value
+				if (output_delimiter) 
+					fprintf(rp->output,"%c",rp->delimiter);
+				else output_delimiter = 1;
 				xdd_results_fmt_table[index].func_ptr(rp); // Call the associated routine
-				fprintf(rp->output,"%c",rp->delimiter);
 				found = 1;
 				break;
 			}

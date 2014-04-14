@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-2013 I/O Performance, Inc.
+ * Copyright (C) 2009-2013 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
- *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Brad Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
- *       Russell Cattelan, Digital Elves (russell@thebarn.com)
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 #ifndef XINT_WD_H
 #define XINT_WD_H
@@ -57,6 +39,7 @@ struct xint_worker_data {
 	xdd_barrier_t				wd_thread_targetpass_wait_for_task_barrier;	// The barrier where the Worker_Thread waits for targetpass() to release it with a task to perform
 	xdd_occupant_t				wd_occupant;		// Used by the barriers to keep track of what is in a barrier at any given time
 	char						wd_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH];	// For a Target thread this is "TARGET####", for a Worker_Thread it is "TARGET####WORKER####"
+	tot_wait_t					wd_tot_wait;		// The TOT Wait structure for this worker
 	xint_e2e_t					*wd_e2ep;			// Pointer to the e2e struct when needed
 	xdd_sgio_t					*wd_sgiop;			// SGIO Structure Pointer
 	pthread_mutex_t 			wd_current_state_mutex; 	// Mutex for locking when checking or updating the state info

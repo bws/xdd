@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-2013 I/O Performance, Inc.
+ * Copyright (C) 2009-2013 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Brad Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 /*
  * This file contains the subroutines necessary to parse the command line
@@ -3192,7 +3174,8 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	    	if (tdp->td_e2ep == NULL) // If there is still no e2e struct then return -1
 				return(-1);
 
-			rp->byte_offset = atoll(argv[args_index+1]);
+			rp->initial_restart_offset = atoll(argv[args_index+1]);
+			rp->byte_offset = rp->initial_restart_offset;
 			rp->flags |= RESTART_FLAG_RESUME_COPY;
 			tdp->td_e2ep->e2e_total_bytes_written=rp->byte_offset;
 
@@ -3213,7 +3196,8 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	    			if (tdp->td_e2ep == NULL) // If there is still no e2e struct then return -1
 						return(-1);
 
-					rp->byte_offset = atoll(argv[args_index+1]);
+					rp->initial_restart_offset = atoll(argv[args_index+1]);
+					rp->byte_offset = rp->initial_restart_offset;
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
 					tdp->td_e2ep->e2e_total_bytes_written=rp->byte_offset;
 

@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-23 I/O Performance, Inc.
+ * Copyright (C) 2009-23 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Brad Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 /*
  * This file contains the subroutines that perform various initialization 
@@ -42,10 +24,11 @@
  *    - Ops completed or issued so far across all Worker Threads  
  *    - Estimated BW
  * 
- * A global variable called "heartbeat_holdoff" is used by the results_manager
+ * A global variable called "heartbeat_flags" is used by the results_manager
  * to prevent heartbeat from displaying information while it is trying to
- * display information (heartbeat_holdoff == 1). 
- * It is also used to tell heartbeat to exit (heartbeat_holdoff == 2)
+ * display information (set HEARTBEAT_HOLDOFF). 
+ * It is also used to tell heartbeat to exit (set HEARTBEAT_EXIT)
+ * When the -heartbeat option is specified then the HEARTBEAT_ACTIVE flag is set
  */
 static	char	activity_indicators[8] = {'|','/','-','\\','*'};
 void *
@@ -87,6 +70,7 @@ xdd_heartbeat(void *data) {
 				interval = tdp->td_hb.hb_interval;
 		}
 	}
+	planp->heartbeat_flags |= HEARTBEAT_ACTIVE;
 	// Enter this barrier and wait for the heartbeat monitor to initialize
 	xdd_barrier(&planp->main_general_init_barrier,&barrier_occupant, 0);
 
@@ -100,9 +84,9 @@ xdd_heartbeat(void *data) {
 			fprintf(xgp->errout,"\nHEARTBEAT: Abort\n");
 			return(0);
 		}
-		if (planp->heartbeat_holdoff == 1) 
+		if (planp->heartbeat_flags & HEARTBEAT_HOLDOFF) 
 			continue;
-		if (planp->heartbeat_holdoff == 2) 
+		if (planp->heartbeat_flags & HEARTBEAT_EXIT) 
 			return(0);
 
 		// Display all the requested items for each target

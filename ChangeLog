@@ -1,12 +1,24 @@
 -----------------------
 XDD Release ChangeLog
 -----------------------
+XDD-7.0.0 RC26-1
+==============
+* XDDMCP: Make small files work by fixing partitioner
+* XDDMCP: Use port 40010 by default for XDD
+* XDDMCP: Improve a few error messages
+
 XDD-7.0.0 RC26
 ==============
 * XDD: Organize XDD around the concept of plans
+* XDD: Simplified restart functionality
+* XDD: Uses the TOT to prevent significant thread re-ordering
 * XDD-GETFILESIZE:  Determine size of block devices correctly.
 * XDDCP: Add ETA as a heartbeat output in XDD
 * XDDCP:  Enable block device transfers
+* XDDMCP: Add XDDMCP, a new tool that replaces XDDCP
+* XDDMCP: Supports multiple sources, enhanced status output, a single
+	persistent SSH channel to each endpoint, empty files, symbolic
+	links, directory creation, warns on preallocation failure,
 
 XDD-7.0.0 RC25
 ==============

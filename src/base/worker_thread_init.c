@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-23 I/O Performance, Inc.
+ * Copyright (C) 2009-23 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Brad Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 #include "xint.h"
 #include "xni.h"
@@ -108,7 +90,20 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 			tdp->td_target_full_pathname);
 		return(-1);
 	}
-        
+	
+	// Initialize the tot_wait structure 
+	status = pthread_cond_init(&wdp->wd_tot_wait.totw_condition, 0);
+	if (0 != status) {
+		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Failed to initialize tot condition variable\n",
+			xgp->progname,
+			tdp->td_target_number,
+			wdp->wd_worker_number);
+		return(-1);
+	}
+	wdp->wd_tot_wait.totw_wdp = wdp;
+	wdp->wd_tot_wait.totw_is_released = 0;
+	wdp->wd_tot_wait.totw_nextp = 0;
+
 	// Get the I/O buffer
 	// The xdd_init_io_buffers() routine will set wd_bufp and wd_buf_size to appropriate values.
 	// The size of the buffer depends on whether it is being used for network

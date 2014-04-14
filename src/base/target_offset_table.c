@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-23 I/O Performance, Inc.
+ * Copyright (C) 2009-23 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
- *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Bradly Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
- *       Russell Cattelan, Digital Elves (russell@thebarn.com)
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 #include "target_offset_table.h"
 #include <assert.h>
@@ -41,7 +23,7 @@
  */
 int tot_init(tot_t** table, size_t queue_depth, size_t num_reqs)
 {
-    int num_entries, rc, i;
+    int num_entries, i, rc = 0;
     tot_t *tp;
     
     // Preconditions check
@@ -61,49 +43,52 @@ int tot_init(tot_t** table, size_t queue_depth, size_t num_reqs)
         num_entries *= 30;
     }
     
-    // Initialize the memory
+	// The TOT Entries are allocated if the *table pointer is zero.
+	// Otherwise, just init the tot_entry members.
+	if (*table == 0) {
+    // Initialize the memory in the dumbest way possible
 #if HAVE_VALLOC
-    *table = valloc(num_entries * sizeof(tot_entry_t));
-    rc = (NULL != table);
+    	*table = valloc(sizeof(**table) + num_entries * sizeof(tot_entry_t));
+    	rc = (NULL != table);
 #elif HAVE_POSIX_MEMALIGN
-    rc = posix_memalign((void**)table,
-			sysconf(_SC_PAGESIZE),
-			num_entries * sizeof(tot_entry_t));
+    	rc = posix_memalign((void**)table,
+				sysconf(_SC_PAGESIZE),
+				sizeof(**table) + num_entries * sizeof(tot_entry_t));
 #else
-    *table = malloc(num_entries * sizeof(tot_entry_t));
-    rc = (NULL != table);
+    	*table = malloc(sizeof(**table) + num_entries * sizeof(tot_entry_t));
+    	rc = (NULL != table);
 #endif
-    if (0 != rc)
-	return -1;
-    
-
-    // Initialize all the table entries
-    tp = *table;
-    tp->tot_entries = num_entries;
-    for (i = 0; i < tp->tot_entries; i++) {
-	// Initialize the condvar
-        rc = pthread_cond_init(&tp->tot_entry[i].tot_condition, 0);
-	if (0 != rc) {
-	    tp->tot_entries = i;
-	    break;
+    	if (0 != rc)
+			return -1;
+    	tp = *table;
+    	tp->tot_entries = num_entries;
+    	for (i = 0; i < tp->tot_entries; i++) {
+			// Initialize the mutex
+        	rc = pthread_mutex_init(&tp->tot_entry[i].tot_mutex, 0);
+        	if (0 != rc) {
+	    		tp->tot_entries = i;
+	    		break;
+        	}
+		}
+    	if (0 != rc)
+			return -1;
 	}
-
-	// Initialize the mutex
-        rc = pthread_mutex_init(&tp->tot_entry[i].tot_mutex, 0);
-        if (0 != rc) {
-	    pthread_cond_destroy(&tp->tot_entry[i].tot_condition);
-	    tp->tot_entries = i;
-	    break;
-        }
-        tp->tot_entry[i].is_released = 0;
+    
+    // Initialize all the table entries
+	// Note: The TOT wait structures reside in the Worker Data Structure
+	// and are initialized as part of worker_thread_init().
+	tp = *table;
+    for (i = 0; i < tp->tot_entries; i++) {
+        tp->tot_entry[i].tot_waitp = 0;
         tp->tot_entry[i].tot_op_number = -1;
         tp->tot_entry[i].tot_byte_offset = -1;
         tp->tot_entry[i].tot_io_size = 0;
+        tp->tot_entry[i].tot_status = TOT_ENTRY_AVAILABLE;
     }
 
     // Perform cleanup if inititalization did not complete successfully
     if (0 != rc)
-	tot_destroy(tp);
+		tot_destroy(tp);
     
     return rc;
 }
@@ -118,7 +103,6 @@ int tot_destroy(tot_t* tp)
     // Release the semaphores in the table
     status = 0;
     for (i = 0; i < tp->tot_entries; i++) {
-        status += pthread_cond_destroy(&tp->tot_entry[i].tot_condition);
         status += pthread_mutex_destroy(&tp->tot_entry[i].tot_mutex);
     } 
 
@@ -154,25 +138,24 @@ int tot_update(tot_t* table,
     if (tep->tot_op_number >= req_number) {
 		rc = -1;
 		fprintf(xgp->errout,
-				"%s: tot_update: Worker Thread %d: "
-				"WARNING: TOT Collision at entry %d, op number %"PRId64", "
-				"byte location is %"PRId64" [block %"PRId64"], "
-				"my current op number is %"PRId64", "
-				"my byte location is %"PRId64" [block %"PRId64"] "
-				"last updated by worker_thread %d\n",
-				xgp->progname, worker_thread_number,
-				idx, tep->tot_op_number,
-				tep->tot_byte_offset, tep->tot_byte_offset/tep->tot_io_size,
-				req_number,
-				offset, offset/size,
-				tep->tot_update_worker_thread_number);
-    }
-    else {
-	nclk_now(&tep->tot_update_ts);
-	tep->tot_update_worker_thread_number = worker_thread_number;
-	tep->tot_op_number = req_number;
-	tep->tot_byte_offset = offset;
-	tep->tot_io_size = size;
+			"%s: tot_update: Worker Thread %d: "
+			"WARNING: TOT Collision at entry %d, op number %"PRId64", "
+			"byte location is %"PRId64" [block %"PRId64"], "
+			"my current op number is %"PRId64", "
+			"my byte location is %"PRId64" [block %"PRId64"] "
+			"last updated by worker_thread %d\n",
+			xgp->progname, worker_thread_number,
+			idx, tep->tot_op_number,
+			tep->tot_byte_offset, tep->tot_byte_offset/tep->tot_io_size,
+			req_number,
+			offset, offset/size,
+			tep->tot_update_worker_thread_number);
+    } else {
+		nclk_now(&tep->tot_update_ts);
+		tep->tot_update_worker_thread_number = worker_thread_number;
+		tep->tot_op_number = req_number;
+		tep->tot_byte_offset = offset;
+		tep->tot_io_size = size;
     }
 
     // Unlock entry
