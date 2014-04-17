@@ -464,7 +464,11 @@ AC_SUBST(CONFIG_LIBS, "$LIBS")
 dnl
 dnl Generate output
 dnl
-AC_OUTPUT([Makefile src/tools/xddmcp/xddmcp src/tools/xddmcp/xddmcp-server src/tools/xddprof/xddprof])
+AC_CONFIG_FILES([src/tools/xddmcp/xddmcp], [chmod +x src/tools/xddmcp/xddmcp])
+AC_CONFIG_FILES([src/tools/xddmcp/xddmcp-server], [chmod +x src/tools/xddmcp/xddmcp-server])
+AC_CONFIG_FILES([src/tools/xddprof/xddprof], [chmod +x src/tools/xddprof/xddprof])
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
 
 dnl
 dnl Work around platforms that only have GNU make as some name other than make
