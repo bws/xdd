@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-2013 I/O Performance, Inc.
+ * Copyright (C) 2009-2013 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
- *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Brad Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
- *       Russell Cattelan, Digital Elves (russell@thebarn.com)
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 #ifndef XINT_GLOBAL_DATA_H
 #define XINT_GLOBAL_DATA_H
@@ -70,7 +52,8 @@
 #define GO_DEBUG_THROTTLE		0x0800000000000000ULL  /* */
 #define GO_DEBUG_TIME_LIMIT		0x1000000000000000ULL  /* */
 #define GO_DEBUG_USER1			0x2000000000000000ULL  /* */
-#define GO_DEBUG_ALL			(GO_DEBUG_IO|GO_DEBUG_E2E|GO_DEBUG_LOCKSTEP|GO_DEBUG_OPEN|GO_DEBUG_TASK|GO_DEBUG_TOT|GO_DEBUG_TS|GO_DEBUG_THROTTLE|GO_DEBUG_USER1)
+#define GO_DEBUG_RESULTS		0x4000000000000000ULL  /* */
+#define GO_DEBUG_ALL			(GO_DEBUG_IO|GO_DEBUG_E2E|GO_DEBUG_LOCKSTEP|GO_DEBUG_OPEN|GO_DEBUG_TASK|GO_DEBUG_TOT|GO_DEBUG_TS|GO_DEBUG_THROTTLE|GO_DEBUG_USER1|GO_DEBUG_RESULTS)
 
 struct xdd_global_data {
 	uint64_t		global_options;        				/* I/O Options valid for all targets */

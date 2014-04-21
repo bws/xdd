@@ -1,0 +1,43 @@
+XDD now uses Python in some components of its toolset.  Unfortunately, one of
+the packages XDD supplies, paramiko, requires the use of PyCrypto which cannot
+be provided within the software package due to U.S. Export Control laws.
+
+To install XDD you will need to install PyCrypto.  Many systems may already
+have a working version of PyCrypto.  However, if your system does not have
+PyCrypto you can use one of the following ways to install PyCrypto:
+
+1.  Place pycrypto-2.6.1.tar.gz in the contrib directory.  If XDD detects this
+    file during configuration, the supplied file will be built and installed
+    by default.  There is a chance you may have received XDD in this configuration
+    already if I knew for certain that the recipient was a U.S. Citizen.
+
+2.  Contact you system administrator and ask them to install PyCrypto on the 
+    source and destination systems.  The following commands may work as root:
+      pip install pycrypto
+
+    or
+
+      easy_install PyCrypto
+
+3.  Install PyCrypto yourself.  In particular, I suggest installing PyCrypto
+    in the same place you install XDD.  In order to configure XDD, 
+    PYTHONPATH will need to be set to point at PyCrypto.  When running
+    XDD's Python code, XDD takes care of setting the PYTHONPATH it needs.
+    So if you set the XDD installation prefix to XDD_HOME, the following 
+    command will make for a clean installation:
+      export PYTHONPATH=$XDD_HOME/site-packages:$PYTHONPATH
+      easy_install --install-dir $XDD_HOME/site-packages
+
+At which point you should be able to configure and build XDD.  To test that
+the installation worked, you can try running the following command:
+      python -c 'import crypto'
+
+NOTE:  PyCrypto uses libgmp, which in some older versions exhibits a known
+       timing attack vulnerability.  If an older version of libgmp is in 
+       use on your system you will receive the following warning during
+       installation and execution:
+           Not using mpz_powm_sec.  You should rebuild using libgmp >= 5 to 
+           avoid timing attack vulnerability.
+       This warning does not prevent anything from working, but it does
+       indicate a possible attack vector on your system.  If the
+       authentication in use is vulnerable to timing attacks, upgrade libgmp.

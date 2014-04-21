@@ -10,7 +10,7 @@ contain.
 Then perform the following steps:
 
 1.  Retrieve the repository:
-	> git clone ssh://home.ccs.ornl.gov/ccs/proj/csc040/var/git/xdd.git
+	> git clone https://github.com/bws/xdd.git
 
 2.  Increment the version release number for the build.  Versions 
 numbers are in the format MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE].  This 
@@ -41,17 +41,14 @@ continue cutting the release.
 
 7.  Tag the code push the tag to the Durmstrang repository..
 	> TAG_NAME=xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE]
-	> git tag -a xdd-${TAG_NAME}
+	> git tag -a ${TAG_NAME}
 	> git push --tags
 
 8.  At this point, the release is ready.  It can be retrieved by anyone with 
     access to the repository.  To retrieve the release, run the following command:
-	> git archive --format=tar --prefix=TAG_NAME/ --remote=ssh://home.ccs.ornl.gov/ccs/proj/csc040/var/git/xdd.git TAG_NAME |gzip > TAG_NAME.tar.gz
-
-    Where TAG_NAME is in the format: 
-	xdd-MAJOR.MINOR.MAINTENANCE[.PRE-RELEASE] (e.g. xdd-7.0.0.rc1)
-    Another way to format the command is:
-	> TAG_NAME=foo && git archive --format=tar --prefix=${TAG_NAME}/ --remote=ssh://home.ccs.ornl.gov/ccs/proj/csc040/var/git/xdd.git $TAG_NAME |gzip >$TAG_NAME.tar.gz
+	> make dist
+    or alternatively if the distribution is US only:
+	> make dist-usa
 
 The resulting tar file now contains the released code only.
 

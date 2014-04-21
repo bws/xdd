@@ -1,33 +1,15 @@
-// Pthread-based semaphore
-#ifndef XINT_SEMAPHORE_H
-#define XINT_SEMAPHORE_H
-
-#include <assert.h>
-#include <pthread.h>
-#include <stdio.h>
-
-#define HAVE_XINT_SEMAPHORE
-
-typedef struct xint_semaphore {
-   int value;
-   size_t waiters;
-   pthread_mutex_t mutex;
-   pthread_cond_t cond;
-} xint_semaphore_t;
-
-/**
- * Initialize resources associated with the semaphore and set the initial value
+/*
+ * XDD - a data movement and benchmarking toolkit
+ *
+ * Copyright (C) 1992-2013 I/O Performance, Inc.
+ * Copyright (C) 2009-2013 UT-Battelle, LLC
+ *
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
+ *
  */
-inline static int xint_semaphore_init(xint_semaphore_t *sem, int value)
-{
-    int rc = 0;
-    barrier->value = value;
-    barrier->waiters = 0;
-    rc = pthread_mutex_init(&sem->mutex, NULL);
-    assert(0 == rc);
-    rc = pthread_cond_init(&sem->cond, NULL);
-    assert(0 == rc);
-    return rc;
 }
 
 /**

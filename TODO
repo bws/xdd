@@ -1,28 +1,25 @@
 TODO file for XDD
 
-// Next-release
-* Add source for gethostip and build if necessary
-* Add configure option for --enable-static to perform static builds
-* Fix xddcp so that it uses keepalives to hold the SSH session open
-	(this is needed because file I/O doesn't occur until close on
-	NFS file systems, meaning that a failure isn't known during transfer).
-* Detect if the ports required are in use, and if so, adjust the port range
-  if possible
-* Get xddcp to work on Power7/AIX (needs truncate and gethostip)
-* Add option that sets the log path
-* Fix log names so the gethostip doesn't obscure log name
-* Add output that tells the IP we are going to contact for a name
+Things that used to work, that I wished still worked:
+* Data analysis mode in xddcp.
+* Kernel trace analysis mode.
+* Data rate throttling.
 
+Things that work now, but are hard to understand:
+* The output format stuff is tricky.
+* The difference between request sizes and block sizes is error-prone.
+* Some options take number of blocks, others take bytes.  Standardize it.
+* Way, way, way too much output by default.
 
-// General
-* Add confidence data dump
-* Add serial thread scheduling I/O scheme
-* Fix heartbeat percent to display correct percent during a restart
+Things that should work:
+* Small odd sizes sometimes don't work.
+* The parser for XDD core dumps when an option is wrong.
+* Some fields in the results data can be wrong when they aren't relevant.
 
-// xddcp
-* Third-part transfers
-* Multi-host transfers
-* Check preconditions for all constituent utilities
-* Use utilities available on all SystemV-type OS
-* Incorporate seconds into log timestamps
-* Indicate interface used for transfer
+New features:
+* Operations on directories.
+* Operate with files based on their physical layouts.
+* Better Lustre integration.
+* Expose more ioctls easily.  Maybe even the ability to time ioctls.
+* Complete the separation of xdd and xdd-lite.  That is, no networking
+code in xdd, no benchmarking code in xdd-lite.

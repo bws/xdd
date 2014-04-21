@@ -22,7 +22,7 @@ int start_server()
     xni_control_block_t xni_cb = 0;
     xni_context_t xni_ctx;
 
-    xni_allocate_tcp_control_block(1, &xni_cb);
+    xni_allocate_tcp_control_block(1, XNI_TCP_DEFAULT_CONGESTION, &xni_cb);
     xni_context_create(xni_protocol_tcp, xni_cb, &xni_ctx);
 
 	// Third, register the memroy
@@ -63,7 +63,7 @@ int start_client()
 	xni_endpoint_t xni_ep = {.host = "", .port = 0};
     xni_control_block_t xni_cb = 0;
     xni_context_t xni_ctx;
-	xni_allocate_tcp_control_block(1, &xni_cb);
+	xni_allocate_tcp_control_block(1, XNI_TCP_DEFAULT_CONGESTION, &xni_cb);
     xni_context_create(xni_protocol_tcp, xni_cb, &xni_ctx);
  
 	// Third, register the buffers (1 per socket)

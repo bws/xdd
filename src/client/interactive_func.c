@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-2013 I/O Performance, Inc.
+ * Copyright (C) 2009-2013 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 /*
  * This file contains the subroutines that support the Target threads.
@@ -508,6 +490,7 @@ xdd_interactive_show_print_tot(int32_t tokens, char *cmdline, uint32_t flags, xd
 void
 xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 
+	int			i;
 	char		*tot_mutex_state;
 	int32_t		tot_offset; // Offset into TOT
 	tot_entry_t	*tep;		// Pointer to a TOT Entry
@@ -515,13 +498,14 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 	int			status;
 	int			save_errno;
 	int64_t		tot_block;
+	tot_wait_t	*totwp;
 
 
 	fprintf(fp,"Target %d has %d TOT Entries, queue depth of %d\n",
 		tdp->td_target_number, 
 		tdp->td_totp->tot_entries, 
 		tdp->td_queue_depth);
-	fprintf(fp,"TOT Offset,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitWorkerThread,PostWorkerThread,UpdateWorkerThread,SemVal,Mutex State\n");
+	fprintf(fp,"TOT Offset,Waitp,WAIT TS,POST TS,W/P Delta,Update TS,Byte Location,Block Location,I/O Size,WaitWorkerThread,PostWorkerThread,UpdateWorkerThread,SemVal,Mutex State\n");
 	for (tot_offset = 0; tot_offset < tdp->td_totp->tot_entries; tot_offset++) {
 		tep = &tdp->td_totp->tot_entry[tot_offset];
 		status = pthread_mutex_trylock(&tep->tot_mutex);
@@ -543,8 +527,9 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 		if (tep->tot_io_size) 
 			tot_block = (long long int)((long long int)tep->tot_byte_offset / tep->tot_io_size);
 		else  tot_block = -1;
-		fprintf(fp,"%5d,%lld,%lld,%lld,%lld,%lld,%lld,%d,%d,%d,%d,%d,%s\n",
+		fprintf(fp,"%5d,%p,%lld,%lld,%lld,%lld,%lld,%lld,%d,%d,%d,%d,%d,%s\n",
 			tot_offset,
+			tep->tot_waitp,
 			(long long int)tep->tot_wait_ts,
 			(long long int)tep->tot_post_ts,
 			(long long int)(tep->tot_post_ts - (long long int)tep->tot_wait_ts),
@@ -557,6 +542,17 @@ xdd_interactive_show_tot_display_fields(target_data_t *tdp, FILE *fp) {
 			tep->tot_update_worker_thread_number,
 			sem_val,
 			tot_mutex_state);
+			if (tep->tot_waitp) {
+				totwp = tep->tot_waitp;
+				i=0;
+ 				fprintf(fp,"TOT Offset,TOTW,TOTW#,tot_wait ptr,next tot_wait ptr,Worker Data ptr,condition,Is Released\n");
+				while (totwp) {
+   					fprintf(fp,"%5d,TOTW,%d,%p,%p,%p,-,%d\n",tot_offset,i,totwp,totwp->totw_nextp,totwp->totw_wdp,totwp->totw_is_released);
+					totwp = totwp->totw_nextp;
+					i++;
+				sleep(1);
+				}
+			}
 	} // End of FOR loop that displays all the TOT entries
 } // End of xdd_interactive_show_tot_display_fields()
 

@@ -398,6 +398,7 @@ extern const char *XNI_TCP_DEFAULT_CONGESTION;  /*!< \brief Use the default TCP 
  * default congestion avoidance algorithm will be used.
  *
  * \param num_sockets The number of TCP sockets to create per connection.
+ * \param congestion the congestion control algorithm to use
  * \param[out] control_block The newly allocated control block.
  *
  * \return #XNI_OK if the control block was successfully created.

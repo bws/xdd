@@ -1,32 +1,15 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Brad Settlemyer, DoE/ORNL
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
- */
 /*
+ * XDD - a data movement and benchmarking toolkit
+ *
+ * Copyright (C) 1992-23 I/O Performance, Inc.
+ * Copyright (C) 2009-23 UT-Battelle, LLC
+ *
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
+ *
+ *//*
  * This file contains the subroutines necessary to manage everything to
  * do with restarting an xddcp operation.
  */
@@ -101,6 +84,14 @@ xdd_restart_create_restart_file(xint_restart_t *rp) {
 		free(rp->restart_filename);
 		return(-1);
 	}
+
+	// And write the initial restart value
+	if (0 != xdd_restart_write_restart_file(rp)) {
+		fprintf(xgp->errout,"%s: Restart file corrupted: %s  Previous restart offset was %lld\n",
+				xgp->progname,
+				rp->restart_filename,
+				(long long int)rp->initial_restart_offset);
+	}
 	
 	// Success - everything must have worked and we have a restart file
 	fprintf(xgp->output,"%s: RESTART_MONITOR: INFO: Successfully created restart file %s\n",
@@ -121,7 +112,16 @@ xdd_restart_create_restart_file(xint_restart_t *rp) {
 int
 xdd_restart_write_restart_file(xint_restart_t *rp) {
 	int		status;
+	long long int restart_offset;
 
+	// Determine the new offset
+	if (rp->byte_offset > rp->initial_restart_offset) {
+		restart_offset = rp->byte_offset;
+	}
+	else {
+		restart_offset = rp->initial_restart_offset;
+	}
+	
 	// Seek to the beginning of the file 
 	status = fseek(rp->fp, 0L, SEEK_SET);
 	if (status < 0) {
@@ -132,8 +132,7 @@ xdd_restart_write_restart_file(xint_restart_t *rp) {
 	}
 	
 	// Put the ASCII text offset information into the restart file
-	fprintf(rp->fp,"-restart offset %lld\n", 
-		(long long int)rp->byte_offset);
+	fprintf(rp->fp,"-restart offset %lld\n", (long long int)restart_offset);
 
 	// Flush the file for safe keeping
 	fflush(rp->fp);
@@ -172,9 +171,9 @@ xdd_restart_monitor(void *data) {
 	xdd_occupant_t	barrier_occupant;		// Used by the xdd_barrier() function to track who is inside a barrier
 	xint_restart_t		*rp;
 	int				status;					// Status of mutex init/lock/unlock calls
-	tot_entry_t		*tep;					// Pointer to an entry in the Target Offset Table
-	int				te;						// TOT Entry number
-	int64_t			lowest_offset;			// Lowest Offset in bytes 
+	//tot_entry_t		*tep;					// Pointer to an entry in the Target Offset Table
+	//int				te;						// TOT Entry number
+	//int64_t			lowest_offset;			// Lowest Offset in bytes 
 	xdd_plan_t* planp = (xdd_plan_t*)data;
 
 
@@ -227,12 +226,15 @@ xdd_restart_monitor(void *data) {
 		for (target_number=0; target_number < planp->number_of_targets; target_number++) {
 			current_tdp = planp->target_datap[target_number];
 			// If this target does not require restart monitoring then continue
-			if ( !(current_tdp->td_target_options & TO_RESTART_ENABLE) ) // if restart is NOT enabled for this target then continue
+			if ( !(current_tdp->td_target_options & TO_RESTART_ENABLE) ) {
+                // if restart is NOT enabled for this target then continue
 				continue;
-			
+			}
 			rp = current_tdp->td_restartp;
-			if (!rp) // Hmmm... no restart pointer..
+			if (!rp) {
+                // Hmmm... no restart pointer..
 				continue;
+			}
 			pthread_mutex_lock(&rp->restart_lock);
 
 			if (rp->flags & RESTART_FLAG_SUCCESSFUL_COMPLETION) {
@@ -240,6 +242,25 @@ xdd_restart_monitor(void *data) {
 				continue;
 			} else {
 				// Put the "Last Committed Block" information in the restart structure...
+				// In the case of restart processing it is NOT ok to use the target
+				// offset table to determine the restart number.  Rather, we have to
+				// determine how many worker threads exist, and use the smallest offset
+				// in the worker tasks as the restart offset
+				struct xint_worker_data *cur_wdp, *restart_wdp;
+				cur_wdp = restart_wdp = current_tdp->td_next_wdp;
+				while ((cur_wdp = cur_wdp->wd_next_wdp)) {
+					/* Find the lowest byte offset */
+					if (cur_wdp->wd_task.task_byte_offset < restart_wdp->wd_task.task_byte_offset) {
+						restart_wdp = cur_wdp;
+					}
+				}
+					
+				/* The located task effectively becomes the restart point */
+				rp->byte_offset = restart_wdp->wd_task.task_byte_offset;
+				rp->last_committed_byte_offset = -1;
+				rp->last_committed_length = restart_wdp->wd_task.task_xfer_size;
+				rp->last_committed_op = -1;
+				/*
 				// In the case of Restart processing it is ok to use the tot_byte_offset
 				// rather than the tot_op_number.
 				// Scan the Target Offset Table (TOT) for the *lowest* committed offset 
@@ -283,7 +304,7 @@ xdd_restart_monitor(void *data) {
 					}
 					
 				} // End of FOR loop that scans the TOT for the restart offset to use
-	
+	            */
 				// ...and write it to the restart file and sync sync sync
 				if (current_tdp->td_target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
 					xdd_restart_write_restart_file(rp);

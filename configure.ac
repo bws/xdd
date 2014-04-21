@@ -23,7 +23,7 @@ dnl
 dnl Process this file with autoconf to produce a configure script
 dnl
 AC_PREREQ(2.59)
-AC_INIT([xdd], [7.0.0.pre-rc26], bug@xdd.org)
+AC_INIT([xdd], [7.0.0.pre-rc27], bug@xdd.org)
 AC_CONFIG_HEADER([src/compat/config.h])
 
 
@@ -34,6 +34,8 @@ m4_include(m4/ax_cflags_aix_option.m4)
 m4_include(m4/ax_cflags_gcc_option.m4)
 m4_include(m4/ax_check_gnu_make.m4)
 m4_include(m4/ax_mpi.m4)
+m4_include(m4/ax_python.m4)
+m4_include(m4/ax_python_module.m4)
 
 dnl
 dnl Check for GNU Make
@@ -108,7 +110,7 @@ dnl Enable static linking for executables if requested
 dnl
 AC_ARG_ENABLE([static], [Enable static linking for executables (Default: no)],
 			enable_static="$enableval", enable_static="no")
-if test "x$enable_static" = "xyes"; then
+if test "$enable_static" = "yes"; then
 
    dnl
    dnl This may need to be changed for each compiler we support
@@ -266,7 +268,7 @@ AC_ARG_ENABLE([numa],
               AS_HELP_STRING([--disable-numa], [Disable LibNUMA support]),
               [enable_numa="$enableval"],
               [enable_numa=yes])
-if test "x$enable_numa" = "xyes" ; then
+if test "$enable_numa" = "yes" ; then
     AC_DEFINE(HAVE_ENABLE_NUMA)
     AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
                    AC_DEFINE(HAVE_NUMA_NODE_TO_CPUS),
@@ -320,12 +322,12 @@ AC_ARG_ENABLE([xfs],
               [enable_xfs="$enableval"],
               [enable_xfs=yes])
 
-if test "x$enable_xfs" = "xyes" ; then
+if test "$enable_xfs" = "yes" ; then
     AC_DEFINE(HAVE_ENABLE_XFS)
     xfs_header="no"
     AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h],
                      xfs_header="yes"; break, [])
-    if test "x$xfs_header" = "xno" ; then
+    if test "$xfs_header" = "no" ; then
         AC_MSG_ERROR([No valid XFS header found (sometimes this is caused by missing libuuid headers).  Use --disable-xfs.])
     fi 
     AC_CHECK_DECLS([xfsctl], 
@@ -353,33 +355,33 @@ dnl
 xddcp_disable="no"
 dirname_exists="no"
 AC_PATH_PROG([dirname_exists], [dirname], [no])
-if test "x$dirname_exists" = "xno" ; then
+if test "$dirname_exists" = "no" ; then
     AC_MSG_WARN(Support for xddcp disabled.  No working dirname utility.)
     xddcp_disable="yes"
 fi
 
 ssh_exists="no"
 AC_PATH_PROG([ssh_exists], [ssh], [no])
-if test "x$ssh_exists" = "xno" ; then
+if test "$ssh_exists" = "no" ; then
     AC_MSG_WARN(Support for xddcp disabled.  No working ssh utility.)
     xddcp_disable="yes"
 fi
 
 stat_exists="no"
 AC_PATH_PROG([stat_exists], [stat], [no])
-if test "x$stat_exists" = "xno" ; then
+if test "$stat_exists" = "no" ; then
     AC_MSG_WARN(Support for xddcp disabled.  No working stat utility.)
     xddcp_disable="yes"
 fi
 
 tr_exists="no"
 AC_PATH_PROG([tr_exists], [tr], [no])
-if test "x$tr_exists" = "xno" ; then
+if test "$tr_exists" = "no" ; then
     AC_MSG_WARN(Support for xddcp disabled.  No working tr utility.)
     xddcp_disable="yes"
 fi
 
-if  ! test "x$xddcp_disable" = "xyes" ; then
+if  ! test "$xddcp_disable" = "yes" ; then
    AC_SUBST(XDDCP_ENABLED, "true")
 else
    AC_SUBST(XDDCP_ENABLED, "false")
@@ -387,7 +389,7 @@ fi
 
 netstat_exists="no"
 AC_PATH_PROG([netstat_exists], [netstat], [no])
-if test "x$netstat_exists" = "xno" ; then
+if test "$netstat_exists" = "no" ; then
 dnl   AC_MSG_WARN(Some features of xddcp unavailable.  No working netstat utility installed.)
     AC_MSG_WARN(Support for xddcp disabled.  No working netstat utility.)
     xddcp_disable="yes"
@@ -409,6 +411,29 @@ dnl
 AC_CHECK_DECLS([TCP_CONGESTION], [], [], [[#include <netinet/tcp.h>]])
 
 dnl
+dnl Check for python
+dnl
+AX_PYTHON()
+
+dnl
+dnl Check for PyCrypto
+dnl
+AC_CHECK_FILES([contrib/pycrypto-2.6.1.tar.gz], 
+               AC_SUBST(PYCRYPTO_DIST, [contrib/pycrypto-2.6.1.tar.gz]),
+               [AX_PYTHON_MODULE([Crypto], 
+                                 [XDD requires PyCrypto.  Due to U.S. Export Controls, PyCrypto must be installed separately from XDD.  See README.PyCrypto])])
+
+dnl
+dnl Determine options to preserve metadata while performing installs with cp
+dnl
+if test "$PLATFORM" = "Linux"; then
+   cp_preserve_opts="-dp --no-preserve=ownership"
+else
+   cp_preserve_opts="-p"
+fi
+AC_SUBST(CP_PRESERVE_OPTS, "$cp_preserve_opts")
+
+dnl
 dnl Set the default installation prefix
 dnl
 install_prefix='/opt/xdd'
@@ -423,7 +448,7 @@ dnl autoconf checks to fail
 dnl
 AC_ARG_ENABLE([debug], [Enable options supporting debug (Default: no)],
 			enable_debug="$enableval", enable_debug="no")
-if test "x$enable_debug" = "xyes"; then
+if test "$enable_debug" = "yes"; then
     if test "$CC" = "clang"; then
         CFLAGS="$CFLAGS -Werror"
     elif test "$CC" = "gcc"; then
@@ -445,12 +470,16 @@ AC_SUBST(CONFIG_LIBS, "$LIBS")
 dnl
 dnl Generate output
 dnl
-AC_OUTPUT(Makefile)
+AC_CONFIG_FILES([src/tools/xddmcp/xddmcp], [chmod +x src/tools/xddmcp/xddmcp])
+AC_CONFIG_FILES([src/tools/xddmcp/xddmcp-server], [chmod +x src/tools/xddmcp/xddmcp-server])
+AC_CONFIG_FILES([src/tools/xddprof/xddprof], [chmod +x src/tools/xddprof/xddprof])
+AC_CONFIG_FILES([Makefile])
+AC_OUTPUT
 
 dnl
 dnl Work around platforms that only have GNU make as some name other than make
 dnl
-if ! test x$_cv_gnu_make_command = xmake ; then
+if ! test "$_cv_gnu_make_command" = "make" ; then
     mv Makefile GNUmakefile
     echo [.DEFAULT:] > Makefile ;
     echo [\	$_cv_gnu_make_command \$@] >> Makefile;

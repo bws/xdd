@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-2013 I/O Performance, Inc.
+ * Copyright (C) 2009-2013 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL, (hodsonsw@ornl.gov)
- *       Steve Poole, DoE/ORNL, (spoole@ornl.gov)
- *       Brad Settlemyer, DoE/ORNL (settlemyerbw@ornl.gov)
- *       Russell Cattelan, Digital Elves (russell@thebarn.com)
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 #ifndef XINT_PLAN_H
 #define XINT_PLAN_H
@@ -159,10 +141,12 @@ struct xint_plan {
 // Variables used by the Results Manager
 	char			*format_string;						// Pointer to the format string used by the results_display() to display results 
 	char			results_header_displayed;			// 1 means that the header has been displayed, 0 means no
-	int32_t			heartbeat_holdoff;					/* set to 1 by the results_manager when it wants to display pass results, 
-											 			 * set back to 0 after everything is displayed
-											 			 * set back to 2 to tell heartbeat to exit 
-														 */
+	uint32_t		heartbeat_flags;					// Tell the heartbeat thread what to do and when
+#define	HEARTBEAT_ACTIVE	0x00000001					// The HEARTBEAT_ACTIVE is set by the heartbeat thread when it is running
+#define HEARTBEAT_HOLDOFF	0x00000002					// The results_manager will set HEARTBEAT_HOLDOFF bit when it wants to display pass results, 
+											 			// and unset HEARTBEAT_HOLDOFF after everything is displayed
+#define HEARTBEAT_EXIT		0x00000004		 			// The results_manager will set HEARTBEAT_EXIT to tell heartbeat to exit 
+														//
 #ifdef WIN32
 	HANDLE			ts_serializer_mutex;        		/* needed to circumvent a Windows bug */
 	char			*ts_serializer_mutex_name;  		/* needed to circumvent a Windows bug */

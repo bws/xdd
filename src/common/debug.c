@@ -1,32 +1,14 @@
-/* Copyright (C) 1992-2010 I/O Performance, Inc. and the
- * United States Departments of Energy (DoE) and Defense (DoD)
+/*
+ * XDD - a data movement and benchmarking toolkit
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
+ * Copyright (C) 1992-2013 I/O Performance, Inc.
+ * Copyright (C) 2009-2013 UT-Battelle, LLC
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * This is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License version 2, as published by the Free Software
+ * Foundation.  See file COPYING.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program in a file named 'Copying'; if not, write to
- * the Free Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139.
- */
-/* Principal Author:
- *      Tom Ruwart (tmruwart@ioperformance.com)
- * Contributing Authors:
- *       Steve Hodson, DoE/ORNL
- *       Steve Poole, DoE/ORNL
- *       Bradly Settlemyer, DoE/ORNL
- *       Russell Cattelan, Digital Elves
- *       Alex Elder
- * Funding and resources provided by:
- * Oak Ridge National Labs, Department of Energy and Department of Defense
- *  Extreme Scale Systems Center ( ESSC ) http://www.csm.ornl.gov/essc/
- *  and the wonderful people at I/O Performance, Inc.
  */
 /*
  * This file contains the subroutines that perform various debugging functions 
@@ -96,7 +78,7 @@ xdd_show_plan_data(xdd_plan_t* planp) {
     fprintf(stderr,"xdd_show_plan_data: barrier_count             %d Number of barriers on the chain \n",planp->barrier_count);                         
     fprintf(stderr,"xdd_show_plan_data: format_string             '%s'\n",(planp->format_string != NULL)?planp->format_string:"NA");
     fprintf(stderr,"xdd_show_plan_data: results_header_displayed   %d\n",planp->results_header_displayed);
-    fprintf(stderr,"xdd_show_plan_data: heartbeat_holdoff          %d\n",planp->heartbeat_holdoff);
+    fprintf(stderr,"xdd_show_plan_data: heartbeat_flags          0x%08x\n",planp->heartbeat_flags);
 
     fprintf(stderr,"xdd_show_plan_data: Target_Data pointers\n");
     for (target_number = 0; target_number < planp->number_of_targets; target_number++) {
@@ -468,11 +450,12 @@ xdd_show_e2e_header(xdd_e2e_header_t *e2ehp) {
  */
 void
 xdd_show_tot_entry(tot_t *totp, int i) {
+	tot_wait_t	*totwp;
+
 
   	fprintf(stderr,"\txdd_show_tot_entry:---------- TOT %p entry %d ----------\n",totp,i);
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> pthread_mutex_t tot_mutex\n",i);		// Mutex that is locked when updating items in this entry
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> pthread_cond_t tot_condition\n",i);
-   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int is_released=%d\n",i,totp->tot_entry[i].is_released);
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_wait_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_wait_ts);			// Time that another Worker Thread starts to wait on this
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_post_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_post_ts);			// Time that the responsible Worker Thread posts this semaphore
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> nclk_t tot_update_ts=%lld\n",i,(long long int)totp->tot_entry[i].tot_update_ts);		// Time that the responsible Worker Thread updates the byte_location and io_size
@@ -482,6 +465,23 @@ xdd_show_tot_entry(tot_t *totp, int i) {
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_wait_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_wait_worker_thread_number);	// Number of the Worker Thread that is waiting for this TOT entry to be posted
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_post_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_post_worker_thread_number);	// Number of the Worker Thread that posted this TOT entry 
    	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t tot_update_worker_thread_number=%d\n",i,totp->tot_entry[i].tot_update_worker_thread_number);	// Number of the Worker Thread that last updated this TOT Entry
+   	fprintf(stderr,"\txdd_show_tot_entry: <%d> int32_t status=%d\n",i,totp->tot_entry[i].tot_status);
+
+	if (totp->tot_entry[i].tot_waitp) {
+		fprintf(stderr,"\t\txdd_show_tot_entry: <%d> TOT WAIT Chain\n",i);
+		totwp = totp->tot_entry[i].tot_waitp;
+		while (totwp) {
+			fprintf(stderr,"\t\txdd_show_tot_entry: ----------------------------------\n");
+   			fprintf(stderr,"\t\txdd_show_tot_entry: <%d> struct tot_wait *tot_waitp=%p\n",i,totp->tot_entry[i].tot_waitp);
+   			fprintf(stderr,"\t\t***xdd_show_tot_entry: <%d> tot_wait_t *totw_nextp=%p\n",i,totwp->totw_nextp);
+			fprintf(stderr,"\t\t***xdd_show_tot_entry: <%d> struct xint_worker_data	*totw_wdp=%p\n",i,totwp->totw_wdp);		// Pointer to the Worker that owns this tot_wait
+    		fprintf(stderr,"\t\t***xdd_show_tot_entry: <%d> pthread_cond_t totw_condition\n",i);; 
+    		fprintf(stderr,"\t\t***xdd_show_tot_entry: <%d> int totw_is_released=%d\n",i,totwp->totw_is_released);
+			totwp = totwp->totw_nextp;
+		}
+	}
+
+
 
 } // End of xdd_show_tot_entry()
 
