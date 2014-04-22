@@ -95,7 +95,6 @@ elif test "$CC" = "clang"; then
 elif test "$CC" = "gcc"; then
    AX_CFLAGS_GCC_OPTION([-std=c99])
    AX_CFLAGS_GCC_OPTION([-ggdb])
-   AX_CFLAGS_GCC_OPTION([-O0])
    AX_CFLAGS_GCC_OPTION([-fno-strict-aliasing])
    AX_CFLAGS_GCC_OPTION([-fPIC])
    AX_CFLAGS_GCC_OPTION([-Wall])
