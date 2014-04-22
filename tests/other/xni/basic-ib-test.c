@@ -5,11 +5,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "config.h"
 #include "xni.h"
 
 #define BUFFER_PREPADDING 4096
+// Bohr03 is 128.219.144.20
 //#define DEFAULT_HOST "127.0.0.1"
 #define DEFAULT_HOST "128.219.144.20"
+#define DEFAULT_IBDEV "mlx4_1"
 
 #define FAIL() fail(__LINE__)
 
@@ -31,14 +34,15 @@ int start_server()
     xni_control_block_t xni_cb = 0;
     xni_context_t xni_ctx;
 
-    xni_allocate_ib_control_block("mlx4_0", 1, &xni_cb);
+    xni_allocate_ib_control_block(DEFAULT_IBDEV, 1, &xni_cb);
     xni_context_create(xni_protocol_ib, xni_cb, &xni_ctx);
 
 	// Third, register the memroy
+	xni_target_buffer_t xtb = 0;
     void* buf = 0;
     posix_memalign(&buf, 4096, BUFFER_PREPADDING + 512);
     memset(buf, 2, BUFFER_PREPADDING + 512);
-    xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING);
+    xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING, &xtb);
     
     // Third, accept connections
     xni_endpoint_t xni_ep = {.host = DEFAULT_HOST, .port = 40000};
@@ -47,7 +51,6 @@ int start_server()
 		FAIL();
     
     // Now pass a little data back and forth
-	xni_target_buffer_t xtb = 0;
     if (xni_receive_target_buffer(xni_conn, &xtb))
 		FAIL();
 	char* payload = xni_target_buffer_data(xtb);
@@ -63,27 +66,29 @@ int start_server()
 #else
 	FAIL();
 #endif
-    return rc;
+	return rc;
 }
 
 int start_client()
 {
     int rc = 0;
 #ifdef HAVE_ENABLE_IB
+	
     // First, XNI initialization stuff
     xni_initialize();
 
     // Second, create the context
     xni_control_block_t xni_cb = 0;
     xni_context_t xni_ctx;
-	xni_allocate_ib_control_block("mlx4_0", 1, &xni_cb);
+	xni_allocate_ib_control_block(DEFAULT_IBDEV, 1, &xni_cb);
     xni_context_create(xni_protocol_ib, xni_cb, &xni_ctx);
  
 	// Third, register the buffers (1 per socket)
+	xni_target_buffer_t xtb = 0;
     void* buf = 0;
     posix_memalign(&buf, 4096, BUFFER_PREPADDING + 512);
     memset(buf, 3, BUFFER_PREPADDING + 512);
-	if (xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING))
+	if (xni_register_buffer(xni_ctx, buf, BUFFER_PREPADDING + 512, BUFFER_PREPADDING, &xtb))
 		FAIL();
 	
     // Fourth, connect to the server
@@ -93,7 +98,6 @@ int start_client()
  		FAIL();
 	
     // Now pass a little data back and forth
-	xni_target_buffer_t xtb = 0;
 	if (xni_request_target_buffer(xni_ctx, &xtb)) FAIL();
 	xni_target_buffer_set_target_offset(0, xtb);
 	xni_target_buffer_set_data_length(512, xtb);

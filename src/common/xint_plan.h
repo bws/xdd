@@ -61,6 +61,7 @@
 #define PLAN_INTERACTIVE		0x0000000400000000ULL  /* Enter Interactive Mode - oh what FUN! */
 #define PLAN_INTERACTIVE_EXIT	0x0000000800000000ULL  /* Exit Interactive Mode */
 #define PLAN_INTERACTIVE_STOP	0x0000001000000000ULL  /* Stop at various points in Interactive Mode */
+#define PLAN_ENABLE_XNI 	    0x0000002000000000ULL  /* Init/Finalize XNI */
 
 struct xint_plan {
 /* Global variables relevant to all threads */

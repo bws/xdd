@@ -10,6 +10,7 @@
  * Foundation.  See file COPYING.
  *
  */
+#include "xni.h"
 
 // Bit settings that are used in the Target Options (TO_XXXXX bit definitions) 64-bit word in the Target_Data Struct
 #define TO_READAFTERWRITE              0x0000000000000001ULL  // Read-After-Write - the -raw option 
@@ -164,6 +165,13 @@ struct xint_target_data {
 	struct stat64				td_statbuf;			// Target File Stat buffer used by xdd_target_open()
 #endif
 	int32_t				td_op_delay; 		// Number of seconds to delay between operations 
+
+	/* XNI Networking components */
+	xni_protocol_t      xni_pcl;
+	xni_control_block_t xni_cb;
+	xni_context_t xni_ctx;	
+	const char *xni_ibdevice;
+	const char *xni_tcp_congestion;
 };
 typedef struct xint_target_data target_data_t;
 

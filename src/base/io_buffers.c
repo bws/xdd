@@ -80,8 +80,17 @@ xdd_init_io_buffers(worker_data_t *wdp) {
 	if (tdp->td_xfer_size % page_size)
 		pages++; // Round up to page size
 	if ((tdp->td_target_options & TO_ENDTOEND)) {
-		pages++; // Add one page for the e2e header
+		// Add one page for the e2e header
+		pages++; 
+
+		// If its XNI, add another page for XNI, better would be for XNI to
+		// pack all of the header data (and do the hton, ntoh calls)
+		xdd_plan_t *planp = tdp->td_planp;
+		if (PLAN_ENABLE_XNI & planp->plan_options) {
+			pages++;
+		}
 	}
+
 	
 	// This is the actual size of the I/O buffer
 	buffer_size = pages * page_size;

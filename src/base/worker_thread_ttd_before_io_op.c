@@ -207,12 +207,17 @@ xdd_e2e_before_io_op(worker_data_t *wdp) {
 	// The call to xdd_e2e_dest_recv() will block until there is data to read 
 	wdp->wd_current_state |= WORKER_CURRENT_STATE_DEST_RECEIVE;
 
+        if (PLAN_ENABLE_XNI & tdp->td_planp->plan_options) {
+            status = xint_e2e_xni_recv(wdp);
+        }
+        else {
+
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Calling xdd_e2e_dest_recv...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 
-	status = xdd_e2e_dest_receive(wdp);
+	    status = xdd_e2e_dest_receive(wdp);
 
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Returning from xdd_e2e_dest_recv: e2e header:\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
-
+        }
 	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_DEST_RECEIVE;
 
 	// If status is "-1" then soemthing happened to the connection - time to leave

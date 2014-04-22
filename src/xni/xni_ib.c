@@ -204,11 +204,12 @@ static int ib_context_destroy(xni_context_t *ctx_)
   return XNI_OK;
 }
 
-static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved)
+static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved,
+							  xni_target_buffer_t* xtb)
 {
 	struct ib_context* ctx = (struct ib_context*)ctx_;
 	uintptr_t beginp = (uintptr_t)buf;
-	uintptr_t datap = (uintptr_t)buf + (uintptr_t)(nbytes - reserved);
+	uintptr_t datap = (uintptr_t)buf + (uintptr_t)(reserved);
 	size_t avail = (size_t)(datap - beginp);
 
 	// Make sure space exists in the registered buffer array
@@ -240,6 +241,8 @@ static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size
 	ctx->num_registered++;
 	pthread_mutex_unlock(&ctx->target_buffers_mutex);
 
+	// Set the outbound target buffer
+	*xtb= (xni_target_buffer_t)&tb;
 	return XNI_OK;
 }
 
@@ -342,7 +345,7 @@ static int move_qp_to_rtr(struct ibv_qp *qp, uint32_t remote_qpnum, uint16_t rem
 	attr.dest_qp_num = remote_qpnum;
 	attr.rq_psn = 1;
 	attr.max_dest_rd_atomic = nbuf;
-	attr.min_rnr_timer = 12;  // recommended value
+	attr.min_rnr_timer = 18;  // about 1.07 seconds (recommended value)
 
 	return ibv_modify_qp(qp, &attr, (IBV_QP_STATE|IBV_QP_AV|IBV_QP_PATH_MTU|
 									 IBV_QP_DEST_QPN|IBV_QP_MAX_DEST_RD_ATOMIC|
@@ -460,13 +463,16 @@ static int send_credits(struct ib_connection *conn, int ncredits)
 		pthread_mutex_unlock(&conn->credit_mutex);
 		return 1;
 	}
-	// don't wait for send completion
 
-#ifdef XNI_TRACE
-	puts("Not waiting for send completion.");
-#endif
+	//TODO: need to make sure the completion event isn't for a data message
+	struct ibv_wc wc;
+	memset(&wc, 0, sizeof(wc));
+	int completed = ibv_poll_cq(conn->send_cq, 1, &wc);
+	if (completed < 0 || wc.status != IBV_WC_SUCCESS) {
+		return XNI_ERR;
+	}
 
-	return 0;
+	return XNI_OK;
 }
 
 static int consume_credit(struct ib_connection *conn)

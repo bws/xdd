@@ -124,7 +124,6 @@ xint_target_init(target_data_t *tdp) {
 	    return(-1);
 	}
 	
-
 	// Special setup for an End-to-End operation
 	if (tdp->td_target_options & TO_ENDTOEND) {
 		status = xdd_e2e_target_init(tdp);
@@ -136,6 +135,21 @@ xint_target_init(target_data_t *tdp) {
 	status = xint_target_init_start_worker_threads(tdp);
 	if (status) 
 		return(-1);
+
+	// If this is XNI, perform the connection here
+	xdd_plan_t *planp = tdp->td_planp;
+	if (PLAN_ENABLE_XNI & planp->plan_options) {
+		/* Perform the XNI accept/connect */
+		if (tdp->td_target_options & TO_E2E_DESTINATION) { 
+			status = xint_e2e_dest_connect(tdp);
+		} else {
+			status = xint_e2e_src_connect(tdp);
+		}
+		if (0 != status) {
+			fprintf(xgp->errout, "Failure during XNI connection.\n");
+			return -1;
+		}
+	}
 
 	// Display the information for this target
 	xdd_target_info(xgp->output, tdp);
