@@ -20,6 +20,13 @@
 #
 
 #
+# Make all the default goal
+#
+.DEFAULT_GOAL: all
+
+all:
+
+#
 # Autoconf provided values
 #
 VERSION := @PACKAGE_VERSION@
@@ -85,7 +92,7 @@ MV = mv -f
 PYTHON = PYTHONPATH=$(TOOLS_PYTHON_DIR):$(XDD_DIR)/contrib/site-packages:$(PYTHONPATH) $(PYTHON_EXE)
 PYC = $(PYTHON_EXE) -m compileall -f
 RM = rm -f
-RMDIR = rmdir -f
+RMDIR = rmdir
 TAR = $(TAR_EXE)
 
 #
@@ -179,9 +186,7 @@ LIBS = @CONFIG_LIBS@
 #
 # Build rules
 #
-.DEFAULT: all
-
-all: xdd libs tools
+all: contrib xdd libs tools
 
 bxt: bin/bxt
 
@@ -205,7 +210,7 @@ $(LIB_DIR)/libxdd.a: $(XDD_OBJS)
 #
 # Build rules for tools
 #
-tools: xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate pycrypto
+tools: xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate 
 
 
 xdd-gettime: bin/xdd-gettime
@@ -244,7 +249,7 @@ bin/xdd-truncate: $(TRUNCATE_EXE_OBJS)
 	@echo "[LD] $@ ..."
 	@$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
 
-.Phony: tools xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate
+.PHONY: tools xdd-read-tsdumps xdd-getfilesize xdd-gethostip xdd-truncate
 
 #
 # Build rules for executable targets
@@ -298,8 +303,6 @@ install_tools: install_pre install_site_packages
 	$(INSTALL) -c -m 755 bin/xdd-getfilesize $(INSTALL_DIR)/bin/xdd-getfilesize
 	$(INSTALL) -c -m 755 bin/xdd-gethostip $(INSTALL_DIR)/bin/xdd-gethostip
 	$(INSTALL) -c -m 755 bin/xdd-truncate $(INSTALL_DIR)/bin/xdd-truncate
-	$(INSTALL) -c -m 755 contrib/xdd-plot-tsdumps $(INSTALL_DIR)/bin/xdd-plot-tsdumps
-	$(INSTALL) -c -m 755 contrib/xdd-plot-tsdumps-dk $(INSTALL_DIR)/bin/xdd-plot-tsdumps-dk
 
 install_xdd: install_pre
 	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd
@@ -362,8 +365,6 @@ check: bin/basic-xni-test bin/basic-ib-test
 # Build rules for cleaning up derived files
 #
 testclean:
-	$(RM) contrib/mpil.o
-	$(RM) contrib/mpil
 
 depclean:
 	$(info Cleaning the $(OS) dependency files )
@@ -381,7 +382,7 @@ oclean:
 	$(info Cleaning the $(OS) OBJECT files )
 	@$(RM) $(ALL_OBJS) 
 
-tclean: clean_pycrypto
+tclean: clean_contrib
 	$(info Cleaning the $(OS) TOOLS OBJECT files )
 	@$(RM) src/tools/*.o
 

@@ -29,11 +29,12 @@ SERPENT_DIST := $(CONTRIB_DIR)/serpent-1.5.tar.gz
 #
 # Build rules for contrib
 #
-contrib: contrib/site-packages
+contrib: contrib/site-packages paramiko pyro4 serpent
 
 install_contrib: install_contrib_site-packages
 
 clean_contrib: clean_contrib_site-packages
+	$(info Cleaning the $(OS) CONTRIB files )
 
 .PHONY: contrib install_contrib clean_contrib
 
@@ -41,17 +42,15 @@ clean_contrib: clean_contrib_site-packages
 #
 # Build rules for site-packages
 #
-contrib_site-packages_pre:
-	$(MKDIR) contrib/site-packages
-
-contrib/site-packages: contrib_site-packages_pre ecdsa paramiko pycrypto pyro4 serpent
+contrib/site-packages: 
+	@$(MKDIR) contrib/site-packages
 
 install_contrib_site-packages: install_ecdsa install_paramiko install_pycrypto install_pyro4 install_serpent
 
 clean_contrib_site-packages: clean_ecdsa clean_paramiko clean_pycrypto clean_pyro4 clean_serpent
-	@$(RM) contrib/site-packages
+	@$(RM) -r contrib/site-packages
 
-.PHONY: install_contrib_site-packages clean_contrib_site-packages contrib_site-packages_pre
+.PHONY: install_contrib_site-packages clean_contrib_site-packages
 
 #
 # Build optional ecdsa
@@ -182,14 +181,14 @@ contrib/serpent: $(SERPENT_DIST)
 	$(MKDIR) $@
 	tar -C $@ -xvzf $< --strip-components 1
 
-contrib/site-packages/serpent.py: contrib_site-packages_pre contrib/serpent
+contrib/site-packages/serpent.py: contrib/site-packages contrib/serpent
 	$(CP) contrib/serpent/serpent.py $@
 
 contrib/site-packages/serpent.pyc: contrib/site-packages/serpent.py
 	$(PYC) contrib/serpent
 	$(CP) contrib/serpent/serpent.pyc $@
 
-serpent: contrib/site-packages/serpent.py
+serpent: contrib/site-packages/serpent.pyc
 
 install_serpent: contrib/site-packages/serpent.pyc
 	$(CPR) $< $(INSTALL_DIR)/site-packages
