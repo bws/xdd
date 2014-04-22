@@ -5,9 +5,14 @@ config.status
 configure
 GNUmakefile
 Makefile
+contrib/ecdsa-0.11.tar.gz
 contrib/pycrypto-2.6.1.tar.gz
-contrib/site-packages/Crypto
-contrib/site-packages/pycrypto-2.6.1-*.egg-info
+contrib/pycrypto
+contrib/ecdsa
+contrib/paramiko
+contrib/Pyro4
+contrib/serpent
+contrib/site-packages
 src/base/xdd_base_version.h
 src/tools/xddmcp/xddmcp
 src/tools/xddmcp/xddmcp-server
