@@ -9,7 +9,7 @@ abort () {
     exit 101
 }
 
-# Arguments: transport [bytes]
+# Arguments: transport [bytes] [reqsize]
 # transport can be tcp, xtcp, or ib
 run_remote_xdd () {
     # set option variables
@@ -36,6 +36,11 @@ run_remote_xdd () {
     if [ -n "$2" ]
     then
         local BYTES="$2"
+    fi
+
+    if [ -n "$3" ]
+    then
+        local REQSIZE="$3"
     fi
 
     local TARGETOPT="-targets 1 null"  # reads/writes are no-ops
@@ -83,7 +88,7 @@ run_remote_xdd () {
     | cut -d ',' -f 2-13
 }
 
-# Arguments: [bytes]
+# Arguments: [bytes] [reqsize]
 run_remote_iperf () {
     # set option variables
     local NUMACMD=""
@@ -95,6 +100,11 @@ run_remote_iperf () {
     if [ -n "$1" ]
     then
         local BYTES="$1"
+    fi
+
+    if [ -n "$2" ]
+    then
+        local REQSIZE="$2"
     fi
 
     local CLIENTOPT="-c ${E2EDEST}"
