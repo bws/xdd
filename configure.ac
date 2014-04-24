@@ -415,6 +415,12 @@ dnl
 AX_PYTHON()
 
 dnl
+dnl Installing paramiko requires setuptools
+dnl
+AX_PYTHON_MODULE([setuptools],
+                 [Python installation is incomplete.  Module setuptools is not installed for $PYTHON.])
+
+dnl
 dnl Check for non-included packages
 dnl
 AC_CHECK_FILES([contrib/pycrypto-2.6.1.tar.gz], 

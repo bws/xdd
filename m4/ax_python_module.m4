@@ -25,6 +25,7 @@
 
 AU_ALIAS([AC_PYTHON_MODULE], [AX_PYTHON_MODULE])
 AC_DEFUN([AX_PYTHON_MODULE],[
+    PYTHON=$PYTHON_BIN
     if test -z $PYTHON;
     then
         PYTHON="python"
