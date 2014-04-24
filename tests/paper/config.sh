@@ -49,6 +49,9 @@ E2EPORT=40010
 # number of network threads (also number of I/O threads)
 E2ETHREADS=1
 
+# TCP port for iperf to listen on/connect to
+IPERFPORT=40310
+
 # device to use for XNI InfiniBand
 IBDEVICE="mlx4_0"
 

@@ -102,6 +102,7 @@ run_remote_iperf () {
     local INTERVALOPT="-i 3600"  # large interval so only the total is output
     local BUFLENOPT="-l $((${REQSIZE}*1024))"
     local NUMOPT="-n ${BYTES}"
+    local PORTOPT="-p ${IPERFPORT}"
     [ -n "${CONGESTION}" ] && local CONGESTIONOPT="-Z ${CONGESTION}"
     local SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"\
 " -o BatchMode=yes"
@@ -110,6 +111,7 @@ run_remote_iperf () {
     ${NUMACMD} \
         ${IPERF} \
         -s \
+        ${PORTOPT} \
         ${CONGESTIONOPT} \
     >/dev/null 2>/dev/null \
     &
@@ -125,6 +127,7 @@ run_remote_iperf () {
             ${NUMACMD} \
             ${IPERF} \
             ${CLIENTOPT} \
+            ${PORTOPT} \
             ${CSVOPT} \
             ${INTERVALOPT} \
             ${BUFLENOPT} \
