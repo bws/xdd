@@ -88,6 +88,13 @@ run_remote_xdd () {
     | cut -d ',' -f 2-13
 }
 
+function ceiling() {
+  local dividend=$1
+  local divisor=$2
+  local result=$(( ((${dividend} - (${dividend} % ${divisor}))/${divisor}) + 1 ))
+  echo ${result}
+}
+
 # Arguments: [bytes] [reqsize]
 run_remote_iperf () {
     # ensure that Iperf can understand our command line and that we
@@ -119,8 +126,9 @@ run_remote_iperf () {
     local CLIENTOPT="-c ${E2EDEST}"
     local CSVOPT="-y c"
     local BUFLENOPT="-l $((${REQSIZE}*1024))"
-    local NUMOPT="-n ${BYTES}"
+    local NUMOPT="-n `ceiling ${BYTES} ${E2ETHREADS}`"
     local PORTOPT="-p ${IPERFPORT}"
+    local PARALLELOPT="-P ${E2ETHREADS}"
     [ -n "${CONGESTION}" ] && local CONGESTIONOPT="-Z ${CONGESTION}"
     local SSHOPT="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"\
 " -o BatchMode=yes"
@@ -149,6 +157,7 @@ run_remote_iperf () {
             ${CSVOPT} \
             ${BUFLENOPT} \
             ${NUMOPT} \
+            ${PARALLELOPT} \
             ${CONGESTIONOPT} \
         | tail -1
     )
