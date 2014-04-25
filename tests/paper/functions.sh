@@ -91,7 +91,7 @@ run_remote_xdd () {
 function ceiling() {
   local dividend=$1
   local divisor=$2
-  local result=$(( ((${dividend} - (${dividend} % ${divisor}))/${divisor}) + 1 ))
+  local result=$(( (${dividend} - 1)/${divisor} + 1))
   echo ${result}
 }
 
