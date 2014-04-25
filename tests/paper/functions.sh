@@ -141,6 +141,7 @@ run_remote_iperf () {
         ${CONGESTIONOPT} \
     >/dev/null 2>/dev/null \
     &
+    local IPERFPID=$!
 
     # wait for destination side to start
     sleep 3
@@ -169,4 +170,7 @@ run_remote_iperf () {
     # output
     # pass,target,queue,size,ops,elapsed,bandwidth,iops,latency,cpu,op,reqsize
     echo ,,,${BYTES},,${ELAPSEDOUT},${BANDWIDTHOUT},,,,,${REQSIZE}
+
+    # cleanup by killing iperf server
+    kill "${IPERFPID}"
 }
