@@ -118,7 +118,6 @@ run_remote_iperf () {
 
     local CLIENTOPT="-c ${E2EDEST}"
     local CSVOPT="-y c"
-    local INTERVALOPT="-i 3600"  # large interval so only the total is output
     local BUFLENOPT="-l $((${REQSIZE}*1024))"
     local NUMOPT="-n ${BYTES}"
     local PORTOPT="-p ${IPERFPORT}"
@@ -148,7 +147,6 @@ run_remote_iperf () {
             ${CLIENTOPT} \
             ${PORTOPT} \
             ${CSVOPT} \
-            ${INTERVALOPT} \
             ${BUFLENOPT} \
             ${NUMOPT} \
             ${CONGESTIONOPT} \
