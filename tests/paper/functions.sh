@@ -90,6 +90,15 @@ run_remote_xdd () {
 
 # Arguments: [bytes] [reqsize]
 run_remote_iperf () {
+    # ensure that Iperf can understand our command line and that we
+    # can understand Iperf's output
+    local VERSION=`iperf --version 2>&1 | cut -d ' ' -f 1-3`
+    if [ "$VERSION" != 'iperf version 2.0.5' ]
+    then
+        abort "unsupported iperf: ${VERSION}"
+    fi
+
+
     # set option variables
     local NUMACMD=""
     if [ "$NUMA" == 'true' ]
