@@ -70,6 +70,8 @@ xdd_e2e_src_send(worker_data_t *wdp) {
 	e2ehp = e2ep->e2e_hdrp;
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: ENTER: e2ep=%p: e2ehp=%p: e2e_datap=%p\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep, e2ehp, e2ep->e2e_datap);
 
+	memcpy(e2ehp->e2eh_cookie, tdp->td_magic_cookie, sizeof(e2ehp->e2eh_cookie));
+
 	// The "task" data structure contains variables relevant to the file-read operation 
 	e2ehp->e2eh_worker_thread_number = wdp->wd_worker_number;
 	e2ehp->e2eh_sequence_number = wdp->wd_task.task_op_number;
@@ -291,6 +293,23 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 			e2ep->e2e_header_size);
 		return(-1);
 	}
+
+	// ensure the cookies are equal
+	char expected_cookie[sizeof(tdp->td_magic_cookie)];
+	memcpy(expected_cookie, tdp->td_magic_cookie, sizeof(expected_cookie));
+	if (memcmp(e2ehp->e2eh_cookie, expected_cookie, sizeof(e2ehp->e2eh_cookie))) {
+		// Invalid E2E Header - bad magic cookie
+		//TODO: it would be helpful to print out the magic cookie
+		// received vs. what was expected, but this will require
+		// converting the binary cookie to a textual representation
+		fprintf(xgp->errout,"\n%s: xdd_e2e_dest_receive_header: Target %d Worker: %d: ERROR: Bad magic cookie on recv %d\n",
+			xgp->progname,
+			tdp->td_target_number,
+			wdp->wd_worker_number,
+			e2ep->e2e_msg_recv);
+		return(-1);
+	}
+
 	if ((e2ehp->e2eh_magic != XDD_E2E_DATA_READY) && (e2ehp->e2eh_magic != XDD_E2E_EOF)) {
 		// Invalid E2E Header - bad magic number
 		fprintf(xgp->errout,"\n%s: xdd_e2e_dest_receive_header: Target %d Worker: %d: ERROR: Bad magic number 0x%08x on recv %d - should be either 0x%08x or 0x%08x\n",
@@ -583,6 +602,7 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	e2ehp->e2eh_byte_offset = -1; // NA
 	e2ehp->e2eh_data_length = 0;	// NA - no data being sent other than the header
 	e2ehp->e2eh_magic = XDD_E2E_EOF;
+	memcpy(e2ehp->e2eh_cookie, tdp->td_magic_cookie, sizeof(e2ehp->e2eh_cookie));
 
 	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
 		ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];

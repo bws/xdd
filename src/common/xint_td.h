@@ -172,6 +172,8 @@ struct xint_target_data {
 	xni_context_t xni_ctx;	
 	const char *xni_ibdevice;
 	const char *xni_tcp_congestion;
+
+	unsigned char				td_magic_cookie[16]; // Magic cookie for checking network endpoints
 };
 typedef struct xint_target_data target_data_t;
 

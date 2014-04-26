@@ -112,6 +112,9 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 	sprintf(tdp->td_occupant_name,"TARGET%04d",tdp->td_target_number);
 	xdd_init_barrier_occupant(&tdp->td_occupant, tdp->td_occupant_name, XDD_OCCUPANT_TYPE_TARGET, (void *)tdp);
 
+	// the default magic cookie has all bits set
+	memset(tdp->td_magic_cookie, 0xFF, sizeof(tdp->td_magic_cookie));
+
 } /* end of xdd_init_new_target_data() */
 
 /*----------------------------------------------------------------------------*/

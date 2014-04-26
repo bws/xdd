@@ -33,6 +33,7 @@
 #define	E2E_ADDRESS_TABLE_ENTRIES 16
 struct xdd_e2e_header {
 	uint32_t 	e2eh_magic;  				// Magic Number - sanity check
+	unsigned char e2eh_cookie[16];			// Magic Cookie - a safer check
 	int32_t  	e2eh_worker_thread_number; 	// Sender's Worker Thread Number
 	int64_t  	e2eh_sequence_number; 		// Sequence number of this operation
 	nclk_t  	e2eh_send_time; 			// Time this packet was sent in global nano seconds 
