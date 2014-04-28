@@ -149,8 +149,9 @@ class FlowBuilderTransport:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         try:
-            # First try to use default authentication
-            ssh.connect(host, username=user)
+            # First try to use host-based or default authentication 
+            hostkey = self._try_load_sshd_host_key()
+            ssh.connect(host, username=user, hostkey=hostkey)
         except paramiko.AuthenticationException:
             import sys
             # Now give the user 2 tries with their password
@@ -265,4 +266,18 @@ class FlowBuilderTransport:
     def getFlowBuilder(self):
         """Return the flow builder object"""
         return self.flowBuilder
+
+    def _try_load_sshd_host_key(self):
+        """@return the SSH host key if it exists, None otherwise"""
+        candidates = ['/etc/ssh/ssh_host_rsa_key.pub',
+                      '/etc/ssh_host_rsa_key.pub']
+
+        match = None
+        for candidate in candidates:
+            try:
+                match = paramiko.opensshkey.load_pubkey_from_file(candidate)
+                break
+            except paramiko.SSHException:
+               pass
+        return match
 

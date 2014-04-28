@@ -138,9 +138,17 @@ dnl
 dnl Check for a GNU compatible tar program
 dnl
 tar_cmd=""
-AC_PATH_PROGS([tar_cmd], [gnutar tar], AC_MSG_WARN(Unable to find a valid tar program))
+AC_PATH_PROGS([tar_cmd], [gnutar tar], AC_MSG_ERROR(Unable to find a valid tar program))
 TAR=$tar_cmd
 AC_SUBST(TAR)
+
+dnl
+dnl Check for a 'patch' command
+dnl
+patch_cmd=""
+AC_PATH_PROGS([patch_cmd], [patch], AC_MSG_ERROR(Unable to find a valid patch program))
+PATCH="$patch_cmd"
+AC_SUBST(PATCH)
 
 dnl 
 dnl Check for Standard C headers

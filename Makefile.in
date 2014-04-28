@@ -37,6 +37,7 @@ XDDCP_ENABLED := @XDDCP_ENABLED@
 CC_EXE := @CC@
 DEPC_EXE := @DEPC_PATH@
 TAR_EXE := @TAR@
+PATCH_EXE := @PATCH@
 PYTHON_EXE := @PYTHON_BIN@
 CP_PRESERVE_OPTS := @CP_PRESERVE_OPTS@
 ECDSA_DIST := @ECDSA_DIST@
@@ -89,6 +90,7 @@ LN = ln -sf
 MKDIR = mkdir -p
 MPICC = mpicc
 MV = mv -f
+PATCH = $(PATCH_EXE)
 PYTHON = PYTHONPATH=$(TOOLS_PYTHON_DIR):$(XDD_DIR)/contrib/site-packages:$(PYTHONPATH) $(PYTHON_EXE)
 PYC = $(PYTHON_EXE) -m compileall -f
 RM = rm -f
@@ -351,6 +353,7 @@ test: contrib/mpil bin/basic-xni-test
 
 check: bin/basic-xni-test bin/basic-ib-test
 	@# This should somehow run all of the tests.
+	@$(PYTHON) tests/unit/site-packages/paramiko_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_file_transfer_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_flow_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_factory_test.py

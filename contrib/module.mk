@@ -93,7 +93,8 @@ contrib/paramiko: $(PARAMIKO_DIST)
 	$(MKDIR) $@
 	tar -C $@ -xvzf $< --strip-components 1
 
-contrib/site-packages/paramiko: contrib/paramiko
+contrib/site-packages/paramiko: contrib/paramiko contrib/paramiko-hostbased-auth.diff
+	cd $< && $(PATCH) -p1 < ../paramiko-hostbased-auth.diff
 	cd $< && $(PYTHON) setup.py build
 	cd $< && $(PYTHON) setup.py install --install-lib ../site-packages --old-and-unmanageable
 
