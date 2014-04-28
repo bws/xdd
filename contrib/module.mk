@@ -191,8 +191,9 @@ contrib/site-packages/serpent.pyc: contrib/site-packages/serpent.py
 
 serpent: contrib/site-packages/serpent.pyc
 
-install_serpent: contrib/site-packages/serpent.pyc
-	$(CPR) $< $(INSTALL_DIR)/site-packages
+install_serpent: contrib/site-packages/serpent.py contrib/site-packages/serpent.pyc
+	$(INSTALL) -c -m 644 contrib/site-packages/serpent.py $(INSTALL_DIR)/site-packages/serpent.py
+	$(INSTALL) -c -m 644 contrib/site-packages/serpent.pyc $(INSTALL_DIR)/site-packages/serpent.pyc
 
 clean_serpent:
 	@echo "Cleaning the serpent site package"
