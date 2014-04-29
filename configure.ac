@@ -423,13 +423,7 @@ dnl
 AX_PYTHON()
 
 dnl
-dnl Installing paramiko requires setuptools
-dnl
-AX_PYTHON_MODULE([setuptools],
-                 [Python installation is incomplete.  Module setuptools is not installed for $PYTHON.])
-
-dnl
-dnl Check for non-included packages
+dnl Check for export-controlled packages
 dnl
 AC_CHECK_FILES([contrib/pycrypto-2.6.1.tar.gz], 
                AC_SUBST(PYCRYPTO_DIST, [contrib/pycrypto-2.6.1.tar.gz]),
@@ -439,6 +433,131 @@ AC_CHECK_FILES([contrib/ecdsa-0.11.tar.gz],
                AC_SUBST(ECDSA_DIST, [contrib/ecdsa-0.11.tar.gz]),
                [AX_PYTHON_MODULE([ecdsa], 
                                  [XDD requires Python ECDSA.  Due to U.S. Export Controls, ECDSA must be installed separately from XDD.  See README.crypto])])
+
+dnl
+dnl Check for packages XDD requires directly
+dnl
+AX_PYTHON_MODULE([datetime], [missing Python module: datetime])
+AX_PYTHON_MODULE([fcntl], [missing Python module: fcntl])
+AX_PYTHON_MODULE([getpass], [missing Python module: getpass])
+AX_PYTHON_MODULE([optparse], [missing Python module: optparse])
+AX_PYTHON_MODULE([os], [missing Python module: os])
+AX_PYTHON_MODULE([platform], [missing Python module: platform])
+AX_PYTHON_MODULE([SocketServer], [missing Python module: SocketServer])
+AX_PYTHON_MODULE([select], [missing Python module: select])
+AX_PYTHON_MODULE([socket], [missing Python module: socket])
+AX_PYTHON_MODULE([subprocess], [missing Python module: subprocess])
+AX_PYTHON_MODULE([sys], [missing Python module: sys])
+AX_PYTHON_MODULE([threading], [missing Python module: threading])
+AX_PYTHON_MODULE([time], [missing Python module: time])
+AX_PYTHON_MODULE([unittest], [missing Python module: unittest])
+
+dnl
+dnl Check for packages Crypto requires
+dnl
+AX_PYTHON_MODULE([base64], [missing Python module: base64])
+AX_PYTHON_MODULE([binascii], [missing Python module: binascii])
+AX_PYTHON_MODULE([distutils], [missing Python module: distutils])
+AX_PYTHON_MODULE([errno], [missing Python module: errno])
+AX_PYTHON_MODULE([inspect], [missing Python module: inspect])
+AX_PYTHON_MODULE([math], [missing Python module: math])
+AX_PYTHON_MODULE([operator], [missing Python module: operator])
+AX_PYTHON_MODULE([os], [missing Python module: os])
+AX_PYTHON_MODULE([pprint], [missing Python module: pprint])
+AX_PYTHON_MODULE([stat], [missing Python module: stat])
+AX_PYTHON_MODULE([struct], [missing Python module: struct])
+AX_PYTHON_MODULE([sys], [missing Python module: sys])
+AX_PYTHON_MODULE([threading], [missing Python module: threading])
+AX_PYTHON_MODULE([time], [missing Python module: time])
+AX_PYTHON_MODULE([types], [missing Python module: types])
+AX_PYTHON_MODULE([unittest], [missing Python module: unittest])
+AX_PYTHON_MODULE([warnings], [missing Python module: warnings])
+#AX_PYTHON_MODULE([winrandom], [missing Python module: winrandom])
+
+dnl
+dnl Check for packages ecdsa requires
+dnl
+AX_PYTHON_MODULE([base64], [missing Python module: base64])
+AX_PYTHON_MODULE([binascii], [missing Python module: binascii])
+AX_PYTHON_MODULE([hashlib], [missing Python module: hashlib])
+AX_PYTHON_MODULE([hmac], [missing Python module: hmac])
+AX_PYTHON_MODULE([math], [missing Python module: math])
+AX_PYTHON_MODULE([operator], [missing Python module: operator])
+AX_PYTHON_MODULE([os], [missing Python module: os])
+AX_PYTHON_MODULE([random], [missing Python module: random])
+AX_PYTHON_MODULE([shutil], [missing Python module: shutil])
+AX_PYTHON_MODULE([subprocess], [missing Python module: subprocess])
+AX_PYTHON_MODULE([sys], [missing Python module: sys])
+AX_PYTHON_MODULE([time], [missing Python module: time])
+AX_PYTHON_MODULE([types], [missing Python module: types])
+AX_PYTHON_MODULE([unittest], [missing Python module: unittest])
+
+dnl
+dnl Check for packages paramiko requires
+dnl
+AX_PYTHON_MODULE([setuptools], [Python installation is incomplete.  Module setuptools is not installed for $PYTHON.])
+AX_PYTHON_MODULE([array], [missing Python module: array])
+AX_PYTHON_MODULE([atexit], [missing Python module: atexit])
+AX_PYTHON_MODULE([base64], [missing Python module: base64])
+AX_PYTHON_MODULE([binascii], [missing Python module: binascii])
+AX_PYTHON_MODULE([collections], [missing Python module: collections])
+AX_PYTHON_MODULE([ctypes], [missing Python module: ctypes])
+AX_PYTHON_MODULE([datetime], [missing Python module: datetime])
+AX_PYTHON_MODULE([errno], [missing Python module: errno])
+AX_PYTHON_MODULE([fnmatch], [missing Python module: fnmatch])
+AX_PYTHON_MODULE([getpass], [missing Python module: getpass])
+AX_PYTHON_MODULE([logging], [missing Python module: logging])
+AX_PYTHON_MODULE([os], [missing Python module: os])
+AX_PYTHON_MODULE([platform], [missing Python module: platform])
+AX_PYTHON_MODULE([select], [missing Python module: select])
+AX_PYTHON_MODULE([signal], [missing Python module: signal])
+AX_PYTHON_MODULE([socket], [missing Python module: socket])
+AX_PYTHON_MODULE([stat], [missing Python module: stat])
+AX_PYTHON_MODULE([struct], [missing Python module: struct])
+AX_PYTHON_MODULE([subprocess], [missing Python module: subprocess])
+AX_PYTHON_MODULE([sys], [missing Python module: sys])
+AX_PYTHON_MODULE([tempfile], [missing Python module: tempfile])
+AX_PYTHON_MODULE([threading], [missing Python module: threading])
+AX_PYTHON_MODULE([time], [missing Python module: time])
+AX_PYTHON_MODULE([traceback], [missing Python module: traceback])
+AX_PYTHON_MODULE([warnings], [missing Python module: warnings])
+AX_PYTHON_MODULE([weakref], [missing Python module: weakref])
+AX_PYTHON_MODULE([zlib], [missing Python module: zlib])
+
+dnl
+dnl Check for packages Pyro4 requires
+dnl
+AX_PYTHON_MODULE([code], [missing Python module: code])
+AX_PYTHON_MODULE([errno], [missing Python module: errno])
+AX_PYTHON_MODULE([functools], [missing Python module: functools])
+AX_PYTHON_MODULE([hashlib], [missing Python module: hashlib])
+AX_PYTHON_MODULE([hmac], [missing Python module: hmac])
+AX_PYTHON_MODULE([linecache], [missing Python module: linecache])
+AX_PYTHON_MODULE([logging], [missing Python module: logging])
+AX_PYTHON_MODULE([os], [missing Python module: os])
+AX_PYTHON_MODULE([platform], [missing Python module: platform])
+AX_PYTHON_MODULE([re], [missing Python module: re])
+AX_PYTHON_MODULE([select], [missing Python module: select])
+AX_PYTHON_MODULE([socket], [missing Python module: socket])
+AX_PYTHON_MODULE([struct], [missing Python module: struct])
+AX_PYTHON_MODULE([subprocess], [missing Python module: subprocess])
+AX_PYTHON_MODULE([sys], [missing Python module: sys])
+AX_PYTHON_MODULE([threading], [missing Python module: threading])
+AX_PYTHON_MODULE([time], [missing Python module: time])
+AX_PYTHON_MODULE([traceback], [missing Python module: traceback])
+AX_PYTHON_MODULE([types], [missing Python module: types])
+AX_PYTHON_MODULE([uuid], [missing Python module: uuid])
+AX_PYTHON_MODULE([zlib], [missing Python module: zlib])
+
+dnl
+dnl Check for packages Serpent requires
+dnl
+AX_PYTHON_MODULE([ast], [missing Python module: ast])
+AX_PYTHON_MODULE([base64], [missing Python module: base64])
+AX_PYTHON_MODULE([gc], [missing Python module: gc])
+AX_PYTHON_MODULE([os], [missing Python module: os])
+AX_PYTHON_MODULE([sys], [missing Python module: sys])
+AX_PYTHON_MODULE([types], [missing Python module: types])
 
 dnl
 dnl Determine options to preserve metadata while performing installs with cp
