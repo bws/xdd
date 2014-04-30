@@ -226,6 +226,28 @@ static int tcp_accept_connection(xni_context_t ctx_, struct xni_endpoint* local,
 #endif  // HAVE_DECL_TCP_CONGESTION
 		}
 
+		//TODO: replace with a real value
+		optval = 131072;
+		int rc = setsockopt(servers[i],
+							SOL_SOCKET,
+							SO_SNDBUF,
+							&optval,
+							sizeof(optval));
+		if (rc) {
+			perror("setsockopt");
+		}
+
+		//TODO: replace with a real value
+		optval = 131072;
+		rc = setsockopt(servers[i],
+							SOL_SOCKET,
+							SO_RCVBUF,
+							&optval,
+							sizeof(optval));
+		if (rc) {
+			perror("setsockopt");
+		}
+
 		struct sockaddr_in addr;
 		memset(&addr, 0, sizeof(addr));
 		addr.sin_family = AF_INET;
@@ -322,6 +344,28 @@ static int tcp_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conn
 			// operation not supported
 			goto error_out;
 #endif  // HAVE_DECL_TCP_CONGESTION
+		}
+
+		//TODO: replace with a real value
+		int optval = 131072;
+		int rc = setsockopt(servers[i].sockd,
+							SOL_SOCKET,
+							SO_SNDBUF,
+							&optval,
+							sizeof(optval));
+		if (rc) {
+			perror("setsockopt");
+		}
+
+		//TODO: replace with a real value
+		optval = 131072;
+		rc = setsockopt(servers[i].sockd,
+							SOL_SOCKET,
+							SO_RCVBUF,
+							&optval,
+							sizeof(optval));
+		if (rc) {
+			perror("setsockopt");
 		}
 
 		struct sockaddr_in addr;
