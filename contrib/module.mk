@@ -120,6 +120,7 @@ clean_paramiko:
 #
 # Build optional PyCrypto
 #
+PYCRYPTO_PYTHON := ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future && python
 contrib/pycrypto: $(PYCRYPTO_DIST)
 ifneq ($(PYCRYPTO_DIST),)
 	$(MKDIR) $@
@@ -128,8 +129,8 @@ endif
 
 contrib/site-packages/Crypto: contrib/pycrypto
 ifneq ($(PYCRYPTO_DIST),)
-	cd $< && $(PYTHON) setup.py build 
-	cd $< && $(PYTHON) setup.py install --install-lib ../site-packages
+	cd $< && $(PYCRYPTO_PYTHON) setup.py build 
+	cd $< && $(PYCRYPTO_PYTHON) setup.py install --install-lib ../site-packages
 endif
 
 pycrypto: contrib/site-packages/Crypto
