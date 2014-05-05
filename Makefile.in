@@ -291,7 +291,8 @@ install_libs: install_pre
 
 install_site_packages: install_pre install_contrib_site-packages
 	$(CPR) $(TOOLS_DIR)/python/xdd $(INSTALL_DIR)/site-packages
-	$(CPR) $(TOOLS_DIR)/python/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
+	$(INSTALL) -c -m 644 $(TOOLS_DIR)/python/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
+	$(INSTALL) -c -m 644 $(TOOLS_DIR)/python/xdd_storage_profile.py $(INSTALL_DIR)/site-packages
 	$(PYC) -q $(INSTALL_DIR)/site-packages
 
 install_tools: install_pre install_site_packages

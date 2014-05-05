@@ -120,7 +120,12 @@ clean_paramiko:
 #
 # Build optional PyCrypto
 #
-PYCRYPTO_PYTHON := ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future && python
+ifeq (clang, $(CC))
+PYCRYPTO_PYTHON := ARCHFLAGS=-Wno-error=unused-command-line-argument-hard-error-in-future && $(PYTHON)
+else
+PYCRYPTO_PYTHON := $(PYTHON)
+endif
+
 contrib/pycrypto: $(PYCRYPTO_DIST)
 ifneq ($(PYCRYPTO_DIST),)
 	$(MKDIR) $@

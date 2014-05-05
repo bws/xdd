@@ -40,6 +40,13 @@ XDDPROF_PY_SRC="${XDD_SITE_PACKAGES}/xdd_storage_profile.py"
 #
 # Should probably make sure everything exists
 #
-${PYTHON_EXE} ${XDDPROF_PY_SRC} ${@}
+if [ -r "${XDDPROF_PY_SRC}" ]; then
+    ${PYTHON_EXE} ${XDDPROF_PY_SRC} ${@}
+    rc=$?
+else
+    echo "${XDDPROF_PY_SRC}: file not found"
+    rc=1
+fi
 
+exit $rc
 
