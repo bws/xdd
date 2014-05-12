@@ -30,6 +30,7 @@ static const size_t TCP_DATA_MESSAGE_HEADER_SIZE = 12;
 struct tcp_control_block {
   size_t num_sockets;
   char congestion[16];
+  int window_size;
 };
 
 struct tcp_context {
@@ -78,7 +79,7 @@ struct tcp_target_buffer {
 };
 
 
-int xni_allocate_tcp_control_block(int num_sockets, const char *congestion, xni_control_block_t *cb_)
+int xni_allocate_tcp_control_block(int num_sockets, const char *congestion, int window_size, xni_control_block_t *cb_)
 {
   struct tcp_control_block **cb = (struct tcp_control_block**)cb_;
 
@@ -90,9 +91,14 @@ int xni_allocate_tcp_control_block(int num_sockets, const char *congestion, xni_
   if (strlen(congestion) >= sizeof((*cb)->congestion))
     return XNI_ERR;
 
+  // sanity check
+  if (window_size < 1 && window_size != XNI_TCP_DEFAULT_WINDOW_SIZE)
+	  return XNI_ERR;
+
   struct tcp_control_block *tmp = calloc(1, sizeof(*tmp));
   tmp->num_sockets = num_sockets;
   strncpy(tmp->congestion, congestion, (sizeof(tmp->congestion) - 1));
+  tmp->window_size = window_size;
   *cb = tmp;
   return XNI_OK;
 }
@@ -226,26 +232,27 @@ static int tcp_accept_connection(xni_context_t ctx_, struct xni_endpoint* local,
 #endif  // HAVE_DECL_TCP_CONGESTION
 		}
 
-		//TODO: replace with a real value
-		optval = 131072;
-		int rc = setsockopt(servers[i],
-							SOL_SOCKET,
-							SO_SNDBUF,
-							&optval,
-							sizeof(optval));
-		if (rc) {
-			perror("setsockopt");
-		}
+		// optionally set the window size
+		if (ctx->control_block.window_size != XNI_TCP_DEFAULT_WINDOW_SIZE) {
+			optval = ctx->control_block.window_size;
+			int rc = setsockopt(servers[i],
+								SOL_SOCKET,
+								SO_SNDBUF,
+								&optval,
+								sizeof(optval));
+			if (rc) {
+				perror("setsockopt");
+			}
 
-		//TODO: replace with a real value
-		optval = 131072;
-		rc = setsockopt(servers[i],
+			optval = ctx->control_block.window_size;
+			rc = setsockopt(servers[i],
 							SOL_SOCKET,
 							SO_RCVBUF,
 							&optval,
 							sizeof(optval));
-		if (rc) {
-			perror("setsockopt");
+			if (rc) {
+				perror("setsockopt");
+			}
 		}
 
 		struct sockaddr_in addr;
@@ -346,26 +353,27 @@ static int tcp_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conn
 #endif  // HAVE_DECL_TCP_CONGESTION
 		}
 
-		//TODO: replace with a real value
-		int optval = 131072;
-		int rc = setsockopt(servers[i].sockd,
-							SOL_SOCKET,
-							SO_SNDBUF,
-							&optval,
-							sizeof(optval));
-		if (rc) {
-			perror("setsockopt");
-		}
+		// optionally set the window size
+		if (ctx->control_block.window_size != XNI_TCP_DEFAULT_WINDOW_SIZE) {
+			int optval = ctx->control_block.window_size;
+			int rc = setsockopt(servers[i].sockd,
+								SOL_SOCKET,
+								SO_SNDBUF,
+								&optval,
+								sizeof(optval));
+			if (rc) {
+				perror("setsockopt");
+			}
 
-		//TODO: replace with a real value
-		optval = 131072;
-		rc = setsockopt(servers[i].sockd,
+			optval = ctx->control_block.window_size;
+			rc = setsockopt(servers[i].sockd,
 							SOL_SOCKET,
 							SO_RCVBUF,
 							&optval,
 							sizeof(optval));
-		if (rc) {
-			perror("setsockopt");
+			if (rc) {
+				perror("setsockopt");
+			}
 		}
 
 		struct sockaddr_in addr;
