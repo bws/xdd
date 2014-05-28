@@ -51,7 +51,7 @@ int32_t xint_e2e_xni_init(target_data_t *tdp) {
 	if (xni_protocol_tcp == tdp->xni_pcl)
 		rc = xni_allocate_tcp_control_block(num_threads,
 											tdp->xni_tcp_congestion,
-											XNI_TCP_DEFAULT_WINDOW_SIZE,
+											tdp->td_planp->e2e_TCP_Win,
 											&tdp->xni_cb);
 #if HAVE_ENABLE_IB
 	else if (xni_protocol_ib == tdp->xni_pcl)
