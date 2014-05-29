@@ -220,6 +220,65 @@ int xddfunc_congestion(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t f
 	}
 } // End of xddfunc_congestion()
 /*----------------------------------------------------------------------------*/
+// Set the magic cookie for network transfers
+int xddfunc_cookie(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
+{
+	int target_number = -1;
+	int args = xdd_parse_target_number(planp, argc, &argv[0],
+								   flags, &target_number);
+	if (args < 0)
+		return(-1);
+
+	if (xdd_parse_arg_count_check(args,argc, argv[0]) == 0)
+		return(0);
+
+	// Get the hex string representation of the cookie
+	const char *cookie_str = argv[args + 1];
+	const target_data_t tmptdp_;   // hack to later find
+								   // sizeof(target_data_t.td_magic_cookie)
+
+	// two hex digits represent one byte
+	if (strlen(cookie_str) != sizeof(tmptdp_.td_magic_cookie)*2) {
+		fprintf(xgp->errout,"%s: ERROR: invalid '-cookie' %s\n", xgp->progname, cookie_str);
+		return(-1);
+	}
+
+	// Convert the hex string to its binary representation
+	unsigned char magic_cookie[sizeof(tmptdp_.td_magic_cookie)] = { 0 };
+	for (int i = 0; i < 32; i += 2) {
+		unsigned int bite = 0;  // just in case `byte' is a typedef
+
+		if (!isxdigit(cookie_str[i]) || !isxdigit(cookie_str[i+1]) || sscanf(cookie_str+i, "%2x", &bite) != 1) {
+			fprintf(xgp->errout,"%s: ERROR: invalid '-cookie' %s\n", xgp->progname, cookie_str);
+			return(-1);
+		}
+
+		magic_cookie[i>>1] = (unsigned char)bite;
+	}
+	
+	// Set the magic cookie for the relevant targets
+	if (target_number >= 0) {
+		/* Set this option value for a specific target */
+		target_data_t *tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+		if (tdp == NULL)
+			return(-1);
+		memcpy(tdp->td_magic_cookie, magic_cookie, sizeof(tdp->td_magic_cookie));
+		return(args+2);
+	} else {
+        /* Put this option into all Targets */ 
+		if (flags & XDD_PARSE_PHASE2) {
+			target_data_t *tdp = planp->target_datap[0];
+			int i = 0;
+			while (tdp) {
+				memcpy(tdp->td_magic_cookie, magic_cookie, sizeof(tdp->td_magic_cookie));
+				i++;
+				tdp = planp->target_datap[i];
+			}
+		}
+		return(2);
+	}
+} // End of xddfunc_cookie()
+/*----------------------------------------------------------------------------*/
 // Create new target files for each pass.
 int
 xddfunc_createnewfiles(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
