@@ -204,8 +204,7 @@ static int ib_context_destroy(xni_context_t *ctx_)
   return XNI_OK;
 }
 
-static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved,
-							  xni_target_buffer_t* xtb)
+static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved)
 {
 	struct ib_context* ctx = (struct ib_context*)ctx_;
 	uintptr_t beginp = (uintptr_t)buf;
@@ -241,17 +240,7 @@ static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size
 	ctx->num_registered++;
 	pthread_mutex_unlock(&ctx->target_buffers_mutex);
 
-	// Set the outbound target buffer
-	*xtb= (xni_target_buffer_t)&tb;
 	return XNI_OK;
-}
-
-static int ib_unregister_buffer(xni_context_t ctx_, void* buf)
-{
-	struct ib_context* ctx = (struct ib_context*)ctx_;
-	pthread_mutex_lock(&ctx->target_buffers_mutex);
-	pthread_mutex_unlock(&ctx->target_buffers_mutex);
-    return XNI_OK;
 }
 
 static struct ib_credit_buffer **allocate_credit_buffers(struct ib_context *ctx, int nbuf)
@@ -1062,7 +1051,6 @@ static struct xni_protocol protocol_ib = {
   .context_create = ib_context_create,
   .context_destroy = ib_context_destroy,
   .register_buffer = ib_register_buffer,
-  .unregister_buffer = ib_unregister_buffer,
   .accept_connection = ib_accept_connection,
   .connect = ib_connect,
   .close_connection = ib_close_connection,

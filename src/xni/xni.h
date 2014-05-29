@@ -148,33 +148,19 @@ int xni_context_destroy(xni_context_t *context);
 /*! \brief Register memory with XNI.
  *
  * This function provides XNI drivers to perform optimizations based on
- * the adress of the memory buffers in use.
+ * the address of the memory buffers in use.
  *
- * \param[in,out] context The context to register the buffer with.
+ * \param context The context to register the buffer with.
  * \param[in] buf The memory buffer to register.
- * \param[in] nbytes The total size of the buffer in bytes.
- * \param[in] reserved The offset into the buffer at which the caller will
+ * \param nbytes The total size of the buffer in bytes.
+ * \param reserved The offset into the buffer at which the caller will
  *  insert application data.  Although this seems backwards, it ensures both
  *  the caller and XNI can align data per their own requirements.
- * \param[out] tb The xni target buffer to use for send/recvs.
  *
  * \return #XNI_OK if registration was successful.
  * \return #XNI_ERR if registration failed.
- *
- * \sa xni_unregister()
  */
-int xni_register_buffer(xni_context_t context, void* buf, size_t nbytes, size_t reserved, xni_target_buffer_t* tb);
-/*! \brief Free resources associated with registering memory with XNI.
- *
- * This function frees any resources used to register memory for use with
- * XNI.
- *
- * \return #XNI_OK if the cleanup was successful.
- * \return #XNI_ERR if the cleanup failed.
- *
- * \sa xni_register()
- */
-int xni_unregister_buffer(xni_context_t context, void* buf);
+int xni_register_buffer(xni_context_t context, void* buf, size_t nbytes, size_t reserved);
 
 /*! \brief Wait for a connection from a remote process.
  *

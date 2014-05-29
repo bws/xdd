@@ -150,8 +150,7 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 			 memset(bufp, 0, 2*getpagesize());
 			 /* Mark everything after the first page as reserved */
 			 size_t reserve = getpagesize();
-			 xni_register_buffer(tdp->xni_ctx, bufp, wdp->wd_buf_size, reserve,
-								 &wdp->wd_e2ep->xni_wd_buf);
+			 xni_register_buffer(tdp->xni_ctx, bufp, wdp->wd_buf_size, reserve);
 			 xni_request_target_buffer(tdp->xni_ctx, &wdp->wd_e2ep->xni_wd_buf);
 			 bufp = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
 		 }

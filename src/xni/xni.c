@@ -30,15 +30,9 @@ int xni_accept_connection(xni_context_t ctx, struct xni_endpoint* local, xni_con
   return ctx->protocol->accept_connection(ctx, local, conn);
 }
 
-int xni_register_buffer(xni_context_t ctx, void* buf, size_t nbytes, size_t reserved,
-                        xni_target_buffer_t* tbp)
+int xni_register_buffer(xni_context_t ctx, void* buf, size_t nbytes, size_t reserved)
 {
-    return ctx->protocol->register_buffer(ctx, buf, nbytes, reserved, tbp);
-}
-
-int xni_unregister_buffer(xni_context_t ctx, void* buf)
-{
-    return ctx->protocol->unregister_buffer(ctx, buf);
+    return ctx->protocol->register_buffer(ctx, buf, nbytes, reserved);
 }
 
 //TODO: local_endpoint
