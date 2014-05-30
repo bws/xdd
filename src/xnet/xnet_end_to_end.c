@@ -287,6 +287,12 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 
 } /* end of xint_e2e_xni_recv() */
 
+int
+xint_is_e2e(const target_data_t *tdp)
+{
+	return (1 == (TO_ENDTOEND & tdp->td_target_options));
+}
+
 /*
  * Local variables:
  *  indent-tabs-mode: t
