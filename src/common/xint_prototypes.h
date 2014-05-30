@@ -130,7 +130,7 @@ void	xdd_interactive_show_trace(int32_t tokens, char *cmdline, uint32_t flags, x
 void	xdd_interactive_show_barrier(int32_t tokens, char *cmdline, uint32_t flags, xdd_plan_t *planp);
 
 // io_buffers.c
-unsigned char *xdd_init_io_buffers(worker_data_t *wdp);
+unsigned char *xdd_init_io_buffers(target_data_t *wdp);
 
 // lockstep.c
 int32_t	xdd_lockstep(target_data_t *p);

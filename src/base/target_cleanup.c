@@ -48,5 +48,11 @@ xdd_target_thread_cleanup(target_data_t *tdp) {
             xni_close_connection(&tdp->td_e2ep->xni_td_conn);
         }
 
+	for (size_t i = 0; i < tdp->io_buffers_count; i++) {
+	  free(tdp->io_buffers[i]);
+	}
+	free(tdp->io_buffers);
+	tdp->io_buffers = NULL;
+	tdp->io_buffers_count = 0;
 } // End of xdd_target_thread_cleanup()
 

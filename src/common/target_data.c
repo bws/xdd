@@ -105,6 +105,9 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 		tdp->td_e2ep->e2e_address_table_next_entry=0;
 	}
 
+	tdp->io_buffers = NULL;
+	tdp->io_buffers_count = 0;
+
 	tdp->xni_ibdevice = DEFAULT_IB_DEVICE;  /* can be changed by '-ibdevice' CLO */
 
 	tdp->xni_tcp_congestion = XNI_TCP_DEFAULT_CONGESTION;  /* can be changed by '-congestion' CLO */

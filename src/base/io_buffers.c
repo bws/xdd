@@ -22,8 +22,7 @@
 /*----------------------------------------------------------------------------*/
 /* xdd_init_io_buffers() - set up the I/O buffers
  * This routine will allocate the memory used as the I/O buffer for a Worker
- * Thread. The pointer to the buffer (wd_bufp) and the size of the buffer 
- * (wd_buf_size) are set in the Worker Data Struct.
+ * Thread.
  *
  * This routine will return the pointer to the buffer upon success. If for
  * some reason the buffer cannot be allocated then NULL is returned. 
@@ -34,32 +33,17 @@
  *
  * The size of the buffer depends on whether it is being used for network
  * I/O as in an End-to-end operation. For End-to-End operations, the size
- * of the buffer is 1 page larger than for non-End-to-End operations.
+ * of the buffer is 2 pages larger than for non-End-to-End operations.
  *
  * For normal (non-E2E operations) the buffer pointers are as follows:
- *                   |<----------- wd_buf_size = N Pages ----------------->|
+ *                   |<------------------- N Pages ----------------------->|
  *	                 +-----------------------------------------------------+
  *	                 |  data buffer                                        |
  *	                 |  transfer size (td_xfer_size) rounded up to N pages |
- *	                 |<-wd_bufp                                            |
- *	                 |<-task_datap                                         |
  *	                 +-----------------------------------------------------+
- *
- * For End-to-End operations, the buffer pointers are as follows:
- *  |<------------------- wd_buf_size = N+1 Pages ------------------------>|
- *	+----------------+-----------------------------------------------------+
- *	|<----1 page---->|  transfer size (td_xfer_size) rounded up to N pages |
- *	|<-wd_bufp       |<-task_datap                                         |
- *	|     |   E2E    |      E2E                                            |
- *	|     |<-Header->|   data buffer                                       |
- *	+-----*----------*-----------------------------------------------------+
- *	      ^          ^
- *	      ^          +-e2e_datap     
- *	      +-e2e_hdrp 
  */
 unsigned char *
-xdd_init_io_buffers(worker_data_t *wdp) {
-	target_data_t		*tdp;			// Pointer to Target Data
+xdd_init_io_buffers(target_data_t *tdp) {
 	unsigned char 		*bufp;			// Generic Buffer Pointer
 	void 				*shmat_status;	// Status of shmat()
 	int 				buf_shmid;		// Shared Memory ID
@@ -70,9 +54,9 @@ xdd_init_io_buffers(worker_data_t *wdp) {
 	LPVOID lpMsgBuf; /* Used for the error messages */
 #endif
 
-	tdp = wdp->wd_tdp;
-	wdp->wd_bufp = NULL;
-	wdp->wd_buf_size = 0;
+	//TODO: move logic somewhere else -nlmills
+	//wdp->wd_bufp = NULL;
+	//wdp->wd_buf_size = 0;
 
 	// Calaculate the number of pages needed for a buffer
 	page_size = getpagesize();
@@ -171,8 +155,9 @@ xdd_init_io_buffers(worker_data_t *wdp) {
 	/* Lock all pages in memory */
 	xdd_lock_memory(bufp, buffer_size, "RW BUFFER");
 
-	wdp->wd_bufp = bufp;
-	wdp->wd_buf_size = buffer_size;
+	//TODO: move logic somewhere else -nlmills
+	//wdp->wd_bufp = bufp;
+	//wdp->wd_buf_size = buffer_size;
 
 	return(bufp);
 } /* end of xdd_init_io_buffers() */

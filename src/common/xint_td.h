@@ -166,6 +166,11 @@ struct xint_target_data {
 #endif
 	int32_t				td_op_delay; 		// Number of seconds to delay between operations 
 
+	// I/O buffers allocated and freed by the target thread but shared
+	// with either XNI or the workers
+	unsigned char **io_buffers;
+	size_t io_buffers_count;
+
 	/* XNI Networking components */
 	xni_protocol_t      xni_pcl;
 	xni_control_block_t xni_cb;

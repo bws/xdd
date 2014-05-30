@@ -27,7 +27,6 @@ xdd_worker_thread_init(worker_data_t *wdp) {
     int32_t  		status;
     target_data_t	*tdp;			// Pointer to this worker_thread's target Data Struct
     char			tmpname[XDD_BARRIER_MAX_NAME_LENGTH];	// Used to create unique names for the barriers
-	unsigned char	*bufp;		// Generic Buffer pointer
 
 #if defined(HAVE_CPUSET_T) && defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
     // BWS Print the cpuset
@@ -104,43 +103,13 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 	wdp->wd_tot_wait.totw_is_released = 0;
 	wdp->wd_tot_wait.totw_nextp = 0;
 
-	// Get the I/O buffer
-	// The xdd_init_io_buffers() routine will set wd_bufp and wd_buf_size to appropriate values.
-	// The size of the buffer depends on whether it is being used for network
-	// I/O as in an End-to-end operation. For End-to-End operations, the size
-	// of the buffer is at least 1 page larger than for non-End-to-End
-	// operations.
-	//
-	// For normal (non-E2E operations) the buffer pointers are as follows:
-	//                   |<----------- wd_buf_size = N Pages ----------------->|
-	//	                 +-----------------------------------------------------+
-	//	                 |  data buffer                                        |
-	//	                 |  transfer size (td_xfer_size) rounded up to N pages |
-	//	                 |<-wd_bufp                                            |
-	//	                 |<-task_datap                                         |
-	//	                 +-----------------------------------------------------+
-	// For ease of reading this code, bufp == wdp->wd_bufp.
-	//
-	bufp = xdd_init_io_buffers(wdp);
-	if (bufp == NULL) {
-		fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: ERROR: Failed to allocate I/O buffer.\n",
-			xgp->progname,
-			tdp->td_target_number,
-			wdp->wd_worker_number);
-		return(-1);
+	//TODO: set the buffer pointers the correct way for e2e
+	if (!xint_is_e2e(tdp)) {
+		const int32_t workernum = wdp->wd_worker_number;
+		assert((uint32_t)workernum < tdp->io_buffers_count);
+		wdp->wd_task.task_datap = tdp->io_buffers[workernum];
 	}
-	// For End-to-End operations, the buffer pointers are as follows:
-	//  |<------------------- wd_buf_size = N+1 Pages ------------------------>|
-	//	+----------------+-----------------------------------------------------+
-	//	|<----1 page---->|  transfer size (td_xfer_size) rounded up to N pages |
-	//	|<-wd_bufp       |<-task_datap                                         |
-	//	|     |   E2E    |      E2E                                            |
-	//	|     |<-Header->|   data buffer                                       |
-	//	+-----*----------*-----------------------------------------------------+
-	//	      ^          ^
-	//	      ^          +-e2e_datap 
-	//	      +-e2e_hdrp 
-	//
+#if 0
 	if (tdp->td_target_options & TO_ENDTOEND) {
 
 		/* If this e2e transfer is xni, register the buffer */
@@ -163,6 +132,7 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 		// For normal (non-E2E) operations the data portion is the entire buffer
 		wdp->wd_task.task_datap = bufp;
 	}
+#endif
 
 	// Set proper data pattern in Data buffer
 	xdd_datapattern_buffer_init(wdp);
