@@ -470,9 +470,9 @@ static int tcp_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *t
     return XNI_ERR;
 
   // encode the message header
-  uint64_t tmp64 = tb->target_offset;
+  uint64_t tmp64 = htonll(tb->target_offset);
   memcpy(tb->header, &tmp64, 8);
-  uint32_t tmp32 = tb->data_length;
+  uint32_t tmp32 = htonl(tb->data_length);
   memcpy(((char*)tb->header)+8, &tmp32, 4);
 
   // locate a free socket
@@ -599,8 +599,10 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
 
   uint64_t target_offset;
   memcpy(&target_offset, recvbuf, 8);
+  target_offset = ntohll(target_offset);
   uint32_t data_length;
   memcpy(&data_length, recvbuf+8, 4);
+  data_length = ntohl(data_length);
 
   recvbuf = (char*)tb->data;
   total = data_length;

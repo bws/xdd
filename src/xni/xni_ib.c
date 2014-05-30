@@ -421,9 +421,8 @@ static int send_credits(struct ib_connection *conn, int ncredits)
 	//
 	// encode and send the credit message
 	//
-	//TODO: NBO?
 	memcpy(cb->msgbuf, CREDIT_MESSAGE_TAG, TAG_LENGTH);
-	uint32_t tmp32 = (uint32_t)ncredits;
+	uint32_t tmp32 = htonl((uint32_t)ncredits);
 	memcpy(cb->msgbuf+TAG_LENGTH, &tmp32, 4);
 
 	struct ibv_sge sge;
@@ -478,8 +477,8 @@ static int consume_credit(struct ib_connection *conn)
     if (completed > 0) {
       struct ib_credit_buffer *cb = (struct ib_credit_buffer*)wc.wr_id;
       uint32_t tmp32 = 0;
-      //TODO: NBO?
       memcpy(&tmp32, cb->msgbuf+TAG_LENGTH, 4);
+	  tmp32 = ntohl(tmp32);
       //TODO: check for deadlock if receive can't be posted
       post_receive(conn->queue_pair, cb->memory_region, cb->msgbuf,
                    IB_CREDIT_MESSAGE_SIZE, (uintptr_t)cb);
@@ -610,7 +609,9 @@ static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, 
 		goto error_out;
 
 	memcpy(&remote_qpnum, msgbuf, 4);
+	remote_qpnum = ntohl(remote_qpnum);
 	memcpy(&remote_lid, msgbuf+4, 2);
+	remote_lid = ntohs(remote_lid);
 
 #ifdef XNI_TRACE
 	printf("Remote QPN=%u, LID=%u\n",
@@ -618,13 +619,13 @@ static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, 
 		   (unsigned int)remote_lid);
 #endif  // XNI_TRACE
 
-	uint32_t tmp32 = qp->qp_num;
+	uint32_t tmp32 = htonl(qp->qp_num);
 	memcpy(msgbuf, &tmp32, 4);
 	struct ibv_port_attr portattr;
 	memset(&portattr, 0, sizeof(portattr)); 
 	if (ibv_query_port(ctx->verbs_context, 1, &portattr))
 		goto error_out;
-	uint16_t tmp16 = portattr.lid;
+	uint16_t tmp16 = htons(portattr.lid);
 	memcpy(msgbuf+4, &tmp16, 2);
 
 #ifdef XNI_TRACE
@@ -763,13 +764,13 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 	uint32_t remote_qpnum;
 	uint16_t remote_lid;
 
-	uint32_t tmp32 = qp->qp_num;
+	uint32_t tmp32 = htonl(qp->qp_num);
 	memcpy(msgbuf, &tmp32, 4);
 	struct ibv_port_attr portattr;
 	memset(&portattr, 0, sizeof(portattr)); 
 	if (ibv_query_port(ctx->verbs_context, 1, &portattr))
 		goto error_out;
-	uint16_t tmp16 = portattr.lid;
+	uint16_t tmp16 = htons(portattr.lid);
 	memcpy(msgbuf+4, &tmp16, 2);
 
 #ifdef XNI_TRACE
@@ -787,7 +788,9 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 	client = -1;
 
 	memcpy(&remote_qpnum, msgbuf, 4);
+	remote_qpnum = ntohl(remote_qpnum);
 	memcpy(&remote_lid, msgbuf+4, 2);
+	remote_lid = ntohs(remote_lid);
 
 #ifdef XNI_TRACE
 	printf("Remote QPN=%u, LID=%u\n",
@@ -915,9 +918,8 @@ static int ib_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *ta
 		goto free_out;
 
 	// encode the message
-	//TODO: NBO?
 	memcpy(tb->header, DATA_MESSAGE_TAG, TAG_LENGTH);
-	uint64_t tmp64 = tb->target_offset;
+	uint64_t tmp64 = ntohll(tb->target_offset);
 	memcpy(((char*)tb->header)+TAG_LENGTH, &tmp64, 8);
 
 	// send the message
@@ -1000,6 +1002,7 @@ static int ib_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t 
       tb = (struct ib_target_buffer*)wc.wr_id;
       if (memcmp(tb->header, DATA_MESSAGE_TAG, TAG_LENGTH) == 0) {
         memcpy(&tb->target_offset, ((char*)tb->header)+TAG_LENGTH, 8);
+		tb->target_offset = ntohll(tb->target_offset);
         tb->data_length = wc.byte_len - (int)((char*)tb->data - (char*)tb->header);
       } else if (memcmp(tb->header, EOF_MESSAGE_TAG, TAG_LENGTH) == 0)
         conn->eof = 1;
