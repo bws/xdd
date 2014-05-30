@@ -33,10 +33,8 @@
 #define	E2E_ADDRESS_TABLE_ENTRIES 16
 struct xdd_e2e_header {
 	uint32_t 	e2eh_magic;  				// Magic Number - sanity check
-	int32_t  	e2eh_worker_thread_number; 	// Sender's Worker Thread Number
+	int32_t		pad1;
 	int64_t  	e2eh_sequence_number; 		// Sequence number of this operation
-	nclk_t  	e2eh_send_time; 			// Time this packet was sent in global nano seconds 
-	nclk_t  	e2eh_recv_time; 			// Time this packet was received in global nano seconds 
 	int64_t  	e2eh_byte_offset; 			// Offset relative to the beginning of the file of where this data belongs
 	int64_t  	e2eh_data_length; 			// Length of the user data in bytes for this operation 
 };

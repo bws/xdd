@@ -71,7 +71,6 @@ xdd_e2e_src_send(worker_data_t *wdp) {
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: ENTER: e2ep=%p: e2ehp=%p: e2e_datap=%p\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep, e2ehp, e2ep->e2e_datap);
 
 	// The "task" data structure contains variables relevant to the file-read operation 
-	e2ehp->e2eh_worker_thread_number = wdp->wd_worker_number;
 	e2ehp->e2eh_sequence_number = wdp->wd_task.task_op_number;
 	e2ehp->e2eh_byte_offset = wdp->wd_task.task_byte_offset;
 	e2ehp->e2eh_data_length = wdp->wd_task.task_xfer_size;
@@ -519,7 +518,6 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 		e2ep->e2e_sr_time = (wdp->wd_counters.tc_current_net_end_time - wdp->wd_counters.tc_current_net_start_time);
 	}
 
-	e2ehp->e2eh_recv_time = wdp->wd_counters.tc_current_net_end_time; // This needs to be the net_end_time from this side of the operation
 
 	// If time stamping is on then we need to reset these values
 	if ((tdp->td_ts_table.ts_options & (TS_ON|TS_TRIGGERED))) {
@@ -578,7 +576,6 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	max_xfer = MAXMIT_TCP;
 
 	nclk_now(&wdp->wd_counters.tc_current_net_start_time);
-	e2ehp->e2eh_worker_thread_number = wdp->wd_worker_number;
 	e2ehp->e2eh_sequence_number = (wdp->wd_task.task_op_number + wdp->wd_worker_number); // This is an EOF packet header
 	e2ehp->e2eh_byte_offset = -1; // NA
 	e2ehp->e2eh_data_length = 0;	// NA - no data being sent other than the header

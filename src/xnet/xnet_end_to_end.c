@@ -139,7 +139,6 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 	}
 
 	/* Construct the e2e header */
-	e2ehp->e2eh_worker_thread_number = wdp->wd_worker_number;
 	e2ehp->e2eh_sequence_number = wdp->wd_task.task_op_number;
 	e2ehp->e2eh_byte_offset = wdp->wd_task.task_byte_offset;
 	e2ehp->e2eh_data_length = wdp->wd_task.task_xfer_size;

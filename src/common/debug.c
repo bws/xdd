@@ -435,10 +435,8 @@ void
 xdd_show_e2e_header(xdd_e2e_header_t *e2ehp) {
     fprintf(stderr,"\nxdd_show_e2e_header:********* Start of E2E Header Data at 0x%p **********\n",e2ehp);
     fprintf(stderr,"\t\txdd_show_e2e_header: uint32_t   e2eh_magic=0x%8x\n",e2ehp->e2eh_magic);                 // Magic Number - sanity check
-    fprintf(stderr,"\t\txdd_show_e2e_header: int32_t    e2eh_worker_thread_number=%d\n",e2ehp->e2eh_worker_thread_number);  // Sender's Worker Thread Number
+    fprintf(stderr,"\t\txdd_show_e2e_header: int32_t    pad1\n");
     fprintf(stderr,"\t\txdd_show_e2e_header: int64_t    e2eh_sequence_number=%lld\n",(long long int)e2ehp->e2eh_sequence_number);       // Sequence number of this operation
-    fprintf(stderr,"\t\txdd_show_e2e_header: nclk_t     e2eh_send_time=%lld\n",(unsigned long long int)e2ehp->e2eh_send_time);             // Time this packet was sent in global nano seconds
-    fprintf(stderr,"\t\txdd_show_e2e_header: nclk_t     e2eh_recv_time=%lld\n",(unsigned long long int)e2ehp->e2eh_recv_time);             // Time this packet was received in global nano seconds
     fprintf(stderr,"\t\txdd_show_e2e_header: int64_t    e2eh_byte_offset=%lld\n",(long long int)e2ehp->e2eh_byte_offset);           // Offset relative to the beginning of the file of where this data belongs
     fprintf(stderr,"\t\txdd_show_e2e_header: int64_t    e2eh_data_length=%lld\n",(long long int)e2ehp->e2eh_data_length);           // Length of the user data in bytes for this operation
     fprintf(stderr,"\txdd_show_e2e_header:********* End of E2E Header Data at 0x%p **********\n",e2ehp);

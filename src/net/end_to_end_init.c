@@ -153,21 +153,7 @@ xdd_e2e_src_init(worker_data_t *wdp) {
 	e2ep->e2e_header_size = (int)(sizeof(xdd_e2e_header_t));
 
 	// Init the message header
- 	// For End-to-End operations, the buffer pointers are as follows:
-    //	+----------------+-----------------------------------------------------+
-    //	|<----1 page---->|  transfer size (td_xfer_size) rounded up to N pages |
-    //	|<-task_bufp     |<-task_datap                                         |
-    //	|     |          |                                                     |
-    //	|     |<-Header->|  E2E data buffer                                    |
-    //	+-----*----------*-----------------------------------------------------+
-    //	      ^          ^
-    //	      ^          +-e2e_datap 
-    //	      +-e2e_hdrp 
-	//
-	e2ep->e2e_hdrp->e2eh_worker_thread_number = 0;
 	e2ep->e2e_hdrp->e2eh_sequence_number = 0;
-	e2ep->e2e_hdrp->e2eh_send_time = 0;
-	e2ep->e2e_hdrp->e2eh_recv_time = 0;
 	e2ep->e2e_hdrp->e2eh_byte_offset = 0;
 	e2ep->e2e_hdrp->e2eh_data_length = 0;
 
