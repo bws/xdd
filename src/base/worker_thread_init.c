@@ -103,39 +103,41 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 	wdp->wd_tot_wait.totw_is_released = 0;
 	wdp->wd_tot_wait.totw_nextp = 0;
 
-	//TODO: set the buffer pointers the correct way for e2e
-	if (!xint_is_e2e(tdp)) {
+	// Set up I/O buffer pointers
+	if (xint_is_e2e(tdp)) {
+		if (tdp->td_target_options & TO_E2E_DESTINATION) {
+			// Buffer for destination is set after a receive
+			wdp->wd_e2ep->xni_wd_buf = NULL;
+			wdp->wd_task.task_datap = NULL;
+			wdp->wd_e2ep->e2e_datap = NULL;
+			wdp->wd_e2ep->e2e_hdrp = NULL;
+		} else {
+			//TODO: I'd really like to move all of these buffer
+			// request calls to something like ttd_before_io_op, but I
+			// can't right now because later on in this function
+			// xdd_datapattern_buffer_init() relies on the buffer
+			// being present.  -nlmills
+
+			// Request an I/O buffer from XNI			
+			xni_request_target_buffer(tdp->td_e2ep->xni_td_conn, &wdp->wd_e2ep->xni_wd_buf);
+			unsigned char *bufp = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
+			memset(bufp, 0, 2*getpagesize());
+			// Use the first page for the E2E header
+			wdp->wd_task.task_datap = bufp + getpagesize();
+			wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
+			wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (getpagesize() - sizeof(xdd_e2e_header_t)));
+		}
+	} else {
+		// For non-E2E operations the data portion is the entire buffer
 		const int32_t workernum = wdp->wd_worker_number;
 		assert((uint32_t)workernum < tdp->io_buffers_count);
 		wdp->wd_task.task_datap = tdp->io_buffers[workernum];
 	}
-#if 0
-	if (tdp->td_target_options & TO_ENDTOEND) {
 
-		/* If this e2e transfer is xni, register the buffer */
-		 xdd_plan_t *planp = wdp->wd_tdp->td_planp;
-		 if (PLAN_ENABLE_XNI & planp->plan_options) {
-			 /* Clear the two sparsely used pages for header data */
-			 memset(bufp, 0, 2*getpagesize());
-			 /* Mark everything after the first page as reserved */
-			 size_t reserve = getpagesize();
-			 xni_register_buffer(tdp->xni_ctx, bufp, wdp->wd_buf_size, reserve);
-			 xni_request_target_buffer(tdp->xni_ctx, &wdp->wd_e2ep->xni_wd_buf);
-			 bufp = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
-		 }
-
-		 /* Use the first page for the E2E header */
-		 wdp->wd_task.task_datap = bufp + getpagesize();
-		 wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
-		 wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (getpagesize() - sizeof(xdd_e2e_header_t)));
-	} else {
-		// For normal (non-E2E) operations the data portion is the entire buffer
-		wdp->wd_task.task_datap = bufp;
+	// Set the buffer data pattern for non-E2E operations or E2E sources
+	if (!xint_is_e2e(tdp) || !(tdp->td_target_options & TO_E2E_DESTINATION)) {
+		xdd_datapattern_buffer_init(wdp);
 	}
-#endif
-
-	// Set proper data pattern in Data buffer
-	xdd_datapattern_buffer_init(wdp);
 
 	// Init the WorkerThread-TargetPass WAIT Barrier for this WorkerThread
 	sprintf(tmpname,"T%04d:W%04d>worker_thread_targetpass_wait_barrier",tdp->td_target_number,wdp->wd_worker_number);

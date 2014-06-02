@@ -38,17 +38,6 @@ struct ib_context {
 	struct ib_control_block control_block;
 	struct ibv_context *verbs_context;
 	struct ibv_pd *domain;
-
-	// target buffer registration data
-	struct ib_target_buffer *target_buffers;
-	size_t num_registered;
-
-	// locks
-	pthread_mutex_t target_buffers_mutex;
-	pthread_cond_t target_buffers_cond;
-	pthread_mutex_t busy_flag_mutex;
-	pthread_cond_t busy_flag_cond;
-
 };
 
 struct ib_connection {
@@ -74,6 +63,16 @@ struct ib_connection {
 
 	uint32_t remote_qpnum;
 	uint16_t remote_lid;
+
+	// target buffer registration data
+	struct ib_target_buffer *target_buffers;
+	size_t num_registered;
+
+	// locks
+	pthread_mutex_t target_buffers_mutex;
+	pthread_cond_t target_buffers_cond;
+	pthread_mutex_t busy_flag_mutex;
+	pthread_cond_t busy_flag_cond;
 };
 
 #define IB_DATA_MESSAGE_HEADER_SIZE 20  // = tag(4) +
@@ -86,7 +85,7 @@ enum send_state {
 };
 struct ib_target_buffer {
 	// inherited from xni_target_buffer
-	struct ib_context *context;
+	struct ib_connection *connection;
 	void *data;
 	int64_t sequence_number;
 	size_t target_offset;
@@ -98,7 +97,6 @@ struct ib_target_buffer {
 	enum send_state send_state;
 	struct ibv_mr *memory_region;
 	void *header;
-	struct ib_connection *connection;
 };
 
 #define IB_CREDIT_MESSAGE_SIZE 8  // = tag(4) + credits(4)
@@ -183,12 +181,6 @@ static int ib_context_create(xni_protocol_t proto_, xni_control_block_t cb_, xni
   tmp->control_block = *cb;
   tmp->verbs_context = verbsctx;
   tmp->domain = pd;
-  tmp->target_buffers = calloc(cb->num_buffers, sizeof(*tmp->target_buffers));
-  tmp->num_registered = 0;
-  pthread_mutex_init(&tmp->target_buffers_mutex, NULL);
-  pthread_cond_init(&tmp->target_buffers_cond, NULL);
-  pthread_mutex_init(&tmp->busy_flag_mutex, NULL);
-  pthread_cond_init(&tmp->busy_flag_cond, NULL);
 
   *ctx = tmp;
   return XNI_OK;
@@ -207,41 +199,37 @@ static int ib_context_destroy(xni_context_t *ctx_)
   return XNI_OK;
 }
 
-static int ib_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved)
+static int register_buffer(struct ib_connection *conn, void* buf, size_t nbytes, size_t reserved)
 {
-	struct ib_context* ctx = (struct ib_context*)ctx_;
 	uintptr_t beginp = (uintptr_t)buf;
 	uintptr_t datap = (uintptr_t)buf + (uintptr_t)(reserved);
 	size_t avail = (size_t)(datap - beginp);
-
-	// Make sure space exists in the registered buffer array
-	if (ctx->control_block.num_buffers <= ctx->num_registered)
-		return XNI_ERR;
 
 	// Make sure enough padding exists
 	if (avail < IB_DATA_MESSAGE_HEADER_SIZE)
 		return XNI_ERR;
 
 	// Register the memory with verbs
-	struct ibv_mr *mr = ibv_reg_mr(ctx->domain, buf, nbytes,
+	struct ibv_mr *mr = ibv_reg_mr(conn->context->domain, buf, nbytes,
 								   IBV_ACCESS_LOCAL_WRITE);
 	if (NULL == mr)
 		return XNI_ERR;
 
 	// Add the buffer into the array of registered buffers
-	pthread_mutex_lock(&ctx->target_buffers_mutex);
-	struct ib_target_buffer* tb = ctx->target_buffers + ctx->num_registered;
-	tb->context = ctx;
+	pthread_mutex_lock(&conn->target_buffers_mutex);
+	struct ib_target_buffer* tb = conn->target_buffers + conn->num_registered;
+	tb->connection = conn;
 	tb->data = (void*)datap;
+	tb->sequence_number = 0;
+	tb->target_offset = 0;
 	tb->data_length = -1;
 	tb->buffer_size = nbytes - reserved;
 	tb->busy = 0;
-	tb->send_state = 0;
+	tb->send_state = QUEUED;
 	tb->memory_region = mr;
 	tb->header = (void*)(datap - IB_DATA_MESSAGE_HEADER_SIZE);
-	tb->connection = NULL;
-	ctx->num_registered++;
-	pthread_mutex_unlock(&ctx->target_buffers_mutex);
+	conn->num_registered++;
+	pthread_mutex_unlock(&conn->target_buffers_mutex);
 
 	return XNI_OK;
 }
@@ -402,7 +390,7 @@ static int send_credits(struct ib_connection *conn, int ncredits)
 
 		// otherwise mark any that have become free
 		if (cb == NULL) {
-			size_t num_bufs = conn->context->num_registered;
+			size_t num_bufs = conn->num_registered;
 			struct ibv_wc wc[num_bufs];
 			int completed = ibv_poll_cq(conn->send_cq, num_bufs, wc);
 			if (completed < 0) {
@@ -499,7 +487,7 @@ static int send_eof(struct ib_connection *conn)
 {
   //TODO: use a better buffer
   //XXX: for now, just hijack the first target bufffer
-  struct ib_target_buffer *tb = conn->context->target_buffers;
+  struct ib_target_buffer *tb = conn->target_buffers;
   // encode the message
   memcpy(tb->header, EOF_MESSAGE_TAG, TAG_LENGTH);
 
@@ -539,7 +527,7 @@ static int send_eof(struct ib_connection *conn)
   return 0;
 }
 
-static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, xni_connection_t* conn_)
+static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, xni_bufset_t *bufset, xni_connection_t* conn_)
 {
 	struct ib_context *ctx = (struct ib_context*)ctx_;
 	struct ib_connection **conn = (struct ib_connection**)conn_;
@@ -550,23 +538,23 @@ static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, 
 	struct ibv_qp *qp = NULL;
 	int server=-1, client=-1;
 
-	// Ensure a registered buffer exists
-	if (ctx->num_registered < 1)
+	// Ensure at least one buffer exists
+	if (bufset->bufcount < 1)
 		return XNI_ERR;
 
 	tmpconn = calloc(1, sizeof(*tmpconn));
 	tmpconn->context = ctx;
 	
-	credit_buffers = allocate_credit_buffers(ctx, ctx->num_registered);
+	credit_buffers = allocate_credit_buffers(ctx, bufset->bufcount);
 	if (credit_buffers == NULL)
 		goto error_out;
 
-	if ((sendcq = ibv_create_cq(ctx->verbs_context, ctx->num_registered, NULL, NULL, 0)) == NULL)
+	if ((sendcq = ibv_create_cq(ctx->verbs_context, bufset->bufcount, NULL, NULL, 0)) == NULL)
 		goto error_out;
-	if ((recvcq = ibv_create_cq(ctx->verbs_context, ctx->num_registered, NULL, NULL, 0)) == NULL)
+	if ((recvcq = ibv_create_cq(ctx->verbs_context, bufset->bufcount, NULL, NULL, 0)) == NULL)
 		goto error_out;
 	
-	if ((qp = create_queue_pair(ctx, sendcq, recvcq, ctx->num_registered)) == NULL)
+	if ((qp = create_queue_pair(ctx, sendcq, recvcq, bufset->bufcount)) == NULL)
 		goto error_out;
   
 	// start listening for a client
@@ -646,24 +634,41 @@ static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, 
 	if (move_qp_to_init(qp))
 		goto error_out;
 
-	for (size_t i =0; i < ctx->num_registered; i++) {
-		struct ib_target_buffer* tbp = ctx->target_buffers + i;
-		tbp->connection = tmpconn;
-		size_t bufsiz = tbp->buffer_size;
+	// Prepare for target buffer registration
+	tmpconn->target_buffers = calloc(bufset->bufcount, sizeof(*tmpconn->target_buffers));
+	tmpconn->num_registered = 0;
+	pthread_mutex_init(&tmpconn->target_buffers_mutex, NULL);
+	pthread_cond_init(&tmpconn->target_buffers_cond, NULL);
+	pthread_mutex_init(&tmpconn->busy_flag_mutex, NULL);
+	pthread_cond_init(&tmpconn->busy_flag_cond, NULL);
+
+	// Register the target buffers
+	for (size_t i =0; i < bufset->bufcount; i++) {
+		int rc = register_buffer(tmpconn, bufset->bufs[i],
+								 bufset->bufsize, bufset->reserved);
+		if (rc != XNI_OK) {
+			goto error_out;
+		}
+	}
+
+	// Post the receives
+	for (size_t i = 0; i < tmpconn->num_registered; i++) {
+		struct ib_target_buffer *tbp = tmpconn->target_buffers + i;
+		const size_t bufsiz = tbp->buffer_size;
 		if (post_receive(qp, tbp->memory_region, tbp->header,
 						 (int)((char*)(tbp->data) - (char*)(tbp->header) + bufsiz),
 						 (uintptr_t)tbp))
 			goto error_out;
 	}
-	if (move_qp_to_rtr(qp, remote_qpnum, remote_lid, ctx->num_registered) ||
-		move_qp_to_rts(qp, ctx->num_registered))
+
+	if (move_qp_to_rtr(qp, remote_qpnum, remote_lid, tmpconn->num_registered) ||
+		move_qp_to_rts(qp, tmpconn->num_registered))
 		goto error_out;
 
 #ifdef XNI_TRACE
 	puts("Connected.");
 #endif  // XNI_TRACE
 
-	tmpconn->context = ctx;
 	tmpconn->credit_buffers = credit_buffers;
 	tmpconn->eof = 0;
 	pthread_mutex_init(&tmpconn->credit_mutex, NULL);
@@ -675,7 +680,7 @@ static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, 
 	tmpconn->remote_lid = remote_lid;
 
 	// send the initial credits
-	if (send_credits(tmpconn, ctx->num_registered))
+	if (send_credits(tmpconn, tmpconn->num_registered))
 		goto error_out;
 
 	*conn = tmpconn;
@@ -701,7 +706,7 @@ static int ib_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, 
 	return XNI_ERR;
 }
 
-static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_connection_t* conn_)
+static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_bufset_t *bufset, xni_connection_t* conn_)
 {
 	struct ib_context *ctx = (struct ib_context*)ctx_;
 	struct ib_connection **conn = (struct ib_connection**)conn_;
@@ -712,8 +717,8 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 	struct ibv_qp *qp = NULL;
 	int server=-1, client=-1;
 
-	// Ensure a registered buffer exists
-	if (ctx->num_registered < 1)
+	// Ensure at least one buffer exists
+	if (bufset->bufcount < 1)
 		return XNI_ERR;
 
 #ifdef XNI_TRACE
@@ -727,19 +732,19 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 #ifdef XNI_TRACE
 	puts("3");
 #endif  // XNI_TRACE
-	credit_buffers = allocate_credit_buffers(ctx, ctx->num_registered);
+	credit_buffers = allocate_credit_buffers(ctx, bufset->bufcount);
 	if (credit_buffers == NULL)
 		goto error_out;
 #ifdef XNI_TRACE
 	puts("4");
 #endif  // XNI_TRACE
 
-	if ((sendcq = ibv_create_cq(ctx->verbs_context, ctx->num_registered, NULL, NULL, 0)) == NULL)
+	if ((sendcq = ibv_create_cq(ctx->verbs_context, bufset->bufcount, NULL, NULL, 0)) == NULL)
 		goto error_out;
-	if ((recvcq = ibv_create_cq(ctx->verbs_context, ctx->num_registered, NULL, NULL, 0)) == NULL)
+	if ((recvcq = ibv_create_cq(ctx->verbs_context, bufset->bufcount, NULL, NULL, 0)) == NULL)
 		goto error_out;
 
-	if ((qp = create_queue_pair(ctx, sendcq, recvcq, ctx->num_registered)) == NULL)
+	if ((qp = create_queue_pair(ctx, sendcq, recvcq, bufset->bufcount)) == NULL)
 		goto error_out;
 #ifdef XNI_TRACE
 	puts("Create qps");
@@ -810,8 +815,8 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 						 IB_CREDIT_MESSAGE_SIZE, (uintptr_t)*cbptr))
 			goto error_out;
   
-	if (move_qp_to_rtr(qp, remote_qpnum, remote_lid, ctx->num_registered) ||
-		move_qp_to_rts(qp, ctx->num_registered))
+	if (move_qp_to_rtr(qp, remote_qpnum, remote_lid, bufset->bufcount) ||
+		move_qp_to_rts(qp, bufset->bufcount))
 		goto error_out;
 
 	tmpconn->context = ctx;
@@ -826,9 +831,22 @@ static int ib_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conne
 	tmpconn->remote_qpnum = remote_qpnum;
 	tmpconn->remote_lid = remote_lid;
 
-	// Add the connection to the registered buffers
-	for (size_t i = 0; i < ctx->num_registered; i++)
-		ctx->target_buffers[i].connection = tmpconn;
+	// Prepare for target buffer registration
+	tmpconn->target_buffers = calloc(bufset->bufcount, sizeof(*tmpconn->target_buffers));
+	tmpconn->num_registered = 0;
+	pthread_mutex_init(&tmpconn->target_buffers_mutex, NULL);
+	pthread_cond_init(&tmpconn->target_buffers_cond, NULL);
+	pthread_mutex_init(&tmpconn->busy_flag_mutex, NULL);
+	pthread_cond_init(&tmpconn->busy_flag_cond, NULL);
+
+	// Register the target buffers
+	for (size_t i =0; i < bufset->bufcount; i++) {
+		int rc = register_buffer(tmpconn, bufset->bufs[i],
+								 bufset->bufsize, bufset->reserved);
+		if (rc != XNI_OK) {
+			goto error_out;
+		}
+	}
 	
 #ifdef XNI_TRACE
 	puts("Connected.");
@@ -880,16 +898,16 @@ static int ib_close_connection(xni_connection_t *conn_)
   return XNI_OK;
 }
 
-static int ib_request_target_buffer(xni_context_t ctx_, xni_target_buffer_t *targetbuf_)
+static int ib_request_target_buffer(xni_connection_t conn_, xni_target_buffer_t *targetbuf_)
 {
-	struct ib_context *ctx = (struct ib_context*)ctx_;
+	struct ib_connection *conn = (struct ib_connection*)conn_;
 	struct ib_target_buffer **targetbuf = (struct ib_target_buffer**)targetbuf_;
 
 	struct ib_target_buffer *tb = NULL;
-	pthread_mutex_lock(&ctx->busy_flag_mutex);
+	pthread_mutex_lock(&conn->busy_flag_mutex);
 	while (tb == NULL) {
-		for (size_t i = 0; i < ctx->num_registered; i++) {
-			struct ib_target_buffer* ptr = ctx->target_buffers + i;
+		for (size_t i = 0; i < conn->num_registered; i++) {
+			struct ib_target_buffer* ptr = conn->target_buffers + i;
 
 			if (!ptr->busy) {
 				tb = ptr;
@@ -898,10 +916,10 @@ static int ib_request_target_buffer(xni_context_t ctx_, xni_target_buffer_t *tar
 			}
 		}
 		if (tb == NULL)
-			pthread_cond_wait(&ctx->busy_flag_cond,
-							  &ctx->busy_flag_mutex);
+			pthread_cond_wait(&conn->busy_flag_cond,
+							  &conn->busy_flag_mutex);
 	}
-	pthread_mutex_unlock(&ctx->busy_flag_mutex);
+	pthread_mutex_unlock(&conn->busy_flag_mutex);
     
 	*targetbuf = tb;
 	return XNI_OK;
@@ -951,7 +969,7 @@ static int ib_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *ta
 	// wait for send completion
 	pthread_mutex_lock(&conn->send_state_mutex);
 	while (tb->send_state == QUEUED) {
-		size_t num_bufs = conn->context->num_registered;
+		size_t num_bufs = conn->num_registered;
 		struct ibv_wc wc[num_bufs];
 		int completed = ibv_poll_cq(conn->send_cq, num_bufs, wc);
 		if (completed < 0) {
@@ -975,10 +993,10 @@ static int ib_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *ta
     
   free_out:
 	// mark the buffer as free
-	pthread_mutex_lock(&conn->context->busy_flag_mutex);
+	pthread_mutex_lock(&conn->busy_flag_mutex);
 	tb->busy = 0;
-	pthread_cond_signal(&conn->context->busy_flag_cond);
-	pthread_mutex_unlock(&conn->context->busy_flag_mutex);
+	pthread_cond_signal(&conn->busy_flag_cond);
+	pthread_mutex_unlock(&conn->busy_flag_mutex);
 	
 	return return_code;
 }
@@ -1045,10 +1063,10 @@ static int ib_release_target_buffer(xni_target_buffer_t *targetbuf_)
     if (send_credits(tb->connection, 1))
       return XNI_ERR;
   } else {
-    pthread_mutex_lock(&tb->connection->context->busy_flag_mutex);
+    pthread_mutex_lock(&tb->connection->busy_flag_mutex);
     tb->busy = 0;
-    pthread_cond_signal(&tb->connection->context->busy_flag_cond);
-    pthread_mutex_unlock(&tb->connection->context->busy_flag_mutex);
+    pthread_cond_signal(&tb->connection->busy_flag_cond);
+    pthread_mutex_unlock(&tb->connection->busy_flag_mutex);
   }
 
   *targetbuf = NULL;
@@ -1060,7 +1078,6 @@ static struct xni_protocol protocol_ib = {
   .name = PROTOCOL_NAME,
   .context_create = ib_context_create,
   .context_destroy = ib_context_destroy,
-  .register_buffer = ib_register_buffer,
   .accept_connection = ib_accept_connection,
   .connect = ib_connect,
   .close_connection = ib_close_connection,

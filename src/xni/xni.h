@@ -88,6 +88,19 @@ struct xni_target_buffer;
  */
 typedef struct xni_target_buffer *xni_target_buffer_t;
 
+struct xni_bufset {
+	/*! An array of buffer base addresses. */
+	unsigned char **bufs;
+	/*! The number of elements in \c bufs */
+	size_t bufcount;
+	/*! The size of each buffer in bytes. */  
+	size_t bufsize;
+	/*! The offset into the buffer at which the caller will insert
+      application data. */
+	size_t reserved;
+};
+/*! \brief Set of data buffers. */
+typedef struct xni_bufset xni_bufset_t;
 
 /*! \brief Perform library-specific initialization.
  *
@@ -145,34 +158,15 @@ int xni_context_create(xni_protocol_t protocol, xni_control_block_t control_bloc
  */
 int xni_context_destroy(xni_context_t *context);
 
-/*! \brief Register memory with XNI.
- *
- * This function provides XNI drivers to perform optimizations based on
- * the address of the memory buffers in use.
- *
- * \param context The context to register the buffer with.
- * \param[in] buf The memory buffer to register.
- * \param nbytes The total size of the buffer in bytes.
- * \param reserved The offset into the buffer at which the caller will
- *  insert application data.  Although this seems backwards, it ensures both
- *  the caller and XNI can align data per their own requirements.
- *
- * \return #XNI_OK if registration was successful.
- * \return #XNI_ERR if registration failed.
- */
-int xni_register_buffer(xni_context_t context, void* buf, size_t nbytes, size_t reserved);
-
 /*! \brief Wait for a connection from a remote process.
  *
  * This function creates a <em>destination-side connection</em> by
  * listening on the address specified by \e local for a connection
  * from a remote process. 
  *
- * It is forbidden for the \e num_buffers and \e buffer_size arguments
- * to differ from those specified at the remote end to xni_connect().
- *
  * \param context The network context under which to create the connection.
  * \param[in] local The local address to listen on.
+ * \param[in] bufset The buffers to be used for communication with the remote.
  * \param[out] connection The newly created <em>destination-side connection</em>.
  *
  * \return #XNI_OK if the connection was successfully created.
@@ -181,7 +175,7 @@ int xni_register_buffer(xni_context_t context, void* buf, size_t nbytes, size_t 
  * \sa xni_close_connection()
  * \sa xni_receive_target_buffer()
  */
-int xni_accept_connection(xni_context_t context, struct xni_endpoint *local, xni_connection_t *connection);
+int xni_accept_connection(xni_context_t context, struct xni_endpoint *local, xni_bufset_t *bufset, xni_connection_t *connection);
 /*! \brief Initiate a connection to a remote process.
  *
  * This function creates a <em>source-side connection</em> by
@@ -191,12 +185,9 @@ int xni_accept_connection(xni_context_t context, struct xni_endpoint *local, xni
  * context was created. These buffers will be aligned on 512-byte
  * boundaries.
  *
- * It is forbidden for the \e num_buffers and \e buffer_size arguments
- * to differ from those specified at the remote end to
- * xni_accept_connection().
- *
  * \param context The network context under which to create the connection.
  * \param[in] remote The remote address to connect to.
+ * \param[in] bufset The buffers to be used for communication with the remote.
  * \param[out] connection The newly created <em>source-side connection</em>.
  *
  * \return #XNI_OK if the connection was successfully created.
@@ -206,7 +197,7 @@ int xni_accept_connection(xni_context_t context, struct xni_endpoint *local, xni
  * \sa xni_request_target_buffer()
  */
 //TODO: local_endpoint
-int xni_connect(xni_context_t context, struct xni_endpoint *remote, xni_connection_t *connection);
+int xni_connect(xni_context_t context, struct xni_endpoint *remote, xni_bufset_t *bufset, xni_connection_t *connection);
 /*! \brief Close a connection and free its resources.
  *
  * This function closes a connection and frees all allocated target
@@ -237,8 +228,8 @@ int xni_close_connection(xni_connection_t *connection);
  * temporarily owned by the caller until the buffer is passed to
  * xni_send_target_buffer() or xni_release_target_buffer().
  *
- * \param contest The <em>source-side</em> context from which to request
- *   the buffer.
+ * \param connection The <em>source-side</em> connection from which to
+ *                   request the buffer.
  * \param[out] buffer The requested target buffer.
  *
  * \return #XNI_OK if a target buffer was reserved.
@@ -246,7 +237,7 @@ int xni_close_connection(xni_connection_t *connection);
  *
  * \sa xni_send_target_buffer();
  */
-int xni_request_target_buffer(xni_context_t ctx, xni_target_buffer_t *buffer);
+int xni_request_target_buffer(xni_connection_t conn, xni_target_buffer_t *buffer);
 /*! \brief Send a target buffer to the remote process.
  *
  * This function transfers the target buffer \e buffer to the remote

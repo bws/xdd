@@ -169,7 +169,10 @@ struct xint_target_data {
 	// I/O buffers allocated and freed by the target thread but shared
 	// with either XNI or the workers
 	unsigned char **io_buffers;
+	// number of I/O buffers
 	size_t io_buffers_count;
+	// size of each I/O buffer in bytes
+	size_t io_buffer_size;
 
 	/* XNI Networking components */
 	xni_protocol_t      xni_pcl;

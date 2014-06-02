@@ -212,7 +212,7 @@ xdd_e2e_after_io_op(worker_data_t *wdp) {
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: ENTER\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 if (xgp->global_options & GO_DEBUG_E2E) xdd_show_task(&wdp->wd_task);
 
-	if ( (wdp->wd_task.task_io_status > 0) && (tdp->td_target_options & TO_ENDTOEND) ) {
+	if (wdp->wd_task.task_io_status > 0) {
 		if (tdp->td_target_options & TO_E2E_SOURCE) {
 			// For Serial Ordering, wait for the Previous I/O to complete before the associated Worker Thread releases this Worker Thread. 
 			// It is important to note that for Srial Ordering, when we get released by the Previous Worker Thread
@@ -225,18 +225,20 @@ if (xgp->global_options & GO_DEBUG_E2E) xdd_show_task(&wdp->wd_task);
 			wdp->wd_e2ep->e2e_hdrp->e2eh_magic = XDD_E2E_DATA_READY;
 			wdp->wd_current_state |= WORKER_CURRENT_STATE_SRC_SEND;
 
-			if (PLAN_ENABLE_XNI & tdp->td_planp->plan_options) {
-				xint_e2e_xni_send(wdp);
-			}
-			else {
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Calling xdd_e2e_src_send...\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
-                xdd_e2e_src_send(wdp);
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: Returned from xdd_e2e_src_send...\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
-			}
-			wdp->wd_current_state &= ~WORKER_CURRENT_STATE_SRC_SEND;
+			xint_e2e_xni_send(wdp);
 
+			wdp->wd_current_state &= ~WORKER_CURRENT_STATE_SRC_SEND;
 		} // End of me being the SOURCE in an End-to-End test 
-	} // End of processing a End-to-End
+	}
+
+	if (tdp->td_target_options & TO_E2E_DESTINATION) {
+		// Release the current target buffer to XNI
+		xni_release_target_buffer(&wdp->wd_e2ep->xni_wd_buf);
+		wdp->wd_e2ep->e2e_hdrp = NULL;
+		wdp->wd_task.task_datap = NULL;
+		wdp->wd_e2ep->e2e_datap = NULL;
+	}
+
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: EXIT...\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
 } // End of xdd_e2e_after_io_op(wdp) 
 
@@ -340,8 +342,10 @@ xdd_worker_thread_ttd_after_io_op(worker_data_t *wdp) {
 	// Read-After_Write Processing
 	xdd_raw_after_io_op(wdp);
 
-	// End-to-End Processing
-	xdd_e2e_after_io_op(wdp);
+	if (xint_is_e2e(tdp)) {
+		// End-to-End Processing
+		xdd_e2e_after_io_op(wdp);
+	}
 
 	// Extended Statistics 
 	xdd_extended_stats(wdp);

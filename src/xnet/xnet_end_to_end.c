@@ -63,7 +63,16 @@ int32_t xint_e2e_src_connect(target_data_t *tdp) {
 	/* Create an XNI endpoint from the e2e spec */
 	xni_endpoint_t xep = {.host = ip_string,
 						  .port = tdp->td_e2ep->e2e_address_table[e2e_idx].base_port};
-	rc = xni_connect(tdp->xni_ctx, &xep, &tdp->td_e2ep->xni_td_conn);
+
+	// initialize the set of I/O buffers
+	xni_bufset_t bufset;
+	memset(&bufset, 0, sizeof(bufset));
+	bufset.bufs = tdp->io_buffers;
+	bufset.bufcount = tdp->io_buffers_count;
+	bufset.bufsize = tdp->io_buffer_size;
+	bufset.reserved = getpagesize();
+
+	rc = xni_connect(tdp->xni_ctx, &xep, &bufset, &tdp->td_e2ep->xni_td_conn);
 	return rc;
 }
 
@@ -92,7 +101,16 @@ int32_t xint_e2e_dest_connect(target_data_t *tdp) {
 	/* Create an XNI endpoint from the e2e spec */
 	xni_endpoint_t xep = {.host = ip_string,
 						  .port = tdp->td_e2ep->e2e_address_table[e2e_idx].base_port};
-	rc = xni_accept_connection(tdp->xni_ctx, &xep, &tdp->td_e2ep->xni_td_conn);
+
+	// initialize the set of I/O buffers
+	xni_bufset_t bufset;
+	memset(&bufset, 0, sizeof(bufset));
+	bufset.bufs = tdp->io_buffers;
+	bufset.bufcount = tdp->io_buffers_count;
+	bufset.bufsize = tdp->io_buffer_size;
+	bufset.reserved = getpagesize();
+
+	rc = xni_accept_connection(tdp->xni_ctx, &xep, &bufset, &tdp->td_e2ep->xni_td_conn);
 	return rc;
 }
 
@@ -152,14 +170,16 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 	/* Don't send magic eof across wire */
 	if (XDD_E2E_EOF != e2ehp->e2eh_magic) {
 		/* Set XNI parameters and send */
-		xni_target_buffer_set_data_length(e2ep->e2e_xfer_size,
-										  e2ep->xni_wd_buf);
+		xni_target_buffer_set_sequence_number(e2ehp->e2eh_sequence_number,
+											  e2ep->xni_wd_buf);
 		xni_target_buffer_set_target_offset(e2ehp->e2eh_byte_offset,
 											e2ep->xni_wd_buf);
+		xni_target_buffer_set_data_length(e2ep->e2e_xfer_size,
+										  e2ep->xni_wd_buf);
 	    e2ep->e2e_send_status = xni_send_target_buffer(tdp->td_e2ep->xni_td_conn,
 													   &e2ep->xni_wd_buf);
 		/* Request a fresh buffer from XNI */
-		xni_request_target_buffer(tdp->xni_ctx, &wdp->wd_e2ep->xni_wd_buf);
+		xni_request_target_buffer(tdp->td_e2ep->xni_td_conn, &wdp->wd_e2ep->xni_wd_buf);
 			 
 		/* The first page is XNI, the second page is E2E header */
 		uintptr_t bufp =
@@ -215,9 +235,6 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 	nclk_t 				e2e_wait_1st_msg_start_time; // This is the time stamp of when the first message arrived
 	xdd_ts_tte_t		*ttep;		// Pointer to a time stamp table entry
 	
-	/* Release the current target buffer to XNI */
-	xni_release_target_buffer(&wdp->wd_e2ep->xni_wd_buf);
-
 	/* Collect the begin time */
 	nclk_now(&e2e_wait_1st_msg_start_time);
 	wdp->wd_counters.tc_current_net_start_time = e2e_wait_1st_msg_start_time;
@@ -289,7 +306,7 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 int
 xint_is_e2e(const target_data_t *tdp)
 {
-	return (1 == (TO_ENDTOEND & tdp->td_target_options));
+	return (TO_ENDTOEND == (TO_ENDTOEND & tdp->td_target_options));
 }
 
 /*

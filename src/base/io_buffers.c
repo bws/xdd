@@ -54,10 +54,6 @@ xdd_init_io_buffers(target_data_t *tdp) {
 	LPVOID lpMsgBuf; /* Used for the error messages */
 #endif
 
-	//TODO: move logic somewhere else -nlmills
-	//wdp->wd_bufp = NULL;
-	//wdp->wd_buf_size = 0;
-
 	// Calaculate the number of pages needed for a buffer
 	page_size = getpagesize();
 	pages = tdp->td_xfer_size / page_size;
@@ -155,9 +151,9 @@ xdd_init_io_buffers(target_data_t *tdp) {
 	/* Lock all pages in memory */
 	xdd_lock_memory(bufp, buffer_size, "RW BUFFER");
 
-	//TODO: move logic somewhere else -nlmills
-	//wdp->wd_bufp = bufp;
-	//wdp->wd_buf_size = buffer_size;
+	// the size of each buffer must be the same
+	assert(0 == tdp->io_buffer_size || (size_t)buffer_size == tdp->io_buffer_size);
+	tdp->io_buffer_size = buffer_size;
 
 	return(bufp);
 } /* end of xdd_init_io_buffers() */

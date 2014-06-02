@@ -75,9 +75,6 @@ struct xint_td_e2e {
 	time_t				e2e_src_file_mtime;     // stat -c %Y *e2e_src_file_path, i.e., last modification time
 	in_addr_t			e2e_dest_addr;  		// Destination Address number of the E2E socket 
 	in_port_t			e2e_dest_port;  		// Port number to use for the E2E socket 
-
-	/* XNI data */
-	xni_connection_t xni_conn;
 };
 typedef struct xint_td_e2e xint_td_e2e_t;
 	
