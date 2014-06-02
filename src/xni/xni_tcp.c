@@ -20,12 +20,14 @@
 #include "xni_internal.h"
 
 
-#define PROTOCOL_NAME "tcp-nlmills-20120809"
+#define PROTOCOL_NAME "tcp-nlmills-20140602"
 #define ALIGN(val,align) (((val)+(align)-1UL) & ~((align)-1UL))
 
 const char *XNI_TCP_DEFAULT_CONGESTION = "";
 
-static const size_t TCP_DATA_MESSAGE_HEADER_SIZE = 12;
+static const size_t TCP_DATA_MESSAGE_HEADER_SIZE = 20;  // = sequence_number(8) + 
+                                                        //   target_offset(8) +
+                                                        //   data_length(4)
 
 struct tcp_control_block {
   size_t num_sockets;
@@ -70,6 +72,7 @@ struct tcp_target_buffer {
   // inherited from xni_target_buffer
   struct tcp_context *context;
   void *data;
+  int64_t sequence_number;
   size_t target_offset;
   int data_length;
 
@@ -470,10 +473,12 @@ static int tcp_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *t
     return XNI_ERR;
 
   // encode the message header
-  uint64_t tmp64 = htonll(tb->target_offset);
+  uint64_t tmp64 = htonll(tb->sequence_number);
   memcpy(tb->header, &tmp64, 8);
+  tmp64 = htonll(tb->target_offset);
+  memcpy(((char*)tb->header)+8, &tmp64, 8);
   uint32_t tmp32 = htonl(tb->data_length);
-  memcpy(((char*)tb->header)+8, &tmp32, 4);
+  memcpy(((char*)tb->header)+16, &tmp32, 4);
 
   // locate a free socket
   struct tcp_socket *socket = NULL;
@@ -597,11 +602,15 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
       received += cnt;
   }
 
+  // decode the header
+  uint64_t sequence_number;
+  memcpy(&sequence_number, recvbuf, 8);
+  sequence_number = ntohll(sequence_number);
   uint64_t target_offset;
-  memcpy(&target_offset, recvbuf, 8);
+  memcpy(&target_offset, recvbuf+8, 8);
   target_offset = ntohll(target_offset);
   uint32_t data_length;
-  memcpy(&data_length, recvbuf+8, 4);
+  memcpy(&data_length, recvbuf+16, 4);
   data_length = ntohl(data_length);
 
   recvbuf = (char*)tb->data;
@@ -618,6 +627,7 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
   }
 
   //TODO: sanity checks (e.g. tb->connection)
+  tb->sequence_number = sequence_number;
   tb->target_offset = target_offset;
   tb->data_length = (int)data_length;
   

@@ -91,3 +91,13 @@ void xni_target_buffer_set_data_length(int length, xni_target_buffer_t tb)
 {
   tb->data_length = length;
 }
+
+int64_t xni_target_buffer_sequence_number(xni_target_buffer_t tb)
+{
+  return tb->sequence_number;
+}
+
+void xni_target_buffer_set_sequence_number(int64_t seq, xni_target_buffer_t tb)
+{
+  tb->sequence_number = seq;
+}

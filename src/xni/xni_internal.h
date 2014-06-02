@@ -33,6 +33,7 @@ struct xni_connection {
 struct xni_target_buffer {
     struct xni_context *context;
     void *data;
+	int64_t sequence_number;
     size_t target_offset;
     int data_length;
 };

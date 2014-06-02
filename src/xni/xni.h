@@ -308,9 +308,6 @@ int xni_release_target_buffer(xni_target_buffer_t *buffer);
 
 /*! \brief Get a target buffer's data pointer.
  *
- * The data pointer will point to a block of memory aligned on a
- * 512-byte boundary.
- *
  * \param buffer The buffer to inspect.
  *
  * \return A pointer to the target data.
@@ -362,6 +359,23 @@ int xni_target_buffer_data_length(xni_target_buffer_t buffer);
  * \sa xni_target_buffer_data_length()
  */
 void xni_target_buffer_set_data_length(int length, xni_target_buffer_t buffer);
+/*! \brief Get the operation sequence number.
+ *
+ * \param buffer The buffer to inspect.
+ *
+ * \return The operation sequence number.
+ *
+ * \sa xni_target_buffer_set_sequence_number()
+ */
+int64_t xni_target_buffer_sequence_number(xni_target_buffer_t buffer);
+/*! \brief Set the operation sequence number.
+ *
+ * \param sequence_number The operation sequence number.
+ * \param buffer The buffer to modify.
+ *
+ * \sa xni_target_buffer_sequence_number()
+ */
+void xni_target_buffer_set_sequence_number(int64_t sequence_number, xni_target_buffer_t buffer);
 
 /*! @} */
 

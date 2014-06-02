@@ -21,7 +21,7 @@
 #include "xni_internal.h"
 
 //#define XNI_TRACE 1
-#define PROTOCOL_NAME "ib-nlmills-20120809"
+#define PROTOCOL_NAME "ib-nlmills-20140602"
 #define ALIGN(val,align) (((val)+(align)-1UL) & ~((align)-1UL))
 
 
@@ -76,7 +76,9 @@ struct ib_connection {
 	uint16_t remote_lid;
 };
 
-#define IB_DATA_MESSAGE_HEADER_SIZE 12 // = tag(4) + target_offset(8)
+#define IB_DATA_MESSAGE_HEADER_SIZE 20  // = tag(4) +
+                                        //   sequence_number(8) +
+                                        //   target_offset(8)
 enum send_state {
   QUEUED,
   SENT,
@@ -86,6 +88,7 @@ struct ib_target_buffer {
 	// inherited from xni_target_buffer
 	struct ib_context *context;
 	void *data;
+	int64_t sequence_number;
 	size_t target_offset;
 	int data_length;
 
@@ -919,8 +922,10 @@ static int ib_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *ta
 
 	// encode the message
 	memcpy(tb->header, DATA_MESSAGE_TAG, TAG_LENGTH);
-	uint64_t tmp64 = htonll(tb->target_offset);
+	uint64_t tmp64 = htonll(tb->sequence_number);
 	memcpy(((char*)tb->header)+TAG_LENGTH, &tmp64, 8);
+	tmp64 = htonll(tb->target_offset);
+	memcpy(((char*)tb->header)+TAG_LENGTH+8, &tmp64, 8);
 
 	// send the message
 	struct ibv_sge sge;
@@ -1001,7 +1006,9 @@ static int ib_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t 
       // decode the message
       tb = (struct ib_target_buffer*)wc.wr_id;
       if (memcmp(tb->header, DATA_MESSAGE_TAG, TAG_LENGTH) == 0) {
-        memcpy(&tb->target_offset, ((char*)tb->header)+TAG_LENGTH, 8);
+        memcpy(&tb->sequence_number, ((char*)tb->header)+TAG_LENGTH, 8);
+        tb->sequence_number = ntohll(tb->sequence_number);
+        memcpy(&tb->target_offset, ((char*)tb->header)+TAG_LENGTH+8, 8);
 		tb->target_offset = ntohll(tb->target_offset);
         tb->data_length = wc.byte_len - (int)((char*)tb->data - (char*)tb->header);
       } else if (memcmp(tb->header, EOF_MESSAGE_TAG, TAG_LENGTH) == 0)
