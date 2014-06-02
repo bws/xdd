@@ -919,7 +919,7 @@ static int ib_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *ta
 
 	// encode the message
 	memcpy(tb->header, DATA_MESSAGE_TAG, TAG_LENGTH);
-	uint64_t tmp64 = ntohll(tb->target_offset);
+	uint64_t tmp64 = htonll(tb->target_offset);
 	memcpy(((char*)tb->header)+TAG_LENGTH, &tmp64, 8);
 
 	// send the message
