@@ -531,8 +531,8 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 	// If this is the first packet received by this Worker Thread then record the *end* of this operation as the
 	// *start* of this pass. The reason is that the initial recvfrom() may have been issued long before the
 	// Source side started sending data and we need to ignore that startup delay. 
-	if (wdp->wd_counters.tc_pass_start_time == NCLK_MAX)  { // This is an indication that this is the fist recvfrom() that has completed
-		wdp->wd_counters.tc_pass_start_time = wdp->wd_counters.tc_current_net_end_time;
+	if (tdp->td_counters.tc_pass_start_time == NCLK_MAX)  { // This is an indication that this is the fist recvfrom() that has completed
+		tdp->td_counters.tc_pass_start_time = wdp->wd_counters.tc_current_net_end_time;
 		e2ep->e2e_sr_time = 0; // The first Send/Receive time is zero.
 	} else { // Calculate the Send/Receive time by the time it took the last recvfrom() to run
 		e2ep->e2e_sr_time = (wdp->wd_counters.tc_current_net_end_time - wdp->wd_counters.tc_current_net_start_time);
