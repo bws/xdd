@@ -113,30 +113,32 @@ class TransferManager:
             self.sourceTimestampFlag = True
         self.verboseLog = filename
 
-    def addSink(self, user, hostname, threads, ifs = [], port = 40010):
+    def addSink(self, user, hostIP, hostname, threads, ifs = [], port = 40010):
         """Add a sink to the list of sinks"""
         assert not self.isCreated
+        assert hostIP
         assert hostname
         assert 0 < threads
-        sink = {'hostname': hostname, 'threads': threads, 
-                'port': port, 'ifs': []}
+        sink = {'ip': hostIP, 'hostname': hostname, 'threads': threads, 'port': port, 'ifs': []}
         if 0 == len(ifs):
-            sink['ifs'].append(hostname)
+            sink['ifs'].append(hostIP)
         else:
             sink['ifs'].extend(ifs)
+
         self.sinks.append(sink)
 
-    def addSource(self, user, hostname, threads, ifs = [], port = 40010):
+    def addSource(self, user, hostIP, hostname, threads, ifs = [], port = 40010):
         """Add a source to the list of sources"""
         assert not self.isCreated
+        assert hostIP
         assert hostname
         assert 0 < threads
-        source = {'hostname': hostname, 'threads': threads, 
-                  'port': port, 'ifs': []}
+        source = {'ip': hostIP, 'hostname': hostname, 'threads': threads, 'port': port, 'ifs': []}
         if 0 == len(ifs):
-            source['ifs'].append(hostname)
+            source['ifs'].append(hostIP)
         else:
             source['ifs'].extend(ifs)
+
         self.sources.append(source)
 
     def setSinkXddPath(self, path):
