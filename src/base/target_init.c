@@ -20,12 +20,6 @@ xint_get_buffer_count(const target_data_t *tdp)
 {
 	size_t count = tdp->td_queue_depth;
 
-	if (xint_is_e2e(tdp) && tdp->td_e2ep->e2e_address_table_port_count > 0) {
-
-		count = tdp->td_e2ep->e2e_address_table_port_count;
-	}
-
-	//TODO: is the buffer count always just tdp->td_queue_depth?
 	return count;
 }
 
