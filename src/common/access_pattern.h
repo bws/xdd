@@ -32,9 +32,10 @@ typedef struct seek_entries seek_t;
 #define SO_SEEK_LOAD      0x00000002 /**< Load seek locations from a file */
 #define SO_SEEK_RANDOM    0x00000004 /**< Random seek locations */
 #define SO_SEEK_STAGGER   0x00000008 /**< Staggered seek locations */
-#define SO_SEEK_NONE      0x00000010 /**< No seek locations */
-#define SO_SEEK_DISTHIST  0x00000020 /**< Print the seek distance histogram */
-#define SO_SEEK_SEEKHIST  0x00000040 /**< Print the seek location histogram */
+#define SO_SEEK_STRIDED   0x00000010 /**< Strided seek locations */
+#define SO_SEEK_NONE      0x00000020 /**< No seek locations */
+#define SO_SEEK_DISTHIST  0x00000040 /**< Print the seek distance histogram */
+#define SO_SEEK_SEEKHIST  0x00000080 /**< Print the seek location histogram */
 
 /** The seek header contains all the information regarding seek locations */
 struct seekhdr {
@@ -42,7 +43,9 @@ struct seekhdr {
 	int64_t  seek_range; /**< range of seek locations */
 	int32_t  seek_seed; /**< seed used for generating random seek locations */
 	int32_t  seek_interleave; /**< interleave used for generating sequential seek locations */
-	int32_t  seek_stride;        /**< stride of each request...if > reqsize*/
+	int32_t  seek_stagger;   /**< stagger distance between each request...if > reqsize*/
+	int64_t  seek_stride;    /**< stride of each request...if > reqsize*/
+	int64_t  seek_stride_size;    /**< stride of each request...if > reqsize*/
 	uint32_t seek_iosize; /**< The largest I/O size in the list */
 	int32_t  seek_num_rw_ops;  /**< Number of read+write operations */
 	int32_t  seek_total_ops;   /**< Total number of ops in the seek list including verifies */

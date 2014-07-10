@@ -111,57 +111,6 @@ int tot_destroy(tot_t* tp)
 
     return status;
 }
-
-int tot_update(tot_t* table,
-	       int64_t req_number,
-	       int worker_thread_number,
-	       int64_t offset,
-	       int32_t size)
-{
-    int rc = 0;
-    int idx;
-    tot_entry_t* tep;
-
-    // Check preconditions
-    assert(NULL != table);
-    assert(0 <= req_number);
-    assert(0 <= worker_thread_number);
-
-    
-    idx = req_number % table->tot_entries;
-    tep = &(table->tot_entry[idx]);
-
-    // Lock entry
-    pthread_mutex_lock(&tep->tot_mutex);
-
-    // Do not update if a newer entry is using this slot
-    if (tep->tot_op_number >= req_number) {
-		rc = -1;
-		fprintf(xgp->errout,
-			"%s: tot_update: Worker Thread %d: "
-			"WARNING: TOT Collision at entry %d, op number %"PRId64", "
-			"byte location is %"PRId64" [block %"PRId64"], "
-			"my current op number is %"PRId64", "
-			"my byte location is %"PRId64" [block %"PRId64"] "
-			"last updated by worker_thread %d\n",
-			xgp->progname, worker_thread_number,
-			idx, tep->tot_op_number,
-			tep->tot_byte_offset, tep->tot_byte_offset/tep->tot_io_size,
-			req_number,
-			offset, offset/size,
-			tep->tot_update_worker_thread_number);
-    } else {
-		nclk_now(&tep->tot_update_ts);
-		tep->tot_update_worker_thread_number = worker_thread_number;
-		tep->tot_op_number = req_number;
-		tep->tot_byte_offset = offset;
-		tep->tot_io_size = size;
-    }
-
-    // Unlock entry
-    pthread_mutex_unlock(&tep->tot_mutex);
-    return rc;
-}
 /*
  * Local variables:
  *  indent-tabs-mode: t

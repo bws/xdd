@@ -144,15 +144,8 @@ if (xgp->global_options & GO_DEBUG_IO) fprintf(stderr,"DEBUG_IO: %lld: xdd_worke
 	if (tot_offset < 0) 
 		tot_offset = tdp->td_totp->tot_entries - 1; // The last TOT_ENTRY
 	
-//	if (tdp->td_target_options & TO_E2E_DESTINATION) {
-//		if (tdp->td_counters.tc_current_op_number == 0)
 		if (wdp->wd_task.task_op_number == 0)
-		return(0);	// Dont need to wait for op minus 1 ;)
-//	} else {
-//		if (tdp->td_counters.tc_current_op_number == 0)
-//			return(0);	// Dont need to wait for op minus 1 ;)
-//	}
-
+			return(0);	// Dont need to wait for op minus 1 ;)
 
 	tep = &tdp->td_totp->tot_entry[tot_offset];
 	wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_TS;
@@ -396,18 +389,6 @@ xdd_worker_thread_update_target_counters(worker_data_t *wdp) {
 	if (tdp->td_counters.tc_current_error_count) 
 		return; 
 
-	// Update the TOT entry for this last I/O if ordering is NONE
-	// Only do it in the no ordering case, because the TOT is now updated
-	// during the thread release
-	//if (!(tdp->td_target_options & (TO_ORDERING_STORAGE_SERIAL | TO_ORDERING_STORAGE_LOOSE))) {
-	//	wdp->wd_current_state |= WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
-	//	tot_update(tdp->td_totp,
-	//			   wdp->wd_task.task_op_number,
-	//			   wdp->wd_worker_number,
-	//			   wdp->wd_task.task_byte_offset,
-	//			   wdp->wd_task.task_xfer_size);
-	//	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_WT_WAITING_FOR_TOT_LOCK_UPDATE;
-	//}
 } // End of xdd_worker_thread_update_target_counters()
 
 /*

@@ -195,14 +195,14 @@ xdd_restart_monitor(void *data) {
 			perror("Reason");
 			return(0);
 		}
-		if (current_tdp->td_target_options & TO_E2E_DESTINATION) {
+//TMR-TEMPORARY		if (current_tdp->td_target_options & TO_E2E_DESTINATION) {
 			xdd_restart_create_restart_file(rp);
-		} else {
-			fprintf(xgp->output,"%s: xdd_restart_monitor: INFO: No restart file being created for target %d [ %s ] because this is not the destination side of an E2E operation.\n", 
-				xgp->progname,
-				current_tdp->td_target_number,
-				current_tdp->td_target_full_pathname);
-		}
+//TMR-TEMPORARY		} else {
+//TMR-TEMPORARY			fprintf(xgp->output,"%s: xdd_restart_monitor: INFO: No restart file being created for target %d [ %s ] because this is not the destination side of an E2E operation.\n", 
+//TMR-TEMPORARY				xgp->progname,
+//TMR-TEMPORARY				current_tdp->td_target_number,
+//TMR-TEMPORARY				current_tdp->td_target_full_pathname);
+//TMR-TEMPORARY		}
 	}
 	if (xgp->global_options & GO_REALLYVERBOSE)
 		fprintf(xgp->output,"%s: xdd_restart_monitor: Initialization complete.\n", xgp->progname);
@@ -306,7 +306,7 @@ xdd_restart_monitor(void *data) {
 				} // End of FOR loop that scans the TOT for the restart offset to use
 	            */
 				// ...and write it to the restart file and sync sync sync
-				if (current_tdp->td_target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
+//TMR-TEMPORARY if (current_tdp->td_target_options & TO_E2E_DESTINATION) // Restart files are only written on the destination side
 					xdd_restart_write_restart_file(rp);
 
 			}

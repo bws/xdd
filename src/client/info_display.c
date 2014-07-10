@@ -273,8 +273,10 @@ xdd_target_info(FILE *out, target_data_t *tdp) {
 		xdd_display_kmgt(out, tdp->td_seekhdr.seek_range*tdp->td_block_size, tdp->td_block_size);
 	}
 	fprintf(out, "\t\tSeek pattern, %s\n", tdp->td_seekhdr.seek_pattern);
-	if (tdp->td_seekhdr.seek_stride > tdp->td_reqsize) 
-		fprintf(out, "\t\tSeek Stride, %d, %d-byte blocks, %d, bytes\n",tdp->td_seekhdr.seek_stride,tdp->td_block_size,tdp->td_seekhdr.seek_stride*tdp->td_block_size);
+	if (tdp->td_seekhdr.seek_stagger > tdp->td_reqsize) 
+		fprintf(out, "\t\tSeek Stagger, %d, %d-byte blocks, %d, bytes\n",tdp->td_seekhdr.seek_stagger,tdp->td_block_size,tdp->td_seekhdr.seek_stagger*tdp->td_block_size);
+	if (tdp->td_seekhdr.seek_stride > 0) 
+		fprintf(out, "\t\tSeek Stride, %lld, %d-byte blocks, %d, bytes\n",tdp->td_seekhdr.seek_stagger,tdp->td_block_size,tdp->td_seekhdr.seek_stagger*tdp->td_block_size);
 	fprintf(out, "\t\tFlushwrite interval, %lld\n", (long long)tdp->td_flushwrite);
 	fprintf(out,"\t\tI/O memory buffer is %s\n", 
 		(tdp->td_target_options & TO_SHARED_MEMORY)?"a shared memory segment":"a normal memory buffer");

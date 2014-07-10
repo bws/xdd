@@ -135,8 +135,11 @@ if (xgp->global_options & GO_DEBUG_THROTTLE) fprintf(stderr,"DEBUG_THROTTLE: %ll
 				if (sp->seek_options & SO_SEEK_STAGGER) {
 					gap = ((sp->seek_range-tdp->td_reqsize) - (sp->seek_num_rw_ops*tdp->td_reqsize)) / (sp->seek_num_rw_ops-1);
 				        if (sp->seek_stride > tdp->td_reqsize) gap = sp->seek_stride - tdp->td_reqsize;
-                                }
-				else gap = 0; 
+                } else if (sp->seek_options & SO_SEEK_STRIDED) {
+				        if (sp->seek_stride >= tdp->td_reqsize) 
+							gap = sp->seek_stride - tdp->td_reqsize;
+						else gap = 0;
+                } else gap = 0; 
 				if (sp->seek_interleave > 1)
 // FIXME ????		interleave_threadoffset = (tdp->td_my_qthread_number%sp->seek_interleave)*tdp->td_reqsize;
 					interleave_threadoffset = sp->seek_interleave*tdp->td_reqsize;

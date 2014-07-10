@@ -3549,7 +3549,7 @@ xddfunc_seek(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			}
 		} 
 		return(args_index+1);
-	} else if (strcmp(argv[args_index], "stagger") == 0) { /*  Staggered seek list option */
+	} else if ((strcmp(argv[args_index], "stagger") == 0) || (strcmp(argv[args_index], "staggered") == 0)){ /*  Staggered seek list option */
 		if (target_number >= 0) {  /* set option for specific target */
 			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
 			if (tdp == NULL) return(-1);
@@ -3570,6 +3570,29 @@ xddfunc_seek(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			}
 		}  
 		return(args_index+2);
+	} else if (strcmp(argv[args_index], "strided") == 0) { /*  Strided seek list option */
+		if (target_number >= 0) {  /* set option for specific target */
+			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
+			if (tdp == NULL) return(-1);
+			tdp->td_seekhdr.seek_options |= SO_SEEK_STRIDED;
+			tdp->td_seekhdr.seek_pattern = "strided";
+			tdp->td_seekhdr.seek_stride = atoll(argv[args_index+1]);
+			tdp->td_seekhdr.seek_stridesize = atoll(argv[args_index+2]);
+		} else {  /* set option for all targets */
+			if (flags & XDD_PARSE_PHASE2) {
+				tdp = planp->target_datap[0];
+				i = 0;
+				while (tdp) {
+					tdp->td_seekhdr.seek_options |= SO_SEEK_STRIDED;
+					tdp->td_seekhdr.seek_pattern = "strided";
+			                tdp->td_seekhdr.seek_stride = atoll(argv[args_index+1]);
+							tdp->td_seekhdr.seek_stridesize = atoll(argv[args_index+2]);
+					i++;
+					tdp = planp->target_datap[i];
+				}
+			}
+		}  
+		return(args_index+3);
 	} else if (strcmp(argv[args_index], "interleave") == 0) { /* set the interleave for sequential seek locations */
 		if (target_number >= 0) {  /* set option for specific target */
 			tdp = xdd_get_target_datap(planp, target_number, argv[0]);
