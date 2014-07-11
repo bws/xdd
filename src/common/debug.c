@@ -399,8 +399,6 @@ xdd_show_e2e(xint_e2e_t *e2ep) {
     fprintf(stderr,"\txdd_show_e2e: uint32_t   e2e_rnamelen=%d\n",e2ep->e2e_rnamelen);             // the length of the source socket name 
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_current_csd=%d\n",e2ep->e2e_current_csd);         // the current csd used by the select call on the destination side
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_next_csd=%d\n",e2ep->e2e_next_csd);             // The next available csd to use 
-    fprintf(stderr,"\txdd_show_e2e: xdd_e2e_header_t *e2e_hdrp=%p\n",e2ep->e2e_hdrp);                // Pointer to the header portion of a packet
-	if (e2ep->e2e_hdrp) xdd_show_e2e_header(e2ep->e2e_hdrp);
     fprintf(stderr,"\txdd_show_e2e: unsigned char *e2e_datap=%p\n",e2ep->e2e_datap);                // Pointer to the data portion of a packet
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_header_size=%d\n",e2ep->e2e_header_size);         // Size of the header portion of the buffer 
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_data_size=%d\n",e2ep->e2e_data_size);             // Size of the data portion of the buffer
@@ -427,21 +425,6 @@ xdd_show_e2e(xint_e2e_t *e2ep) {
     fprintf(stderr,"\txdd_show_e2e: xdd_e2e_ate_t e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]\n"); // Used by E2E to stripe over multiple IP Addresses
     fprintf(stderr,"xdd_show_e2e:********* End of E2E Data at 0x%p **********\n",e2ep);
 } // End of xdd_show_e2e()
-
-/*----------------------------------------------------------------------------*/
-/* xdd_show_e2e_header() - Display values in the specified data structure
- */
-void
-xdd_show_e2e_header(xdd_e2e_header_t *e2ehp) {
-    fprintf(stderr,"\nxdd_show_e2e_header:********* Start of E2E Header Data at 0x%p **********\n",e2ehp);
-    fprintf(stderr,"\t\txdd_show_e2e_header: uint32_t   e2eh_magic=0x%8x\n",e2ehp->e2eh_magic);                 // Magic Number - sanity check
-    fprintf(stderr,"\t\txdd_show_e2e_header: int32_t    pad1\n");
-    fprintf(stderr,"\t\txdd_show_e2e_header: int64_t    e2eh_sequence_number=%lld\n",(long long int)e2ehp->e2eh_sequence_number);       // Sequence number of this operation
-    fprintf(stderr,"\t\txdd_show_e2e_header: int64_t    e2eh_byte_offset=%lld\n",(long long int)e2ehp->e2eh_byte_offset);           // Offset relative to the beginning of the file of where this data belongs
-    fprintf(stderr,"\t\txdd_show_e2e_header: int64_t    e2eh_data_length=%lld\n",(long long int)e2ehp->e2eh_data_length);           // Length of the user data in bytes for this operation
-    fprintf(stderr,"\txdd_show_e2e_header:********* End of E2E Header Data at 0x%p **********\n",e2ehp);
-
-} // End of xdd_show_e2e_header()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_show_tot_entry() - Display values in the specified data structure

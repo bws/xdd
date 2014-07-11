@@ -60,15 +60,8 @@ xdd_init_io_buffers(target_data_t *tdp) {
 	if (tdp->td_xfer_size % page_size)
 		pages++; // Round up to page size
 	if ((tdp->td_target_options & TO_ENDTOEND)) {
-		// Add one page for the e2e header
-		pages++; 
-
-		// If its XNI, add another page for XNI, better would be for XNI to
-		// pack all of the header data (and do the hton, ntoh calls)
-		xdd_plan_t *planp = tdp->td_planp;
-		if (PLAN_ENABLE_XNI & planp->plan_options) {
-			pages++;
-		}
+		// Add one page for the XNI header
+		pages++;
 	}
 
 	

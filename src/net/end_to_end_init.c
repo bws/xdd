@@ -150,13 +150,7 @@ xdd_e2e_src_init(worker_data_t *wdp) {
 	// Init the relevant variables 
 	e2ep->e2e_msg_sent = 0;
 	e2ep->e2e_msg_sequence_number = 0;
-	e2ep->e2e_header_size = (int)(sizeof(xdd_e2e_header_t));
-
-	// Init the message header
-	e2ep->e2e_hdrp->e2eh_sequence_number = 0;
-	e2ep->e2e_hdrp->e2eh_byte_offset = 0;
-	e2ep->e2e_hdrp->e2eh_data_length = 0;
-
+	e2ep->e2e_header_size = 0;
 
 	return(0);
 
@@ -284,6 +278,9 @@ xdd_e2e_dest_init(worker_data_t *wdp) {
 	// Initialize the message counter and sequencer to 0
 	wdp->wd_e2ep->e2e_msg_recv = 0;
 	wdp->wd_e2ep->e2e_msg_sequence_number = 0;
+
+	// Clear the end-of-file flag
+	wdp->wd_e2ep->received_eof = FALSE;
 
 	return(0);
 

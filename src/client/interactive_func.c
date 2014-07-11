@@ -323,15 +323,15 @@ xdd_interactive_display_state_info(worker_data_t *wdp) {
 	if (wdp->wd_current_state & WORKER_CURRENT_STATE_DEST_RECEIVE) {
 		fprintf(xgp->output,"    Destination Side of an E2E - waiting to receive data from Source, target op number %lld, location %lld, length %lld, recvfrom status is %d\n", 
 			(long long int)wdp->wd_counters.tc_current_op_number, 
-			(long long int)wdp->wd_e2ep->e2e_hdrp->e2eh_byte_offset, 
-			(long long int)wdp->wd_e2ep->e2e_hdrp->e2eh_data_length, 
+			(long long int)xni_target_buffer_target_offset(wdp->wd_e2ep->xni_wd_buf), 
+			(long long int)xni_target_buffer_data_length(wdp->wd_e2ep->xni_wd_buf), 
 			wdp->wd_e2ep->e2e_recv_status);
 	}
 	if (wdp->wd_current_state & WORKER_CURRENT_STATE_SRC_SEND) {
 		fprintf(xgp->output,"    Source Side of an E2E - waiting to send data to Destination, target op number %lld, location %lld, length %lld, sendto status is %d\n", 
 			(long long int)wdp->wd_counters.tc_current_op_number, 
-			(long long int)wdp->wd_e2ep->e2e_hdrp->e2eh_byte_offset, 
-			(long long int)wdp->wd_e2ep->e2e_hdrp->e2eh_data_length, 
+			(long long int)xni_target_buffer_target_offset(wdp->wd_e2ep->xni_wd_buf), 
+			(long long int)xni_target_buffer_data_length(wdp->wd_e2ep->xni_wd_buf), 
 			wdp->wd_e2ep->e2e_send_status);
 	}
 	if (wdp->wd_current_state & WORKER_CURRENT_STATE_BARRIER) {

@@ -110,7 +110,6 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 			wdp->wd_e2ep->xni_wd_buf = NULL;
 			wdp->wd_task.task_datap = NULL;
 			wdp->wd_e2ep->e2e_datap = NULL;
-			wdp->wd_e2ep->e2e_hdrp = NULL;
 		} else {
 			//TODO: I'd really like to move all of these buffer
 			// request calls to something like ttd_before_io_op, but I
@@ -120,12 +119,8 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 
 			// Request an I/O buffer from XNI			
 			xni_request_target_buffer(tdp->td_e2ep->xni_td_conn, &wdp->wd_e2ep->xni_wd_buf);
-			unsigned char *bufp = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
-			memset(bufp, 0, 2*getpagesize());
-			// Use the first page for the E2E header
-			wdp->wd_task.task_datap = bufp + getpagesize();
+			wdp->wd_task.task_datap = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
 			wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
-			wdp->wd_e2ep->e2e_hdrp = (xdd_e2e_header_t *)(bufp + (getpagesize() - sizeof(xdd_e2e_header_t)));
 		}
 	} else {
 		// For non-E2E operations the data portion is the entire buffer

@@ -31,14 +31,6 @@
 #define HOSTNAMELENGTH 1024
 
 #define	E2E_ADDRESS_TABLE_ENTRIES 16
-struct xdd_e2e_header {
-	uint32_t 	e2eh_magic;  				// Magic Number - sanity check
-	int32_t		pad1;
-	int64_t  	e2eh_sequence_number; 		// Sequence number of this operation
-	int64_t  	e2eh_byte_offset; 			// Offset relative to the beginning of the file of where this data belongs
-	int64_t  	e2eh_data_length; 			// Length of the user data in bytes for this operation 
-};
-typedef struct xdd_e2e_header xdd_e2e_header_t;
 
 struct xdd_e2e_address_table_entry {
     char 	*address;					// Pointer to the ASCII string of the address 
@@ -100,15 +92,13 @@ struct xint_e2e {
 	uint32_t			e2e_rnamelen; 			// the length of the source socket name 
 	int32_t				e2e_current_csd; 		// the current csd used by the select call on the destination side
 	int32_t				e2e_next_csd; 			// The next available csd to use 
-	xdd_e2e_header_t	*e2e_hdrp;				// Pointer to the header portion of a packet
 	unsigned char		*e2e_datap;				// Pointer to the data portion of a packet
+	//TODO: remove e2e_header_size
 	int32_t				e2e_header_size; 		// Size of the header portion of the buffer 
 	int32_t				e2e_data_size; 			// Size of the data portion of the buffer
 	int32_t				e2e_xfer_size; 			// Number of bytes per End to End request - size of data buffer plus size of E2E Header
 	int32_t				e2e_send_status; 		// Current Send Status
 	int32_t				e2e_recv_status; 		// Current Recv status
-#define XDD_E2E_DATA_READY 	0xDADADADA 			// The magic number that should appear at the beginning of each message indicating data is present
-#define XDD_E2E_EOF 	0xE0F0E0F0 				// The magic number that should appear in a message signaling and End of File
 	int64_t				e2e_msg_sequence_number;// The Message Sequence Number of the most recent message sent or to be received
 	int32_t				e2e_msg_sent; 			// The number of messages sent 
 	int32_t				e2e_msg_recv; 			// The number of messages received 
@@ -133,6 +123,7 @@ struct xint_e2e {
 
 	/* XNI Worker data */
 	xni_target_buffer_t xni_wd_buf;
+	int received_eof;  // TRUE when the source has signaled EOF to this destination worker
 }; // End of struct xint_e2e definition
 typedef struct xint_e2e xint_e2e_t;
 

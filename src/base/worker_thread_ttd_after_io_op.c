@@ -222,7 +222,6 @@ if (xgp->global_options & GO_DEBUG_E2E) xdd_show_task(&wdp->wd_task);
 			// operation. 
 
 			// Send the data to the Destination machine
-			wdp->wd_e2ep->e2e_hdrp->e2eh_magic = XDD_E2E_DATA_READY;
 			wdp->wd_current_state |= WORKER_CURRENT_STATE_SRC_SEND;
 
 			xint_e2e_xni_send(wdp);
@@ -234,7 +233,6 @@ if (xgp->global_options & GO_DEBUG_E2E) xdd_show_task(&wdp->wd_task);
 	if (tdp->td_target_options & TO_E2E_DESTINATION) {
 		// Release the current target buffer to XNI
 		xni_release_target_buffer(&wdp->wd_e2ep->xni_wd_buf);
-		wdp->wd_e2ep->e2e_hdrp = NULL;
 		wdp->wd_task.task_datap = NULL;
 		wdp->wd_e2ep->e2e_datap = NULL;
 	}
