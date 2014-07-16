@@ -201,7 +201,6 @@ xdd_e2e_before_io_op(worker_data_t *wdp) {
 	/* ------------------------------------------------------ */
 	// We are the Destination side of an End-to-End op
 
-	wdp->wd_e2ep->e2e_data_recvd = 0; // This will record how much data is recvd in this routine
 
 	// Lets read a packet of data from the Source side
 	// The call to xint_e2e_xni_recv() will block until there is data to read 
@@ -225,8 +224,6 @@ xdd_e2e_before_io_op(worker_data_t *wdp) {
 	wdp->wd_task.task_byte_offset = xni_target_buffer_target_offset(wdp->wd_e2ep->xni_wd_buf);
 	wdp->wd_task.task_xfer_size = xni_target_buffer_data_length(wdp->wd_e2ep->xni_wd_buf);
 	wdp->wd_task.task_op_number = xni_target_buffer_sequence_number(wdp->wd_e2ep->xni_wd_buf);
-	// Record the amount of data received 
-	wdp->wd_e2ep->e2e_data_recvd = xni_target_buffer_data_length(wdp->wd_e2ep->xni_wd_buf);
 
 	return(0);
 

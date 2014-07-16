@@ -388,36 +388,10 @@ xdd_show_e2e(xint_e2e_t *e2ep) {
     fprintf(stderr,"\txdd_show_e2e: time_t     e2e_src_file_mtime\n");     // stat -c %Y *e2e_src_file_path, i.e., last modification time
     fprintf(stderr,"\txdd_show_e2e: in_addr_t  e2e_dest_addr=%d\n",e2ep->e2e_dest_addr);          // Destination Address number of the E2E socket 
     fprintf(stderr,"\txdd_show_e2e: in_port_t  e2e_dest_port=%d\n",e2ep->e2e_dest_port);          // Port number to use for the E2E socket 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_sd=%d\n",e2ep->e2e_sd);                   // Socket descriptor for the E2E message port 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_nd=%d\n",e2ep->e2e_nd);                   // Number of Socket descriptors in the read set 
-    fprintf(stderr,"\txdd_show_e2e: sd_t       e2e_csd[FD_SETSIZE]\n");;    // Client socket descriptors 
-    fprintf(stderr,"\txdd_show_e2e: fd_set     e2e_active?\n");              // This set contains the sockets currently active 
-    fprintf(stderr,"\txdd_show_e2e: fd_set     e2e_readset?\n");             // This set is passed to select() 
-    fprintf(stderr,"\txdd_show_e2e: struct sockaddr_in  e2e_sname?\n");                 // used by setup_server_socket 
-    fprintf(stderr,"\txdd_show_e2e: uint32_t   e2e_snamelen=%d\n",e2ep->e2e_snamelen);             // the length of the socket name 
-    fprintf(stderr,"\txdd_show_e2e: struct sockaddr_in  e2e_rname?\n");                 // used by destination machine to remember the name of the source machine 
-    fprintf(stderr,"\txdd_show_e2e: uint32_t   e2e_rnamelen=%d\n",e2ep->e2e_rnamelen);             // the length of the source socket name 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_current_csd=%d\n",e2ep->e2e_current_csd);         // the current csd used by the select call on the destination side
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_next_csd=%d\n",e2ep->e2e_next_csd);             // The next available csd to use 
-    fprintf(stderr,"\txdd_show_e2e: unsigned char *e2e_datap=%p\n",e2ep->e2e_datap);                // Pointer to the data portion of a packet
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_header_size=%d\n",e2ep->e2e_header_size);         // Size of the header portion of the buffer 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_data_size=%d\n",e2ep->e2e_data_size);             // Size of the data portion of the buffer
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_xfer_size=%d\n",e2ep->e2e_xfer_size);             // Number of bytes per End to End request - size of data buffer plus size of E2E Header
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_send_status=%d\n",e2ep->e2e_send_status);         // Current Send Status
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_recv_status=%d\n",e2ep->e2e_recv_status);         // Current Recv status
     fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_msg_sequence_number=%lld\n",(long long int)e2ep->e2e_msg_sequence_number);// The Message Sequence Number of the most recent message sent or to be received
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_msg_sent=%d\n",e2ep->e2e_msg_sent);             // The number of messages sent 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_msg_recv=%d\n",e2ep->e2e_msg_recv);             // The number of messages received 
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_prev_loc=%lld\n",(long long int)e2ep->e2e_prev_loc);             // The previous location from a e2e message from the source 
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_prev_len=%lld\n",(long long int)e2ep->e2e_prev_len);             // The previous length from a e2e message from the source 
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_data_recvd=%lld\n",(long long int)e2ep->e2e_data_recvd);         // The amount of data that is received each time we call xdd_e2e_dest_recv()
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_data_length=%lld\n",(long long int)e2ep->e2e_data_length);         // The amount of data that is ready to be read for this operation 
     fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_total_bytes_written=%lld\n",(long long int)e2ep->e2e_total_bytes_written); // The total amount of data written across all restarts for this file
     fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_wait_1st_msg=%lld\n",(unsigned long long int)e2ep->e2e_wait_1st_msg);        // Time in nanosecs destination waited for 1st source data to arrive 
-    fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_first_packet_received_this_pass=%lld\n",(unsigned long long int)e2ep->e2e_first_packet_received_this_pass);// Time that the first packet was received by the destination from the source
-    fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_last_packet_received_this_pass=%lld\n",(unsigned long long int)e2ep->e2e_last_packet_received_this_pass);// Time that the last packet was received by the destination from the source
-    fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_first_packet_received_this_run=%lld\n",(unsigned long long int)e2ep->e2e_first_packet_received_this_run);// Time that the first packet was received by the destination from the source
-    fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_last_packet_received_this_run=%lld\n",(unsigned long long int)e2ep->e2e_last_packet_received_this_run);// Time that the last packet was received by the destination from the source
     fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_sr_time=%lld\n",(unsigned long long int)e2ep->e2e_sr_time);             // Time spent sending or receiving data for End-to-End operation
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_address_table_host_count=%d\n",e2ep->e2e_address_table_host_count);    // Cumulative number of hosts represented in the e2e address table
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_address_table_port_count=%d\n",e2ep->e2e_address_table_port_count);    // Cumulative number of ports represented in the e2e address table

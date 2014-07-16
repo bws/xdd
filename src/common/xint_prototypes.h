@@ -57,13 +57,7 @@ int32_t xdd_e2e_eof_source_side(worker_data_t *wdp);
 int32_t	xdd_e2e_target_init(target_data_t *tdp);
 int32_t	xdd_e2e_worker_init(worker_data_t *wdp);
 int32_t	xdd_e2e_src_init(worker_data_t *wdp);
-int32_t	xdd_e2e_setup_src_socket(worker_data_t *wdp);
 int32_t	xdd_e2e_dest_init(worker_data_t *wdp);
-int32_t	xdd_e2e_setup_dest_socket(worker_data_t *wdp);
-void	xdd_e2e_set_socket_opts(worker_data_t *wdp, int skt);
-void	xdd_e2e_prt_socket_opts(int skt);
-void	xdd_e2e_err(worker_data_t *wdp, char const *whence, char const *fmt, ...);
-int32_t	xdd_sockets_init(void);
 
 // global_clock.c
 in_addr_t xdd_init_global_clock_network(char *hostname);

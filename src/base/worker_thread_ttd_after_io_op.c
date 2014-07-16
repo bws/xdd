@@ -234,7 +234,6 @@ if (xgp->global_options & GO_DEBUG_E2E) xdd_show_task(&wdp->wd_task);
 		// Release the current target buffer to XNI
 		xni_release_target_buffer(&wdp->wd_e2ep->xni_wd_buf);
 		wdp->wd_task.task_datap = NULL;
-		wdp->wd_e2ep->e2e_datap = NULL;
 	}
 
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_after_io_op: Target: %d: Worker: %d: EXIT...\n", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);

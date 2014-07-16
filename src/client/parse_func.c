@@ -1243,8 +1243,6 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	    	tdp->td_target_options |= TO_ENDTOEND;
 	    	source_path  = argv[args_index+1];
 	    	source_mtime = atoll(argv[args_index+2]);
-	    	tdp->td_e2ep->e2e_src_file_path  = source_path;
-	    	tdp->td_e2ep->e2e_src_file_mtime = source_mtime;
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
 				tdp = planp->target_datap[0];
@@ -1253,8 +1251,6 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		    	source_mtime = atoll(argv[args_index+2]);
 		    	while (tdp) {
 					tdp->td_target_options |= TO_ENDTOEND;
-					tdp->td_e2ep->e2e_src_file_path  = source_path;
-					tdp->td_e2ep->e2e_src_file_mtime = source_mtime;
 					i++;
 					tdp = planp->target_datap[i];
 		    	}

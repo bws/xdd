@@ -28,9 +28,6 @@ xdd_e2e_eof_source_side(worker_data_t *wdp) {
 	tdp = wdp->wd_tdp;
 	e2ep = wdp->wd_e2ep;
 
-	e2ep->e2e_header_size = 0;
-	e2ep->e2e_xfer_size = e2ep->e2e_header_size;
-
 if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_eof_source_side: Target %d Worker: %d: ENTER: \n", (long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number);
 
     /* If this is XNI, just short circuit */

@@ -146,7 +146,7 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 	tdp = wdp->wd_tdp;
 	e2ep = wdp->wd_e2ep;
 	
-	de2eprintf("DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: ENTER: e2ep=%p: e2e_datap=%p\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep, e2ep->e2e_datap);
+	de2eprintf("DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: ENTER: e2ep=%p\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep);
 
     /* Some timestamp code */
 	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
@@ -161,9 +161,8 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 										wdp->wd_e2ep->xni_wd_buf);
 	xni_target_buffer_set_data_length(wdp->wd_task.task_xfer_size,
 									  wdp->wd_e2ep->xni_wd_buf);
-	e2ep->e2e_xfer_size = wdp->wd_task.task_xfer_size;
 
-	de2eprintf("DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: Preparing to send %d bytes: e2ep=%p: e2e_datap=%p: e2e_xfer_size=%d: e2eh_data_length=%lld\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep->e2e_xfer_size,e2ep,e2ep->e2e_datap,e2ep->e2e_xfer_size,(long long int)xni_target_buffer_data_length(wdp->wd_e2ep->xni_wd_buf));
+	de2eprintf("DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: Preparing to send: e2ep=%p: e2eh_data_length=%lld\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number,e2ep,(long long int)xni_target_buffer_data_length(wdp->wd_e2ep->xni_wd_buf));
 
 	nclk_now(&wdp->wd_counters.tc_current_net_start_time);
 
@@ -174,14 +173,13 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 
 	// Keep a pointer to the data portion of the buffer
 	wdp->wd_task.task_datap = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
-	wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
 
 	nclk_now(&wdp->wd_counters.tc_current_net_end_time);
 	
 	// Time stamp if requested
 	if (tdp->td_ts_table.ts_options & (TS_ON | TS_TRIGGERED)) {
 		ttep = &tdp->td_ts_table.ts_hdrp->tsh_tte[wdp->wd_ts_entry];
-		ttep->tte_net_xfer_size = e2ep->e2e_xfer_size;
+		ttep->tte_net_xfer_size = xni_target_buffer_data_length(e2ep->xni_wd_buf);
 		ttep->tte_net_start = wdp->wd_counters.tc_current_net_start_time;
 		ttep->tte_net_end = wdp->wd_counters.tc_current_net_end_time;
 		ttep->tte_net_processor_end = xdd_get_processor();
@@ -190,11 +188,6 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 	
 	// Calculate the Send/Receive time by the time it took the last sendto() to run
 	e2ep->e2e_sr_time = (wdp->wd_counters.tc_current_net_end_time - wdp->wd_counters.tc_current_net_start_time);
-
-	//if (bytes_sent != e2ep->e2e_xfer_size) {
-	//	xdd_e2e_err(wdp,"xdd_e2e_src_send","ERROR: could not send header+data from e2e source\n");
-	//	return(-1);
-	//}
 
 	de2eprintf("DEBUG_E2E: %lld: xdd_e2e_src_send: Target: %d: Worker: %d: EXIT...\n",(long long int)pclk_now(),tdp->td_target_number, wdp->wd_worker_number);
 
@@ -231,20 +224,14 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 	if (XNI_OK == status) {
 		/* Assemble pointers into the worker's target buffer */
 		wdp->wd_task.task_datap = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
-		wdp->wd_e2ep->e2e_datap = wdp->wd_task.task_datap;
 	}
 	else if (XNI_EOF == status) {
 		wdp->wd_task.task_datap = NULL;
-		wdp->wd_e2ep->e2e_datap = NULL;
 		wdp->wd_e2ep->received_eof = TRUE;
 	} else {
 		fprintf(xgp->errout, "Error receiving data via XNI.");
 		return -1;
 	}
-
-	//de2eprintf("DEBUG_E2E: %lld: xdd_e2e_dest_recv: Target: %d: Worker: %d: Preparing to send %d bytes: e2ep=%p: e2ehp=%p: e2e_datap=%p: e2e_xfer_size=%d: e2eh_data_length=%lld\n",(long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number, e2ep->e2e_xfer_size,e2ep,e2ehp,e2ep->e2e_datap,e2ep->e2e_xfer_size,(long long int)e2ehp->e2eh_data_length);
-	//xgp->global_options |= GO_DEBUG_E2E;
-	//if (xgp->global_options & GO_DEBUG_E2E) xdd_show_e2e_header(wdp->wd_e2ep->e2e_hdrp);
 
 	/* Local aliases */
 	e2ep = wdp->wd_e2ep;
@@ -262,7 +249,7 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 		ttep->tte_net_start = wdp->wd_counters.tc_current_net_start_time;
 		ttep->tte_net_end = wdp->wd_counters.tc_current_net_end_time;
 		ttep->tte_net_processor_end = xdd_get_processor();
-		ttep->tte_net_xfer_size = e2ep->e2e_recv_status;
+		ttep->tte_net_xfer_size = xni_target_buffer_data_length(e2ep->xni_wd_buf);
 		ttep->tte_byte_offset = xni_target_buffer_target_offset(e2ep->xni_wd_buf);
 		ttep->tte_disk_xfer_size = xni_target_buffer_data_length(e2ep->xni_wd_buf);
 		ttep->tte_op_number = xni_target_buffer_sequence_number(e2ep->xni_wd_buf);
