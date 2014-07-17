@@ -76,13 +76,6 @@ int32_t xint_e2e_src_connect(target_data_t *tdp) {
 	return rc;
 }
 
-int32_t xint_e2e_src_disconnect(target_data_t *tdp) {
-
-	/* Perform XNI disconnect */
-	int rc = xni_close_connection(&tdp->td_e2ep->xni_td_conn);
-	return rc;
-}
-
 int32_t xint_e2e_dest_connect(target_data_t *tdp) {
 
 	int rc = 0;
@@ -114,11 +107,21 @@ int32_t xint_e2e_dest_connect(target_data_t *tdp) {
 	return rc;
 }
 
-int32_t xint_e2e_dest_disconnect(target_data_t *tdp) {
-
-	/* Perform XNI disconnect */
+/*
+ * xint_e2e_disconnect() - close connections and free resources
+ *  This function will close all connections associated with the given
+ *  target.
+ *
+ *  Returns 0 on success, -1 on failure
+ */
+int32_t
+xint_e2e_disconnect(target_data_t *tdp)
+{
+	//TODO: handle errors
 	int rc = xni_close_connection(&tdp->td_e2ep->xni_td_conn);
-	return rc;
+	assert(XNI_OK == rc);
+
+	return 0;
 }
 
 /*

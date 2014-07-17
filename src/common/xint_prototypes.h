@@ -384,6 +384,7 @@ xint_e2e_t *xint_get_e2ep(void);
 // xnet_end_to_end.c
 int32_t xint_e2e_dest_connect(target_data_t *tdp);
 int32_t xint_e2e_src_connect(target_data_t *tdp);
+int32_t xint_e2e_disconnect(target_data_t *tdp);
 int32_t xint_e2e_xni_send(worker_data_t *wdp);
 int32_t xint_e2e_eof_source_side(worker_data_t *wdp);
 int32_t xint_e2e_xni_recv(worker_data_t *wdp);
