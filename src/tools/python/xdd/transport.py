@@ -93,11 +93,12 @@ class FlowBuilderTransport:
     """
     Paramiko client that creates a FlowBuilderServer
     """
-    def __init__(self, host, user=None):
+    def __init__(self, host, hostname, user=None):
         """Constructor"""
         # Start the remote service
-        (ssh, uri) = self.createRemoteServer(host, user)
+        (ssh, uri) = self.createRemoteServer(host, hostname, user)
         self.host = host
+        self.hostname = hostname
         self.user = user
         self.ssh = ssh
         self.remoteURI = uri
@@ -118,7 +119,7 @@ class FlowBuilderTransport:
         self.localURI = fields[0] + ':' + str(self.localPort)
 
         # Use the tunnel to retrieve the flow builder proxy
-        #print("URI: >", self.localURI, "<", sep='')
+        #print("LOCAL URI: >", self.localURI, "<", sep='')
         flowBuilder = Pyro4.Proxy(self.localURI)
         self.flowBuilder = flowBuilder
 
@@ -142,7 +143,7 @@ class FlowBuilderTransport:
         self.forwardingThread.join()
         self.ssh.close()
 
-    def createRemoteServer(self, host, user):
+    def createRemoteServer(self, host, hostname, user):
         """"Create the remote pyro server using paramiko"""
         #print('Creating remote XDD flow server on', host)
         uri = None
@@ -156,7 +157,7 @@ class FlowBuilderTransport:
             import sys
             # Now give the user 2 tries with their password
             for i in range(0, 2):
-                print(getpass.getuser(), '@', host, ' ', sep='', end='')
+                print(getpass.getuser(), '@', hostname, ' ', sep='', end='')
                 sys.stdout.flush()
                 pw = getpass.getpass()
                 try:
@@ -171,13 +172,13 @@ class FlowBuilderTransport:
                     print(e)
                     raise FlowBuilderTransportError()
         except paramiko.BadHostKeyException:
-            print('Bad host key:', host)
+            print('Bad host key:', hostname, ' [', host, ']')
             raise FlowBuilderTransportError()
         except socket.gaierror:
-            print('Unknown host/address:', host)
+            print('Unknown host/address:', hostname, ' [', host, ']')
             raise FlowBuilderTransportError()
         except:
-            print('Unknown SSH error connecting to', host)
+            print('Unknown SSH error connecting to', hostname, ' [', host, ']')
             import sys
             e = sys.exc_info()[0]
             print(e)
@@ -203,9 +204,9 @@ class FlowBuilderTransport:
                 print("Error: Unable to start remote XDD flow server:", 
                       channel.recv_exit_status)
                 for line in stdout:
-                    print(host, "stdout:", line)
+                    print(hostname, "stdout:", line)
                 for line in stderr:
-                    print(host, "stderr", line)
+                    print(hostname, "stderr", line)
             else:
                 # Read stdout to find the delimited URI
                 uri = None
@@ -229,11 +230,11 @@ class FlowBuilderTransport:
                 if None == uri:
                     print("ERROR: XDD flow server terminated prematurely")
                     for line in stdout:
-                        print(host, "stderr", line)
+                        print(hostname, "stderr", line)
                     raise FlowBuilderTransportError()
                 
         except paramiko.SSHException, e:
-            print('SSH Exception', host, e)
+            print('SSH Exception', hostname, ' [', host, ']', e)
             raise FlowBuilderTransportError()
 
         # Return the SSH session and URI
@@ -259,7 +260,6 @@ class FlowBuilderTransport:
 
         # Retrieve the local port for the forwarding server
         (host,port) = forwardServer.server_address
-
         return (forwardServer, forwardThread, port)
 
     

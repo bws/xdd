@@ -132,8 +132,8 @@ class XDDFlowStatus(FlowStatus):
 
     def errorString(self):
         """@return string describing error"""
-	if self.errorData:
-            return self.erroDatar
+        if self.errorData:
+            return self.errorData
         return 'Unable to connect xdd processes. Ensure ports are free.'
 
     def output(self, flush=False):
@@ -193,7 +193,7 @@ class XDDFlowStatus(FlowStatus):
 
         # Split the last line, and update the heartbeat byte if it exists
         sl = last.split(',')
-
+        
         # Sometimes XDD gives an alternate WAITING format, if we verify that
         # the first field is Pass and the 5th field begins with B, 
         # then the bytes are in the 4th field
@@ -497,8 +497,8 @@ class Flow():
         # Add on all of the standard output stuff
         cmd.extend(['-verbose', '-minall', '-stoponerror'])
 
-        # Add the heartbeat for sources
-        if not self.isSink:
+        # Add the heartbeat for sink
+        if self.isSink:
             cmd.extend(['-hb', '1', '-hb', 'bytes', '-hb', 'lf'])
 
         return cmd

@@ -177,6 +177,7 @@ def createTransferManager(src, dest, opts, logfilename):
     destHost = None
     if not destTuples:
         destHost = 'localhost'
+        hostname = 'localhost'
     else:
         (user, hostname) = destTuples[0]
         # Convert to IP to avoid DNS round-robin issues
@@ -188,13 +189,12 @@ def createTransferManager(src, dest, opts, logfilename):
             except socket.gaierror:
                 e = CreateTransferManagerError("Cannot resolve " + hostname)
                 raise e
-        
-    transferMgr.addSink(destUser, destHost, sinkThreads, [], opts.port)
+
+    transferMgr.addSink(destUser, destHost, hostname, sinkThreads, [], opts.port)
 
     # Add the source hosts
     if not sourceTuples:
-        transferMgr.addSource(None, 'localhost', 
-                              opts.threads, [destHost], opts.port)
+        transferMgr.addSource(None, 'localhost', 'localhost', opts.threads, [destHost], opts.port)
     else:
         for s in sourceTuples:
             (user, host) = s
@@ -207,8 +207,8 @@ def createTransferManager(src, dest, opts, logfilename):
                 except socket.gaierror:
                     e = CreateTransferManagerError("Cannot resolve " + host)
                     raise e
-            transferMgr.addSource(user, srcHost, opts.threads, 
-                                  [destHost], opts.port)
+
+            transferMgr.addSource(user, srcHost, host, opts.threads, [destHost], opts.port)
 
     return transferMgr
 

@@ -95,19 +95,20 @@ class EndpointFactory:
     def buildEndpoint(self, flowSpec):
         """Create an individual endpoint"""
         b = None
+        hostIP = flowSpec['ip']
         hostname = flowSpec['hostname']
-        if 'localhost' == hostname:
+        if 'localhost' == hostIP:
             b = FlowBuilder()
         else:
             # Build a remote transport
             try:
-                trans = FlowBuilderTransport(hostname)
+                trans = FlowBuilderTransport(hostIP, hostname)
             except FlowBuilderTransportError:
                 raise EndpointCreationError()
 
             # Extract the flow builder proxy from the transport
             b = trans.getFlowBuilder()
-            self.remoteTransports[hostname] = trans
+            self.remoteTransports[hostIP] = trans
         return b
 
     def createIfaceList(self, flowSpec):

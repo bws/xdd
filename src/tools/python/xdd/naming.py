@@ -83,10 +83,10 @@ class PosixNamingStrategy(NamingStrategy):
             # Build the target name
             if targetIsDir:
                 base = os.path.basename(source)
-                tname = os.path.join(tname, base)
+                tname = os.path.join(target, base)
             else:
                 tname = target
-            outSymlinks = [(value, tname)]
+            outSymlinks = [(source, tname, value)]
         elif os.path.isdir(source) and (targetIsDir or not targetExists):
             # Determine if the source has a trailing slash
             (_, stail) = os.path.split(source)

@@ -9,6 +9,7 @@ contrib/ecdsa-0.11.tar.gz
 contrib/pycrypto-2.6.1.tar.gz
 contrib/pycrypto
 contrib/ecdsa
+contrib/mpil
 contrib/paramiko
 contrib/Pyro4
 contrib/serpent
