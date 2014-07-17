@@ -148,7 +148,7 @@ xint_target_init(target_data_t *tdp) {
 	
 	// Special setup for an End-to-End operation
 	if (xint_is_e2e(tdp)) {
-		status = xdd_e2e_target_init(tdp);
+		status = xint_e2e_target_init(tdp);
 		if (status)
 			return(-1);
 	}

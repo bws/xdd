@@ -195,6 +195,31 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 
 } /* end of xdd_e2e_src_send() */
 
+/*----------------------------------------------------------------------*/
+/* xint_e2e_eof_source_side() - End-Of-File processing for Source 
+ * Return values: 0 is good, -1 is bad
+ */
+int32_t
+xint_e2e_eof_source_side(worker_data_t *wdp) {
+	target_data_t		*tdp;
+	xint_e2e_t			*e2ep;			// Pointer to the E2E struct for this worker
+
+	tdp = wdp->wd_tdp;
+	e2ep = wdp->wd_e2ep;
+
+if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_eof_source_side: Target %d Worker: %d: ENTER: \n", (long long int)pclk_now(), tdp->td_target_number, wdp->wd_worker_number);
+
+    /* If this is XNI, just short circuit */
+    if (PLAN_ENABLE_XNI & tdp->td_planp->plan_options) {
+		e2ep->e2e_send_status = 0;
+		e2ep->e2e_sr_time = 0;
+		return 0;
+	}
+
+	// we only support XNI now
+	return -1;
+} /* end of xdd_e2e_eof_source_side() */
+
 /*
  * xint_e2e_xni_recv() - recv the data from source at destination 
  *

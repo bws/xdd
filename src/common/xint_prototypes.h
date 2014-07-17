@@ -50,15 +50,6 @@ void 	xdd_show_ts_table(xint_timestamp_t *ts_tablep, int target_number);
 void 	xdd_show_ts_header(xdd_ts_header_t *ts_hdrp, int target_number);
 void    xdd_show_results_data(results_t *rp, char *dumptype, xdd_plan_t *planp);
 
-// end_to_end.c
-int32_t xdd_e2e_eof_source_side(worker_data_t *wdp);
-
-// end_to_end_init.c
-int32_t	xdd_e2e_target_init(target_data_t *tdp);
-int32_t	xdd_e2e_worker_init(worker_data_t *wdp);
-int32_t	xdd_e2e_src_init(worker_data_t *wdp);
-int32_t	xdd_e2e_dest_init(worker_data_t *wdp);
-
 // global_clock.c
 in_addr_t xdd_init_global_clock_network(char *hostname);
 void	xdd_init_global_clock(nclk_t *nclkp);
@@ -142,7 +133,6 @@ int 					xdd_parse_target_number(xdd_plan_t* planp, int32_t argc, char *argv[], 
 target_data_t 		*xdd_get_target_datap(xdd_plan_t* planp, int32_t target_number, char *op);
 xint_restart_t 			*xdd_get_restartp(target_data_t *tdp);
 xint_raw_t				*xdd_get_rawp(target_data_t *tdp);
-xint_e2e_t 				*xdd_get_e2ep(void);
 xint_throttle_t 		*xdd_get_throtp(target_data_t *tdp);
 xint_triggers_t 		*xdd_get_trigp(target_data_t *tdp);
 xint_extended_stats_t 	*xdd_get_esp(target_data_t *tdp);
@@ -387,12 +377,18 @@ void	xdd_start_restart_monitor(xdd_plan_t *planp);
 void	xdd_start_interactive(xdd_plan_t *planp);
 
 // xnet_end_to_end_init.c
+int32_t	xint_e2e_target_init(target_data_t *tdp);
 int32_t xint_e2e_xni_init(target_data_t *tdp);
+int32_t	xint_e2e_worker_init(worker_data_t *wdp);
+int32_t	xint_e2e_src_init(worker_data_t *wdp);
+int32_t	xint_e2e_dest_init(worker_data_t *wdp);
+xint_e2e_t *xint_get_e2ep(void);
 
 // xnet_end_to_end.c
 int32_t xint_e2e_dest_connect(target_data_t *tdp);
 int32_t xint_e2e_src_connect(target_data_t *tdp);
 int32_t xint_e2e_xni_send(worker_data_t *wdp);
+int32_t xint_e2e_eof_source_side(worker_data_t *wdp);
 int32_t xint_e2e_xni_recv(worker_data_t *wdp);
 int xint_is_e2e(const target_data_t *tdp);
 #endif

@@ -840,7 +840,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
     	tdp = xdd_get_target_datap(planp, target_number, argv[0]);
 	   	if (tdp == NULL) return(-1);
 		if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
-	    	tdp->td_e2ep = xdd_get_e2ep();
+	    	tdp->td_e2ep = xint_get_e2ep();
 			if (NULL == tdp->td_e2ep) {
 	    		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct END TO END Data Structure for target %d\n",
 		    		xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
@@ -852,7 +852,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		i = 0;
 		while (tdp) {
 			if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
-	    		tdp->td_e2ep = xdd_get_e2ep();
+	    		tdp->td_e2ep = xint_get_e2ep();
 				if (NULL == tdp->td_e2ep) {
 	    			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct END TO END Data Structure for target %d\n",
 		    			xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);
@@ -3166,7 +3166,7 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			if (rp == NULL) return(-1);
 			
 	    	if (NULL == tdp->td_e2ep) // If there is no e2e struct, then allocate one
-				tdp->td_e2ep = xdd_get_e2ep();
+				tdp->td_e2ep = xint_get_e2ep();
 	    	if (tdp->td_e2ep == NULL) // If there is still no e2e struct then return -1
 				return(-1);
 
@@ -3188,7 +3188,7 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 					if (rp == NULL) return(-1);
 			
 	    			if (NULL == tdp->td_e2ep) // If there is no e2e struct, then allocate one
-						tdp->td_e2ep = xdd_get_e2ep();
+						tdp->td_e2ep = xint_get_e2ep();
 	    			if (tdp->td_e2ep == NULL) // If there is still no e2e struct then return -1
 						return(-1);
 

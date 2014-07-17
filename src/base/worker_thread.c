@@ -76,8 +76,8 @@ xdd_worker_thread(void *pin) {
 				xdd_worker_thread_cleanup(wdp);
 				return(0);
 			case TASK_REQ_EOF:
-				// E2E Source Side only - send EOF packets to Destination 
-				status = xdd_e2e_eof_source_side(wdp);
+				// E2E Source Side only
+				status = xint_e2e_eof_source_side(wdp);
 				if (status) // Only set the status in the Target Data Struct if it is non-zero
 					tdp->td_counters.tc_current_io_status = status;
 				break;

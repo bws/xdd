@@ -240,7 +240,7 @@ int local_target_init(target_data_t *tdp,
 	// Setup a data pattern and e2e buffer before initialization
 	tdp->td_dpp = malloc(sizeof(*tdp->td_dpp));
 	xdd_data_pattern_init(tdp->td_dpp);
-	tdp->td_e2ep = xdd_get_e2ep();
+	tdp->td_e2ep = xint_get_e2ep();
 	
 	// Now initialize the target data
 	xdd_init_new_target_data(tdp, target_idx);
