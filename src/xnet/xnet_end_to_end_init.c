@@ -36,6 +36,12 @@
 #include "xni.h"
 
 
+// forward declarations
+static int init_xni(target_data_t*);
+static int init_src_worker(worker_data_t*);
+static int init_dest_worker(worker_data_t*);
+
+
 /*----------------------------------------------------------------------*/
 /* xint_e2e_target_init() - init target structure for E2E
  * This routine is called during target initialization to initialize the
@@ -50,7 +56,7 @@ xint_e2e_target_init(target_data_t *tdp) {
 	int status;
 
 	// Perform XNI initialization if required
-	status = xint_e2e_xni_init(tdp);
+	status = init_xni(tdp);
 	if (status == -1) {
 		fprintf(xgp->errout,"%s: xint_e2e_target_init: could not initialize XNI for e2e target\n",xgp->progname);
 		return(-1);
@@ -67,15 +73,9 @@ xint_e2e_target_init(target_data_t *tdp) {
 	return(0);
 }
 
-/*----------------------------------------------------------------------*/
-/* xint_e2e_xni_init() - init network library
- * This routine is called during target initialization to initialize the
- * network library.
- *
- * Return values: 0 is good, -1 is bad
- *
- */
-int32_t xint_e2e_xni_init(target_data_t *tdp) {
+static int
+init_xni(target_data_t *tdp)
+{
 	int rc = 0;
 	/* Create the XNI control block */
 	size_t num_threads = tdp->td_planp->number_of_iothreads;
@@ -141,9 +141,9 @@ xint_e2e_worker_init(worker_data_t *wdp) {
 	wdp->wd_e2ep->e2e_dest_addr = ntohl(addr);
 
 	if (tdp->td_target_options & TO_E2E_DESTINATION) { // This is the Destination side of an End-to-End
-		status = xint_e2e_dest_init(wdp);
+		status = init_dest_worker(wdp);
 	} else if (tdp->td_target_options & TO_E2E_SOURCE) { // This is the Source side of an End-to-End
-		status = xint_e2e_src_init(wdp);
+		status = init_src_worker(wdp);
 	} else { // Should never reach this point
 		status = -1;
 	}
@@ -151,17 +151,9 @@ xint_e2e_worker_init(worker_data_t *wdp) {
 	return status;
 } // xint_e2e_worker_init()
 
-/*----------------------------------------------------------------------*/
-/* xint_e2e_src_init() - init the source side 
- * This routine is called from the xdd io thread before all the action 
- * starts. When calling this routine, it is because this thread is on the
- * "source" side of an End-to-End transfer.
- *
- * Return values: 0 is good, -1 is bad
- *
- */
-int32_t
-xint_e2e_src_init(worker_data_t *wdp) {
+static int
+init_src_worker(worker_data_t *wdp)
+{
 	target_data_t	*tdp;
 	xint_e2e_t		*e2ep;		// Pointer to the E2E data struct
 
@@ -185,19 +177,11 @@ xint_e2e_src_init(worker_data_t *wdp) {
 
 	return(0);
 
-} /* end of xdd_e2e_src_init() */
+}
 
-/*----------------------------------------------------------------------*/
-/* xint_e2e_dest_init() - init the destination side 
- * This routine is called by a Worker Thread on the "destination" side of an
- * end_to_end operation and is passed a pointer to the Data Struct of the 
- * requesting Worker Thread.
- *
- * Return values: 0 is good, -1 is bad
- *
- */
-int32_t
-xint_e2e_dest_init(worker_data_t *wdp) {
+static int
+init_dest_worker(worker_data_t *wdp)
+{
 	target_data_t	*tdp;
 
 
@@ -221,7 +205,7 @@ xint_e2e_dest_init(worker_data_t *wdp) {
 
 	return(0);
 
-} /* end of xdd_e2e_dest_init() */
+}
 
 /*----------------------------------------------------------------------------*/
 /* xint_get_e2ep() - allocate a new E2E Data Structure 

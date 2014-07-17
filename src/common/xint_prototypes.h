@@ -378,10 +378,7 @@ void	xdd_start_interactive(xdd_plan_t *planp);
 
 // xnet_end_to_end_init.c
 int32_t	xint_e2e_target_init(target_data_t *tdp);
-int32_t xint_e2e_xni_init(target_data_t *tdp);
 int32_t	xint_e2e_worker_init(worker_data_t *wdp);
-int32_t	xint_e2e_src_init(worker_data_t *wdp);
-int32_t	xint_e2e_dest_init(worker_data_t *wdp);
 xint_e2e_t *xint_get_e2ep(void);
 
 // xnet_end_to_end.c
