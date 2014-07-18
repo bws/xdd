@@ -7,8 +7,8 @@
 #
 XDDTEST_XDD_PATH=../bin
 XDDTEST_XDD_EXE=../bin/xdd
-XDDTEST_XDDCP_EXE=../contrib/xddcp
-XDDTEST_XDDFT_EXE=../contrib/xddft
+XDDTEST_XDDCP_EXE=../src/tools/xddcp/xddcp
+XDDTEST_XDDFT_EXE=../src/tools/xddft/xddft
 XDDTEST_XDD_GETFILESIZE_EXE=../bin/xdd-getfilesize
 XDDTEST_XDD_GETHOSTIP_EXE=../bin/xdd-gethostip
 XDDTEST_XDD_TRUNCATE_EXE=../bin/xdd-truncate

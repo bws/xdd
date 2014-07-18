@@ -64,64 +64,23 @@ def loadConfig(config):
     # Compile the code
     xdd_factory.addStep(Compile(description=["compiling"]))
 
-    # Test basic XDD CLI arguments
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_createnewfiles.sh'], name="test_xdd_createnewfiles.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_createnewfiles2.sh'], name="test_xdd_createnewfiles2.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_timelimit.sh'], name="test_xdd_timelimit.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_passdelay.sh'], name="test_xdd_passdelay.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_startdelay.sh'], name="test_xdd_startdelay.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_startoffset.sh'], name="test_xdd_startoffset.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_syncwrite.sh'], name="test_xdd_syncwrite.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_reopen.sh'], name="test_xdd_reopen.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_preallocate.sh'], name="test_xdd_preallocate.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_pretruncate.sh'], name="test_xdd_pretruncate.sh"))
-    
-    # Test XDD lockstep
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_lockstep1.sh'], name="test_xdd_lockstep1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd_lockstep2.sh'], name="test_xdd_lockstep2.sh"))
+    # Install the code
+    xdd_factory.addStep(ShellCommand(command=['make install'], name="make install"))
 
-    # Test the XDD utilitites
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd-gethostip1.sh'], name="test_gethostip1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['./tests/acceptance/test_xdd-truncate1.sh'], name="test_truncate1.sh"))
+    # Perform make check
+    xdd_factory.addStep(ShellCommand(command=['make check'], name="make check"))
 
-    # Test XDDCP capabilities
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp1.sh'], description=["XDDCP Test 1"], maxTime=1200, name="test_xddcp1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp2.sh'], description=["XDDCP Test 2"], maxTime=1200, name="test_xddcp2.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp3.sh'], description=["XDDCP Test 3"], maxTime=1200, name="test_xddcp3.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp4.sh'], description=["XDDCP Test 4"], maxTime=1200, name="test_xddcp4.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp5.sh'], description=["XDDCP Test 5"], maxTime=1200, name="test_xddcp5.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp6.sh'], description=["XDDCP Test 6"], maxTime=1200, name="test_xddcp6.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp7.sh'], description=["XDDCP Test 7"], maxTime=1200, name="test_xddcp7.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp8.sh'], description=["XDDCP Test 8"], maxTime=1200, name="test_xddcp8.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp9.sh'], description=["XDDCP Test 9"], maxTime=1200, name="test_xddcp9.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp10.sh'], description=["XDDCP Test 10"], maxTime=1200, name="test_xddcp10.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp11.sh'], description=["XDDCP Test 11"], maxTime=1200, name="test_xddcp11.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp12.sh'], description=["XDDCP Test 12"], maxTime=1200, name="test_xddcp12.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp13.sh'], description=["XDDCP Test 13"], maxTime=1200, name="test_xddcp13.sh"))
-
-    # Test XDDCP recursive capabilities
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_recursive1.sh'], description=["Recursive Test 1"], maxTime=1200, name="test_xddcp_recursive1.sh"))
-
-    # Test XDDCP restart capabilities
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_restart1.sh'], description=["Restart Test 1"], maxTime=1200, name="test_xddcp_restart1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_restart2.sh'], description=["Restart Test 2"], maxTime=1200, name="test_xddcp_restart2.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_restart3.sh'], description=["Restart Test 3"], maxTime=1200, name="test_xddcp_restart3.sh"))
-
-    # Test XDDCP MultiNIC capabilities
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic1.sh'], description=["MultiNIC Test 1"], maxTime=1200, name="test_xddcp_multinic1.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic2.sh'], description=["MultiNIC Test 2"], maxTime=1200, name="test_xddcp-multinic2.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic3.sh'], description=["MultiNIC Test 3"], maxTime=1200, name="test_xddcp-multinic3.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic4.sh'], description=["MultiNIC Test 4"], maxTime=1200, name="test_xddcp-multinic4.sh"))
-    xdd_factory.addStep(ShellCommand(command=['bash', '-x','./tests/acceptance/test_xddcp_multinic5.sh'], description=["MultiNIC Test 5"], maxTime=1200, name="test_xddcp-multinic5.sh"))
+    # Perform make test
+    xdd_factory.addStep(Test(description=["make test"]))
 
     # Add the XDD Build factory to each of the available builders described in the master.cfg
     from buildbot.config import BuilderConfig
-    config['builders'].append(BuilderConfig(name="xdd-rhel5-x86_64", slavenames=["pod7"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+#    config['builders'].append(BuilderConfig(name="xdd-rhel5-x86_64", slavenames=["pod7"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
 #    config['builders'].append(BuilderConfig(name="xdd-rhel6-x86_64", slavenames=["pod9"], factory=xdd_factory,  env={"XDDTEST_TIMEOUT": "900"},category='xdd'))
-    config['builders'].append(BuilderConfig(name="xdd-sles10-x86_64", slavenames=["pod10"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+#    config['builders'].append(BuilderConfig(name="xdd-sles10-x86_64", slavenames=["pod10"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-sles11-x86_64", slavenames=["pod11"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
     config['builders'].append(BuilderConfig(name="xdd-osx-10-8", slavenames=["natureboy"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
-    config['builders'].append(BuilderConfig(name="xdd-rhel6-ppc64", slavenames=["spry02"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
+#    config['builders'].append(BuilderConfig(name="xdd-rhel6-ppc64", slavenames=["spry02"], factory=xdd_factory, env={"XDDTEST_TIMEOUT": "900"}, category='xdd'))
 
     ####### SCHEDULERS
     # Configure the Schedulers, which decide how to react to incoming changes.  In this
@@ -133,28 +92,26 @@ def loadConfig(config):
     build_nightly_xdd=Nightly(name="xdd-nightly1", 
                               branch = "master",
                               properties={'owner' : ['durmstrang-io@email.ornl.gov']}, 
-                              builderNames=["xdd-rhel5-x86_64", #"xdd-rhel6-x86_64", 
-                                            "xdd-sles11-x86_64", "xdd-sles10-x86_64", 
-                                            "xdd-osx-10-8"],
+                              builderNames=["xdd-sles11-x86_64", "xdd-osx-10-8"],
                               hour = 2,
                               minute = 3)
     config['schedulers'].append(build_nightly_xdd)
 
     # Configure each force build seperately so that they live in differing buildsets
     from buildbot.schedulers.forcesched import ForceScheduler
-    config['schedulers'].append(ForceScheduler(name="xdd-force1", builderNames=["xdd-rhel5-x86_64"]))
+#    config['schedulers'].append(ForceScheduler(name="xdd-force1", builderNames=["xdd-rhel5-x86_64"]))
 #    config['schedulers'].append(ForceScheduler(name="xdd-force2", builderNames=["xdd-rhel6-x86_64"]))
-    config['schedulers'].append(ForceScheduler(name="xdd-force3", builderNames=["xdd-sles10-x86_64"]))
+#    config['schedulers'].append(ForceScheduler(name="xdd-force3", builderNames=["xdd-sles10-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force4", builderNames=["xdd-sles11-x86_64"]))
     config['schedulers'].append(ForceScheduler(name="xdd-force6", builderNames=["xdd-osx-10-8"]))
-    config['schedulers'].append(ForceScheduler(name="xdd-force7", builderNames=["xdd-rhel6-ppc64"]))
+#    config['schedulers'].append(ForceScheduler(name="xdd-force7", builderNames=["xdd-rhel6-ppc64"]))
 
     ####### STATUS TARGETS
     # 'status' is a list of Status Targets. The results of each build will be
     # pushed to these targets. buildbot/status/*.py has a variety to choose from,
     # including web pages, email senders, and IRC bots.
     from buildbot.status.mail import MailNotifier
-    xddMN = MailNotifier(fromaddr="xdd-testing@ornl.gov", 
+    xddMN = MailNotifier(fromaddr="durmstrang-io@email.ornl.gov", 
                          extraRecipients=['durmstrang-io@email.ornl.gov'],
                          categories='xdd', 
                          buildSetSummary=True, 

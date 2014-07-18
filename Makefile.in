@@ -48,6 +48,7 @@ PYCRYPTO_DIST := @PYCRYPTO_DIST@
 #
 SHELL =	/bin/sh
 OS = $(shell uname)
+HOST = $(shell hostname)
 
 #
 # Source locations
@@ -67,6 +68,7 @@ FS_DIR = $(SRC_DIR)/fs
 NET_DIR = $(SRC_DIR)/net
 XNET_DIR = $(SRC_DIR)/xnet
 PUBLIC_DIR = $(SRC_DIR)/public
+TESTS_DIR = $(SRC_DIR)/tests
 TOOLS_DIR = $(SRC_DIR)/tools
 TOOLS_PYTHON_DIR = $(SRC_DIR)/tools/python
 TOOLS_UTILS_DIR = $(SRC_DIR)/tools/utils
@@ -342,15 +344,13 @@ TAGS: $(XDD_SRC)
 	@$(ETAGS) $^
 
 #
-# Build other tests
+# Build and run unit tests
 #
 bin/basic-ib-test: tests/other/xni/basic-ib-test.c $(LIB_DIR)/libxdd.a
 	$(CC) $(CPPFLAGS) $(CFLAGS) -L$(LIB_DIR) $< -lxdd $(LIBS) -o $@
 
 bin/basic-xni-test: tests/other/xni/basic-xni-test.c $(LIB_DIR)/libxdd.a
 	$(CC) $(CPPFLAGS) $(CFLAGS) -L$(LIB_DIR) $< -lxdd $(LIBS) -o $@
-
-test: contrib/mpil bin/basic-xni-test
 
 check_xni: bin/basic-xni-test bin/basic-ib-test
 	@# This should somehow run all xni tests
@@ -369,7 +369,23 @@ check_tools: contrib xdd
 check: check_tools check_xni
 	@# This should somehow run all of the tests.
 
-.PHONY: test check check_tools check_xni
+.PHONY: check check_tools check_xni
+
+#
+# Build and run acceptance tests (this requires a make install)
+#
+test_config: tests/etc/test_config.$(HOST)
+	@cp $< $@
+
+test_xdd: test_config
+	@tests/acceptance/test_xdd_datapattern_random.sh
+
+test_xddmcp: test_config
+	@tests/acceptance/test_xddmcp_large_thread_count.sh
+
+test: install test_xdd test_xddmcp
+
+.PHONY: test test_xdd test_xddmcp
 
 #
 # Build rules for cleaning up derived files
