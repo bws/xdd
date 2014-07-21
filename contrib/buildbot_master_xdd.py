@@ -35,7 +35,7 @@ def loadConfig(config):
     from buildbot.changes.gitpoller import GitPoller
     from buildbot.changes.filter import ChangeFilter
     config['change_source'].append( GitPoller( 
-      repourl = '/ccs/proj/csc040/var/git/xdd.git',
+      repourl = 'git@github.com:ORNL/xdd.git',
       workdir='gitpoller-workdir-xdd-master', 
       pollinterval=120, 
       branch='master',
@@ -51,12 +51,12 @@ def loadConfig(config):
     # only take place on one slave.
     from buildbot.process.factory import BuildFactory, GNUAutoconf
     from buildbot.steps.source import Git
-    from buildbot.steps.shell import ShellCommand, Configure, Compile
+    from buildbot.steps.shell import ShellCommand, Configure, Compile, Test
 
     xdd_factory = BuildFactory()
 
     # Check out the source
-    xdd_factory.addStep(Git(repourl='/ccs/proj/csc040/var/git/xdd.git', mode='copy', branch='master'))
+    xdd_factory.addStep(Git(repourl='git@github.com:ORNL/xdd.git', mode='copy', branch='master'))
 
     # Generate the test configuration
     xdd_factory.addStep(ShellCommand(command=['./contrib/buildbot_gen_test_config.sh'], name="configuring"))
@@ -65,10 +65,10 @@ def loadConfig(config):
     xdd_factory.addStep(Compile(description=["compiling"]))
 
     # Install the code
-    xdd_factory.addStep(ShellCommand(command=['make install'], name="make install"))
+    xdd_factory.addStep(ShellCommand(command=['make', 'install'], name="make install"))
 
     # Perform make check
-    xdd_factory.addStep(ShellCommand(command=['make check'], name="make check"))
+    xdd_factory.addStep(ShellCommand(command=['make', 'check'], name="make check"))
 
     # Perform make test
     xdd_factory.addStep(Test(description=["make test"]))

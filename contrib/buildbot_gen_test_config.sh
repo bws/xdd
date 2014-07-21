@@ -76,7 +76,7 @@ esac
 # Testing locations
 #
 build_dir=${nightly_base_path}/build
-install_dir=$(pwd)
+install_dir=${nightly_base_path}/install
 output_dir=${nightly_base_path}/logs
 test_src_dir=${source_mnt}/test-data
 test_dest_dir=${dest_mnt}/test-data
@@ -130,4 +130,4 @@ EOF
 # Perform the configure
 #
 autoconf
-./configure $configure_flags
+./configure --prefix=${install_dir} $configure_flags
