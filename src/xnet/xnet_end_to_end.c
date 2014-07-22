@@ -56,6 +56,7 @@ int32_t xint_e2e_src_connect(target_data_t *tdp) {
 	/* Resolve name to an IP */
 	rc = xint_lookup_addr(tdp->td_e2ep->e2e_address_table[e2e_idx].hostname, 0,
 						  &tdp->td_e2ep->e2e_dest_addr);
+	assert(0 == rc);
 	struct in_addr addr = { .s_addr = tdp->td_e2ep->e2e_dest_addr };
 	char* ip_string = inet_ntoa(addr);
 	fprintf(xgp->errout, "Dest host: %s Connect IP: %s Port: %d\n", tdp->td_e2ep->e2e_address_table[e2e_idx].hostname, ip_string, tdp->td_e2ep->e2e_address_table[e2e_idx].base_port);
@@ -73,6 +74,9 @@ int32_t xint_e2e_src_connect(target_data_t *tdp) {
 	bufset.reserved = getpagesize();
 
 	rc = xni_connect(tdp->xni_ctx, &xep, &bufset, &tdp->td_e2ep->xni_td_conn);
+	// translate the error code
+	rc = (XNI_OK == rc) ? 0 : -1;
+
 	return rc;
 }
 
@@ -88,6 +92,7 @@ int32_t xint_e2e_dest_connect(target_data_t *tdp) {
 	/* Resolve name to an IP */
 	rc = xint_lookup_addr(tdp->td_e2ep->e2e_address_table[e2e_idx].hostname, 0,
 						  &tdp->td_e2ep->e2e_dest_addr);
+	assert(0 == rc);
 	struct in_addr addr = { .s_addr = tdp->td_e2ep->e2e_dest_addr };
 	char* ip_string = inet_ntoa(addr);
 	
@@ -104,6 +109,9 @@ int32_t xint_e2e_dest_connect(target_data_t *tdp) {
 	bufset.reserved = getpagesize();
 
 	rc = xni_accept_connection(tdp->xni_ctx, &xep, &bufset, &tdp->td_e2ep->xni_td_conn);
+	// translate the error code
+	rc = (XNI_OK == rc) ? 0 : -1;
+
 	return rc;
 }
 
