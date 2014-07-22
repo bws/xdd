@@ -45,6 +45,10 @@ xdd_target_thread_cleanup(target_data_t *tdp) {
 	// Disconnect if this is an e2e transfer
 	if (xint_is_e2e(tdp)) {
 	  xint_e2e_disconnect(tdp);
+
+	  // Free the connections
+	  tdp->td_e2ep->xni_td_connections_count = 0;
+	  tdp->td_e2ep->xni_td_connections = NULL;
 	}
 
 	// Free the I/O buffers

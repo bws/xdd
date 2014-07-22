@@ -44,6 +44,9 @@
 #define de2eprintf(...)
 #endif
 
+// forward declarations
+static xni_connection_t *target_connection(target_data_t*);
+
 int32_t xint_e2e_src_connect(target_data_t *tdp) {
 
 	int rc = 0;
@@ -73,7 +76,7 @@ int32_t xint_e2e_src_connect(target_data_t *tdp) {
 	bufset.bufsize = tdp->io_buffer_size;
 	bufset.reserved = getpagesize();
 
-	rc = xni_connect(tdp->xni_ctx, &xep, &bufset, &tdp->td_e2ep->xni_td_conn);
+	rc = xni_connect(tdp->xni_ctx, &xep, &bufset, target_connection(tdp));
 	// translate the error code
 	rc = (XNI_OK == rc) ? 0 : -1;
 
@@ -108,7 +111,7 @@ int32_t xint_e2e_dest_connect(target_data_t *tdp) {
 	bufset.bufsize = tdp->io_buffer_size;
 	bufset.reserved = getpagesize();
 
-	rc = xni_accept_connection(tdp->xni_ctx, &xep, &bufset, &tdp->td_e2ep->xni_td_conn);
+	rc = xni_accept_connection(tdp->xni_ctx, &xep, &bufset, target_connection(tdp));
 	// translate the error code
 	rc = (XNI_OK == rc) ? 0 : -1;
 
@@ -126,7 +129,7 @@ int32_t
 xint_e2e_disconnect(target_data_t *tdp)
 {
 	//TODO: handle errors
-	int rc = xni_close_connection(&tdp->td_e2ep->xni_td_conn);
+	int rc = xni_close_connection(target_connection(tdp));
 	assert(XNI_OK == rc);
 
 	return 0;
@@ -177,10 +180,12 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp) {
 
 	nclk_now(&wdp->wd_counters.tc_current_net_start_time);
 
-	e2ep->e2e_send_status = xni_send_target_buffer(tdp->td_e2ep->xni_td_conn,
+	xni_connection_t * const connp = xint_e2e_worker_connection(wdp);
+
+	e2ep->e2e_send_status = xni_send_target_buffer(*connp,
 												   &e2ep->xni_wd_buf);
 	// Request a fresh buffer from XNI
-	xni_request_target_buffer(tdp->td_e2ep->xni_td_conn, &wdp->wd_e2ep->xni_wd_buf);
+	xni_request_target_buffer(*connp, &wdp->wd_e2ep->xni_wd_buf);
 
 	// Keep a pointer to the data portion of the buffer
 	wdp->wd_task.task_datap = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
@@ -254,7 +259,7 @@ int32_t xint_e2e_xni_recv(worker_data_t *wdp) {
 
 	/* Receive a target buffer and assemble it into the wdp */
 	tdp = wdp->wd_tdp;
-	status = xni_receive_target_buffer(tdp->td_e2ep->xni_td_conn,
+	status = xni_receive_target_buffer(*xint_e2e_worker_connection(wdp),
 									   &wdp->wd_e2ep->xni_wd_buf);
 
 	if (XNI_OK == status) {
@@ -304,6 +309,30 @@ int
 xint_is_e2e(const target_data_t *tdp)
 {
 	return (TO_ENDTOEND == (TO_ENDTOEND & tdp->td_target_options));
+}
+
+xni_connection_t*
+xint_e2e_worker_connection(worker_data_t *wdp)
+{
+	target_data_t * const tdp = wdp->wd_tdp;
+
+	//TODO: support more than one host
+	assert(1 == tdp->td_e2ep->e2e_address_table_host_count);
+	xni_connection_t * const conn = tdp->td_e2ep->xni_td_connections;
+
+	return conn;
+}
+
+//TODO: remove this function
+// temporary helper function until connection is moved from target
+// thread to worker thread
+static xni_connection_t*
+target_connection(target_data_t *tdp)
+{	
+	assert(1 == tdp->td_e2ep->e2e_address_table_host_count);
+	xni_connection_t * const conn = tdp->td_e2ep->xni_td_connections;
+
+	return conn;
 }
 
 /*

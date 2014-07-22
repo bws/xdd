@@ -389,6 +389,7 @@ int32_t xint_e2e_xni_send(worker_data_t *wdp);
 int32_t xint_e2e_eof_source_side(worker_data_t *wdp);
 int32_t xint_e2e_xni_recv(worker_data_t *wdp);
 int xint_is_e2e(const target_data_t *tdp);
+xni_connection_t *xint_e2e_worker_connection(worker_data_t *wdp);
 #endif
 /*
  * Local variables:

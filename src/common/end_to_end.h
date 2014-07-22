@@ -56,7 +56,8 @@ struct xint_e2e {
 	xdd_e2e_ate_t		e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]; // Used by E2E to stripe over multiple IP Addresses
 
 	/* XNI Target data */
-	xni_connection_t xni_td_conn;
+	xni_connection_t *xni_td_connections;  // One connection per host
+	int xni_td_connections_count;  // Number of connection objects
 
 	/* XNI Worker data */
 	xni_target_buffer_t xni_wd_buf;

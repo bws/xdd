@@ -117,7 +117,8 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 			// being present.  -nlmills
 
 			// Request an I/O buffer from XNI			
-			xni_request_target_buffer(tdp->td_e2ep->xni_td_conn, &wdp->wd_e2ep->xni_wd_buf);
+			xni_request_target_buffer(*xint_e2e_worker_connection(wdp),
+									  &wdp->wd_e2ep->xni_wd_buf);
 			wdp->wd_task.task_datap = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
 		}
 	} else {

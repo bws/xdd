@@ -97,6 +97,15 @@ init_xni(target_data_t *tdp)
 	/* Create the XNI context */
 	rc = xni_context_create(tdp->xni_pcl, tdp->xni_cb, &tdp->xni_ctx);
 	assert(0 == rc);
+
+	struct xint_e2e * const e2ep = tdp->td_e2ep;
+
+	// Allocate XNI connections, one per e2e host
+	int conncnt = (int)e2ep->e2e_address_table_host_count;
+	e2ep->xni_td_connections = calloc(conncnt,
+									  sizeof(*e2ep->xni_td_connections));
+	e2ep->xni_td_connections_count = conncnt;
+
 	return(0);
 }
 
