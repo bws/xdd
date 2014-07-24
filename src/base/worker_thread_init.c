@@ -153,31 +153,6 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 			errno);
 	}
 
-	// Set up for an End-to-End operation (if requested)
-	if (tdp->td_target_options & TO_ENDTOEND) {
-		if (tdp->td_target_options & (TO_E2E_DESTINATION|TO_E2E_SOURCE)) {
-			status = xint_e2e_worker_init(wdp);
-		} else { // Not sure which side of the E2E this target is supposed to be....
-			fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: Cannot determine which side of the E2E operation this target is supposed to be.\n",
-				xgp->progname,
-				tdp->td_target_number,
-				wdp->wd_worker_number);
-			fprintf(xgp->errout,"%s: xdd_worker_thread_init: Check to be sure that the '-e2e issource' or '-e2e isdestination' was specified for this target.\n",
-				xgp->progname);
-				fflush(xgp->errout);
-			return(-1);
-		}
-
-		if (status == -1) {
-			fprintf(xgp->errout,"%s: xdd_worker_thread_init: Target %d WorkerThread %d: E2E %s initialization failed.\n",
-				xgp->progname,
-				tdp->td_target_number,
-				wdp->wd_worker_number,
-				(tdp->td_target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
-		return(-1);
-		}
-	} // End of end-to-end setup
-
 	// All went well...
 	return(0);
 

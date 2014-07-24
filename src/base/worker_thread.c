@@ -56,6 +56,20 @@ xdd_worker_thread(void *pin) {
 		wdp->wd_task.task_datap = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
 	}
 
+	// Set up for an End-to-End operation (if requested)
+	if (xint_is_e2e(tdp)) {
+		status = xint_e2e_worker_init(wdp);
+		if (-1 == status) {
+			fprintf(xgp->errout,
+					"%s: xdd_worker_thread: Target %d WorkerThread %d: E2E %s initialization failed.\n",
+					xgp->progname,
+					tdp->td_target_number,
+					wdp->wd_worker_number,
+					(tdp->td_target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
+			return(0);
+		}
+	}
+
 	// Set the buffer data pattern for non-E2E operations or E2E sources
 	if (!xint_is_e2e(tdp) || !(tdp->td_target_options & TO_E2E_DESTINATION)) {
 		xdd_datapattern_buffer_init(wdp);
