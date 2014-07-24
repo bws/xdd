@@ -45,30 +45,33 @@
 #endif
 
 // forward declarations
+static int32_t do_connect(target_data_t*, int);
 static xni_connection_t *target_connection(target_data_t*);
 
-int32_t xint_e2e_src_connect(target_data_t *tdp) {
-
+static int32_t
+do_connect(target_data_t *tdp, int isdest)
+{
 	int rc = 0;
-	int e2e_idx = 0;
-	
-	/* Loop through the available addresses, and connect */
-	while (0 == tdp->td_e2ep->e2e_address_table[e2e_idx].port_count)
-		e2e_idx++;
-	
-	/* Resolve name to an IP */
-	rc = xint_lookup_addr(tdp->td_e2ep->e2e_address_table[e2e_idx].hostname, 0,
-						  &tdp->td_e2ep->e2e_dest_addr);
+	xdd_e2e_ate_t *ate = NULL;  // current address table entry
+
+	// Find an available address
+	for (ate = tdp->td_e2ep->e2e_address_table; 0 == ate->port_count; ate++);
+
+	// Resolve name to an IP address
+	rc = xint_lookup_addr(ate->hostname, 0, &tdp->td_e2ep->e2e_dest_addr);
 	assert(0 == rc);
 	struct in_addr addr = { .s_addr = tdp->td_e2ep->e2e_dest_addr };
 	char* ip_string = inet_ntoa(addr);
-	fprintf(xgp->errout, "Dest host: %s Connect IP: %s Port: %d\n", tdp->td_e2ep->e2e_address_table[e2e_idx].hostname, ip_string, tdp->td_e2ep->e2e_address_table[e2e_idx].base_port);
-	
-	/* Create an XNI endpoint from the e2e spec */
-	xni_endpoint_t xep = {.host = ip_string,
-						  .port = tdp->td_e2ep->e2e_address_table[e2e_idx].base_port};
 
-	// initialize the set of I/O buffers
+	if (!isdest) {
+		fprintf(xgp->errout, "Dest host: %s Connect IP: %s Port: %d\n",
+				ate->hostname, ip_string, ate->base_port);
+	}
+	
+	// Create an XNI endpoint from the e2e spec
+	xni_endpoint_t xep = {.host = ip_string, .port = ate->base_port};
+
+	// Initialize the set of I/O buffers
 	xni_bufset_t bufset;
 	memset(&bufset, 0, sizeof(bufset));
 	bufset.bufs = tdp->io_buffers;
@@ -76,46 +79,25 @@ int32_t xint_e2e_src_connect(target_data_t *tdp) {
 	bufset.bufsize = tdp->io_buffer_size;
 	bufset.reserved = getpagesize();
 
-	rc = xni_connect(tdp->xni_ctx, &xep, &bufset, target_connection(tdp));
-	// translate the error code
+	if (isdest) {
+		rc = xni_accept_connection(tdp->xni_ctx, &xep, &bufset, target_connection(tdp));
+	} else {
+		rc = xni_connect(tdp->xni_ctx, &xep, &bufset, target_connection(tdp));
+	}
+	// Translate the error code
 	rc = (XNI_OK == rc) ? 0 : -1;
 
 	return rc;
 }
 
-int32_t xint_e2e_dest_connect(target_data_t *tdp) {
+int32_t xint_e2e_src_connect(target_data_t *tdp)
+{
+	return do_connect(tdp, FALSE);
+}
 
-	int rc = 0;
-	int e2e_idx = 0;
-
-	/* Loop through the available addresses, and connect */
-	while (0 == tdp->td_e2ep->e2e_address_table[e2e_idx].port_count)
-		e2e_idx++;
-	
-	/* Resolve name to an IP */
-	rc = xint_lookup_addr(tdp->td_e2ep->e2e_address_table[e2e_idx].hostname, 0,
-						  &tdp->td_e2ep->e2e_dest_addr);
-	assert(0 == rc);
-	struct in_addr addr = { .s_addr = tdp->td_e2ep->e2e_dest_addr };
-	char* ip_string = inet_ntoa(addr);
-	
-	/* Create an XNI endpoint from the e2e spec */
-	xni_endpoint_t xep = {.host = ip_string,
-						  .port = tdp->td_e2ep->e2e_address_table[e2e_idx].base_port};
-
-	// initialize the set of I/O buffers
-	xni_bufset_t bufset;
-	memset(&bufset, 0, sizeof(bufset));
-	bufset.bufs = tdp->io_buffers;
-	bufset.bufcount = tdp->io_buffers_count;
-	bufset.bufsize = tdp->io_buffer_size;
-	bufset.reserved = getpagesize();
-
-	rc = xni_accept_connection(tdp->xni_ctx, &xep, &bufset, target_connection(tdp));
-	// translate the error code
-	rc = (XNI_OK == rc) ? 0 : -1;
-
-	return rc;
+int32_t xint_e2e_dest_connect(target_data_t *tdp)
+{
+	return do_connect(tdp, TRUE);
 }
 
 /*
