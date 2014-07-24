@@ -128,11 +128,6 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 		wdp->wd_task.task_datap = tdp->io_buffers[workernum];
 	}
 
-	// Set the buffer data pattern for non-E2E operations or E2E sources
-	if (!xint_is_e2e(tdp) || !(tdp->td_target_options & TO_E2E_DESTINATION)) {
-		xdd_datapattern_buffer_init(wdp);
-	}
-
 	// Init the WorkerThread-TargetPass WAIT Barrier for this WorkerThread
 	sprintf(tmpname,"T%04d:W%04d>worker_thread_targetpass_wait_barrier",tdp->td_target_number,wdp->wd_worker_number);
 	status = xdd_init_barrier(tdp->td_planp, &wdp->wd_thread_targetpass_wait_for_task_barrier, 2, tmpname);

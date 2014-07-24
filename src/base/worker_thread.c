@@ -48,6 +48,11 @@ xdd_worker_thread(void *pin) {
 	if ( xgp->abort == 1) // Something went wrong during thread initialization so let's just leave
 		return(0);
 
+	// Set the buffer data pattern for non-E2E operations or E2E sources
+	if (!xint_is_e2e(tdp) || !(tdp->td_target_options & TO_E2E_DESTINATION)) {
+		xdd_datapattern_buffer_init(wdp);
+	}
+
 	// If this is a dry run then just exit at this point
 	if (xgp->global_options & GO_DRYRUN)
 		return(0);
