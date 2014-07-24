@@ -161,8 +161,7 @@ xint_target_init(target_data_t *tdp) {
 
 	// if this is an end-to-end transfer than perform the connection(s)
 	if (xint_is_e2e(tdp)) {
-		//TODO: connect with the previously allocated buffers
-		/* Perform the XNI accept/connect */
+		// Perform the XNI accept/connect 
 		if (tdp->td_target_options & TO_E2E_DESTINATION) { 
 			status = xint_e2e_dest_connect(tdp);
 		} else {
