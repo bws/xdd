@@ -105,22 +105,10 @@ xdd_worker_thread_init(worker_data_t *wdp) {
 
 	// Set up I/O buffer pointers
 	if (xint_is_e2e(tdp)) {
-		if (tdp->td_target_options & TO_E2E_DESTINATION) {
-			// Buffer for destination is set after a receive
-			wdp->wd_e2ep->xni_wd_buf = NULL;
-			wdp->wd_task.task_datap = NULL;
-		} else {
-			//TODO: I'd really like to move all of these buffer
-			// request calls to something like ttd_before_io_op, but I
-			// can't right now because later on in this function
-			// xdd_datapattern_buffer_init() relies on the buffer
-			// being present.  -nlmills
-
-			// Request an I/O buffer from XNI			
-			xni_request_target_buffer(*xint_e2e_worker_connection(wdp),
-									  &wdp->wd_e2ep->xni_wd_buf);
-			wdp->wd_task.task_datap = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
-		}
+		// the buffer for source will be requested after connecting
+		// the buffer for destination is set after a receive
+		wdp->wd_e2ep->xni_wd_buf = NULL;
+		wdp->wd_task.task_datap = NULL;
 	} else {
 		// For non-E2E operations the data portion is the entire buffer
 		const int32_t workernum = wdp->wd_worker_number;
