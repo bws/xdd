@@ -48,6 +48,7 @@ xdd_target_thread_cleanup(target_data_t *tdp) {
 
 	  // Free the connections
 	  tdp->td_e2ep->xni_td_connections_count = 0;
+	  free(tdp->td_e2ep->xni_td_connections);
 	  tdp->td_e2ep->xni_td_connections = NULL;
 	}
 
