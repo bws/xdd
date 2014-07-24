@@ -99,9 +99,17 @@ init_xni(target_data_t *tdp)
 	assert(0 == rc);
 
 	struct xint_e2e * const e2ep = tdp->td_e2ep;
+	const int conncnt = (int)e2ep->e2e_address_table_host_count;
+
+	// Initialize mutexes that protect connection establishment
+	e2ep->xni_td_connection_mutexes = calloc(conncnt,
+											 sizeof(*e2ep->xni_td_connection_mutexes));
+	for (int i = 0; i < conncnt; i++) {
+		rc = pthread_mutex_init(e2ep->xni_td_connection_mutexes+i, NULL);
+		assert(0 == rc);
+	}
 
 	// Allocate XNI connections, one per e2e host
-	int conncnt = (int)e2ep->e2e_address_table_host_count;
 	e2ep->xni_td_connections = calloc(conncnt,
 									  sizeof(*e2ep->xni_td_connections));
 	e2ep->xni_td_connections_count = conncnt;
@@ -184,8 +192,18 @@ init_src_worker(worker_data_t *wdp)
 	// Init the relevant variables 
 	e2ep->e2e_msg_sequence_number = 0;
 
-	return(0);
+	int status = xint_e2e_src_connect(wdp);
+	if (0 != status) {
+		fprintf(xgp->errout, "Failure during XNI connection.\n");
+		return -1;
+	}
 
+	// Request an I/O buffer from XNI
+	xni_request_target_buffer(*xint_e2e_worker_connection(wdp),
+							  &wdp->wd_e2ep->xni_wd_buf);
+	wdp->wd_task.task_datap = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
+
+	return(0);
 }
 
 static int
@@ -212,8 +230,13 @@ init_dest_worker(worker_data_t *wdp)
 	// Clear the end-of-file flag
 	wdp->wd_e2ep->received_eof = FALSE;
 
-	return(0);
+	int status = xint_e2e_dest_connect(wdp);
+	if (0 != status) {
+		fprintf(xgp->errout, "Failure during XNI connection.\n");
+		return -1;
+	}
 
+	return(0);
 }
 
 /*----------------------------------------------------------------------------*/

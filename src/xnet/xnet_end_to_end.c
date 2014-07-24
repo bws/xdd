@@ -45,14 +45,25 @@
 #endif
 
 // forward declarations
-static int32_t do_connect(target_data_t*, int);
-static xni_connection_t *target_connection(target_data_t*);
+static int32_t do_connect(worker_data_t*, int);
 
 static int32_t
-do_connect(target_data_t *tdp, int isdest)
+do_connect(worker_data_t *wdp, int isdest)
 {
+	pthread_mutex_t * const mutex = xint_e2e_worker_connection_mutex(wdp);
+	(void)pthread_mutex_lock(mutex);
+
+	xni_connection_t * const conn = xint_e2e_worker_connection(wdp);
+	//TODO: find a safer test (maybe add something to XNI?)
+	if (*conn) {
+		// Bail; some other worker has already connected
+		(void)pthread_mutex_unlock(mutex);
+		return 0;
+	}
+
 	int rc = 0;
 	xdd_e2e_ate_t *ate = NULL;  // current address table entry
+	target_data_t * const tdp = wdp->wd_tdp;
 
 	// Find an available address
 	for (ate = tdp->td_e2ep->e2e_address_table; 0 == ate->port_count; ate++);
@@ -80,24 +91,25 @@ do_connect(target_data_t *tdp, int isdest)
 	bufset.reserved = getpagesize();
 
 	if (isdest) {
-		rc = xni_accept_connection(tdp->xni_ctx, &xep, &bufset, target_connection(tdp));
+		rc = xni_accept_connection(tdp->xni_ctx, &xep, &bufset, conn);
 	} else {
-		rc = xni_connect(tdp->xni_ctx, &xep, &bufset, target_connection(tdp));
+		rc = xni_connect(tdp->xni_ctx, &xep, &bufset, conn);
 	}
 	// Translate the error code
 	rc = (XNI_OK == rc) ? 0 : -1;
 
+	(void)pthread_mutex_unlock(mutex);
 	return rc;
 }
 
-int32_t xint_e2e_src_connect(target_data_t *tdp)
+int32_t xint_e2e_src_connect(worker_data_t *wdp)
 {
-	return do_connect(tdp, FALSE);
+	return do_connect(wdp, FALSE);
 }
 
-int32_t xint_e2e_dest_connect(target_data_t *tdp)
+int32_t xint_e2e_dest_connect(worker_data_t *wdp)
 {
-	return do_connect(tdp, TRUE);
+	return do_connect(wdp, TRUE);
 }
 
 /*
@@ -110,9 +122,14 @@ int32_t xint_e2e_dest_connect(target_data_t *tdp)
 int32_t
 xint_e2e_disconnect(target_data_t *tdp)
 {
-	//TODO: handle errors
-	int rc = xni_close_connection(target_connection(tdp));
-	assert(XNI_OK == rc);
+	xint_e2e_t * const e2ep = tdp->td_e2ep;
+
+	// Close all connections
+	for (int i = 0; i < e2ep->xni_td_connections_count; i++) {
+		int rc = xni_close_connection(e2ep->xni_td_connections+i);
+		//TODO: handle errors
+		assert(XNI_OK == rc);
+	}
 
 	return 0;
 }
@@ -305,16 +322,16 @@ xint_e2e_worker_connection(worker_data_t *wdp)
 	return conn;
 }
 
-//TODO: remove this function
-// temporary helper function until connection is moved from target
-// thread to worker thread
-static xni_connection_t*
-target_connection(target_data_t *tdp)
-{	
-	assert(1 == tdp->td_e2ep->e2e_address_table_host_count);
-	xni_connection_t * const conn = tdp->td_e2ep->xni_td_connections;
+pthread_mutex_t*
+xint_e2e_worker_connection_mutex(worker_data_t *wdp)
+{
+	xint_e2e_t * const e2ep = wdp->wd_tdp->td_e2ep;
 
-	return conn;
+	//TODO: support more than one host
+	assert(1 == e2ep->e2e_address_table_host_count);
+	pthread_mutex_t * const mutex = e2ep->xni_td_connection_mutexes;
+
+	return mutex;
 }
 
 /*

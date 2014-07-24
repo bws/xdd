@@ -42,14 +42,25 @@ xdd_target_thread_cleanup(target_data_t *tdp) {
 #endif
 	}
 
-	// Disconnect if this is an e2e transfer
+	// if this is an e2e transfer
 	if (xint_is_e2e(tdp)) {
+	  // Disconnect
 	  xint_e2e_disconnect(tdp);
 
+	  struct xint_e2e * const e2ep = tdp->td_e2ep;
+
 	  // Free the connections
-	  tdp->td_e2ep->xni_td_connections_count = 0;
-	  free(tdp->td_e2ep->xni_td_connections);
-	  tdp->td_e2ep->xni_td_connections = NULL;
+	  e2ep->xni_td_connections_count = 0;
+	  free(e2ep->xni_td_connections);
+	  e2ep->xni_td_connections = NULL;
+
+	  // Free the connection mutexes
+	  for (int i = 0; i < e2ep->xni_td_connections_count; i++) {
+	    int error = pthread_mutex_destroy(e2ep->xni_td_connection_mutexes+i);
+	    assert(!error);
+	  }
+	  free(e2ep->xni_td_connection_mutexes);
+	  e2ep->xni_td_connection_mutexes = NULL;
 	}
 
 	// Free the I/O buffers

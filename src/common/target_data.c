@@ -104,6 +104,7 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 		tdp->td_e2ep->e2e_address_table_next_entry=0;
 		tdp->td_e2ep->xni_td_connections = NULL;
 		tdp->td_e2ep->xni_td_connections_count = 0;
+		tdp->td_e2ep->xni_td_connection_mutexes = NULL;
 	}
 
 	tdp->io_buffers = NULL;

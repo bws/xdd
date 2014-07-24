@@ -58,6 +58,7 @@ struct xint_e2e {
 	/* XNI Target data */
 	xni_connection_t *xni_td_connections;  // One connection per host
 	int xni_td_connections_count;  // Number of connection objects
+	pthread_mutex_t *xni_td_connection_mutexes;  // To synchronize connection establishment; one per connection
 
 	/* XNI Worker data */
 	xni_target_buffer_t xni_wd_buf;

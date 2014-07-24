@@ -48,16 +48,8 @@ xdd_worker_thread(void *pin) {
 	if ( xgp->abort == 1) // Something went wrong during thread initialization so let's just leave
 		return(0);
 
-	//TODO: move this block once the workers establish connections
-	if (xint_is_e2e(tdp) && !(tdp->td_target_options & TO_E2E_DESTINATION)) {
-		// Request an I/O buffer from XNI
-		xni_request_target_buffer(*xint_e2e_worker_connection(wdp),
-								  &wdp->wd_e2ep->xni_wd_buf);
-		wdp->wd_task.task_datap = xni_target_buffer_data(wdp->wd_e2ep->xni_wd_buf);
-	}
-
-	// Set up for an End-to-End operation (if requested)
 	if (xint_is_e2e(tdp)) {
+		// Set up for an e2e operation and establish a connection
 		status = xint_e2e_worker_init(wdp);
 		if (-1 == status) {
 			fprintf(xgp->errout,
