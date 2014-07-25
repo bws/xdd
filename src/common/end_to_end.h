@@ -52,7 +52,6 @@ struct xint_e2e {
 	nclk_t				e2e_sr_time; 			// Time spent sending or receiving data for End-to-End operation
 	int32_t				e2e_address_table_host_count;	// Cumulative number of hosts represented in the e2e address table
 	int32_t				e2e_address_table_port_count;	// Cumulative number of ports represented in the e2e address table
-	int32_t				e2e_address_table_next_entry;	// Next available entry in the e2e_address_table
 	xdd_e2e_ate_t		e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]; // Used by E2E to stripe over multiple IP Addresses
 
 	/* XNI Target data */

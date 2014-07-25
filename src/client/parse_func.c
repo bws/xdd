@@ -1015,23 +1015,23 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 	    	if (tdp == NULL) return(-1);
 
 	    	tdp->td_target_options |= TO_ENDTOEND;
-	    	strcpy(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].hostname, hostname); 
-	    	tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
-			tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = 0;
+	    	strcpy(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].hostname, hostname); 
+	    	tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].base_port = DEFAULT_E2E_PORT; 
+			tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].port_count = 0;
             // Set a default NUMA node value if possible
 #if defined(HAVE_CPU_SET_T)
-			CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+			CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 				sched_getaffinity(getpid(), 
-				sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set),
-				&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+				sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set),
+				&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 #endif
 
 	    	if (base_port) { // Set the requested Port Number and possible Port Count
-				tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].base_port = atoi(base_port); 
+				tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].base_port = atoi(base_port); 
 				if (port_count) {
-		    		tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = atoi(port_count); 
+		    		tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].port_count = atoi(port_count); 
 				} else {
-		    		tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = 0;
+		    		tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].port_count = 0;
 				}
 
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS) && defined(HAVE_NUMA_ALLOCATE_CPUMASK) 
@@ -1039,18 +1039,18 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 		    		int i;
 		    		struct bitmask* numa_mask = numa_allocate_cpumask();
 		    		int numa_node_no = atoi(numa_node);
-		    		CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+		    		CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 		    		numa_node_to_cpus(numa_node_no, numa_mask);
 		    		for (i = 0; i <= CPU_SETSIZE; i++) {
 							if (numa_bitmask_isbitset(numa_mask, i))
-			    				CPU_SET(i, &tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+			    				CPU_SET(i, &tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 		    		}
 		    		numa_free_cpumask(numa_mask);
 				} else {
-		    		CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+		    		CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 		    			sched_getaffinity(getpid(),
-						sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set),
-						&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+						sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set),
+						&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 				}
 #else
 				if (numa_node) {
@@ -1058,8 +1058,7 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 				}
 #endif
 	    	} 
-	    	tdp->td_e2ep->e2e_address_table_port_count += tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count;
-	    	tdp->td_e2ep->e2e_address_table_next_entry++;
+	    	tdp->td_e2ep->e2e_address_table_port_count += tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].port_count;
 	    	tdp->td_e2ep->e2e_address_table_host_count++;
 		} else {  /* set option for all targets */
 	    	if (flags & XDD_PARSE_PHASE2) {
@@ -1067,41 +1066,41 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 				i = 0;
 				while (tdp) {
 		    		tdp->td_target_options |= TO_ENDTOEND;
-		    		strcpy(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].hostname, hostname); 
-					tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].base_port = DEFAULT_E2E_PORT; 
-                    tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = 0;
+		    		strcpy(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].hostname, hostname); 
+					tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].base_port = DEFAULT_E2E_PORT; 
+                    tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].port_count = 0;
                     // Set a default NUMA node value if possible
 #if defined(HAVE_CPU_SET_T)
-		    		CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+		    		CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 						sched_getaffinity(getpid(),
-						sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set),
-						&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+						sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set),
+						&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 #endif
 
 		    		if (base_port) { // Set the requested Port Number and possible Port Count
-						tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].base_port = atoi(base_port); 
+						tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].base_port = atoi(base_port); 
 						if (port_count) {
-							tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = atoi(port_count); 
+							tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].port_count = atoi(port_count); 
 						} else {
-			    			tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count = 0;
+			    			tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].port_count = 0;
 						}
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_NUMA_NODE_TO_CPUS) && defined(HAVE_NUMA_ALLOCATE_CPUMASK)
 						if (numa_node && -1 != numa_available()) {
 			    			int i;
 			    			struct bitmask* numa_mask = numa_allocate_cpumask();
 			    			int numa_node_no = atoi(numa_node);
-			    			CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+			    			CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 								numa_node_to_cpus(numa_node_no, numa_mask);
 			    			for (i = 0; i <= CPU_SETSIZE; i++) {
 								if (numa_bitmask_isbitset(numa_mask, i))
-				    				CPU_SET(i, &tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+				    				CPU_SET(i, &tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 			    			}
 			    			numa_free_cpumask(numa_mask);
 						} else {
-			    			CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+			    			CPU_ZERO(&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 								sched_getaffinity(getpid(),
-								sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set),
-								&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].cpu_set);
+								sizeof(tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set),
+								&tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].cpu_set);
 						}
 #else
 						if (numa_node) {
@@ -1109,9 +1108,8 @@ xddfunc_endtoend(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 						}
 #endif
 		    		} // End of IF stmnt that sets the Port/NPorts
-				    tdp->td_e2ep->e2e_address_table_port_count += tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_next_entry].port_count;
+				    tdp->td_e2ep->e2e_address_table_port_count += tdp->td_e2ep->e2e_address_table[tdp->td_e2ep->e2e_address_table_host_count].port_count;
 		    		tdp->td_e2ep->e2e_address_table_host_count++;
-		    		tdp->td_e2ep->e2e_address_table_next_entry++;
 		    		i++;
 		    		tdp = planp->target_datap[i];
 				}

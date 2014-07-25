@@ -395,7 +395,6 @@ xdd_show_e2e(xint_e2e_t *e2ep) {
     fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_sr_time=%lld\n",(unsigned long long int)e2ep->e2e_sr_time);             // Time spent sending or receiving data for End-to-End operation
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_address_table_host_count=%d\n",e2ep->e2e_address_table_host_count);    // Cumulative number of hosts represented in the e2e address table
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_address_table_port_count=%d\n",e2ep->e2e_address_table_port_count);    // Cumulative number of ports represented in the e2e address table
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_address_table_next_entry=%d\n",e2ep->e2e_address_table_next_entry);    // Next available entry in the e2e_address_table
     fprintf(stderr,"\txdd_show_e2e: xdd_e2e_ate_t e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]\n"); // Used by E2E to stripe over multiple IP Addresses
     fprintf(stderr,"xdd_show_e2e:********* End of E2E Data at 0x%p **********\n",e2ep);
 } // End of xdd_show_e2e()
