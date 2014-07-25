@@ -94,9 +94,7 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 	}
 	/* Init the end-to-end fields */
 	if (tdp->td_e2ep) {
-		tdp->td_e2ep->e2e_src_hostname = NULL;  /* E2E source hostname */
 		tdp->td_e2ep->e2e_dest_hostname = NULL;  /* E2E destination hostname */
-		tdp->td_e2ep->e2e_dest_port = DEFAULT_E2E_PORT;
 		tdp->td_e2ep->e2e_address_table_host_count = 0;
 		tdp->td_e2ep->e2e_address_table_port_count = 0;
 		tdp->td_e2ep->e2e_dest_addr = 0;

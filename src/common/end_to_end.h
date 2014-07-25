@@ -42,12 +42,9 @@ typedef struct xdd_e2e_address_table xdd_e2e_at_t;
  */
 struct xint_e2e {
 	char				*e2e_dest_hostname; 	// Name of the Destination machine 
-	char				*e2e_src_hostname; 		// Name of the Source machine 
 	in_addr_t			e2e_dest_addr;  		// Destination Address number of the E2E socket 
-	in_port_t			e2e_dest_port;  		// Port number to use for the E2E socket 
 	int32_t				e2e_send_status; 		// Current Send Status
 	int64_t				e2e_msg_sequence_number;// The Message Sequence Number of the most recent message sent or to be received
-	int64_t				e2e_total_bytes_written; // The total amount of data written across all restarts for this file
 	nclk_t				e2e_wait_1st_msg;		// Time in nanosecs destination waited for 1st source data to arrive 
 	nclk_t				e2e_sr_time; 			// Time spent sending or receiving data for End-to-End operation
 	int32_t				e2e_address_table_host_count;	// Cumulative number of hosts represented in the e2e address table

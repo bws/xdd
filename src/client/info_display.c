@@ -421,7 +421,6 @@ xdd_target_info(FILE *out, target_data_t *tdp) {
 				return;
 			} 
 			// ok - we have a good restart structure
-			tdp->td_restartp->source_host = tdp->td_e2ep->e2e_src_hostname; 		// Name of the Source machine 
 			tdp->td_restartp->destination_host = tdp->td_e2ep->e2e_dest_hostname; 	// Name of the Destination machine 
 			if (tdp->td_restartp->flags & RESTART_FLAG_ISSOURCE) { // This is the SOURCE sside of the biz
 				 tdp->td_restartp->source_filename = tdp->td_target_full_pathname; 		// The source_filename is the name of the file being copied on the source side

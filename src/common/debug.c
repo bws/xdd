@@ -383,14 +383,11 @@ void
 xdd_show_e2e(xint_e2e_t *e2ep) {
     fprintf(stderr,"\nxdd_show_e2e:********* Start of E2E Data at 0x%p **********\n",e2ep);
     fprintf(stderr,"\txdd_show_e2e: char       *e2e_dest_hostname='%s'\n",e2ep->e2e_dest_hostname);     // Name of the Destination machine 
-    fprintf(stderr,"\txdd_show_e2e: char       *e2e_src_hostname='%s'\n",e2ep->e2e_dest_hostname);         // Name of the Source machine 
     fprintf(stderr,"\txdd_show_e2e: char       *e2e_src_file_path='%s'\n",e2ep->e2e_dest_hostname);     // Full path of source file for destination restart file 
     fprintf(stderr,"\txdd_show_e2e: time_t     e2e_src_file_mtime\n");     // stat -c %Y *e2e_src_file_path, i.e., last modification time
     fprintf(stderr,"\txdd_show_e2e: in_addr_t  e2e_dest_addr=%d\n",e2ep->e2e_dest_addr);          // Destination Address number of the E2E socket 
-    fprintf(stderr,"\txdd_show_e2e: in_port_t  e2e_dest_port=%d\n",e2ep->e2e_dest_port);          // Port number to use for the E2E socket 
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_send_status=%d\n",e2ep->e2e_send_status);         // Current Send Status
     fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_msg_sequence_number=%lld\n",(long long int)e2ep->e2e_msg_sequence_number);// The Message Sequence Number of the most recent message sent or to be received
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_total_bytes_written=%lld\n",(long long int)e2ep->e2e_total_bytes_written); // The total amount of data written across all restarts for this file
     fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_wait_1st_msg=%lld\n",(unsigned long long int)e2ep->e2e_wait_1st_msg);        // Time in nanosecs destination waited for 1st source data to arrive 
     fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_sr_time=%lld\n",(unsigned long long int)e2ep->e2e_sr_time);             // Time spent sending or receiving data for End-to-End operation
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_address_table_host_count=%d\n",e2ep->e2e_address_table_host_count);    // Cumulative number of hosts represented in the e2e address table

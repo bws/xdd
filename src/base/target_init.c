@@ -283,7 +283,6 @@ xint_target_init_start_worker_threads(target_data_t *tdp) {
 		//assert(e2e_addr_index < p->e2ep->e2e_address_table->number_of_entries);
 		
 		wdp->wd_e2ep->e2e_dest_hostname = tdp->td_e2ep->e2e_address_table[e2e_addr_index].hostname;
-		wdp->wd_e2ep->e2e_dest_port = tdp->td_e2ep->e2e_address_table[e2e_addr_index].base_port + e2e_addr_port;
 		
 		// Set the WorkerThread Numa node if possible
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
@@ -298,9 +297,9 @@ xint_target_init_start_worker_threads(target_data_t *tdp) {
 		    e2e_addr_port = 0;
 		}
 		if (xgp->global_options & GO_REALLYVERBOSE)
-		    fprintf(stderr,"Target Init: Target %d: assigning hostname %s port %d to worker_thread %d\n",
+		    fprintf(stderr,"Target Init: Target %d: assigning hostname %s to worker_thread %d\n",
 			    tdp->td_target_number, wdp->wd_e2ep->e2e_dest_hostname,
-			    wdp->wd_e2ep->e2e_dest_port, wdp->wd_worker_number);
+				wdp->wd_worker_number);
 	    }
 
 	    

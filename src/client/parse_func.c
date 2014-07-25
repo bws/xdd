@@ -3171,7 +3171,6 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 			rp->initial_restart_offset = atoll(argv[args_index+1]);
 			rp->byte_offset = rp->initial_restart_offset;
 			rp->flags |= RESTART_FLAG_RESUME_COPY;
-			tdp->td_e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 			/* Set the last committed location to avoid restart output of
 			   0 if the target does not complete any I/O during first interval 
@@ -3193,7 +3192,6 @@ xddfunc_restart(xdd_plan_t *planp, int32_t argc, char *argv[], uint32_t flags)
 					rp->initial_restart_offset = atoll(argv[args_index+1]);
 					rp->byte_offset = rp->initial_restart_offset;
 					rp->flags |= RESTART_FLAG_RESUME_COPY;
-					tdp->td_e2ep->e2e_total_bytes_written=rp->byte_offset;
 
 					/* Set the last committed location to avoid restart output 
 					   of 0 if the target does not complete any I/O during 
