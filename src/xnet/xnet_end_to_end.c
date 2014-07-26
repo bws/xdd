@@ -63,16 +63,15 @@ do_connect(worker_data_t *wdp, int isdest)
 	}
 
 	int rc = 0;
-	xdd_e2e_ate_t *ate = NULL;  // current address table entry
 	target_data_t * const tdp = wdp->wd_tdp;
 
-	// Find an available address
-	for (ate = tdp->td_e2ep->e2e_address_table; 0 == ate->port_count; ate++);
+	// Get this worker's assigned address entry
+	xdd_e2e_ate_t *ate = worker_address_table_entry(wdp);
 
 	// Resolve name to an IP address
-	rc = xint_lookup_addr(ate->hostname, 0, &tdp->td_e2ep->e2e_dest_addr);
+	rc = xint_lookup_addr(ate->hostname, 0, &wdp->wd_e2ep->e2e_dest_addr);
 	assert(0 == rc);
-	struct in_addr addr = { .s_addr = tdp->td_e2ep->e2e_dest_addr };
+	struct in_addr addr = { .s_addr = wdp->wd_e2ep->e2e_dest_addr };
 	char* ip_string = inet_ntoa(addr);
 
 	if (!isdest) {
@@ -87,9 +86,19 @@ do_connect(worker_data_t *wdp, int isdest)
 	xni_bufset_t bufset;
 	memset(&bufset, 0, sizeof(bufset));
 	bufset.bufs = tdp->io_buffers;
-	bufset.bufcount = tdp->io_buffers_count;
+	// Find the first buffer to be owned by this worker's connection
+	for (const xdd_e2e_ate_t *p = tdp->td_e2ep->e2e_address_table;
+		 p != ate;
+		 p++) {
+
+		bufset.bufs += p->port_count;
+	}
+	bufset.bufcount = ate->port_count;  // one buffer per port
 	bufset.bufsize = tdp->io_buffer_size;
 	bufset.reserved = getpagesize();
+
+	// Check for overflow
+	assert(bufset.bufs+bufset.bufcount <= tdp->io_buffers+tdp->io_buffers_count);
 
 	if (isdest) {
 		rc = xni_accept_connection(tdp->xni_ctx, &xep, &bufset, conn);
@@ -314,11 +323,10 @@ xint_is_e2e(const target_data_t *tdp)
 xni_connection_t*
 xint_e2e_worker_connection(worker_data_t *wdp)
 {
-	target_data_t * const tdp = wdp->wd_tdp;
-
-	//TODO: support more than one host
-	assert(1 == tdp->td_e2ep->e2e_address_table_host_count);
-	xni_connection_t * const conn = tdp->td_e2ep->xni_td_connections;
+	const int idx = wdp->wd_e2ep->address_table_index;
+	xni_connection_t * const conn = idx >= 0
+		? wdp->wd_tdp->td_e2ep->xni_td_connections+idx
+		: NULL;
 
 	return conn;
 }
@@ -326,11 +334,10 @@ xint_e2e_worker_connection(worker_data_t *wdp)
 pthread_mutex_t*
 xint_e2e_worker_connection_mutex(worker_data_t *wdp)
 {
-	xint_e2e_t * const e2ep = wdp->wd_tdp->td_e2ep;
-
-	//TODO: support more than one host
-	assert(1 == e2ep->e2e_address_table_host_count);
-	pthread_mutex_t * const mutex = e2ep->xni_td_connection_mutexes;
+	const int idx = wdp->wd_e2ep->address_table_index;
+	pthread_mutex_t * const mutex = idx >= 0
+		? wdp->wd_tdp->td_e2ep->xni_td_connection_mutexes+idx
+		: NULL;
 
 	return mutex;
 }
