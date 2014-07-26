@@ -134,7 +134,7 @@ xint_e2e_worker_init(worker_data_t *wdp) {
 	tdp = wdp->wd_tdp;
 	wdp->wd_e2ep->e2e_sr_time = 0;
 
-	if(wdp->wd_e2ep->e2e_dest_hostname == NULL) {
+	if(xint_e2e_worker_dest_hostname(wdp) == NULL) {
 		fprintf(xgp->errout,"%s: xint_e2e_worker_init: Target %d Worker Thread %d: No DESTINATION host name or IP address specified for this end-to-end operation.\n",
 				xgp->progname,
 				tdp->td_target_number,
@@ -147,10 +147,10 @@ xint_e2e_worker_init(worker_data_t *wdp) {
 	}
 
 	// Get the IP address of the destination host
-	status = xint_lookup_addr(wdp->wd_e2ep->e2e_dest_hostname, 0, &addr);
+	status = xint_lookup_addr(xint_e2e_worker_dest_hostname(wdp), 0, &addr);
 	if (status) {
 		fprintf(xgp->errout, "%s: xint_e2e_worker_init: unable to identify host '%s'\n",
-				xgp->progname, wdp->wd_e2ep->e2e_dest_hostname);
+				xgp->progname, xint_e2e_worker_dest_hostname(wdp));
 		return(-1);
 	}
 

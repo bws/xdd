@@ -281,8 +281,17 @@ xint_target_init_start_worker_threads(target_data_t *tdp) {
 		    e2e_addr_index++;
 		}
 		//assert(e2e_addr_index < p->e2ep->e2e_address_table->number_of_entries);
-		
-		wdp->wd_e2ep->e2e_dest_hostname = tdp->td_e2ep->e2e_address_table[e2e_addr_index].hostname;
+
+		if (xgp->global_options & GO_REALLYVERBOSE) {
+		    fprintf(xgp->errout,
+					"Target Init: Target %d: assigning hostname %s to worker_thread %d\n",
+					tdp->td_target_number,
+					tdp->td_e2ep->e2e_address_table[e2e_addr_index].hostname,
+					wdp->wd_worker_number);
+		}
+
+		// Assign this address to the current worker
+		wdp->wd_e2ep->address_table_index = e2e_addr_index;
 		
 		// Set the WorkerThread Numa node if possible
 #if defined(HAVE_CPU_SET_T) && defined(HAVE_PTHREAD_ATTR_SETAFFINITY_NP)
@@ -296,13 +305,9 @@ xint_target_init_start_worker_threads(target_data_t *tdp) {
 		    e2e_addr_index++;
 		    e2e_addr_port = 0;
 		}
-		if (xgp->global_options & GO_REALLYVERBOSE)
-		    fprintf(stderr,"Target Init: Target %d: assigning hostname %s to worker_thread %d\n",
-			    tdp->td_target_number, wdp->wd_e2ep->e2e_dest_hostname,
-				wdp->wd_worker_number);
-	    }
 
-	    
+	    }  // end of e2e initialization
+
 	    status = pthread_create(&wdp->wd_thread, &worker_thread_attr, xdd_worker_thread, wdp);
 	    if (status) {
 		fprintf(xgp->errout,"%s: xdd_target_init_start_worker_threads: ERROR: Cannot create worker_thread %d for target number %d name '%s' - Error number %d\n",

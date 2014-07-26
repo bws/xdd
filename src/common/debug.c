@@ -382,8 +382,6 @@ xdd_show_target_counters(xint_target_counters_t *tcp) {
 void
 xdd_show_e2e(xint_e2e_t *e2ep) {
     fprintf(stderr,"\nxdd_show_e2e:********* Start of E2E Data at 0x%p **********\n",e2ep);
-    fprintf(stderr,"\txdd_show_e2e: char       *e2e_dest_hostname='%s'\n",e2ep->e2e_dest_hostname);     // Name of the Destination machine 
-    fprintf(stderr,"\txdd_show_e2e: char       *e2e_src_file_path='%s'\n",e2ep->e2e_dest_hostname);     // Full path of source file for destination restart file 
     fprintf(stderr,"\txdd_show_e2e: time_t     e2e_src_file_mtime\n");     // stat -c %Y *e2e_src_file_path, i.e., last modification time
     fprintf(stderr,"\txdd_show_e2e: in_addr_t  e2e_dest_addr=%d\n",e2ep->e2e_dest_addr);          // Destination Address number of the E2E socket 
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_send_status=%d\n",e2ep->e2e_send_status);         // Current Send Status

@@ -46,6 +46,7 @@
 
 // forward declarations
 static int32_t do_connect(worker_data_t*, int);
+static xdd_e2e_ate_t *worker_address_table_entry(worker_data_t*);
 
 static int32_t
 do_connect(worker_data_t *wdp, int isdest)
@@ -332,6 +333,26 @@ xint_e2e_worker_connection_mutex(worker_data_t *wdp)
 	pthread_mutex_t * const mutex = e2ep->xni_td_connection_mutexes;
 
 	return mutex;
+}
+
+static xdd_e2e_ate_t*
+worker_address_table_entry(worker_data_t *wdp)
+{
+	const int idx = wdp->wd_e2ep->address_table_index;
+	xdd_e2e_ate_t * const atep = idx >= 0
+		? wdp->wd_tdp->td_e2ep->e2e_address_table+idx
+		: NULL;
+
+	return atep;
+}
+
+const char*
+xint_e2e_worker_dest_hostname(worker_data_t *wdp)
+{
+	const xdd_e2e_ate_t * const atep = worker_address_table_entry(wdp);
+	const char *hostname = atep->hostname;
+
+	return hostname;
 }
 
 /*

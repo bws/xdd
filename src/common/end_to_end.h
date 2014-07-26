@@ -41,7 +41,6 @@ typedef struct xdd_e2e_address_table xdd_e2e_at_t;
  * target thread and worker thread.
  */
 struct xint_e2e {
-	char				*e2e_dest_hostname; 	// Name of the Destination machine 
 	in_addr_t			e2e_dest_addr;  		// Destination Address number of the E2E socket 
 	int32_t				e2e_send_status; 		// Current Send Status
 	int64_t				e2e_msg_sequence_number;// The Message Sequence Number of the most recent message sent or to be received
@@ -59,6 +58,7 @@ struct xint_e2e {
 	/* XNI Worker data */
 	xni_target_buffer_t xni_wd_buf;
 	int received_eof;  // TRUE when the source has signaled EOF to this destination worker
+	int address_table_index;  // Index into e2e_address_table for the address assigned to this worker
 }; // End of struct xint_e2e definition
 typedef struct xint_e2e xint_e2e_t;
 
