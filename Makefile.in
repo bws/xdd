@@ -374,8 +374,8 @@ check: check_tools check_xni
 #
 # Build and run acceptance tests (this requires a make install)
 #
-test_config: tests/etc/test_config.$(HOST)
-	@cp $< $@
+test_config: |tests/etc/test_config.$(HOST)
+	@cp tests/etc/test_config.$(HOST) $@
 
 test_xdd: test_config
 	@tests/acceptance/test_xdd_datapattern_random.sh
