@@ -177,7 +177,7 @@ diff -urN -rupN paramiko-1.13.0/paramiko/client.py paramiko/paramiko/client.py
 diff -urN -rupN paramiko-1.13.0/paramiko/keysign.py paramiko/paramiko/keysign.py
 --- paramiko-1.13.0/paramiko/keysign.py	1969-12-31 19:00:00.000000000 -0500
 +++ paramiko/paramiko/keysign.py	2014-04-28 14:02:56.000000000 -0400
-@@ -0,0 +1,74 @@
+@@ -0,0 +1,75 @@
 +# Copyright (C) 2014  Nicholas Mills <nlmills@g.clemson.edu>
 +#
 +# This file is part of paramiko.
@@ -208,6 +208,7 @@ diff -urN -rupN paramiko-1.13.0/paramiko/keysign.py paramiko/paramiko/keysign.py
 +    def __init__(self, keysign_path=''):
 +        candidate_paths = [keysign_path,
 +                           '/usr/libexec/ssh-keysign',
++                           '/usr/lib64/ssh/ssh-keysign',
 +                           '/usr/libexec/openssh/ssh-keysign']
 +
 +        match = None
