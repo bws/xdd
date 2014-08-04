@@ -482,8 +482,12 @@ class TransferManager:
 
         # Get the width of the terminal
         #(cols, rows) = os.get_terminal_size()
-        (r, c) = os.popen('stty size').read().split()
-        cols = int(c)
+        stty_size = os.popen('stty size').read()
+        if 0 != len(stty_size):
+            (r, c) = os.popen('stty size').read().split()
+            cols = int(c)
+        else:
+            cols = 80
 
         # Generate the status string
         status = ''
