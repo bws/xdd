@@ -481,13 +481,12 @@ class TransferManager:
             eta = str(td)
 
         # Get the width of the terminal
-        #(cols, rows) = os.get_terminal_size()
-        stty_size = os.popen('stty size').read()
-        if 0 != len(stty_size):
-            (r, c) = os.popen('stty size').read().split()
-            cols = int(c)
-        else:
-            cols = 80
+        cols = 80
+        if sys.stdin.isatty():
+            stty_size = os.popen('stty size').read()
+            if 0 != len(stty_size):
+                (r, c) = stty_size.split()
+                cols = int(c)
 
         # Generate the status string
         status = ''

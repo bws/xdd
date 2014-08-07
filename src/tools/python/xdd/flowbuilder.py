@@ -181,8 +181,11 @@ class FlowBuilder(object):
         return rc
 
     def protocolVersion(self):
-        """@return The XDD protocol version"""
-        return self.flow.protocolVersion()
+        """@return The XDD protocol version, or empty string if no valid version is found"""
+        pv = self.flow.protocolVersion()
+        if pv is None:
+            pv = ""
+        return pv
 
     def buildFlow(self, isSink, reqSize, flowIdx, numFlows, ifaces,
                   dioFlag, serialFlag, verboseFlag, timestampFlag, 

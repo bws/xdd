@@ -69,16 +69,16 @@ class EndpointFactory:
         self.restartFlag = restartFlag
 
         # Internal variables
-        self.remoteTransports = {}
+        self.remoteTransports = []
         self.sinkFlows = []
         self.sourceFlows = []
         self.allFlows = []
         self.allBuilders = []
 
     def shutdown(self):
-        """Shutdown all flow builders"""
-        for (h, b) in self.remoteTransports.items():
-            b.shutdown()
+        """Shutdown all transports"""
+        for trans in self.remoteTransports:
+            trans.shutdown()
         
     def getEndpoints(self):
         """Return all flows"""
@@ -103,12 +103,12 @@ class EndpointFactory:
             # Build a remote transport
             try:
                 trans = FlowBuilderTransport(hostIP, hostname)
+                self.remoteTransports.append(trans)
+                # Extract the flow builder proxy from the transport
+                b = trans.getFlowBuilder()
             except FlowBuilderTransportError:
                 raise EndpointCreationError()
 
-            # Extract the flow builder proxy from the transport
-            b = trans.getFlowBuilder()
-            self.remoteTransports[hostIP] = trans
         return b
 
     def createIfaceList(self, flowSpec):
