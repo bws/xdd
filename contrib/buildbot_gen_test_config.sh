@@ -99,6 +99,7 @@ mkdir -p $test_local_dir
 # Generate the nightly tests config file
 #
 cat >test_config <<EOF
+XDDTEST_TESTS_DIR=$(pwd)/tests
 XDDTEST_XDD_EXE=$install_dir/bin/xdd
 XDDTEST_XDD_GETFILESIZE_EXE=$install_dir/bin/xdd-getfilesize
 XDDTEST_XDD_GETHOSTIP_EXE=$install_dir/bin/xdd-gethostip
@@ -111,7 +112,6 @@ XDDTEST_XDDFT_EXE=$install_dir/src/tools/xddft/xddft
 XDDTEST_XDDFT_EXE=$install_dir/src/tools/xddmcp/xddmcp
 XDDTEST_XDD_PATH=${install_dir}/bin
 XDDTEST_MPIL_EXE=$build_dir/xdd/contrib/mpil
-XDDTEST_TESTS_DIR=$build_dir/xdd/tests
 XDDTEST_LOCAL_MOUNT=$test_local_dir
 XDDTEST_SOURCE_MOUNT=$test_src_dir
 XDDTEST_DEST_MOUNT=$test_dest_dir
