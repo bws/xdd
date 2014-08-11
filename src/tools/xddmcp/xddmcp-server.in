@@ -50,12 +50,11 @@ cpid=$!
 #
 # Watchdog loop that triggers an exit when the parent or child completes
 #
-ppid=$(ps -fp $$ |tail -1 |tr -s ' '|cut -f 3 -d ' ')
-\ps -p $cpid >&-
-rc=$?
+ppid=0
+rc=0
 while [ 1 -ne $ppid -a 0 -eq $rc ]; do
    \sleep 5
-   ppid=$(ps -fp $$ |tail -1 |tr -s ' '|cut -f 3 -d ' ')
+   ppid=$(ps -fp $$ |tail -1 |tr -s ' '|sed -e 's/^ //'|cut -f 3 -d ' ')
    \ps -p $cpid >&-
    rc=$?
 done
