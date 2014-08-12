@@ -203,16 +203,6 @@ xint_target_init_barriers(target_data_t *tdp) {
 	sprintf(tmpname,"T%04d:target_worker_thread_init_barrier",tdp->td_target_number);
 	status += xdd_init_barrier(tdp->td_planp, &tdp->td_target_worker_thread_init_barrier,2, tmpname);
 
-	// The Target Pass barrier
-	sprintf(tmpname,"T%04d>targetpass_worker_thread_passcomplete_barrier",tdp->td_target_number);
-	status += xdd_init_barrier(tdp->td_planp, &tdp->td_targetpass_worker_thread_passcomplete_barrier,tdp->td_queue_depth+1,tmpname);
-
-	// The Target Pass E2E EOF Complete barrier - only initialized when an End-to-End operation is running
-	if (xint_is_e2e(tdp)) {
-		sprintf(tmpname,"T%04d>targetpass_worker_thread_eofcomplete_barrier",tdp->td_target_number);
-		status += xdd_init_barrier(tdp->td_planp, &tdp->td_targetpass_worker_thread_eofcomplete_barrier,2,tmpname);
-	}
-
 	// The Target Start Trigger barrier 
 	if (tdp->td_target_options & TO_WAITFORSTART) { // If we are expecting a Start Trigger then we need to init the starttrigger barrier
 		sprintf(tmpname,"T%04d>target_target_starttrigger_barrier",tdp->td_target_number);

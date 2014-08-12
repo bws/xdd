@@ -74,9 +74,6 @@ struct xint_target_data {
 	// Target-specific variables
 	xdd_barrier_t		td_target_worker_thread_init_barrier;		// Where the Target Thread waits for the Worker Thread to initialize
 
-	xdd_barrier_t		td_targetpass_worker_thread_passcomplete_barrier;// The barrier used to sync targetpass() with all the Worker Threads at the end of a pass
-	xdd_barrier_t		td_targetpass_worker_thread_eofcomplete_barrier;// The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
-
 
 	uint64_t			td_current_bytes_issued;	// The amount of data for all transfer requests that has been issued so far 
 	uint64_t			td_current_bytes_completed;	// The amount of data for all transfer requests that has been completed so far

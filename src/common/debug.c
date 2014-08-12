@@ -117,8 +117,6 @@ xdd_show_target_data(target_data_t *tdp) {
     fprintf(stderr,"xdd_show_target_data: char                    td_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH]='%s'\n",tdp->td_occupant_name); // For a Target thread this is "TARGET####", for a Worker Thread it is "TARGET####WORKER####"
     fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           *td_current_barrier=%p\n",tdp->td_current_barrier);  // Pointer to the current barrier this Thread is in at any given time or NULL if not in a barrier
     fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_target_worker_thread_init_barrier\n");            // Where the Target Thread waits for the Worker Thread to initialize
-    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_targetpass_worker_thread_passcomplete_barrier\n");// The barrier used to sync targetpass() with all the Worker Threads at the end of a pass
-    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_targetpass_worker_thread_eofcomplete_barrier\n"); // The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
     fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_issued=%lld\n",(long long int)tdp->td_current_bytes_issued);       // The amount of data for all transfer requests that has been issued so far 
     fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_completed=%lld\n",(long long int)tdp->td_current_bytes_completed); // The amount of data for all transfer requests that has been completed so far
     fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_remaining=%lld\n",(long long int)tdp->td_current_bytes_remaining); // Bytes remaining to be transferred 
