@@ -209,6 +209,18 @@ xint_target_init_barriers(target_data_t *tdp) {
 		status += xdd_init_barrier(tdp->td_planp, &tdp->td_trigp->target_target_starttrigger_barrier,2,tmpname);
 	}
 
+	// Barrier to wait for all worker threads to connect (E2E only)
+	if (xint_is_e2e(tdp)) {
+		snprintf(tmpname,
+				 sizeof(tmpname),
+				 "T%04d>target_worker_thread_connected_barrier",
+				 tdp->td_target_number);
+		status += xdd_init_barrier(tdp->td_planp,
+								   &tdp->td_target_worker_thread_connected_barrier,
+								   (tdp->td_queue_depth + 1),  // workers + target
+								   tmpname);
+	}
+
 	// The "td_counters_mutex" is used by the WorkerThreads when updating the counter information in the Target Thread Data
 	status += pthread_mutex_init(&tdp->td_counters_mutex, 0);
 
@@ -334,6 +346,13 @@ xint_target_init_start_worker_threads(target_data_t *tdp) {
 	    // Get next WorkerThread pointer
 	    wdp = wdp->wd_next_wdp;
 	} // End of FOR loop that starts all worker_threads for this target
+
+	// Wait for worker threads to finish connecting (E2E only)
+	if (xint_is_e2e(tdp)) {
+		xdd_barrier(&tdp->td_target_worker_thread_connected_barrier,
+					&tdp->td_occupant,
+					1);
+	}
 
 	if (xgp->global_options & GO_REALLYVERBOSE) {
 		fprintf(xgp->errout,"\n%s: xdd_target_init_start_worker_threads: Target %d ALL %d WorkerThreads started\n",

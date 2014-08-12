@@ -73,6 +73,7 @@ struct xint_target_data {
 
 	// Target-specific variables
 	xdd_barrier_t		td_target_worker_thread_init_barrier;		// Where the Target Thread waits for the Worker Thread to initialize
+	xdd_barrier_t		td_target_worker_thread_connected_barrier;	// Where the Target Thread waits for every Worker Thread to establish a connection (End-to-End only)
 
 
 	uint64_t			td_current_bytes_issued;	// The amount of data for all transfer requests that has been issued so far 

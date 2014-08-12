@@ -45,9 +45,7 @@ xdd_worker_thread(void *pin) {
 	// Enter the WorkerThread_Init barrier so that the next WorkerThread can start 
 	xdd_barrier(&tdp->td_target_worker_thread_init_barrier,&wdp->wd_occupant,0);
 
-	if ( xgp->abort == 1) // Something went wrong during thread initialization so let's just leave
-		return(0);
-
+	// Only for E2E
 	if (xint_is_e2e(tdp)) {
 		// Set up for an e2e operation and establish a connection
 		status = xint_e2e_worker_init(wdp);
@@ -58,9 +56,17 @@ xdd_worker_thread(void *pin) {
 					tdp->td_target_number,
 					wdp->wd_worker_number,
 					(tdp->td_target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
-			return(0);
+			xgp->abort = 1;
 		}
+
+		// Enter barrier to let the target thread know we have connected
+		xdd_barrier(&tdp->td_target_worker_thread_connected_barrier,
+					&wdp->wd_occupant,
+					0);
 	}
+
+	if (1 == xgp->abort) // Something went wrong during thread initialization so let's just leave
+		return(0);
 
 	// Set the buffer data pattern for non-E2E operations or E2E sources
 	if (!xint_is_e2e(tdp) || !(tdp->td_target_options & TO_E2E_DESTINATION)) {
