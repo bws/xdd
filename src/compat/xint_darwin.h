@@ -53,7 +53,6 @@
 #endif
 
 /* XDD internal compatibility headers for this platform */
-#include "xint_barrier.h"
 #include "xint_nclk.h" /* nclk_t, prototype compatibility */
 #include "xint_misc.h"
 
