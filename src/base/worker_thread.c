@@ -45,8 +45,33 @@ xdd_worker_thread(void *pin) {
 	// Enter the WorkerThread_Init barrier so that the next WorkerThread can start 
 	xdd_barrier(&tdp->td_target_worker_thread_init_barrier,&wdp->wd_occupant,0);
 
-	if ( xgp->abort == 1) // Something went wrong during thread initialization so let's just leave
+	// Only for E2E
+	if (xint_is_e2e(tdp)) {
+		// Set up for an e2e operation and establish a connection
+		status = xint_e2e_worker_init(wdp);
+		if (-1 == status) {
+			fprintf(xgp->errout,
+					"%s: xdd_worker_thread: Target %d WorkerThread %d: E2E %s initialization failed.\n",
+					xgp->progname,
+					tdp->td_target_number,
+					wdp->wd_worker_number,
+					(tdp->td_target_options & TO_E2E_DESTINATION) ? "DESTINATION":"SOURCE");
+			xgp->abort = 1;
+		}
+
+		// Enter barrier to let the target thread know we have connected
+		xdd_barrier(&tdp->td_target_worker_thread_connected_barrier,
+					&wdp->wd_occupant,
+					0);
+	}
+
+	if (1 == xgp->abort) // Something went wrong during thread initialization so let's just leave
 		return(0);
+
+	// Set the buffer data pattern for non-E2E operations or E2E sources
+	if (!xint_is_e2e(tdp) || !(tdp->td_target_options & TO_E2E_DESTINATION)) {
+		xdd_datapattern_buffer_init(wdp);
+	}
 
 	// If this is a dry run then just exit at this point
 	if (xgp->global_options & GO_DRYRUN)
@@ -76,8 +101,8 @@ xdd_worker_thread(void *pin) {
 				xdd_worker_thread_cleanup(wdp);
 				return(0);
 			case TASK_REQ_EOF:
-				// E2E Source Side only - send EOF packets to Destination 
-				status = xdd_e2e_eof_source_side(wdp);
+				// E2E Source Side only
+				status = xint_e2e_eof_source_side(wdp);
 				if (status) // Only set the status in the Target Data Struct if it is non-zero
 					tdp->td_counters.tc_current_io_status = status;
 				break;

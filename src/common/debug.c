@@ -117,8 +117,6 @@ xdd_show_target_data(target_data_t *tdp) {
     fprintf(stderr,"xdd_show_target_data: char                    td_occupant_name[XDD_BARRIER_MAX_NAME_LENGTH]='%s'\n",tdp->td_occupant_name); // For a Target thread this is "TARGET####", for a Worker Thread it is "TARGET####WORKER####"
     fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           *td_current_barrier=%p\n",tdp->td_current_barrier);  // Pointer to the current barrier this Thread is in at any given time or NULL if not in a barrier
     fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_target_worker_thread_init_barrier\n");            // Where the Target Thread waits for the Worker Thread to initialize
-    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_targetpass_worker_thread_passcomplete_barrier\n");// The barrier used to sync targetpass() with all the Worker Threads at the end of a pass
-    fprintf(stderr,"xdd_show_target_data: xdd_barrier_t           td_targetpass_worker_thread_eofcomplete_barrier\n"); // The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
     fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_issued=%lld\n",(long long int)tdp->td_current_bytes_issued);       // The amount of data for all transfer requests that has been issued so far 
     fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_completed=%lld\n",(long long int)tdp->td_current_bytes_completed); // The amount of data for all transfer requests that has been completed so far
     fprintf(stderr,"xdd_show_target_data: uint64_t                td_current_bytes_remaining=%lld\n",(long long int)tdp->td_current_bytes_remaining); // Bytes remaining to be transferred 
@@ -382,68 +380,17 @@ xdd_show_target_counters(xint_target_counters_t *tcp) {
 void
 xdd_show_e2e(xint_e2e_t *e2ep) {
     fprintf(stderr,"\nxdd_show_e2e:********* Start of E2E Data at 0x%p **********\n",e2ep);
-    fprintf(stderr,"\txdd_show_e2e: char       *e2e_dest_hostname='%s'\n",e2ep->e2e_dest_hostname);     // Name of the Destination machine 
-    fprintf(stderr,"\txdd_show_e2e: char       *e2e_src_hostname='%s'\n",e2ep->e2e_dest_hostname);         // Name of the Source machine 
-    fprintf(stderr,"\txdd_show_e2e: char       *e2e_src_file_path='%s'\n",e2ep->e2e_dest_hostname);     // Full path of source file for destination restart file 
     fprintf(stderr,"\txdd_show_e2e: time_t     e2e_src_file_mtime\n");     // stat -c %Y *e2e_src_file_path, i.e., last modification time
     fprintf(stderr,"\txdd_show_e2e: in_addr_t  e2e_dest_addr=%d\n",e2ep->e2e_dest_addr);          // Destination Address number of the E2E socket 
-    fprintf(stderr,"\txdd_show_e2e: in_port_t  e2e_dest_port=%d\n",e2ep->e2e_dest_port);          // Port number to use for the E2E socket 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_sd=%d\n",e2ep->e2e_sd);                   // Socket descriptor for the E2E message port 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_nd=%d\n",e2ep->e2e_nd);                   // Number of Socket descriptors in the read set 
-    fprintf(stderr,"\txdd_show_e2e: sd_t       e2e_csd[FD_SETSIZE]\n");;    // Client socket descriptors 
-    fprintf(stderr,"\txdd_show_e2e: fd_set     e2e_active?\n");              // This set contains the sockets currently active 
-    fprintf(stderr,"\txdd_show_e2e: fd_set     e2e_readset?\n");             // This set is passed to select() 
-    fprintf(stderr,"\txdd_show_e2e: struct sockaddr_in  e2e_sname?\n");                 // used by setup_server_socket 
-    fprintf(stderr,"\txdd_show_e2e: uint32_t   e2e_snamelen=%d\n",e2ep->e2e_snamelen);             // the length of the socket name 
-    fprintf(stderr,"\txdd_show_e2e: struct sockaddr_in  e2e_rname?\n");                 // used by destination machine to remember the name of the source machine 
-    fprintf(stderr,"\txdd_show_e2e: uint32_t   e2e_rnamelen=%d\n",e2ep->e2e_rnamelen);             // the length of the source socket name 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_current_csd=%d\n",e2ep->e2e_current_csd);         // the current csd used by the select call on the destination side
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_next_csd=%d\n",e2ep->e2e_next_csd);             // The next available csd to use 
-    fprintf(stderr,"\txdd_show_e2e: xdd_e2e_header_t *e2e_hdrp=%p\n",e2ep->e2e_hdrp);                // Pointer to the header portion of a packet
-	if (e2ep->e2e_hdrp) xdd_show_e2e_header(e2ep->e2e_hdrp);
-    fprintf(stderr,"\txdd_show_e2e: unsigned char *e2e_datap=%p\n",e2ep->e2e_datap);                // Pointer to the data portion of a packet
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_header_size=%d\n",e2ep->e2e_header_size);         // Size of the header portion of the buffer 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_data_size=%d\n",e2ep->e2e_data_size);             // Size of the data portion of the buffer
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_xfer_size=%d\n",e2ep->e2e_xfer_size);             // Number of bytes per End to End request - size of data buffer plus size of E2E Header
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_send_status=%d\n",e2ep->e2e_send_status);         // Current Send Status
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_recv_status=%d\n",e2ep->e2e_recv_status);         // Current Recv status
     fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_msg_sequence_number=%lld\n",(long long int)e2ep->e2e_msg_sequence_number);// The Message Sequence Number of the most recent message sent or to be received
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_msg_sent=%d\n",e2ep->e2e_msg_sent);             // The number of messages sent 
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_msg_recv=%d\n",e2ep->e2e_msg_recv);             // The number of messages received 
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_prev_loc=%lld\n",(long long int)e2ep->e2e_prev_loc);             // The previous location from a e2e message from the source 
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_prev_len=%lld\n",(long long int)e2ep->e2e_prev_len);             // The previous length from a e2e message from the source 
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_data_recvd=%lld\n",(long long int)e2ep->e2e_data_recvd);         // The amount of data that is received each time we call xdd_e2e_dest_recv()
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_data_length=%lld\n",(long long int)e2ep->e2e_data_length);         // The amount of data that is ready to be read for this operation 
-    fprintf(stderr,"\txdd_show_e2e: int64_t    e2e_total_bytes_written=%lld\n",(long long int)e2ep->e2e_total_bytes_written); // The total amount of data written across all restarts for this file
     fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_wait_1st_msg=%lld\n",(unsigned long long int)e2ep->e2e_wait_1st_msg);        // Time in nanosecs destination waited for 1st source data to arrive 
-    fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_first_packet_received_this_pass=%lld\n",(unsigned long long int)e2ep->e2e_first_packet_received_this_pass);// Time that the first packet was received by the destination from the source
-    fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_last_packet_received_this_pass=%lld\n",(unsigned long long int)e2ep->e2e_last_packet_received_this_pass);// Time that the last packet was received by the destination from the source
-    fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_first_packet_received_this_run=%lld\n",(unsigned long long int)e2ep->e2e_first_packet_received_this_run);// Time that the first packet was received by the destination from the source
-    fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_last_packet_received_this_run=%lld\n",(unsigned long long int)e2ep->e2e_last_packet_received_this_run);// Time that the last packet was received by the destination from the source
     fprintf(stderr,"\txdd_show_e2e: nclk_t     e2e_sr_time=%lld\n",(unsigned long long int)e2ep->e2e_sr_time);             // Time spent sending or receiving data for End-to-End operation
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_address_table_host_count=%d\n",e2ep->e2e_address_table_host_count);    // Cumulative number of hosts represented in the e2e address table
     fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_address_table_port_count=%d\n",e2ep->e2e_address_table_port_count);    // Cumulative number of ports represented in the e2e address table
-    fprintf(stderr,"\txdd_show_e2e: int32_t    e2e_address_table_next_entry=%d\n",e2ep->e2e_address_table_next_entry);    // Next available entry in the e2e_address_table
     fprintf(stderr,"\txdd_show_e2e: xdd_e2e_ate_t e2e_address_table[E2E_ADDRESS_TABLE_ENTRIES]\n"); // Used by E2E to stripe over multiple IP Addresses
     fprintf(stderr,"xdd_show_e2e:********* End of E2E Data at 0x%p **********\n",e2ep);
 } // End of xdd_show_e2e()
-
-/*----------------------------------------------------------------------------*/
-/* xdd_show_e2e_header() - Display values in the specified data structure
- */
-void
-xdd_show_e2e_header(xdd_e2e_header_t *e2ehp) {
-    fprintf(stderr,"\nxdd_show_e2e_header:********* Start of E2E Header Data at 0x%p **********\n",e2ehp);
-    fprintf(stderr,"\t\txdd_show_e2e_header: uint32_t   e2eh_magic=0x%8x\n",e2ehp->e2eh_magic);                 // Magic Number - sanity check
-    fprintf(stderr,"\t\txdd_show_e2e_header: int32_t    e2eh_worker_thread_number=%d\n",e2ehp->e2eh_worker_thread_number);  // Sender's Worker Thread Number
-    fprintf(stderr,"\t\txdd_show_e2e_header: int64_t    e2eh_sequence_number=%lld\n",(long long int)e2ehp->e2eh_sequence_number);       // Sequence number of this operation
-    fprintf(stderr,"\t\txdd_show_e2e_header: nclk_t     e2eh_send_time=%lld\n",(unsigned long long int)e2ehp->e2eh_send_time);             // Time this packet was sent in global nano seconds
-    fprintf(stderr,"\t\txdd_show_e2e_header: nclk_t     e2eh_recv_time=%lld\n",(unsigned long long int)e2ehp->e2eh_recv_time);             // Time this packet was received in global nano seconds
-    fprintf(stderr,"\t\txdd_show_e2e_header: int64_t    e2eh_byte_offset=%lld\n",(long long int)e2ehp->e2eh_byte_offset);           // Offset relative to the beginning of the file of where this data belongs
-    fprintf(stderr,"\t\txdd_show_e2e_header: int64_t    e2eh_data_length=%lld\n",(long long int)e2ehp->e2eh_data_length);           // Length of the user data in bytes for this operation
-    fprintf(stderr,"\txdd_show_e2e_header:********* End of E2E Header Data at 0x%p **********\n",e2ehp);
-
-} // End of xdd_show_e2e_header()
 
 /*----------------------------------------------------------------------------*/
 /* xdd_show_tot_entry() - Display values in the specified data structure

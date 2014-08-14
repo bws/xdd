@@ -2,19 +2,19 @@
 #define XDD_XNI_INTERNAL_H
 
 
+#include <arpa/inet.h>  // for ntohl()
+
+
 struct xni_protocol {
     const char *name;
     int (*context_create)(xni_protocol_t, xni_control_block_t, xni_context_t*);
     int (*context_destroy)(xni_context_t*);
 
-    int (*register_buffer)(xni_context_t, void*, size_t, size_t, xni_target_buffer_t*);
-    int (*unregister_buffer)(xni_context_t, void*);
-
-    int (*accept_connection)(xni_context_t, struct xni_endpoint*, xni_connection_t*);
-    int (*connect)(xni_context_t, struct xni_endpoint*, xni_connection_t*);
+    int (*accept_connection)(xni_context_t, struct xni_endpoint*, xni_bufset_t*, xni_connection_t*);
+    int (*connect)(xni_context_t, struct xni_endpoint*, xni_bufset_t*, xni_connection_t*);
     int (*close_connection)(xni_connection_t*);
 
-    int (*request_target_buffer)(xni_context_t, xni_target_buffer_t*);
+    int (*request_target_buffer)(xni_connection_t, xni_target_buffer_t*);
     int (*send_target_buffer)(xni_connection_t, xni_target_buffer_t*);
     int (*receive_target_buffer)(xni_connection_t, xni_target_buffer_t*);
     int (*release_target_buffer)(xni_target_buffer_t*);
@@ -29,11 +29,39 @@ struct xni_connection {
 };
 
 struct xni_target_buffer {
-    struct xni_context *context;
+    struct xni_connection *connection;
     void *data;
+	int64_t sequence_number;
     size_t target_offset;
     int data_length;
 };
+
+
+/**
+ * Convert from network byte-order (big endian) to host order
+ */
+static inline uint64_t ntohll(uint64_t value)
+{
+    int endian_test = 1;
+
+    // Determine if host order is little endian
+    if (endian_test == *((char*)(&endian_test))) {
+        // Swap the bytes
+        uint32_t low = ntohl((uint32_t)(value & 0xFFFFFFFFLL));
+        uint32_t high = ntohl((uint32_t)(value >> 32));
+        value = ((uint64_t)(low) << 32) | (uint64_t)(high);
+    }
+    return value;
+}
+
+/**
+ * Convert from host byte-order to network byte-order (big endian)
+ */
+static inline uint64_t htonll(uint64_t value)
+{
+    // Re-use the ntohll implementation to swap the bytes
+    return ntohll(value);
+}
 
 #endif // XDD_XNI_INTERNAL_H
 

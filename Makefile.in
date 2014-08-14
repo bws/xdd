@@ -352,7 +352,10 @@ bin/basic-xni-test: tests/other/xni/basic-xni-test.c $(LIB_DIR)/libxdd.a
 
 test: contrib/mpil bin/basic-xni-test
 
-check: bin/basic-xni-test bin/basic-ib-test
+check_xni: bin/basic-xni-test bin/basic-ib-test
+	@# This should somehow run all xni tests
+
+check_tools: contrib xdd
 	@# This should somehow run all of the tests.
 	@$(PYTHON) tests/unit/site-packages/paramiko_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_file_transfer_test.py
@@ -363,7 +366,10 @@ check: bin/basic-xni-test bin/basic-ib-test
 	@$(PYTHON) tests/unit/site-packages/xdd_transfer_manager_test.py
 	@$(PYTHON) tests/unit/site-packages/xdd_transport_test.py
 
-.PHONY: test check
+check: check_tools check_xni
+	@# This should somehow run all of the tests.
+
+.PHONY: test check check_tools check_xni
 
 #
 # Build rules for cleaning up derived files

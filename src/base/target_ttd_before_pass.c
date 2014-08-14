@@ -142,8 +142,6 @@ xdd_raw_before_pass(target_data_t *tdp) {
 	rawp = tdp->td_rawp;
 
 	// Initialize the read-after-write variables
-	rawp->raw_msg_sent = 0;
-	rawp->raw_msg_recv = 0;
 	rawp->raw_msg_last_sequence = 0;
 	rawp->raw_msg.sequence = 0;
 	rawp->raw_prev_loc = 0;
@@ -167,12 +165,7 @@ xdd_e2e_before_pass(target_data_t *tdp) {
 		return;
 
 	// Initialize the read-after-write variables
-	tdp->td_e2ep->e2e_msg_sent = 0;
-	tdp->td_e2ep->e2e_msg_recv = 0;
 	tdp->td_e2ep->e2e_msg_sequence_number = 0;
-	tdp->td_e2ep->e2e_prev_loc = 0;
-	tdp->td_e2ep->e2e_prev_len = 0;
-	tdp->td_e2ep->e2e_data_length = 0;
 	tdp->td_e2ep->e2e_sr_time = 0;
 
 } // End of xdd_e2e_before_pass()

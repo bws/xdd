@@ -201,23 +201,13 @@ xdd_e2e_before_io_op(worker_data_t *wdp) {
 	/* ------------------------------------------------------ */
 	// We are the Destination side of an End-to-End op
 
-	wdp->wd_e2ep->e2e_data_recvd = 0; // This will record how much data is recvd in this routine
 
 	// Lets read a packet of data from the Source side
-	// The call to xdd_e2e_dest_recv() will block until there is data to read 
+	// The call to xint_e2e_xni_recv() will block until there is data to read 
 	wdp->wd_current_state |= WORKER_CURRENT_STATE_DEST_RECEIVE;
 
-        if (PLAN_ENABLE_XNI & tdp->td_planp->plan_options) {
-            status = xint_e2e_xni_recv(wdp);
-        }
-        else {
+	status = xint_e2e_xni_recv(wdp);
 
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Calling xdd_e2e_dest_recv...\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
-
-	    status = xdd_e2e_dest_receive(wdp);
-
-if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e_before_io_op: Target: %d: Worker: %d: Returning from xdd_e2e_dest_recv: e2e header:\n ", (long long int)pclk_now(),tdp->td_target_number,wdp->wd_worker_number);
-        }
 	wdp->wd_current_state &= ~WORKER_CURRENT_STATE_DEST_RECEIVE;
 
 	// If status is "-1" then soemthing happened to the connection - time to leave
@@ -225,17 +215,15 @@ if (xgp->global_options & GO_DEBUG_E2E) fprintf(stderr,"DEBUG_E2E: %lld: xdd_e2e
 		return(-1);
 		
 	// Check to see of this is the last message in the transmission
-	if (wdp->wd_e2ep->e2e_hdrp->e2eh_magic == XDD_E2E_EOF)  { // This must be the End of the File
+	if (wdp->wd_e2ep->received_eof)  { // This must be the End of the File
 		return(0);
 	}
 
 	// Use the hearder.location as the new tdp->td_counters.tc_current_byte_offset and the e2e_header.length as the new my_current_xfer_size for this op
 	// This will allow for the use of "no ordering" on the source side of an e2e operation
-	wdp->wd_task.task_byte_offset = wdp->wd_e2ep->e2e_hdrp->e2eh_byte_offset;
-	wdp->wd_task.task_xfer_size = wdp->wd_e2ep->e2e_hdrp->e2eh_data_length;
-	wdp->wd_task.task_op_number = wdp->wd_e2ep->e2e_hdrp->e2eh_sequence_number;
-	// Record the amount of data received 
-	wdp->wd_e2ep->e2e_data_recvd = wdp->wd_e2ep->e2e_hdrp->e2eh_data_length;
+	wdp->wd_task.task_byte_offset = xni_target_buffer_target_offset(wdp->wd_e2ep->xni_wd_buf);
+	wdp->wd_task.task_xfer_size = xni_target_buffer_data_length(wdp->wd_e2ep->xni_wd_buf);
+	wdp->wd_task.task_op_number = xni_target_buffer_sequence_number(wdp->wd_e2ep->xni_wd_buf);
 
 	return(0);
 

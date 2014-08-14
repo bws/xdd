@@ -46,7 +46,6 @@ int start_server()
 	xni_release_target_buffer(&xtb);
 	
     // XNI cleanup stuff
-    xni_unregister_buffer(xni_ctx, buf);
     xni_finalize();
     free(buf);
     return rc;

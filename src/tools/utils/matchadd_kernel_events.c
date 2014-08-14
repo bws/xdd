@@ -281,7 +281,7 @@ matchadd_kernel_events(int issource, int nthreads, int thread_id[], char *filesp
                   xdd_data->tsh_tte[i].tte_net_start_k      = ts_beg_op;
                   xdd_data->tsh_tte[i].tte_net_end_k        = ts_end_op;
                   /* xdd eof stuff */
-                  if ( xdd_data->tsh_tte[i].tte_net_xfer_size != size_op && xdd_data->tsh_tte[i].tte_net_xfer_size != sizeof(xdd_e2e_header_t)) 
+                  if ( xdd_data->tsh_tte[i].tte_net_xfer_size != size_op )
                     fprintf(stderr, "xddop# %zd pid %d op %d size %d != %"PRId64"\n",i,thread_id[k],xdd_data->tsh_tte[i].tte_op_type,xdd_data->tsh_tte[i].tte_net_xfer_size,size_op);
                   if ( xdd_data->tsh_tte[i].tte_net_xfer_calls != nops_op && nops_op > 0) 
                     fprintf(stderr, "xddop# %zd pid %d nops %d != %"PRId64"\n",i,thread_id[k],xdd_data->tsh_tte[i].tte_net_xfer_calls,nops_op);

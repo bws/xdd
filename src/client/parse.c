@@ -388,7 +388,7 @@ xdd_get_target_datap(xdd_plan_t *planp, int32_t target_number, char *op) {
 	
 		if (planp->plan_options & PLAN_ENDTOEND) {
 			if (NULL == tdp->td_e2ep) { // If there is no e2e struct then allocate one.
-	    		tdp->td_e2ep = xdd_get_e2ep();
+	    		tdp->td_e2ep = xint_get_e2ep();
 				if (NULL == tdp->td_e2ep) {
 	    			fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for Target Data Struct END TO END Data Structure for target %d\n",
 		    			xgp->progname, (int)sizeof(xint_data_pattern_t), target_number);

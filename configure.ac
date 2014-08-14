@@ -138,7 +138,10 @@ dnl
 dnl Check for a GNU compatible tar program
 dnl
 tar_cmd=""
-AC_PATH_PROGS([tar_cmd], [gnutar tar], AC_MSG_ERROR(Unable to find a valid tar program))
+AC_PATH_PROGS([tar_cmd], [gnutar tar])
+if test "x$tar_cmd" == "x"; then
+    AC_MSG_ERROR(no suitable tar command in path.)
+fi
 TAR=$tar_cmd
 AC_SUBST(TAR)
 
@@ -146,7 +149,10 @@ dnl
 dnl Check for a 'patch' command
 dnl
 patch_cmd=""
-AC_PATH_PROGS([patch_cmd], [patch], AC_MSG_ERROR(Unable to find a valid patch program))
+AC_PATH_PROGS([patch_cmd], [patch])
+if test "x$patch_cmd" == "x"; then
+    AC_MSG_ERROR(no suitable patch command in path.)
+fi
 PATCH="$patch_cmd"
 AC_SUBST(PATCH)
 

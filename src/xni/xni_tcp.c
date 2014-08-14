@@ -20,12 +20,14 @@
 #include "xni_internal.h"
 
 
-#define PROTOCOL_NAME "tcp-nlmills-20120809"
+#define PROTOCOL_NAME "tcp-nlmills-20140602"
 #define ALIGN(val,align) (((val)+(align)-1UL) & ~((align)-1UL))
 
 const char *XNI_TCP_DEFAULT_CONGESTION = "";
 
-static const size_t TCP_DATA_MESSAGE_HEADER_SIZE = 12;
+static const size_t TCP_DATA_MESSAGE_HEADER_SIZE = 20;  // = sequence_number(8) + 
+                                                        //   target_offset(8) +
+                                                        //   data_length(4)
 
 struct tcp_control_block {
   size_t num_sockets;
@@ -39,13 +41,6 @@ struct tcp_context {
 
 	// added by struct tcp_context
 	struct tcp_control_block control_block;
-
-    // added by struct tcp_connection
-    struct tcp_target_buffer *registered_buffers;  // NULL-terminated
-	size_t num_registered;
-    pthread_mutex_t buffer_mutex;
-    pthread_cond_t buffer_cond;
-
 };
 
 struct tcp_socket {
@@ -58,18 +53,29 @@ struct tcp_connection {
     // inherited from struct xni_connection
     struct tcp_context *context;
 
+    // added by struct tcp_connection
+	// 1 = destination side, 0 = source side
     int destination;
 
     struct tcp_socket *sockets;
     int num_sockets;
     pthread_mutex_t socket_mutex;
     pthread_cond_t socket_cond;
+
+	// size is equal to num_sockets
+    struct tcp_target_buffer *registered_buffers;
+	// count of registered buffers
+	size_t num_registered;
+	// these protect registered_buffers and num_registered
+    pthread_mutex_t buffer_mutex;
+    pthread_cond_t buffer_cond;
 };
 
 struct tcp_target_buffer {
   // inherited from xni_target_buffer
-  struct tcp_context *context;
+  struct tcp_connection *connection;
   void *data;
+  int64_t sequence_number;
   size_t target_offset;
   int data_length;
 
@@ -106,28 +112,22 @@ int xni_allocate_tcp_control_block(int num_sockets, const char *congestion, int 
 int xni_free_tcp_control_block(xni_control_block_t *cb_)
 {
   struct tcp_control_block **cb = (struct tcp_control_block**)cb_;
-
   free(*cb);
 
   *cb = NULL;
   return XNI_OK;
 }
 
-static int tcp_context_create(xni_protocol_t proto_, xni_control_block_t cb_, xni_context_t *ctx_)
+static int tcp_context_create(xni_protocol_t proto, xni_control_block_t cb_, xni_context_t *ctx_)
 {
-  struct xni_protocol *proto = proto_;
   struct tcp_control_block *cb = (struct tcp_control_block*)cb_;
   struct tcp_context **ctx = (struct tcp_context**)ctx_;
-  size_t num_buffers = cb->num_sockets;
   assert(strcmp(proto->name, PROTOCOL_NAME) == 0);
 
   // fill in a new context
   struct tcp_context *tmp = calloc(1, sizeof(*tmp));
   tmp->protocol = proto;
   tmp->control_block = *cb;
-  tmp->registered_buffers = calloc(num_buffers, sizeof(*tmp->registered_buffers));
-  pthread_mutex_init(&tmp->buffer_mutex, NULL);
-  pthread_cond_init(&tmp->buffer_cond, NULL);
   
   // Swap in the context
   *ctx = tmp;
@@ -138,23 +138,23 @@ static int tcp_context_create(xni_protocol_t proto_, xni_control_block_t cb_, xn
 static int tcp_context_destroy(xni_context_t *ctx_)
 {
   struct tcp_context **ctx = (struct tcp_context **)ctx_;
-  pthread_mutex_destroy(&(*ctx)->buffer_mutex);
-  pthread_cond_destroy(&(*ctx)->buffer_cond);
-  free((*ctx)->registered_buffers);
   free(*ctx);
 
   *ctx = NULL;
   return XNI_OK;
 }
 
-static int tcp_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, size_t reserved, xni_target_buffer_t* tbp) {
-	struct tcp_context* ctx = (struct tcp_context*) ctx_;
+static int register_buffer(struct tcp_connection *conn, void* buf, size_t nbytes, size_t reserved) {
+	// buffer base address
     uintptr_t beginp = (uintptr_t)buf;
+	// buffer data area base address
     uintptr_t datap = (uintptr_t)buf + (uintptr_t)(reserved);
+	// number of bytes available for headers
+	//TODO: isn't this just the same as `reserved' ?
     size_t avail = (size_t)(datap - beginp);
 
 	// Make sure space exists in the registered buffers array
-	if (ctx->control_block.num_sockets <= ctx->num_registered)
+	if (conn->context->control_block.num_sockets <= conn->num_registered)
 		return XNI_ERR;
 	
     // Make sure enough padding exists
@@ -162,28 +162,22 @@ static int tcp_register_buffer(xni_context_t ctx_, void* buf, size_t nbytes, siz
         return XNI_ERR;
 
 	// Add the buffer into the array of registered buffers
-	pthread_mutex_lock(&ctx->buffer_mutex);
-	struct tcp_target_buffer *tb = ctx->registered_buffers + ctx->num_registered;
-	tb->context = ctx;
+	pthread_mutex_lock(&conn->buffer_mutex);
+	struct tcp_target_buffer *tb = conn->registered_buffers + conn->num_registered;
+	tb->connection = conn;
 	tb->data = (void*)datap;
+	tb->sequence_number = 0;
 	tb->target_offset = 0;
 	tb->data_length = -1;
 	tb->busy = 0;
 	tb->header = (void*)(datap - TCP_DATA_MESSAGE_HEADER_SIZE);
-	ctx->registered_buffers[ctx->num_registered] = *tb;
-	ctx->num_registered++;
-	pthread_mutex_unlock(&ctx->buffer_mutex);
+	conn->num_registered++;
+	pthread_mutex_unlock(&conn->buffer_mutex);
 
-	// Set the user's target buffer
-	*tbp = (xni_target_buffer_t)&(tb);
     return XNI_OK;
 }
 
-static int tcp_unregister_buffer(xni_context_t ctx, void* buf) {
-    return XNI_OK;
-}
-
-static int tcp_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, xni_connection_t* conn_)
+static int tcp_accept_connection(xni_context_t ctx_, struct xni_endpoint* local, xni_bufset_t *bufset, xni_connection_t* conn_)
 {
 	struct tcp_context *ctx = (struct tcp_context*)ctx_;
 	struct tcp_connection **conn = (struct tcp_connection**)conn_;
@@ -287,6 +281,18 @@ static int tcp_accept_connection(xni_context_t ctx_, struct xni_endpoint* local,
 	tmpconn->num_sockets = num_sockets;
 	pthread_mutex_init(&tmpconn->socket_mutex, NULL);
 	pthread_cond_init(&tmpconn->socket_cond, NULL);
+	tmpconn->registered_buffers = calloc(ctx->control_block.num_sockets,
+										 sizeof(*tmpconn->registered_buffers));
+	tmpconn->num_registered = 0;
+	pthread_mutex_init(&tmpconn->buffer_mutex, NULL);
+	pthread_cond_init(&tmpconn->buffer_cond, NULL);
+
+	for (size_t i = 0; i < bufset->bufcount; i++) {
+		int rc = register_buffer(tmpconn, bufset->bufs[i], bufset->bufsize, bufset->reserved);
+		if (rc != XNI_OK) {
+			goto error_out;
+		}
+	}
 
 	*conn = tmpconn;
 	return XNI_OK;
@@ -302,18 +308,17 @@ static int tcp_accept_connection(xni_context_t ctx_, struct xni_endpoint* local,
     if (servers[i] != -1)
       close(servers[i]);
 
-  /*// free any allocated target buffers
-  for (struct tcp_target_buffer **ptr = target_buffers; *ptr; ptr++)
-    ctx->control_block.free_fn(*ptr);
+  if (tmpconn) {
+	  free(tmpconn->registered_buffers);
+	  free(tmpconn);
+  }
 
-    free(target_buffers);*/
-  free(tmpconn);
   free(clients);
 
   return XNI_ERR;
 }
 
-static int tcp_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_connection_t* conn_)
+static int tcp_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_bufset_t *bufset, xni_connection_t* conn_)
 {
 	struct tcp_context *ctx = (struct tcp_context*)ctx_;
 	struct tcp_connection **conn = (struct tcp_connection**)conn_;
@@ -387,14 +392,24 @@ static int tcp_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conn
 		}
 	}
 
-	//TODO: allocate target buffer list and attach
-
   tmpconn->context = ctx;
   tmpconn->destination = 0;
   tmpconn->sockets = servers;
   tmpconn->num_sockets = num_sockets;
   pthread_mutex_init(&tmpconn->socket_mutex, NULL);
   pthread_cond_init(&tmpconn->socket_cond, NULL);
+  tmpconn->registered_buffers = calloc(ctx->control_block.num_sockets,
+									   sizeof(*tmpconn->registered_buffers));
+  tmpconn->num_registered = 0;
+  pthread_mutex_init(&tmpconn->buffer_mutex, NULL);
+  pthread_cond_init(&tmpconn->buffer_cond, NULL);
+  
+  for (size_t i = 0; i < bufset->bufcount; i++) {
+	  int rc = register_buffer(tmpconn, bufset->bufs[i], bufset->bufsize, bufset->reserved);
+	  if (rc != XNI_OK) {
+		  goto error_out;
+	  }
+  }
 
   *conn = tmpconn;
   return XNI_OK;
@@ -405,12 +420,11 @@ static int tcp_connect(xni_context_t ctx_, struct xni_endpoint* remote, xni_conn
     if (servers[i].sockd != -1)
       close(servers[i].sockd);
 
-  // free any allocated target buffers
-  //for (struct tcp_target_buffer **ptr = target_buffers; *ptr; ptr++)
-  //  ctx->control_block.free_fn(*ptr);
+  if (tmpconn) {
+	  free(tmpconn->registered_buffers);
+	  free(tmpconn);
+  }
 
-  //free(target_buffers);
-  free(tmpconn);
   free(servers);
 
   return XNI_ERR;
@@ -429,27 +443,26 @@ static int tcp_close_connection(xni_connection_t *conn_)
     if (c->sockets[i].sockd != -1)
       close(c->sockets[i].sockd);
 
-  /*BWS
-  struct tcp_target_buffer **buffers = (c->destination ? c->receive_buffers : c->send_buffers);
-  while (*buffers++)
-    c->context->control_block.free_fn(*buffers);
-  */
+  pthread_mutex_destroy(&c->buffer_mutex);
+  pthread_cond_destroy(&c->buffer_cond);
+  free(c->registered_buffers);
+
   free(c);
 
   *conn = NULL;
   return XNI_OK;
 }
 
-static int tcp_request_target_buffer(xni_context_t ctx_, xni_target_buffer_t *targetbuf_)
+static int tcp_request_target_buffer(xni_connection_t conn_, xni_target_buffer_t *targetbuf_)
 {
-  struct tcp_context *ctx = (struct tcp_context*)ctx_;
+  struct tcp_connection *conn = (struct tcp_connection*)conn_;
   struct tcp_target_buffer **targetbuf = (struct tcp_target_buffer**)targetbuf_;
   struct tcp_target_buffer *tb = NULL;
   
-  pthread_mutex_lock(&ctx->buffer_mutex);
+  pthread_mutex_lock(&conn->buffer_mutex);
   while (tb == NULL) {
-	  for (size_t i = 0; i < ctx->num_registered; i++) {
-		  struct tcp_target_buffer *ptr = ctx->registered_buffers + i;
+	  for (size_t i = 0; i < conn->num_registered; i++) {
+		  struct tcp_target_buffer *ptr = conn->registered_buffers + i;
 		  if (!ptr->busy) {
 			  tb = ptr;
 			  tb->busy = 1;
@@ -457,9 +470,9 @@ static int tcp_request_target_buffer(xni_context_t ctx_, xni_target_buffer_t *ta
 		  }
 	  }
 	  if (tb == NULL)
-		  pthread_cond_wait(&ctx->buffer_cond, &ctx->buffer_mutex);
+		  pthread_cond_wait(&conn->buffer_cond, &conn->buffer_mutex);
   }
-  pthread_mutex_unlock(&ctx->buffer_mutex);
+  pthread_mutex_unlock(&conn->buffer_mutex);
     
   *targetbuf = tb;
   return XNI_OK;
@@ -476,10 +489,12 @@ static int tcp_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *t
     return XNI_ERR;
 
   // encode the message header
-  uint64_t tmp64 = tb->target_offset;
+  uint64_t tmp64 = htonll(tb->sequence_number);
   memcpy(tb->header, &tmp64, 8);
-  uint32_t tmp32 = tb->data_length;
-  memcpy(((char*)tb->header)+8, &tmp32, 4);
+  tmp64 = htonll(tb->target_offset);
+  memcpy(((char*)tb->header)+8, &tmp64, 8);
+  uint32_t tmp32 = htonl(tb->data_length);
+  memcpy(((char*)tb->header)+16, &tmp32, 4);
 
   // locate a free socket
   struct tcp_socket *socket = NULL;
@@ -516,10 +531,10 @@ static int tcp_send_target_buffer(xni_connection_t conn_, xni_target_buffer_t *t
   pthread_mutex_unlock(&conn->socket_mutex);
 
   // mark the buffer as free
-  pthread_mutex_lock(&tb->context->buffer_mutex);
+  pthread_mutex_lock(&conn->buffer_mutex);
   tb->busy = 0;
-  pthread_cond_signal(&tb->context->buffer_cond);
-  pthread_mutex_unlock(&tb->context->buffer_mutex);
+  pthread_cond_signal(&conn->buffer_cond);
+  pthread_mutex_unlock(&conn->buffer_mutex);
 
   *targetbuf = NULL;
   return XNI_OK;
@@ -533,10 +548,10 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
 
   // grab a free buffer
   struct tcp_target_buffer *tb = NULL;
-  pthread_mutex_lock(&conn->context->buffer_mutex);
+  pthread_mutex_lock(&conn->buffer_mutex);
   while (tb == NULL) {
-	  for (size_t i = 0; i < conn->context->num_registered; i++) {
-		  struct tcp_target_buffer *ptr = conn->context->registered_buffers + i;
+	  for (size_t i = 0; i < conn->num_registered; i++) {
+		  struct tcp_target_buffer *ptr = conn->registered_buffers + i;
 		  if (!ptr->busy) {
 			  tb = ptr;
 			  tb->busy = 1;
@@ -544,9 +559,9 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
 		  }
     }
     if (tb == NULL)
-      pthread_cond_wait(&conn->context->buffer_cond, &conn->context->buffer_mutex);
+      pthread_cond_wait(&conn->buffer_cond, &conn->buffer_mutex);
   }
-  pthread_mutex_unlock(&conn->context->buffer_mutex);
+  pthread_mutex_unlock(&conn->buffer_mutex);
 
   struct tcp_socket *socket = NULL;
   while (socket == NULL) {
@@ -603,10 +618,16 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
       received += cnt;
   }
 
+  // decode the header
+  uint64_t sequence_number;
+  memcpy(&sequence_number, recvbuf, 8);
+  sequence_number = ntohll(sequence_number);
   uint64_t target_offset;
-  memcpy(&target_offset, recvbuf, 8);
+  memcpy(&target_offset, recvbuf+8, 8);
+  target_offset = ntohll(target_offset);
   uint32_t data_length;
-  memcpy(&data_length, recvbuf+8, 4);
+  memcpy(&data_length, recvbuf+16, 4);
+  data_length = ntohl(data_length);
 
   recvbuf = (char*)tb->data;
   total = data_length;
@@ -622,6 +643,7 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
   }
 
   //TODO: sanity checks (e.g. tb->connection)
+  tb->sequence_number = sequence_number;
   tb->target_offset = target_offset;
   tb->data_length = (int)data_length;
   
@@ -641,10 +663,10 @@ static int tcp_receive_target_buffer(xni_connection_t conn_, xni_target_buffer_t
  buffer_out:
   if (return_code != XNI_OK) {
     // mark the buffer as free
-    pthread_mutex_lock(&conn->context->buffer_mutex);
+    pthread_mutex_lock(&conn->buffer_mutex);
     tb->busy = 0;
-    pthread_cond_signal(&conn->context->buffer_cond);
-    pthread_mutex_unlock(&conn->context->buffer_mutex);
+    pthread_cond_signal(&conn->buffer_cond);
+    pthread_mutex_unlock(&conn->buffer_mutex);
   }
 
   return return_code;
@@ -658,10 +680,12 @@ static int tcp_release_target_buffer(xni_target_buffer_t *targetbuf_)
   tb->target_offset = 0;
   tb->data_length = -1;
 
-  pthread_mutex_lock(&tb->context->buffer_mutex);
+  //TODO: is it really OK to access the lock protecting an object
+  // through the object itself?
+  pthread_mutex_lock(&tb->connection->buffer_mutex);
   tb->busy = 0;
-  pthread_cond_signal(&tb->context->buffer_cond);
-  pthread_mutex_unlock(&tb->context->buffer_mutex);
+  pthread_cond_signal(&tb->connection->buffer_cond);
+  pthread_mutex_unlock(&tb->connection->buffer_mutex);
                          
   *targetbuf = NULL;
   return XNI_OK;
@@ -672,8 +696,6 @@ static struct xni_protocol protocol_tcp = {
   .name = PROTOCOL_NAME,
   .context_create = tcp_context_create,
   .context_destroy = tcp_context_destroy,
-  .register_buffer = tcp_register_buffer,
-  .unregister_buffer = tcp_unregister_buffer,
   .accept_connection = tcp_accept_connection,
   .connect = tcp_connect,
   .close_connection = tcp_close_connection,

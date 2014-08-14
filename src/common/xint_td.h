@@ -73,9 +73,7 @@ struct xint_target_data {
 
 	// Target-specific variables
 	xdd_barrier_t		td_target_worker_thread_init_barrier;		// Where the Target Thread waits for the Worker Thread to initialize
-
-	xdd_barrier_t		td_targetpass_worker_thread_passcomplete_barrier;// The barrier used to sync targetpass() with all the Worker Threads at the end of a pass
-	xdd_barrier_t		td_targetpass_worker_thread_eofcomplete_barrier;// The barrier used to sync targetpass_eof_desintation_side() with a Worker Thread trying to recv an EOF packet
+	xdd_barrier_t		td_target_worker_thread_connected_barrier;	// Where the Target Thread waits for every Worker Thread to establish a connection (End-to-End only)
 
 
 	uint64_t			td_current_bytes_issued;	// The amount of data for all transfer requests that has been issued so far 
@@ -165,6 +163,14 @@ struct xint_target_data {
 	struct stat64				td_statbuf;			// Target File Stat buffer used by xdd_target_open()
 #endif
 	int32_t				td_op_delay; 		// Number of seconds to delay between operations 
+
+	// I/O buffers allocated and freed by the target thread but shared
+	// with either XNI or the workers
+	unsigned char **io_buffers;
+	// number of I/O buffers
+	size_t io_buffers_count;
+	// size of each I/O buffer in bytes
+	size_t io_buffer_size;
 
 	/* XNI Networking components */
 	xni_protocol_t      xni_pcl;

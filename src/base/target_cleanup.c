@@ -42,11 +42,33 @@ xdd_target_thread_cleanup(target_data_t *tdp) {
 #endif
 	}
 
-        /* On e2e XNI, part of cleanup includes closing the source side */
-        if ((TO_ENDTOEND & tdp->td_target_options) &&
-            (PLAN_ENABLE_XNI & tdp->td_planp->plan_options)) {
-            xni_close_connection(&tdp->td_e2ep->xni_td_conn);
-        }
+	// if this is an e2e transfer
+	if (xint_is_e2e(tdp)) {
+	  // Disconnect
+	  xint_e2e_disconnect(tdp);
 
+	  struct xint_e2e * const e2ep = tdp->td_e2ep;
+
+	  // Free the connections
+	  e2ep->xni_td_connections_count = 0;
+	  free(e2ep->xni_td_connections);
+	  e2ep->xni_td_connections = NULL;
+
+	  // Free the connection mutexes
+	  for (int i = 0; i < e2ep->xni_td_connections_count; i++) {
+	    int error = pthread_mutex_destroy(e2ep->xni_td_connection_mutexes+i);
+	    assert(!error);
+	  }
+	  free(e2ep->xni_td_connection_mutexes);
+	  e2ep->xni_td_connection_mutexes = NULL;
+	}
+
+	// Free the I/O buffers
+	for (size_t i = 0; i < tdp->io_buffers_count; i++) {
+	  free(tdp->io_buffers[i]);
+	}
+	free(tdp->io_buffers);
+	tdp->io_buffers = NULL;
+	tdp->io_buffers_count = 0;
 } // End of xdd_target_thread_cleanup()
 

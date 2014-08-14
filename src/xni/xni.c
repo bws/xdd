@@ -25,26 +25,15 @@ int xni_context_destroy(xni_context_t* ctx)
   return (*ctx)->protocol->context_destroy(ctx);
 }
 
-int xni_accept_connection(xni_context_t ctx, struct xni_endpoint* local, xni_connection_t* conn)
+int xni_accept_connection(xni_context_t ctx, struct xni_endpoint* local, xni_bufset_t *bufset, xni_connection_t* conn)
 {
-  return ctx->protocol->accept_connection(ctx, local, conn);
-}
-
-int xni_register_buffer(xni_context_t ctx, void* buf, size_t nbytes, size_t reserved,
-                        xni_target_buffer_t* tbp)
-{
-    return ctx->protocol->register_buffer(ctx, buf, nbytes, reserved, tbp);
-}
-
-int xni_unregister_buffer(xni_context_t ctx, void* buf)
-{
-    return ctx->protocol->unregister_buffer(ctx, buf);
+  return ctx->protocol->accept_connection(ctx, local, bufset, conn);
 }
 
 //TODO: local_endpoint
-int xni_connect(xni_context_t ctx, struct xni_endpoint* remote, xni_connection_t* conn)
+int xni_connect(xni_context_t ctx, struct xni_endpoint* remote, xni_bufset_t *bufset, xni_connection_t* conn)
 {
-  return ctx->protocol->connect(ctx, remote, conn);
+  return ctx->protocol->connect(ctx, remote, bufset, conn);
 }
 
 int xni_close_connection(xni_connection_t* conn)
@@ -52,10 +41,10 @@ int xni_close_connection(xni_connection_t* conn)
   return (*conn)->context->protocol->close_connection(conn);
 }
 
-int xni_request_target_buffer(xni_context_t context,
+int xni_request_target_buffer(xni_connection_t conn,
                               xni_target_buffer_t* buffer)
 {
-  return context->protocol->request_target_buffer(context, buffer);
+  return conn->context->protocol->request_target_buffer(conn, buffer);
 }
 
 int xni_send_target_buffer(xni_connection_t conn, xni_target_buffer_t* buffer)
@@ -70,7 +59,7 @@ int xni_receive_target_buffer(xni_connection_t conn, xni_target_buffer_t* buffer
 
 int xni_release_target_buffer(xni_target_buffer_t* buffer)
 {
-  return (*buffer)->context->protocol->release_target_buffer(buffer);
+  return (*buffer)->connection->context->protocol->release_target_buffer(buffer);
 }
 
 void *xni_target_buffer_data(xni_target_buffer_t tb)
@@ -96,4 +85,14 @@ int xni_target_buffer_data_length(xni_target_buffer_t tb)
 void xni_target_buffer_set_data_length(int length, xni_target_buffer_t tb)
 {
   tb->data_length = length;
+}
+
+int64_t xni_target_buffer_sequence_number(xni_target_buffer_t tb)
+{
+  return tb->sequence_number;
+}
+
+void xni_target_buffer_set_sequence_number(int64_t seq, xni_target_buffer_t tb)
+{
+  tb->sequence_number = seq;
 }

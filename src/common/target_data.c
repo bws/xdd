@@ -94,16 +94,19 @@ xdd_init_new_target_data(target_data_t *tdp, int32_t n) {
 	}
 	/* Init the end-to-end fields */
 	if (tdp->td_e2ep) {
-		tdp->td_e2ep->e2e_sd = 0; /* destination machine socket descriptor */
-		tdp->td_e2ep->e2e_src_hostname = NULL;  /* E2E source hostname */
-		tdp->td_e2ep->e2e_dest_hostname = NULL;  /* E2E destination hostname */
-		tdp->td_e2ep->e2e_dest_port = DEFAULT_E2E_PORT;
 		tdp->td_e2ep->e2e_address_table_host_count = 0;
 		tdp->td_e2ep->e2e_address_table_port_count = 0;
 		tdp->td_e2ep->e2e_dest_addr = 0;
 		tdp->td_e2ep->e2e_wait_1st_msg = 0;
-		tdp->td_e2ep->e2e_address_table_next_entry=0;
+		tdp->td_e2ep->xni_td_connections = NULL;
+		tdp->td_e2ep->xni_td_connections_count = 0;
+		tdp->td_e2ep->xni_td_connection_mutexes = NULL;
+		tdp->td_e2ep->address_table_index = -1;
 	}
+
+	tdp->io_buffers = NULL;
+	tdp->io_buffers_count = 0;
+	tdp->io_buffer_size = 0;
 
 	tdp->xni_ibdevice = DEFAULT_IB_DEVICE;  /* can be changed by '-ibdevice' CLO */
 
@@ -210,7 +213,7 @@ xdd_create_worker_data(target_data_t *tdp, int32_t q) {
         
 	// Allocate and initialize the End-to-End structure if needed
 	if (tdp->td_target_options & TO_ENDTOEND) {
-	   	wdp->wd_e2ep = xdd_get_e2ep();
+	   	wdp->wd_e2ep = xint_get_e2ep();
 		if (NULL == wdp->wd_e2ep) {
 	   		fprintf(xgp->errout,"%s: ERROR: Cannot allocate %d bytes of memory for WORKER_DATA END TO END Data Structure for worker %d\n",
 	    		xgp->progname, (int)sizeof(xint_data_pattern_t), q);
