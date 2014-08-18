@@ -1,22 +1,163 @@
-/*
- * XDD - a data movement and benchmarking toolkit
- *
- * Copyright (C) 1992-2013 I/O Performance, Inc.
- * Copyright (C) 2009-2013 UT-Battelle, LLC
- *
- * This is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public
- * License version 2, as published by the Free Software
- * Foundation.  See file COPYING.
- *
- */
+/* src/compat/config.h.in.  Generated from configure.ac by autoheader.  */
 
-#ifndef CONFIG_H
-#define CONFIG_H
+/* Define if you have the cpu_set_t type. */
+#undef HAVE_CPU_SET_T
 
-/********************************************************************************
- * Autoconf stuff
- *******************************************************************************/
+/* Define to 1 if you have the declaration of `BLKGETSIZE64', and to 0 if you
+   don't. */
+#undef HAVE_DECL_BLKGETSIZE64
+
+/* Define to 1 if you have the declaration of `DKIOCGETBLOCKCOUNT', and to 0
+   if you don't. */
+#undef HAVE_DECL_DKIOCGETBLOCKCOUNT
+
+/* Define to 1 if you have the declaration of `DKIOCGETBLOCKSIZE', and to 0 if
+   you don't. */
+#undef HAVE_DECL_DKIOCGETBLOCKSIZE
+
+/* Define to 1 if you have the declaration of `TCP_CONGESTION', and to 0 if
+   you don't. */
+#undef HAVE_DECL_TCP_CONGESTION
+
+/* Define to 1 if you have the declaration of `xfsctl', and to 0 if you don't.
+   */
+#undef HAVE_DECL_XFSCTL
+
+/* Define to 1 if you have the declaration of `XFS_SUPER_MAGIC', and to 0 if
+   you don't. */
+#undef HAVE_DECL_XFS_SUPER_MAGIC
+
+/* Define to 1 to enable InfiniBand network support. */
+#undef HAVE_ENABLE_IB
+
+/* Define to 1 if you have libnuma. */
+#undef HAVE_ENABLE_NUMA
+
+/* Define to 1 to enable XFS preallocation support. */
+#undef HAVE_ENABLE_XFS
+
+/* Define to 1 if you have the <gtest/gtest.h> header file. */
+#undef HAVE_GTEST_GTEST_H
+
+/* Define to 1 if you have the `ibv_get_device_list' function. */
+#undef HAVE_IBV_GET_DEVICE_LIST
+
+/* Define to 1 if you have the <infiniband/verbs.h> header file. */
+#undef HAVE_INFINIBAND_VERBS_H
+
+/* Define to 1 if you have the `initstate' function. */
+#undef HAVE_INITSTATE
+
+/* Define to 1 if you have the <inttypes.h> header file. */
+#undef HAVE_INTTYPES_H
+
+/* Define to 1 if you have the `ioctl' function. */
+#undef HAVE_IOCTL
+
+/* Define to 1 if you have the <libgen.h> header file. */
+#undef HAVE_LIBGEN_H
+
+/* Define to 1 if you have the <linux/magic.h> header file. */
+#undef HAVE_LINUX_MAGIC_H
+
+/* Define to 1 if you have the <memory.h> header file. */
+#undef HAVE_MEMORY_H
+
+/* Define to 1 if you have the `memset' function. */
+#undef HAVE_MEMSET
+
+/* Define if you have the MPI library. */
+#undef HAVE_MPI
+
+/* Define to 1 if you have the `nanosleep' function. */
+#undef HAVE_NANOSLEEP
+
+/* Define to 1 if you have the `numa_allocate_cpumask' function. */
+#undef HAVE_NUMA_ALLOCATE_CPUMASK
+
+/* Define to 1 if you have the <numa.h> header file. */
+#undef HAVE_NUMA_H
+
+/* Define to 1 if you have the `numa_node_to_cpus' function. */
+#undef HAVE_NUMA_NODE_TO_CPUS
+
+/* Define to 1 if you have the `posix_memalign' function. */
+#undef HAVE_POSIX_MEMALIGN
+
+/* Define to 1 if you have the `pread' function. */
+#undef HAVE_PREAD
+
+/* Define if you have pthread_ */
+#undef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
+
+/* Define if you have pthread_barrier_t type. */
+#undef HAVE_PTHREAD_BARRIER_T
+
+/* Define to 1 if you have the `pwrite' function. */
+#undef HAVE_PWRITE
+
+/* Define to 1 if you have the `rand' function. */
+#undef HAVE_RAND
+
+/* Define to 1 if you have the `random' function. */
+#undef HAVE_RANDOM
+
+/* Define to 1 if you have the `sched_getcpu' function. */
+#undef HAVE_SCHED_GETCPU
+
+/* Define to 1 if you have the <sched.h> header file. */
+#undef HAVE_SCHED_H
+
+/* Define to 1 if you have the `sched_setscheduler' function. */
+#undef HAVE_SCHED_SETSCHEDULER
+
+/* Define to 1 if you have the <scsi/sg.h> header file. */
+#undef HAVE_SCSI_SG_H
+
+/* Define to 1 if you have the <stdint.h> header file. */
+#undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define to 1 if you have the <strings.h> header file. */
+#undef HAVE_STRINGS_H
+
+/* Define to 1 if you have the <string.h> header file. */
+#undef HAVE_STRING_H
+
+/* Define to 1 if you have the <sys/disk.h> header file. */
+#undef HAVE_SYS_DISK_H
+
+/* Define to 1 if you have the <sys/ioctl.h> header file. */
+#undef HAVE_SYS_IOCTL_H
+
+/* Define to 1 if you have the <sys/mount.h> header file. */
+#undef HAVE_SYS_MOUNT_H
+
+/* Define to 1 if you have the <sys/stat.h> header file. */
+#undef HAVE_SYS_STAT_H
+
+/* Define to 1 if you have the <sys/types.h> header file. */
+#undef HAVE_SYS_TYPES_H
+
+/* Define to 1 if you have the <unistd.h> header file. */
+#undef HAVE_UNISTD_H
+
+/* Define to 1 if you have the <utmpx.h> header file. */
+#undef HAVE_UTMPX_H
+
+/* Define to 1 if you have the `valloc' function. */
+#undef HAVE_VALLOC
+
+/* Define to 1 if you have the `xfsctl' function. */
+#undef HAVE_XFSCTL
+
+/* Define to 1 if you have the <xfs/libxfs.h> header file. */
+#undef HAVE_XFS_LIBXFS_H
+
+/* Define to 1 if you have the <xfs/xfs.h> header file. */
+#undef HAVE_XFS_XFS_H
 
 /* Define to the address where bug reports for this package should be sent. */
 #undef PACKAGE_BUGREPORT
@@ -36,175 +177,8 @@
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
 
-
-/********************************************************************************
- * Defines for headers
- *******************************************************************************/
-
-/* Define to 1 if you have the <inttypes.h> header file. */
-#undef HAVE_INTTYPES_H
-
-/* Define to 1 if you have the <linux/magic.h> header file. */
-#undef HAVE_LIBGEN_H
-
-/* Define to 1 if you have the <linux/magic.h> header file. */
-#undef HAVE_LINUX_MAGIC_H
-
-/* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
-/* Define to 1 if you have the <stdint.h> header file. */
-#undef HAVE_STDINT_H
-
-/* Define to 1 if you have the <stdlib.h> header file. */
-#undef HAVE_STDLIB_H
-
-/* Define to 1 if you have the <strings.h> header file. */
-#undef HAVE_STRINGS_H
-
-/* Define to 1 if you have the <string.h> header file. */
-#undef HAVE_STRING_H
-
-/* Define to 1 if you have the <sys/disk.h> header file. */
-#undef HAVE_SYS_DISK_H
-
-/* Define to 1 if you have the <sys/mount.h> header file. */
-#undef HAVE_SYS_MOUNT_H
-
-/* Define to 1 if you have the <sys/stat.h> header file. */
-#undef HAVE_SYS_STAT_H
-
-/* Define to 1 if you have the <sys/types.h> header file. */
-#undef HAVE_SYS_TYPES_H
-
-/* Define to 1 if you have the <unistd.h> header file. */
-#undef HAVE_UNISTD_H
-
-/* Define to 1 if you have the <utmpx.h> header file. */
-#undef HAVE_UTMPX_H
-
-/* Define to 1 if you have the <xfs/libxfs.h> header file. */
-#undef HAVE_XFS_LIBXFS_H
-
-/* Define to 1 if you have the <xfs/xfs.h> header file. */
-#undef HAVE_XFS_XFS_H
-
-/* Define to 1 if you have the <numa.h> header file. */
-#undef HAVE_NUMA_H
-
-/* Define to 1 if you have the <sched.h> header file. */
-#undef HAVE_SCHED_H
-
-/* Define to 1 if you have the <scsi/sg.h> header file. */
-#undef HAVE_SCSI_SG_H
-
-/* Define to 1 if you have the <gtest/gtest.h> header file. */
-#undef HAVE_GTEST_GTEST_H
-
-/* Define to 1 if you have the <infiniband/verbs.h> header file. */
-#undef HAVE_INFINIBAND_VERBS_H
-
-/********************************************************************************
- * Defines for functions
- *******************************************************************************/
-
-/* Define to 1 if you have the `clock_gettime' function. */
-#undef HAVE_CLOCK_GETTIME
-
-/* Define to 1 if you have the `ibv_get_device_list' function. */
-#undef HAVE_IBV_GET_DEVICE_LIST
-
-/* Define to 1 if you have the `initstate' function. */
-#undef HAVE_INITSTATE
-
-/* Define to 1 if you have the `memset' function. */
-#undef HAVE_MEMSET
-
-/* Define to 1 if you have the `nanosleep' function. */
-#undef HAVE_NANOSLEEP
-
-/* Define to 1 if you have the `posix_memalign' function. */
-#undef HAVE_NUMA_NODE_TO_CPUS
-
-/* Define to 1 if you have the `posix_memalign' function. */
-#undef HAVE_NUMA_ALLOCATE_CPUMASK
-
-/* Define to 1 if you have the `posix_memalign' function. */
-#undef HAVE_POSIX_MEMALIGN
-
-/* Define to 1 if you have the `pread' function. */
-#undef HAVE_PREAD
-
-/* Define to 1 if you have the `pthread_attr_setaffinity_np' function. */
-#undef HAVE_PTHREAD_ATTR_SETAFFINITY_NP
-
-/* Define to 1 if you have the `pwrite' function. */
-#undef HAVE_PWRITE
-
-/* Define to 1 if you have the `random' function. */
-#undef HAVE_RANDOM
-
-/* Define to 1 if you have the `rand' function. */
-#undef HAVE_RAND
-
-/* Define to 1 if you have the `sched_getcpu' function. */
-#undef HAVE_SCHED_GETCPU
-
-/* Define to 1 if you have the `sched_setscheduler' function. */
-#undef HAVE_SCHED_SETSCHEDULER
-
-/********************************************************************************
- * Defines for features
- *******************************************************************************/
-
-/* Define if you have BLKGETSIZE64 ioctl */
-#undef HAVE_DECL_BLKGETSIZE64
-
-/* Define if you have cpu_set_t type */
-#undef HAVE_CPU_SET_T
-
-/* Define if you have BLKGETSIZE64 ioctl */
-#undef HAVE_DECL_DKIOCGETBLOCKCOUNT
-
-/* Define if you have BLKGETSIZE64 ioctl */
-#undef HAVE_DECL_DKIOCGETBLOCKSIZE
-
-/* Define to 1 if you have the declaration of `XFS_SUPER_MAGIC', and to 0 if
-   you don't. */
-#undef HAVE_DECL_XFS_SUPER_MAGIC
-
-/* Define to 1 if you have the declaration of xfsctl, and to 0 if you don't. */
-#undef HAVE_DECL_XFSCTL
-
-/* Define if you have the MPI library. */
-#undef HAVE_MPI
-
-/* Define if you have the pthread. */
-#undef HAVE_PTHREAD_BARRIER_T
-
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 #undef size_t
-
-/* Define to 1 if you wish to enable XFS support */
-#undef HAVE_ENABLE_XFS
-
-/* Define to 1 if you wish to enable Infiniband support */
-#undef HAVE_ENABLE_IB
-
-/* Define to 1 if the TCP_CONGESTION setsockopt is available */
-#undef HAVE_DECL_TCP_CONGESTION
-
-
-#endif
-
-/*
- * Local variables:
- *  indent-tabs-mode: t
- *  c-indent-level: 4
- *  c-basic-offset: 4
- * End:
- *
- * vim: ts=4 sts=4 sw=4 noexpandtab
- */

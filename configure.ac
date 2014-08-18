@@ -24,8 +24,7 @@ dnl Process this file with autoconf to produce a configure script
 dnl
 AC_PREREQ(2.59)
 AC_INIT([xdd], [7.0.0.pre-rc27], bug@xdd.org)
-AC_CONFIG_HEADER([src/compat/config.h])
-
+AC_CONFIG_HEADERS([src/compat/config.h])
 
 dnl
 dnl Include useful macros
@@ -282,13 +281,15 @@ AC_ARG_ENABLE([numa],
               [enable_numa="$enableval"],
               [enable_numa=yes])
 if test "$enable_numa" = "yes" ; then
-    AC_DEFINE(HAVE_ENABLE_NUMA)
+    AC_DEFINE(HAVE_ENABLE_NUMA,1,[Define to 1 if you have libnuma.])
     AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
-                   AC_DEFINE(HAVE_NUMA_NODE_TO_CPUS),
+                   AC_DEFINE(HAVE_NUMA_NODE_TO_CPUS,1,
+                             [Define to 1 if you have the `numa_node_to_cpus' function.]),
                    AC_MSG_ERROR([Function numa_node_to_cpus not found.  Use --disable-numa]))
 
     AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
-                   AC_DEFINE(HAVE_NUMA_ALLOCATE_CPUMASK),
+                   AC_DEFINE(HAVE_NUMA_ALLOCATE_CPUMASK,1,
+                             [Define to 1 if you have the `numa_allocate_cpumask' function.]),
                    AC_MSG_ERROR([Function numa_allocate_cpumask not found.  Use --disable-numa.]))
 fi
 
@@ -315,10 +316,12 @@ AC_ARG_ENABLE([ib],
               [enable_ib="$enableval"], 
               [enable_ib=yes])
 if test "x$enable_ib" = "xyes" ; then
-    AC_DEFINE(HAVE_ENABLE_IB)
+    AC_DEFINE(HAVE_ENABLE_IB,1,
+              [Define to 1 to enable InfiniBand network support.])
     AC_CHECK_HEADERS([infiniband/verbs.h])
     AC_SEARCH_LIBS([ibv_get_device_list], [ibverbs],
-                   AC_DEFINE(HAVE_IBV_GET_DEVICE_LIST), 
+                   AC_DEFINE(HAVE_IBV_GET_DEVICE_LIST,1,
+                             [Define to 1 if you have the `ibv_get_device_list' function.]), 
                    AC_MSG_ERROR([Function ibv_get_device_list not found.  Use --disable-ib.]))
 fi
 
@@ -336,7 +339,8 @@ AC_ARG_ENABLE([xfs],
               [enable_xfs=yes])
 
 if test "$enable_xfs" = "yes" ; then
-    AC_DEFINE(HAVE_ENABLE_XFS)
+    AC_DEFINE(HAVE_ENABLE_XFS,1,
+              [Define to 1 to enable XFS preallocation support.])
     xfs_header="no"
     AC_CHECK_HEADERS([xfs/xfs.h] [xfs/libxfs.h],
                      xfs_header="yes"; break, [])
@@ -344,7 +348,8 @@ if test "$enable_xfs" = "yes" ; then
         AC_MSG_ERROR([No valid XFS header found (sometimes this is caused by missing libuuid headers).  Use --disable-xfs.])
     fi 
     AC_CHECK_DECLS([xfsctl], 
-                   AC_DEFINE(HAVE_XFSCTL), 
+                   AC_DEFINE(HAVE_XFSCTL,1,
+                             [Define to 1 if you have the `xfsctl' function.]), 
                    AC_MSG_ERROR([Function xfsctl not found.  Use --disable-xfs.]),
                    [#if HAVE_XFS_XFS_H
                     #include <xfs/xfs.h>
@@ -431,14 +436,14 @@ AX_PYTHON()
 dnl
 dnl Check for export-controlled packages
 dnl
-AC_CHECK_FILES([contrib/pycrypto-2.6.1.tar.gz], 
-               AC_SUBST(PYCRYPTO_DIST, [contrib/pycrypto-2.6.1.tar.gz]),
-               [AX_PYTHON_MODULE([Crypto], 
-                                 [XDD requires PyCrypto.  Due to U.S. Export Controls, PyCrypto must be installed separately from XDD.  See README.crypto])])
-AC_CHECK_FILES([contrib/ecdsa-0.11.tar.gz], 
-               AC_SUBST(ECDSA_DIST, [contrib/ecdsa-0.11.tar.gz]),
-               [AX_PYTHON_MODULE([ecdsa], 
-                                 [XDD requires Python ECDSA.  Due to U.S. Export Controls, ECDSA must be installed separately from XDD.  See README.crypto])])
+AC_CHECK_FILE([contrib/pycrypto-2.6.1.tar.gz], 
+              AC_SUBST(PYCRYPTO_DIST, [contrib/pycrypto-2.6.1.tar.gz]),
+              [AX_PYTHON_MODULE([Crypto], 
+                                [XDD requires PyCrypto.  Due to U.S. Export Controls, PyCrypto must be installed separately from XDD.  See README.crypto])])
+AC_CHECK_FILE([contrib/ecdsa-0.11.tar.gz], 
+              AC_SUBST(ECDSA_DIST, [contrib/ecdsa-0.11.tar.gz]),
+              [AX_PYTHON_MODULE([ecdsa], 
+                                [XDD requires Python ECDSA.  Due to U.S. Export Controls, ECDSA must be installed separately from XDD.  See README.crypto])])
 
 dnl
 dnl Check for packages XDD requires directly

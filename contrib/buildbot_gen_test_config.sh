@@ -4,7 +4,8 @@
 #
 # Step 1:  Generate a local test_config
 # Step 2:  autoconf
-# Step 3:  ./configure
+# Step 3:  autoheader
+# Step 4:  ./configure
 #
 
 #
@@ -128,4 +129,5 @@ EOF
 # Perform the configure
 #
 autoconf
+autoheader
 ./configure $configure_flags

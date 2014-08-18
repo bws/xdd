@@ -19,6 +19,7 @@ available:
 	> cd xdd
 	> vi configure.ac # and edit the VERSION variable
 	> autoconf
+	> autoheader
 	> ./configure --prefix=$HOME/sw/xdd
 	> make baseversion
 	> make
@@ -55,5 +56,6 @@ The resulting tar file now contains the released code only.
 9.  Prepare for the next release
 	> vi configure.ac # And set the version in AC_INIT to pre-nextrelease
 	> autoconf
+	> autoheader
 	> git commit -a
 	> git push

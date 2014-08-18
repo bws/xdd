@@ -77,6 +77,7 @@ XNI_DIR = $(SRC_DIR)/xni
 #
 AR = ar
 AUTOCONF = autoconf
+AUTOHEADER = autoheader
 CC = $(CC_EXE)
 CP = cp
 CPR = cp -r $(CP_PRESERVE_OPTS)
@@ -422,7 +423,7 @@ CONFIG_FLAGS = $(shell grep "\-\-prefix" config.log | cut -f 5- -d ' ')
 xdd-$(XDDVERSION):
 	git archive --format=tar --prefix=$@/ master | $(TAR) xf -
 	$(FIND) $@ -name .gitignore -exec rm {} \;
-	cd $@ && $(AUTOCONF)
+	cd $@ && $(AUTOCONF) && $(AUTOHEADER)
 
 xdd-$(XDDVERSION).tar.gz: xdd-$(XDDVERSION)
 	$(TAR) cfz $@ $<

@@ -23,6 +23,7 @@ software build process.  We also suggest enabling debug mode.
 
 On supported OS:
 > autoconf
+> autoheader
 > ./configure --enable-debug
 > make
 > make install
