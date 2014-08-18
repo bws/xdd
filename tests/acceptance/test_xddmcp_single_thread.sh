@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Test XDDMCP with very large thread counts
+# Test XDDMCP with a single worker thread
 #
 source ./test_config
 source $XDDTEST_TESTS_DIR/acceptance/common.sh
@@ -15,7 +15,7 @@ generate_dest_filename dfile
 #
 # Move the file with a large thread count
 #
-xddmcp -v -t 128 $XDDTEST_E2E_SOURCE:$sfile $XDDTEST_E2E_DEST:$dfile
+xddmcp -v -t 1 $XDDTEST_E2E_SOURCE:$sfile $XDDTEST_E2E_DEST:$dfile
 if [ 0 != $? ]; then
     echo "XDDMCP command failed"
     finalize_test 1

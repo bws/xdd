@@ -62,7 +62,7 @@ typedef struct xdd_e2e_address_table xdd_e2e_at_t;
 // Things used in the various end_to_end subroutines.
 #ifdef FD_SETSIZE
 #undef FD_SETSIZE
-#define FD_SETSIZE 128
+#define FD_SETSIZE 256
 #endif
 
 #define MAXMIT_TCP     (1<<28)

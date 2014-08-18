@@ -15,7 +15,7 @@ generate_dest_filename dfile
 #
 # Move the file with a large thread count
 #
-xddmcp -v -t 128 $XDDTEST_E2E_SOURCE:$sfile $XDDTEST_E2E_DEST:$dfile
+xddmcp -v $XDDTEST_E2E_SOURCE:$sfile $XDDTEST_E2E_DEST:$dfile
 if [ 0 != $? ]; then
     echo "XDDMCP command failed"
     finalize_test 1

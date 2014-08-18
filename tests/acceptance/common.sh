@@ -194,20 +194,28 @@ compare_source_dest_md5() {
         finalize_test 2
     fi
 
-    local ssum=$(ssh $XDDTEST_E2E_SOURCE "md5sum $sfile")
+    local ssumcmd="if [ -z \$(which md5) ]; then md5sum $sfile; else md5 -r $sfile; fi"
+    local ssum=$(ssh $XDDTEST_E2E_SOURCE "$ssumcmd")
     if [ 0 -ne $? -o -z "$ssum" ]; then
         echo "Unable to md5sum $sfile: $ssum"
         finalize_test 2
     fi
-    local dsum=$(ssh $XDDTEST_E2E_DEST "md5sum $dfile")
+
+    local dsumcmd="if [ -z \$(which md5) ]; then md5sum $dfile; else md5 -r $dfile; fi"
+    local dsum=$(ssh $XDDTEST_E2E_DEST "$dsumcmd")
     if [ 0 -ne $? -o -z "$dsum" ]; then
         echo "Unable to md5sum $dfile: $dsum"
         finalize_test 2
     fi
-    if [ "$ssum" = "$dsum" ]; then
+
+    ssum=$(echo $ssum |cut -f 1 -d ' ')
+    dsum=$(echo $dsum |cut -f 1 -d ' ')
+    if [ -z "$ssum" -o -z "$dsum" -o "$ssum" != "$dsum" ]; then
+        echo "Mismatched checksums: $ssum $dsum"
+        return 1
+    else
         return 0
     fi
-    return 1  
 }
 
 #

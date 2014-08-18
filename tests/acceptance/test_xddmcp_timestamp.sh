@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Test XDDMCP with very large thread counts
+# Test XDDMCP with timestamps enabled
 #
 source ./test_config
 source $XDDTEST_TESTS_DIR/acceptance/common.sh
@@ -15,7 +15,7 @@ generate_dest_filename dfile
 #
 # Move the file with a large thread count
 #
-xddmcp -v -t 128 $XDDTEST_E2E_SOURCE:$sfile $XDDTEST_E2E_DEST:$dfile
+xddmcp -V $XDDTEST_E2E_SOURCE:$sfile $XDDTEST_E2E_DEST:$dfile
 if [ 0 != $? ]; then
     echo "XDDMCP command failed"
     finalize_test 1

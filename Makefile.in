@@ -383,6 +383,10 @@ test_xdd: test_config
 	@$(TESTS_DIR)/acceptance/test_xdd_datapattern_random.sh
 
 test_xddmcp: test_config
+	@$(TESTS_DIR)/acceptance/test_xddmcp_defaults.sh
+	@$(TESTS_DIR)/acceptance/test_xddmcp_verbose.sh
+	@$(TESTS_DIR)/acceptance/test_xddmcp_timestamp.sh
+	@$(TESTS_DIR)/acceptance/test_xddmcp_single_thread.sh
 	@$(TESTS_DIR)/acceptance/test_xddmcp_large_thread_count.sh
 
 test: install test_xdd test_xddmcp
