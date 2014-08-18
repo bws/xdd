@@ -49,14 +49,14 @@ int tot_init(tot_t** table, size_t queue_depth, size_t num_reqs)
     // Initialize the memory in the dumbest way possible
 #if HAVE_VALLOC
     	*table = valloc(sizeof(**table) + num_entries * sizeof(tot_entry_t));
-    	rc = (NULL != table);
+    	rc = (NULL == *table);
 #elif HAVE_POSIX_MEMALIGN
     	rc = posix_memalign((void**)table,
 				sysconf(_SC_PAGESIZE),
 				sizeof(**table) + num_entries * sizeof(tot_entry_t));
 #else
     	*table = malloc(sizeof(**table) + num_entries * sizeof(tot_entry_t));
-    	rc = (NULL != table);
+    	rc = (NULL == *table);
 #endif
     	if (0 != rc)
 			return -1;
