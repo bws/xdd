@@ -15,9 +15,12 @@ generate_dest_filename dfile
 #
 # Move the file with a large thread count
 #
-xddmcp -v -t 124 $XDDTEST_E2E_SOURCE:$sfile $XDDTEST_E2E_DEST:$dfile
+wcmd="xdd -op write -target $dfile -e2e isdest -e2e dest $XDDTEST_E2E_DEST:40010,124 -reqsize 1 -blocksize $((4096 * 1024)) -bytes $((1024*1024*768))"
+echo ssh $XDDTEST_E2E_DEST "$wcmd &"
+sleep 15
+echo xdd -op read -target $sfile -e2e issource -e2e dest $XDDTEST_E2E_DEST:40010,124 -hb pct -reqsize 1 -blocksize $((4096 * 1024)) -bytes $((1024*1024*768))
 if [ 0 != $? ]; then
-    echo "XDDMCP command failed"
+    echo "XDD source command failed"
     finalize_test 1
 fi
 

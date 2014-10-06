@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Test XDDMCP with very large thread counts
+# Test XDDMCP with thread count exceeding the limit
 #
 source ./test_config
 source $XDDTEST_TESTS_DIR/acceptance/common.sh
@@ -15,15 +15,9 @@ generate_dest_filename dfile
 #
 # Move the file with a large thread count
 #
-xddmcp -v -t 124 $XDDTEST_E2E_SOURCE:$sfile $XDDTEST_E2E_DEST:$dfile
-if [ 0 != $? ]; then
-    echo "XDDMCP command failed"
+xddmcp -v -t 128 $XDDTEST_E2E_SOURCE:$sfile $XDDTEST_E2E_DEST:$dfile
+if [ 1 != $? ]; then
+    echo "XDDMCP command did not detect invalid thread count"
     finalize_test 1
 fi
-
-#
-# Compare the md5sums
-#
-compare_source_dest_md5 "$sfile" "$dfile"
-result=$? 
-finalize_test $result 
+finalize_test 0

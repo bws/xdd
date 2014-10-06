@@ -64,7 +64,7 @@ def createParser():
                       help='copy files recursively [Default: On]')
     parser.add_option('-t', dest='threads',
                       action='store', type='int', default=8,
-                      help='set the number of parallel streams per source [Default: 8]')
+                      help='set the total number of parallel streams [Default: 8]')
     parser.add_option('-s', '--size', dest='size',
                       action='store', type='int', default=None,
                       help='number of source device bytes to transfer')
@@ -113,6 +113,18 @@ def parseSpec(spec):
         raise InvalidSpecError
 
     return (userHostTuples, filename)
+
+def partitionThreads(total, buckets):
+    """
+    @return an array of the number of threads for each bucket
+    """
+    parts = []
+    while len(parts) < buckets:
+        parts.append(total / buckets)
+        rem = total % buckets
+        if len(parts) <= rem:
+            parts[-1] += 1
+    return parts
 
 def createLogFile(base):
     """
@@ -166,12 +178,6 @@ def createTransferManager(src, dest, opts, logfilename):
         serialFlag=True
     transferMgr.setSinkTarget(dfile, dioFlag=dioFlag, serialFlag=serialFlag)
 
-    # Since only a single sink is allowed, determine the sink threads by 
-    # multiplying sources
-    sinkThreads = opts.threads
-    if sourceTuples:
-        sinkThreads *= len(sourceTuples)
-
     # Add the destination host
     destUser = None
     destHost = None
@@ -190,12 +196,17 @@ def createTransferManager(src, dest, opts, logfilename):
                 e = CreateTransferManagerError("Cannot resolve " + hostname)
                 raise e
 
-    transferMgr.addSink(destUser, destHost, hostname, sinkThreads, [], opts.port)
+    transferMgr.addSink(destUser, destHost, hostname, opts.threads, [], opts.port)
 
     # Add the source hosts
     if not sourceTuples:
         transferMgr.addSource(None, 'localhost', 'localhost', opts.threads, [destHost], opts.port)
     else:
+        # Partition the threads among the sources
+        sourceThreads = partitionThreads(opts.threads, len(sourceTuples))
+        idx = 0
+
+        # Add each source
         for s in sourceTuples:
             (user, host) = s
             # Convert to IP to avoid DNS round-robin issues
@@ -208,7 +219,7 @@ def createTransferManager(src, dest, opts, logfilename):
                     e = CreateTransferManagerError("Cannot resolve " + host)
                     raise e
 
-            transferMgr.addSource(user, srcHost, host, opts.threads, [destHost], opts.port)
+            transferMgr.addSource(user, srcHost, host, sourceThreads.pop(), [destHost], opts.port)
 
     return transferMgr
 
@@ -285,6 +296,16 @@ def transferFiles():
     if dhosts and 1 < len(dhosts):
         print('ERROR: Only one destination host currently allowed') 
         parser.print_usage()
+        return 1
+
+    # Require 1 thread per source
+    if len(sources) > opts.threads:
+        print('WARNING: Setting thread count to', count(sources))
+        opts.threads = count(sources)
+
+    # Maximum number of threads is 124
+    if opts.threads > 124:
+        print('ERROR: Thread count must be less than 124')
         return 1
 
     # Create the logfile if requested
