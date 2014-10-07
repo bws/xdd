@@ -1,6 +1,12 @@
 -----------------------
 XDD Release ChangeLog
 -----------------------
+XDD-7.0.0 RC27
+==============
+* XDDMCP: Fix thread counts so that 100% hang does not occur
+* XDDMCP: Use port 40010 by default for XDD
+* XDD: Add call to close() fd
+
 XDD-7.0.0 RC26-1
 ==============
 * XDDMCP: Make small files work by fixing partitioner

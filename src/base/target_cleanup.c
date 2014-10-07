@@ -23,7 +23,8 @@
 void
 xdd_target_thread_cleanup(target_data_t *tdp) {
 	worker_data_t	*wdp;		// Pointer to a Worker Thread Data Struct
-	
+	int rc;
+
 	wdp = tdp->td_next_wdp;
 	while (wdp) {
 		wdp->wd_task.task_request = TASK_REQ_STOP;
@@ -48,5 +49,19 @@ xdd_target_thread_cleanup(target_data_t *tdp) {
             xni_close_connection(&tdp->td_e2ep->xni_td_conn);
         }
 
+	/* On non e2e, close the descriptor */
+	if (!(TO_ENDTOEND & tdp->td_target_options)) {
+		rc = close(tdp->td_file_desc);
+		// Check the status of the CLOSE operation to see if it worked
+		if (rc != 0) {
+			fprintf(xgp->errout,"%s: xdd_target_open: ERROR: Could not close target number %d name %s\n",
+				xgp->progname,
+				tdp->td_target_number,
+       		                tdp->td_target_full_pathname);
+                	fflush(xgp->errout);
+                	perror("reason");
+		}
+	}
+    
 } // End of xdd_target_thread_cleanup()
 
