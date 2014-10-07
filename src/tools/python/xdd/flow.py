@@ -457,8 +457,7 @@ class Flow():
                 (host, port, threads) = iface
                 numa = None
             # Modify the port number if this is a multi-host
-            portOffset = self.flowIdx * threads
-            spec = host + ':' + str(port + portOffset) + ',' + str(threads)
+            spec = host + ':' + str(port) + ',' + str(threads)
             if numa:
                 spec += ',' + numa
             cmd.extend(['-e2e', 'dest', spec])

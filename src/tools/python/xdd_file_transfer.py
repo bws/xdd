@@ -204,7 +204,6 @@ def createTransferManager(src, dest, opts, logfilename):
     else:
         # Partition the threads among the sources
         sourceThreads = partitionThreads(opts.threads, len(sourceTuples))
-        idx = 0
 
         # Add each source
         for s in sourceTuples:
@@ -218,8 +217,9 @@ def createTransferManager(src, dest, opts, logfilename):
                 except socket.gaierror:
                     e = CreateTransferManagerError("Cannot resolve " + host)
                     raise e
-
-            transferMgr.addSource(user, srcHost, host, sourceThreads.pop(), [destHost], opts.port)
+            threads = sourceThreads.pop()
+            transferMgr.addSource(user, srcHost, host, threads, [destHost], opts.port)
+            opts.port += threads
 
     return transferMgr
 
@@ -299,9 +299,11 @@ def transferFiles():
         return 1
 
     # Require 1 thread per source
-    if len(sources) > opts.threads:
-        print('WARNING: Setting thread count to', count(sources))
-        opts.threads = count(sources)
+    for src in sources:
+        (shosts, _) = src
+        if len(shosts) > opts.threads:
+            print('WARNING: Setting thread count to', len(shosts))
+            opts.threads = len(shosts)
 
     # Maximum number of threads is 124
     if opts.threads > 124:
