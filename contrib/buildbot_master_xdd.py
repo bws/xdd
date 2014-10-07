@@ -68,10 +68,13 @@ def loadConfig(config):
     xdd_factory.addStep(ShellCommand(command=['make', 'install'], name="make install"))
 
     # Perform make check
-    xdd_factory.addStep(ShellCommand(command=['make', 'check'], name="make check"))
+    xdd_factory.addStep(ShellCommand(command=['make', 'check'], name="make check", maxTime=600))
 
     # Perform make test
-    xdd_factory.addStep(Test(description=["make test"]))
+    xdd_factory.addStep(Test(description=["make test"], maxTime=600))
+
+    # Perform cleanup
+    xdd_factory.addStep(ShellCommand(command=['pkill', '-f', 'xdd', '||', 'echo ""'], name='process cleanup', maxTime=60))
 
     # Add the XDD Build factory to each of the available builders described in the master.cfg
     from buildbot.config import BuilderConfig
