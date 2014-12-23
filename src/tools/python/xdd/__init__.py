@@ -26,5 +26,7 @@ if "@XDD_PYTHONPATH@" != XDD_CONFIG_PYTHONPATH:
 #
 # Import correct Xdd symbols
 #
+from xdd.profileparameters import ProfileParameters
+from xdd.profiler import Profiler
 from xdd.transfermanager import TransferManager
 from xdd.constants import XDD_VERSION as __version__

@@ -1,6 +1,10 @@
 -----------------------
 XDD Release ChangeLog
 -----------------------
+XDD-7.0.0 RC28
+==============
+* XDDPROF: Add a functioning xddprof
+
 XDD-7.0.0 RC27
 ==============
 * XDDMCP: Fix thread counts so that 100% hang does not occur
