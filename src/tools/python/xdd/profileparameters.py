@@ -18,13 +18,16 @@ class ProfileParameters(object):
     """
     _profileParametersDict = {}
     
-    def __init__(self, reqSizes, queueDepths, dios, orders, patterns):
+    def __init__(self, reqSizes, queueDepths, dios, orders, patterns, allocs):
         """Constructor"""
         self.reqsizes = reqSizes
         self.qdepths = queueDepths
         self.dios = dios
         self.orders = orders
         self.patterns = patterns
+        self.allocs = allocs
+        ProfileParameters._profileParametersDict[self.name()] = self
+
 
     def name(self):
         """Return the name associated with this benchmarking parameter set"""
@@ -33,7 +36,11 @@ class ProfileParameters(object):
     @staticmethod
     def create(name):
         return ProfileParameters._profileParametersDict[name]
-    
+
+    @staticmethod
+    def list():
+        return ProfileParameters._profileParametersDict.keys()
+
 class DefaultProfileParameters(ProfileParameters):
     """
     Parameter set for benchmarking
@@ -45,16 +52,15 @@ class DefaultProfileParameters(ProfileParameters):
         threads = [1, 2, 3, 4, 6, 8, 12, 16]
         dios = [True, False]
         orders = ['serial', 'loose', 'none']
-        accesses = ['seq', 'random']
-        ProfileParameters.__init__(self, reqsizes, threads, dios, orders, accesses)
+        patterns = ['seq', 'random']
+        allocs = ['demand', 'pre', 'trunc']
+        ProfileParameters.__init__(self, reqsizes, threads, dios, orders,
+                                   patterns, allocs)
 
     def name(self):
         """Return the name associated with this benchmarking parameter set"""
         return 'default'
     
-dpp = DefaultProfileParameters()
-ProfileParameters._profileParametersDict[dpp.name()] = dpp
-
 class RamsesProfileParameters(ProfileParameters):
     """
     Parameter set for benchmarking
@@ -65,13 +71,37 @@ class RamsesProfileParameters(ProfileParameters):
         threads = [1, 2, 3, 4, 8]
         dios = [True, False]
         orders = ['serial', 'loose']
-        accesses = ['seq']
-        ProfileParameters.__init__(self, reqsizes, threads, dios, orders, accesses)
+        patterns = ['seq']
+        allocs = ['pre']
+        ProfileParameters.__init__(self, reqsizes, threads, dios, orders,
+                                   patterns, allocs)
 
     def name(self):
         """Return the name associated with this benchmarking parameter set"""
         return 'ramses'
 
+class TestingProfileParameters(ProfileParameters):
+    """
+    Parameter set for benchmarking
+    """
+    def __init__(self):
+        """Constructor"""
+        reqsizes = [1024*1024] 
+        threads = [1]
+        dios = [True]
+        orders = ['serial']
+        patterns = ['seq', 'random']
+        allocs = ['demand', 'pre', 'trunc']
+        ProfileParameters.__init__(self, reqsizes, threads, dios, orders,
+                                   patterns, allocs)
+
+    def name(self):
+        """Return the name associated with this benchmarking parameter set"""
+        return 'testing'
+
+# Create the profile personalities
+dpp = DefaultProfileParameters()
 rpp = RamsesProfileParameters()
-ProfileParameters._profileParametersDict[rpp.name()] = rpp
+tpp = TestingProfileParameters()
+
 

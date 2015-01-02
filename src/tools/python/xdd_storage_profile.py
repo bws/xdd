@@ -22,8 +22,10 @@ from xdd.profileparameters import ProfileParameters
 #
 XDDPROF_OUTDIR_DEFAULT = 'xddprof-' + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
 XDDPROF_RESUME_DEFAULT = False
+XDDPROF_NBYTES_DEFAULT = None
 XDDPROF_NTRIALS_DEFAULT = 1
 XDDPROF_NSAMPLES_DEFAULT = 1
+XDDPROF_PERSONALITY_DEFAULT = 'default'
 XDDPROF_TLIMIT_DEFAULT = 90
 XDDPROF_VERBOSE_DEFAULT = False
 
@@ -34,14 +36,23 @@ def createParser():
     parser.add_option('-a', '--resume', dest='resume',
                       action='store_true', default=XDDPROF_RESUME_DEFAULT,
                       help='enable resume for partially completed profiles')
-    parser.add_option('-o', '--output', dest='outdir',
-                      action='store', type='string',
-                      default=XDDPROF_OUTDIR_DEFAULT, metavar='outdir',
-                      help='Write output to file')
+    parser.add_option('-b', '--bytes', dest='nbytes', 
+                      action='store', type='int',
+                      default=XDDPROF_NBYTES_DEFAULT, metavar='N',
+                      help='number of bytes to read or write')
     parser.add_option('-n', '--trials', dest='trials', 
                       action='store', type='int',
                       default=XDDPROF_NTRIALS_DEFAULT, metavar='N',
                       help='number of trials to run per configuration [Default: 1]')
+    parser.add_option('-o', '--output', dest='outdir',
+                      action='store', type='string',
+                      default=XDDPROF_OUTDIR_DEFAULT, metavar='outdir',
+                      help='Write output to file')
+    parser.add_option('-p', '--personality', dest='personality',
+                      action='store', type='string',
+                      default=XDDPROF_PERSONALITY_DEFAULT, metavar='personality',
+                      help='Select storage personality [Default: ' \
+                      + XDDPROF_PERSONALITY_DEFAULT + ']')
     parser.add_option('-s', '--samples', dest='samples', 
                       action='store', type='int',
                       default=XDDPROF_NSAMPLES_DEFAULT, metavar='N',
@@ -49,14 +60,16 @@ def createParser():
     parser.add_option('-t', '--tlimit', dest='tlimit', 
                       action='store', type='int',
                       default=XDDPROF_TLIMIT_DEFAULT, metavar='N',
-                      help='time limit in seconds for each trial [Default: 60]')
+                      help='time limit in seconds for each trial [Default: ' \
+                      + str(XDDPROF_TLIMIT_DEFAULT) + ']')
     parser.add_option('-v', dest='verbose',
                       action='store_true',
                       default=XDDPROF_VERBOSE_DEFAULT,
                       help='create a log file')
     return parser
 
-def createProfiler(outdir, path, numTrials, tlimit, numSubsamples, resume, verbose):
+def createProfiler(outdir, path, nbytes, tlimit, numTrials, numSubsamples,
+                   personality, resume, verbose):
     """ """
     # If this is resuming an existing profile, just figure out what remains,
     # Otherwise, begin the profiling from the beginning
@@ -64,10 +77,8 @@ def createProfiler(outdir, path, numTrials, tlimit, numSubsamples, resume, verbo
         print('Warning: Resume not yet supported')
 
     # Create a profiling parameter set
-    pp = ProfileParameters.create('default')
-    pp = ProfileParameters.create('ramses')
-    
-    p = xdd.Profiler(outdir, path, pp, numTrials, numSubsamples, tlimit)
+    pp = ProfileParameters.create(personality)
+    p = xdd.Profiler(outdir, path, pp, numTrials, numSubsamples, tlimit, nbytes)
 
     # Set the verbosity
     if verbose:
@@ -94,9 +105,11 @@ def profileVolume():
         # Create the profiler and run it
         profiler = createProfiler(outdir=opts.outdir,
                                   path=path,
-                                  numTrials=opts.trials,
+                                  nbytes=opts.nbytes,
                                   tlimit=opts.tlimit,
+                                  numTrials=opts.trials,
                                   numSubsamples=opts.samples,
+                                  personality=opts.personality,
                                   resume=opts.resume,
                                   verbose=opts.verbose)
         profiler.start()

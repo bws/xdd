@@ -32,7 +32,8 @@ class Profiler:
     Profiler for profiling a storage volume
     """
 
-    def __init__(self, logdir, volume, profParams, trials, samples, tlimit):
+    def __init__(self, logdir, volume, profParams, trials, samples, tlimit,
+                 nbytes):
         """Constructor"""
         self.verbose = 0
 
@@ -42,9 +43,10 @@ class Profiler:
         self._trials = trials
         self._samples = samples
         self._tlimit = tlimit
+        self._nbytes = nbytes
         self._results = []
-        self._readId = 0
-        self._writeId = 0
+        self._id = 0
+        self._pause = min(5, tlimit)
 
         # Output file names
         self._wlog = self._logdir + os.sep + 'writeperf.dat'
@@ -54,7 +56,7 @@ class Profiler:
         """Write out the XDD profiling header"""
         header = '# XDD Profiler 0.0.1' + os.linesep
         header += '#' + os.linesep
-        header += '# \t\t\t\tWorkload\t\t\t\t\t| Performance' + os.linesep
+        header += '# \t\t\t\tWorkload\t\t\t\t\t\t\t| Performance' + os.linesep
         header += '#' + os.linesep
         header += '# ID\t'
         header += 'Volume\t'
@@ -66,7 +68,8 @@ class Profiler:
         header += 'Thrds\t'
         header += 'Direct\t'
         header += 'Order\t'
-        header += 'Access\t'
+        header += 'Pattern\t'
+        header += 'Alloc\t'
         header += 'Bytes\t\t'
         header += 'TOPs\t'
         header += 'Time\t'
@@ -105,20 +108,13 @@ class Profiler:
         wfile.close()
         rfile.close()
 
-    def addResult(self, vol, oper, trial, target, tlimit, rsz, tcount,
-                  dio, order, access, tbytes, tops, secs):
+    def addResult(self, vol, oper, trial, target, tlimit, rsz, tcount, dio,
+                  order, pattern, alloc, tbytes, tops, secs):
         """Add the result to the result list"""
-        # Get the result id
-        if 'write' == oper:
-            id = self._writeId
-            self._writeId += 1
-        else:
-            id = self._readId
-            self._readId += 1
-            
         # Add the descriptive fields
-        res = [str(id), vol, oper, str(trial), target,
-               str(tlimit), str(rsz), str(tcount), str(dio), order, access]
+        res = [str(self._id/2), vol, oper, str(trial), target,
+               str(tlimit), str(rsz), str(tcount), str(dio),
+               order, pattern, alloc]
 
         # Add the performance fields
         res.extend([str(tbytes), str(tops), str(secs)])
@@ -145,9 +141,10 @@ class Profiler:
         res.append(str(rgbs))
         res.append(str(rmibs))
         res.append(str(rgibs))
-
-        # Update the results and flush to log
         self._results.append(res)
+        self._id += 1
+
+        # Flust the results to logs
         self.writeResults()
         self._results = []
         
@@ -162,59 +159,61 @@ class Profiler:
             for t in self._pp.qdepths:
                 for d in self._pp.dios:
                     for o in self._pp.orders:
-                        for a in self._pp.patterns:
-                            for n in range(0, self._trials):
-                                targetBase = 'ptarget-'
-                                targetBase += str(r) + '-'
-                                targetBase += str(t) + '-'
-                                targetBase += str(d) + '-'
-                                targetBase += str(o) + '-'
-                                targetBase += str(a) + '-' + str(n)
-                                target = str(self._volume) + os.sep \
-                                         + targetBase + '.dat'
-                                pt = ProfileTrial(target=target, reqsize=r,
-                                                  qdepth=t, dio=d,
-                                                  order=o, access=a,
-                                                  preallocate=False,
-                                                  tlimit=self._tlimit)
+                        for p in self._pp.patterns:
+                            for a in self._pp.allocs:
+                                for n in range(0, self._trials):
+                                    targetBase = 'ptarget-'
+                                    targetBase += str(r) + '-'
+                                    targetBase += str(t) + '-'
+                                    targetBase += str(d) + '-'
+                                    targetBase += str(o) + '-'
+                                    targetBase += str(p) + '-'
+                                    targetBase += str(a) + '-' + str(n)
+                                    target = str(self._volume) + os.sep + targetBase + '.dat'
+                                    pt = ProfileTrial(target=target, reqsize=r,
+                                                      qdepth=t, dio=d,
+                                                      order=o, pattern=p,
+                                                      alloc=a,
+                                                      tlimit=self._tlimit,
+                                                      nbytes=self._nbytes)
 
-                                time.sleep(5)
-                                wlog = self._logdir + os.sep \
-                                       + targetBase + '-write.log'
-                                pt.run(wlog, isWrite=True, removeData=False)
-                                (tbytes, tops, secs) = pt.result(wlog)
-                                self.addResult(vol=self._volume,
-                                               oper='write',
-                                               trial=n,
-                                               target='ptarget',
-                                               tlimit=self._tlimit,
-                                               rsz=r,
-                                               tcount=t,
-                                               dio=d,
-                                               order=o,
-                                               access=a,
-                                               tbytes=tbytes,
-                                               tops=tops,
-                                               secs=secs)
+                                    time.sleep(self._pause)
+                                    wlog = self._logdir + os.sep + targetBase + '-write.log'
+                                    pt.run(wlog, isWrite=True, removeData=False)
+                                    (tbytes, tops, secs) = pt.result(wlog)
+                                    self.addResult(vol=self._volume,
+                                                   oper='write',
+                                                   trial=n,
+                                                   target='ptarget',
+                                                   tlimit=self._tlimit,
+                                                   rsz=r,
+                                                   tcount=t,
+                                                   dio=d,
+                                                   order=o,
+                                                   pattern=p,
+                                                   alloc=a,
+                                                   tbytes=tbytes,
+                                                   tops=tops,
+                                                   secs=secs)
 
-                                time.sleep(5)
-                                rlog = self._logdir + os.sep + \
-                                       targetBase + '-read.log'
-                                pt.run(rlog, isWrite=False, removeData=True)
-                                (tbytes, tops, secs) = pt.result(rlog)
-                                self.addResult(vol=self._volume,
-                                               oper='read',
-                                               trial=n,
-                                               target='ptarget',
-                                               tlimit=self._tlimit,
-                                               rsz=r,
-                                               tcount=t,
-                                               dio=d,
-                                               order=o,
-                                               access=a,
-                                               tbytes=tbytes,
-                                               tops=tops,
-                                               secs=secs)
+                                    time.sleep(self._pause)
+                                    rlog = self._logdir + os.sep + targetBase + '-read.log'
+                                    pt.run(rlog, isWrite=False, removeData=True)
+                                    (tbytes, tops, secs) = pt.result(rlog)
+                                    self.addResult(vol=self._volume,
+                                                   oper='read',
+                                                   trial=n,
+                                                   target='ptarget',
+                                                   tlimit=self._tlimit,
+                                                   rsz=r,
+                                                   tcount=t,
+                                                   dio=d,
+                                                   order=o,
+                                                   pattern=p,
+                                                   alloc=a,
+                                                   tbytes=tbytes,
+                                                   tops=tops,
+                                                   secs=secs)
                             
     def wait(self):
         """Wait for profiling trial completion"""
