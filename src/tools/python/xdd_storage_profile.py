@@ -21,6 +21,7 @@ from xdd.profileparameters import ProfileParameters
 # Time in seconds to wait between profiling runs
 #
 XDDPROF_OUTDIR_DEFAULT = 'xddprof-' + datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+XDDPROF_GRAPHICAL_DEFAULT = True
 XDDPROF_RESUME_DEFAULT = False
 XDDPROF_NBYTES_DEFAULT = None
 XDDPROF_NTRIALS_DEFAULT = 1
@@ -40,6 +41,9 @@ def createParser():
                       action='store', type='int',
                       default=XDDPROF_NBYTES_DEFAULT, metavar='N',
                       help='number of bytes to read or write')
+    parser.add_option('-g', '--graphical', dest='graphical',
+                      action='store_true', default=XDDPROF_GRAPHICAL_DEFAULT,
+                      help='produce graphical data')
     parser.add_option('-n', '--trials', dest='trials', 
                       action='store', type='int',
                       default=XDDPROF_NTRIALS_DEFAULT, metavar='N',
@@ -68,7 +72,7 @@ def createParser():
                       help='create a log file')
     return parser
 
-def createProfiler(outdir, path, nbytes, tlimit, numTrials, numSubsamples,
+def createProfiler(outdir, paths, nbytes, tlimit, numTrials, numSubsamples,
                    personality, resume, verbose):
     """ """
     # If this is resuming an existing profile, just figure out what remains,
@@ -78,7 +82,8 @@ def createProfiler(outdir, path, nbytes, tlimit, numTrials, numSubsamples,
 
     # Create a profiling parameter set
     pp = ProfileParameters.create(personality)
-    p = xdd.Profiler(outdir, path, pp, numTrials, numSubsamples, tlimit, nbytes)
+    p = xdd.Profiler(outdir, paths, pp, numTrials, numSubsamples, tlimit,
+                     nbytes)
 
     # Set the verbosity
     if verbose:
@@ -99,22 +104,28 @@ def profileVolume():
         parser.print_usage()
         return 1
 
-    # Profile each supplied directory
+    # Profile each supplied directory as a single entity
     rc = 0
-    for path in args:
-        # Create the profiler and run it
-        profiler = createProfiler(outdir=opts.outdir,
-                                  path=path,
-                                  nbytes=opts.nbytes,
-                                  tlimit=opts.tlimit,
-                                  numTrials=opts.trials,
-                                  numSubsamples=opts.samples,
-                                  personality=opts.personality,
-                                  resume=opts.resume,
-                                  verbose=opts.verbose)
-        profiler.start()
-        profiler.wait()
-        rc += profiler.completionCode()
+    paths = args
+
+    # Create the profiler and run it
+    profiler = createProfiler(outdir=opts.outdir,
+                              paths=paths,
+                              nbytes=opts.nbytes,
+                              tlimit=opts.tlimit,
+                              numTrials=opts.trials,
+                              numSubsamples=opts.samples,
+                              personality=opts.personality,
+                              resume=opts.resume,
+                              verbose=opts.verbose)
+    profiler.start()
+    profiler.wait()
+
+    # Generate graphical data if requested
+    if opts.graphical:
+        profiler.produceGraphs()
+
+    rc += profiler.completionCode()
         
     return rc 
 

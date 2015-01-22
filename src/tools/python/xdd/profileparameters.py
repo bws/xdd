@@ -80,18 +80,57 @@ class RamsesProfileParameters(ProfileParameters):
         """Return the name associated with this benchmarking parameter set"""
         return 'ramses'
 
+class JoshProfileParameters(ProfileParameters):
+    """
+    Parameter set for benchmarking
+    """
+    def __init__(self):
+        """Constructor"""
+        reqsizes = [1024*1024, 4*1024*1024, 8*1024*1024] 
+        threads = [1, 2, 3, 4, 8]
+        dios = [True, False]
+        orders = ['serial', 'loose']
+        patterns = ['seq']
+        allocs = ['pre']
+        ProfileParameters.__init__(self, reqsizes, threads, dios, orders,
+                                   patterns, allocs)
+
+    def name(self):
+        """Return the name associated with this benchmarking parameter set"""
+        return 'joshpork'
+
+class MemoryProfileParameters(ProfileParameters):
+    """
+    Parameter set for benchmarking
+    """
+    def __init__(self):
+        """Constructor"""
+        reqsizes = [4096, 64*1024, 256*1024,
+                    1024*1024, 4*1024*1024] 
+        threads = [1, 2, 3, 4, 6, 8, 12, 16]
+        dios = [True, False]
+        orders = ['serial', 'loose', 'none']
+        patterns = ['seq', 'random']
+        allocs = ['demand', 'pre', 'trunc']
+        ProfileParameters.__init__(self, reqsizes, threads, dios, orders,
+                                   patterns, allocs)
+
+    def name(self):
+        """Return the name associated with this benchmarking parameter set"""
+        return 'memory'
+    
 class TestingProfileParameters(ProfileParameters):
     """
     Parameter set for benchmarking
     """
     def __init__(self):
         """Constructor"""
-        reqsizes = [1024*1024] 
-        threads = [1]
-        dios = [True]
-        orders = ['serial']
+        reqsizes = [4*1024, 64*1024, 1024*1024, 4096*1024] 
+        threads = [1, 2, 4]
+        dios = [False, True]
+        orders = ['loose', 'serial', 'none']
         patterns = ['seq', 'random']
-        allocs = ['demand', 'pre', 'trunc']
+        allocs = ['demand', 'pre']
         ProfileParameters.__init__(self, reqsizes, threads, dios, orders,
                                    patterns, allocs)
 
@@ -101,6 +140,8 @@ class TestingProfileParameters(ProfileParameters):
 
 # Create the profile personalities
 dpp = DefaultProfileParameters()
+jpp = JoshProfileParameters()
+mpp = MemoryProfileParameters()
 rpp = RamsesProfileParameters()
 tpp = TestingProfileParameters()
 

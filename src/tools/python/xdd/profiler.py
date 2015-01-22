@@ -7,9 +7,9 @@ from __future__ import print_function
 #
 # Generic python packages used
 #
+from math import log10, floor
 import time
 import os
-from math import log10, floor
 
 #
 # XDD packages
@@ -18,6 +18,7 @@ from xdd.constants import XDD_SINK_TO_SOURCE_DELAY
 from xdd.core import XDDError
 from xdd.profiletrial import ProfileTrial
 from xdd.profileparameters import ProfileParameters
+from xdd.profilevisualizer import ProfileVisualizer
 
 class ProfileTrialError(XDDError):
     """Report trial failures"""
@@ -32,13 +33,13 @@ class Profiler:
     Profiler for profiling a storage volume
     """
 
-    def __init__(self, logdir, volume, profParams, trials, samples, tlimit,
+    def __init__(self, logdir, volumes, profParams, trials, samples, tlimit,
                  nbytes):
         """Constructor"""
         self.verbose = 0
 
         self._logdir = logdir
-        self._volume = volume
+        self._volumes = volumes
         self._pp = profParams
         self._trials = trials
         self._samples = samples
@@ -47,19 +48,26 @@ class Profiler:
         self._results = []
         self._id = 0
         self._pause = min(5, tlimit)
-
+        self._xddTargetPrefix = 'xddptrg'
+        self._flushedResults = []
+        
         # Output file names
-        self._wlog = self._logdir + os.sep + 'writeperf.dat'
-        self._rlog = self._logdir + os.sep + 'readperf.dat'
+        self._wlog = self._logdir + os.sep + 'writeprof.tsv'
+        self._rlog = self._logdir + os.sep + 'readprof.tsv'
 
     def writeHeader(self, fname):
         """Write out the XDD profiling header"""
         header = '# XDD Profiler 0.0.1' + os.linesep
         header += '#' + os.linesep
+        header += '# Volumes:'
+        for v in self._volumes:
+            header += ' ' + v
+        header += os.linesep
+        header += '#' + os.linesep
         header += '# \t\t\t\tWorkload\t\t\t\t\t\t\t| Performance' + os.linesep
         header += '#' + os.linesep
         header += '# ID\t'
-        header += 'Volume\t'
+        header += 'Numvols\t'
         header += 'Oper\t'
         header += 'Trial\t'
         header += 'Target\t'
@@ -67,12 +75,12 @@ class Profiler:
         header += 'Reqsz\t'
         header += 'Thrds\t'
         header += 'Direct\t'
-        header += 'Order\t'
+        header += 'Issue\t'
         header += 'Pattern\t'
         header += 'Alloc\t'
         header += 'Bytes\t\t'
         header += 'TOPs\t'
-        header += 'Time\t'
+        header += 'Secs\t'
         header += 'IOPs\t'
         header += 'MB/s\t'
         header += 'GB/s\t'
@@ -108,11 +116,11 @@ class Profiler:
         wfile.close()
         rfile.close()
 
-    def addResult(self, vol, oper, trial, target, tlimit, rsz, tcount, dio,
+    def addResult(self, vols, oper, trial, target, tlimit, rsz, tcount, dio,
                   order, pattern, alloc, tbytes, tops, secs):
         """Add the result to the result list"""
         # Add the descriptive fields
-        res = [str(self._id/2), vol, oper, str(trial), target,
+        res = [str(self._id/2), str(len(vols)), oper, str(trial), target,
                str(tlimit), str(rsz), str(tcount), str(dio),
                order, pattern, alloc]
 
@@ -146,6 +154,7 @@ class Profiler:
 
         # Flust the results to logs
         self.writeResults()
+        self._flushedResults.append(res)
         self._results = []
         
     def start(self):
@@ -162,15 +171,16 @@ class Profiler:
                         for p in self._pp.patterns:
                             for a in self._pp.allocs:
                                 for n in range(0, self._trials):
-                                    targetBase = 'ptarget-'
+                                    targetBase = self._xddTargetPrefix + '-'
                                     targetBase += str(r) + '-'
                                     targetBase += str(t) + '-'
                                     targetBase += str(d) + '-'
                                     targetBase += str(o) + '-'
                                     targetBase += str(p) + '-'
                                     targetBase += str(a) + '-' + str(n)
-                                    target = str(self._volume) + os.sep + targetBase + '.dat'
-                                    pt = ProfileTrial(target=target, reqsize=r,
+                                    target = targetBase + '.dat'
+                                    pt = ProfileTrial(volumes=self._volumes,
+                                                      target=target, reqsize=r,
                                                       qdepth=t, dio=d,
                                                       order=o, pattern=p,
                                                       alloc=a,
@@ -181,10 +191,10 @@ class Profiler:
                                     wlog = self._logdir + os.sep + targetBase + '-write.log'
                                     pt.run(wlog, isWrite=True, removeData=False)
                                     (tbytes, tops, secs) = pt.result(wlog)
-                                    self.addResult(vol=self._volume,
+                                    self.addResult(vols=self._volumes,
                                                    oper='write',
                                                    trial=n,
-                                                   target='ptarget',
+                                                   target=self._xddTargetPrefix,
                                                    tlimit=self._tlimit,
                                                    rsz=r,
                                                    tcount=t,
@@ -200,10 +210,10 @@ class Profiler:
                                     rlog = self._logdir + os.sep + targetBase + '-read.log'
                                     pt.run(rlog, isWrite=False, removeData=True)
                                     (tbytes, tops, secs) = pt.result(rlog)
-                                    self.addResult(vol=self._volume,
+                                    self.addResult(vols=self._volumes,
                                                    oper='read',
                                                    trial=n,
-                                                   target='ptarget',
+                                                   target=self._xddTargetPrefix,
                                                    tlimit=self._tlimit,
                                                    rsz=r,
                                                    tcount=t,
@@ -225,4 +235,9 @@ class Profiler:
         self.writeResults()
         return 1
         
+    def produceGraphs(self):
+        """Generate files that show profile data"""
+        pv = ProfileVisualizer(self._flushedResults, self._logdir)
+        pv.plotAll()
 
+        

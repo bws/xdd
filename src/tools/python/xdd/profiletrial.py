@@ -31,9 +31,10 @@ class ProfileTrial:
     Profiler for profiling a storage volume
     """
 
-    def __init__(self, target, reqsize, qdepth, dio,
+    def __init__(self, volumes, target, reqsize, qdepth, dio,
                  order, pattern, alloc, tlimit, nbytes=None):
         """Constructor"""
+        self._volumes = volumes
         self._target = target
         self._reqsize = reqsize
         self._qdepth = qdepth
@@ -51,25 +52,81 @@ class ProfileTrial:
             self._nbytes = min (limit, hueristic)
 
     def _logCommand(self, log, cmd):
+        """Add the XDD command line to the log file"""
         lh = open(log, 'w')
         for c in cmd:
             lh.write(c + ' ')
         lh.close()
+
+    def _createRandomWriteSeekListFile(self, fname, srange):
+        """Create an XDD seek list file"""
+        # XDD seek lists are in the following format:
+        # ID ReqNum ReqSize Op Start Stop
+
+        # First generate and shuffle the request numbers
+        reqnums = range(0, srange)
+        random.shuffle(reqnums)
+
+        # Init the id counter
+        rid = 0
+        
+        # Write the file (which may be quite large)
+        fh = open(fname, 'w')
+        for req in reqnums:
+            line = str(rid) + ' '  + str(req) + ' '
+            line += 'w 0 0' + os.linesep
+            fh.write(line)
+            rid += 1
+        fh.close()
+
+    def _createRandomReadSeekListFile(self, fname, wseekList, nreqs):
+        """
+        Convert a seek list full of writes to reads, and truncate it
+        to just the number of requests desired
+        """
+        # Grab the first nreqs lines from the write seek list
+        wfh = open(wseekList, 'r')
+        lines = []
+        entries = range(0, nreqs - 1)
+        for e in entries:
+            lines.append(wfh.readline())
+        wfh.close()
+
+        # Generate the read seek list
+        rid = 0
+        rfh = open(fname, 'w')
+        for l in lines:
+            reqnum = l.split()[1]
+            out = str(rid) + ' ' + reqnum + ' r 0 0' + os.linesep
+            rfh.write(out)
+            rid += 1
+        rfh.close()
         
     def run(self, logfile, isWrite, removeData):
-
+        """Run the trial"""
+        # Construct the targets
+        assert(0 < len(self._volumes))
+        targetargs = ['-targets', str(len(self._volumes))]
+        for v in self._volumes:
+            target = v + os.sep + self._target
+            targetargs.append(target)
+            
         # Set the operation
         if isWrite:
             op = 'write'
         else:
             op = 'read'
 
-        # NOTE: Because the write may have short-circuited due to the time
-        # limit it is necessary to adjust the bytes to the actual file size
-        # on reads
+        # NOTE: Because the write may have finished due to the time
+        # limit it is necessary to adjust the bytes to the smallest
+        # actual file size on reads
         nbytes = self._nbytes
         if 'read' == op:
-            nbytes = os.path.getsize(self._target)
+            nbytes = 0
+            for target in targetargs[2:]:
+                tsize = os.path.getsize(target)
+                if nbytes == 0 or tsize < nbytes:
+                    nbytes = tsize
             
         # Enable dio if requested
         dio = ''
@@ -86,8 +143,13 @@ class ProfileTrial:
         pattern = ''
         if 'random' == self._pattern:
             srange = nbytes / self._reqsize
-            slist = range(0, srange)
-            random.shuffle(slist)
+            ldir = os.path.dirname(logfile)
+            wseekFile = ldir + os.sep + 'wseek'
+            if isWrite:
+                self._createRandomWriteSeekListFile(wseekFile, srange)
+            else:
+                rseekFile = ldir + os.sep + 'rseek'
+                self._createRandomReadSeekListFile(rseekFile, wseekFile, srange)
             pattern = ['-seek', 'random', '-seek',
                        'range', str(srange)]
 
@@ -108,7 +170,7 @@ class ProfileTrial:
             
         # Build the command
         cmd = ['xdd']
-        cmd.extend(['-target', self._target])
+        cmd.extend(targetargs)
         cmd.extend(['-op', op])
         cmd.extend(['-reqsize', '1'])
         cmd.extend(['-blocksize', rs])
@@ -119,7 +181,7 @@ class ProfileTrial:
         cmd.extend(['-bytes', nb])
         cmd.extend(['-timelimit', tl])
         cmd.extend(['-output', logfile])
-        cmd.extend(['-stoponerror', '-minall'])
+        cmd.extend(['-stoponerror'])
 
         # Write the command to the log for posterity
         self._logCommand(logfile, cmd)
