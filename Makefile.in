@@ -33,7 +33,6 @@ VERSION := @PACKAGE_VERSION@
 XDD_DIR := @CONFIG_PROJECT_DIR@
 BUILD_DIR := @CONFIG_BUILD_DIR@
 INSTALL_DIR := @prefix@
-XDDCP_ENABLED := @XDDCP_ENABLED@
 CC_EXE := @CC@
 DEPC_EXE := @DEPC_PATH@
 TAR_EXE := @TAR@
@@ -42,6 +41,8 @@ PYTHON_EXE := @PYTHON_BIN@
 CP_PRESERVE_OPTS := @CP_PRESERVE_OPTS@
 ECDSA_DIST := @ECDSA_DIST@
 PYCRYPTO_DIST := @PYCRYPTO_DIST@
+XDDCP_ENABLED := @XDDCP_ENABLED@
+XDDMCP_ENABLED := @XDDMCP_ENABLED@
 
 #
 # Configuration
@@ -300,7 +301,9 @@ install_site_packages: install_pre install_contrib_site-packages
 install_tools: install_pre install_site_packages
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddcp/xddcp $(INSTALL_DIR)/bin/xddcp
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddft/xddft $(INSTALL_DIR)/bin/xddft
+ifeq ($(XDDMCP_ENABLED), true)
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddmcp/xddmcp $(INSTALL_DIR)/bin/xddmcp
+endif
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddmcp/xddmcp-server $(INSTALL_DIR)/bin/xddmcp-server
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddprof/xddprof $(INSTALL_DIR)/bin/xddprof
 	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd

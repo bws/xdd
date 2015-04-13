@@ -475,6 +475,56 @@ extern xni_protocol_t xni_protocol_ib;
 
 /*! @} */
 
+/*! \defgroup XNITCP UDT Implementation
+ * @{
+ */
+
+enum {
+  XNI_UDT_DEFAULT_NUM_SOCKETS = 0,  /*!< \brief Use the default number of sockets. */
+};
+extern const char *XNI_UDT_DEFAULT_CONGESTION;  /*!< \brief Use the default UDT congestion avoidance algorithm. */
+/*! \brief Create a control block for the UDT implementation.
+ *
+ * If \e num_sockets is #XNI_UDT_DEFAULT_NUM_SOCKETS then the number
+ * of sockets will be equal to the number of target buffers specified
+ * when a connection is created.
+ *
+ * If \e congestion is #XNI_UDT_DEFAULT_CONGESTION then the system
+ * default congestion avoidance algorithm will be used.
+ *
+ * \param num_sockets The number of UDT sockets to create per connection.
+ * \param congestion the congestion control algorithm to use
+ * \param[out] control_block The newly allocated control block.
+ *
+ * \return #XNI_OK if the control block was successfully created.
+ * \return #XNI_ERR if the control block could not be created.
+ *
+ * \sa xni_free_udt_control_block()
+ */
+int xni_allocate_udt_control_block(int num_sockets, const char *congestion, xni_control_block_t *control_block);
+/*! \brief Free a UDT control block.
+ *
+ * It is forbidden to call this function more than once with the same
+ * \e control_block.
+ *
+ * \param[in,out] control_block The control block to free.
+ *
+ * \return #XNI_OK if the control block was successfully freed.
+ * \return #XNI_ERR if the control block could not be freed.
+ *
+ * \sa xni_allocate_tcp_control_block()
+ */
+int xni_free_udt_control_block(xni_control_block_t *control_block);
+/*! \brief The UDT implementation of XNI.
+ *
+ * The UDT implementation uses UDT stream sockets to transfer
+ * buffers. The number of sockets is configurable.
+ *
+ * \sa xni_context_create()
+ */
+extern xni_protocol_t xni_protocol_udt;
+
+/*! @} */
 
 #endif  // XDD_XNI_H
 

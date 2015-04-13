@@ -394,18 +394,17 @@ if test "$tr_exists" = "no" ; then
     xddcp_disable="yes"
 fi
 
+netstat_exists="no"
+AC_PATH_PROG([netstat_exists], [netstat], [no])
+if test "$netstat_exists" = "no" ; then
+    AC_MSG_WARN(Support for xddcp disabled.  No working netstat utility.)
+    xddcp_disable="yes"
+fi
+
 if  ! test "$xddcp_disable" = "yes" ; then
    AC_SUBST(XDDCP_ENABLED, "true")
 else
    AC_SUBST(XDDCP_ENABLED, "false")
-fi
-
-netstat_exists="no"
-AC_PATH_PROG([netstat_exists], [netstat], [no])
-if test "$netstat_exists" = "no" ; then
-dnl   AC_MSG_WARN(Some features of xddcp unavailable.  No working netstat utility installed.)
-    AC_MSG_WARN(Support for xddcp disabled.  No working netstat utility.)
-    xddcp_disable="yes"
 fi
 
 dnl
@@ -429,16 +428,42 @@ dnl
 AX_PYTHON()
 
 dnl
-dnl Check for export-controlled packages
+dnl Enable XFS support by default
 dnl
-AC_CHECK_FILES([contrib/pycrypto-2.6.1.tar.gz], 
-               AC_SUBST(PYCRYPTO_DIST, [contrib/pycrypto-2.6.1.tar.gz]),
-               [AX_PYTHON_MODULE([Crypto], 
-                                 [XDD requires PyCrypto.  Due to U.S. Export Controls, PyCrypto must be installed separately from XDD.  See README.crypto])])
-AC_CHECK_FILES([contrib/ecdsa-0.11.tar.gz], 
-               AC_SUBST(ECDSA_DIST, [contrib/ecdsa-0.11.tar.gz]),
-               [AX_PYTHON_MODULE([ecdsa], 
-                                 [XDD requires Python ECDSA.  Due to U.S. Export Controls, ECDSA must be installed separately from XDD.  See README.crypto])])
+AC_ARG_ENABLE([xddmcp],
+              AS_HELP_STRING([--enable-xfs], [Enable XFS preallocation support]),
+              [enable_xddmcp="$enableval"],
+              [enable_xddmcp=yes])
+              
+dnl
+dnl Check for export-controlled packages if xddmcp is enabled
+dnl
+if test "$enable_xddmcp" = "yes" ; then
+    AC_CHECK_FILES([contrib/pycrypto-2.6.1.tar.gz], 
+                   AC_SUBST(PYCRYPTO_DIST, [contrib/pycrypto-2.6.1.tar.gz]),
+                   [AX_PYTHON_MODULE([Crypto], [])])
+    if test "$HAVE_PYMOD_CRYPTO" = "no" ; then
+        AC_MSG_WARN([XDDMCP requires PyCrypto.  Due to U.S. Export Controls, PyCrypto must be installed separately from XDD.  See README.crypto])
+        AC_MSG_ERROR([Use --disable-xddmcp to build without xddmcp support.])
+    fi
+
+    AC_CHECK_FILES([contrib/ecdsa-0.11.tar.gz], 
+                   AC_SUBST(ECDSA_DIST, [contrib/ecdsa-0.11.tar.gz]),
+                   [AX_PYTHON_MODULE([ecdsa], [])]) 
+    if test "$HAVE_PYMOD_ECDSA" = "no" ; then
+        AC_MSG_WARN([XDDMCP requires ECDSA.  Due to U.S. Export Controls, PyCrypto must be installed separately from XDD.  See README.crypto])
+        AC_MSG_ERROR([Use --disable-xddmcp to build without xddmcp support.])
+    fi
+fi
+
+dnl
+dnl If export-controlled packages don't exist, disable xddmcp
+dnl
+if  test "$enable_xddmcp" = "yes" ; then
+   AC_SUBST(XDDMCP_ENABLED, "true")
+else
+   AC_SUBST(XDDMCP_ENABLED, "false")
+fi
 
 dnl
 dnl Check for packages XDD requires directly
