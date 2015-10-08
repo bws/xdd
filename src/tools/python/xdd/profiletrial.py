@@ -32,13 +32,14 @@ class ProfileTrial:
     """
 
     def __init__(self, volumes, target, reqsize, qdepth, dio,
-                 order, pattern, alloc, tlimit, nbytes=None):
+                 offset, order, pattern, alloc, tlimit, nbytes=None):
         """Constructor"""
         self._volumes = volumes
         self._target = target
         self._reqsize = reqsize
         self._qdepth = qdepth
         self._dio = dio
+        self._offset = offset
         self._ordering = order
         self._pattern = pattern
         self._alloc = alloc
@@ -127,6 +128,9 @@ class ProfileTrial:
                 tsize = os.path.getsize(target)
                 if nbytes == 0 or tsize < nbytes:
                     nbytes = tsize
+                # If the offset is beyond the tsize, set it to 0
+                if tsize < self._offset:
+                    self._offset = 0
             
         # Enable dio if requested
         dio = ''
@@ -153,6 +157,11 @@ class ProfileTrial:
             pattern = ['-seek', 'random', '-seek',
                        'range', str(srange)]
 
+        # Configure the offset prior to size calcuations
+        restartOffset = []
+        if self._offset > 0:
+            restartOffset = ['-restart', 'offset', str(self._offset)]
+            
         # Configure ordering
         if 'loose' == self._ordering:
             order = '-looseordering'
@@ -160,7 +169,7 @@ class ProfileTrial:
             order = '-serialordering'
         else:
             order = '-noordering'
-        
+
         # Enable allocation
         alloc = ''
         if 'pre' == self._alloc:
@@ -179,6 +188,7 @@ class ProfileTrial:
         cmd.extend(pattern)
         cmd.extend(alloc)
         cmd.extend(['-bytes', nb])
+        cmd.extend(restartOffset)
         cmd.extend(['-timelimit', tl])
         cmd.extend(['-output', logfile])
         cmd.extend(['-stoponerror'])

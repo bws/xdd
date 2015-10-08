@@ -18,7 +18,6 @@ import sys
 #
 # Python packages supplied and needed by xdd
 #
-import paramiko
 import Pyro4
 from xdd.core import XDDError
 from xdd.constants import XDD_PYRO_URI_DELIMITER, XDD_PYTHONPATH
@@ -45,7 +44,9 @@ class FlowBuilderTransportForwardingHandler(SocketServer.BaseRequestHandler):
     passes traffic over the tunnel as it is received
     """
     def handle(self):
-
+        # This method requires paramiko
+        import paramiko
+        
         # Determine the SSH transport, remote hostname, and remote port
         sshTransport = self.server.transport
         remoteAddr = self.server.remoteAddr
@@ -95,6 +96,9 @@ class FlowBuilderTransport:
     """
     def __init__(self, host, hostname, user=None):
         """Constructor"""
+        # This method requires paramiko
+        import paramiko
+
         # Start the remote service
         (ssh, uri) = self.createRemoteServer(host, hostname, user)
         self.host = host

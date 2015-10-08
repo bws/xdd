@@ -164,67 +164,91 @@ class Profiler:
         self.writeHeader(self._rlog)
 
         # Profile storage
-        for r in self._pp.reqsizes:
-            for t in self._pp.qdepths:
-                for d in self._pp.dios:
-                    for o in self._pp.orders:
-                        for p in self._pp.patterns:
-                            for a in self._pp.allocs:
-                                for n in range(0, self._trials):
-                                    targetBase = self._xddTargetPrefix + '-'
-                                    targetBase += str(r) + '-'
-                                    targetBase += str(t) + '-'
-                                    targetBase += str(d) + '-'
-                                    targetBase += str(o) + '-'
-                                    targetBase += str(p) + '-'
-                                    targetBase += str(a) + '-' + str(n)
-                                    target = targetBase + '.dat'
-                                    pt = ProfileTrial(volumes=self._volumes,
-                                                      target=target, reqsize=r,
-                                                      qdepth=t, dio=d,
-                                                      order=o, pattern=p,
-                                                      alloc=a,
-                                                      tlimit=self._tlimit,
-                                                      nbytes=self._nbytes)
+        for rs in self._pp.getReqSizes():
+            for qd in self._pp.getQueueDepths():
+                for dio in self._pp.getDios():
+                    for order in self._pp.getOrders():
+                        for pattern in self._pp.getPatterns():
+                            for alloc in self._pp.getAllocs():
+                                for off in self._pp.getOffsets():
+                                    # If the personality, specifies a target, use it
+                                    # otherwise create a target here
+                                    target = self._pp.getTarget()
+                                    if target is None:
+                                        targetBase = self._xddTargetPrefix + '-'
+                                        targetBase += str(rs) + '-'
+                                        targetBase += str(qd) + '-'
+                                        targetBase += str(dio) + '-'
+                                        targetBase += str(order) + '-'
+                                        targetBase += str(pattern) + '-'
+                                        targetBase += str(alloc) + '-'
+                                        targetBase += str(off) + '-'
+                                        target = targetBase + '.dat'
+                                    else:
+                                        # Also need to use an empty volume
+                                        self._volumes = ['']
+                                        
+                                    # Run the trials for the construct target
+                                    for op in self._pp.getOpTypes():
+                                        for n in range(0, self._trials):
+                                            self.runTrial(target=target,
+                                                          optype=op,
+                                                          reqsize=rs,
+                                                          qdepth=qd,
+                                                          dio=dio,
+                                                          order=order,
+                                                          pattern=pattern,
+                                                          alloc=alloc,
+                                                          trial=n,
+                                                          offset=off)
+                                    # Cleanup only after all operations are complete
+                                    self.postOperation()
 
-                                    time.sleep(self._pause)
-                                    wlog = self._logdir + os.sep + targetBase + '-write.log'
-                                    pt.run(wlog, isWrite=True, removeData=False)
-                                    (tbytes, tops, secs) = pt.result(wlog)
-                                    self.addResult(vols=self._volumes,
-                                                   oper='write',
-                                                   trial=n,
-                                                   target=self._xddTargetPrefix,
-                                                   tlimit=self._tlimit,
-                                                   rsz=r,
-                                                   tcount=t,
-                                                   dio=d,
-                                                   order=o,
-                                                   pattern=p,
-                                                   alloc=a,
-                                                   tbytes=tbytes,
-                                                   tops=tops,
-                                                   secs=secs)
+    def runTrial(self, target, optype, reqsize, qdepth, dio,
+                 order, pattern, alloc, trial, offset):
+        """"""
+        
+        pt = ProfileTrial(volumes=self._volumes,
+                          target=target, reqsize=reqsize,
+                          qdepth=qdepth, dio=dio, offset=offset,
+                          order=order, pattern=pattern,
+                          alloc=alloc,
+                          tlimit=self._tlimit,
+                          nbytes=self._nbytes)
 
-                                    time.sleep(self._pause)
-                                    rlog = self._logdir + os.sep + targetBase + '-read.log'
-                                    pt.run(rlog, isWrite=False, removeData=True)
-                                    (tbytes, tops, secs) = pt.result(rlog)
-                                    self.addResult(vols=self._volumes,
-                                                   oper='read',
-                                                   trial=n,
-                                                   target=self._xddTargetPrefix,
-                                                   tlimit=self._tlimit,
-                                                   rsz=r,
-                                                   tcount=t,
-                                                   dio=d,
-                                                   order=o,
-                                                   pattern=p,
-                                                   alloc=a,
-                                                   tbytes=tbytes,
-                                                   tops=tops,
-                                                   secs=secs)
-                            
+        if 'write' == optype:
+            wlog = self._logdir + os.sep
+            wlog += os.path.basename(target) + '-' + optype + '.log'
+            pt.run(wlog, isWrite=True, removeData=False)
+            result = pt.result(wlog)
+        else:
+            rlog = self._logdir + os.sep
+            rlog += os.path.basename(target) + '-' + optype + '.log'
+            pt.run(rlog, isWrite=False, removeData=False)
+            result = pt.result(rlog)
+            
+        if result:
+            (tbytes, tops, secs) = result
+            self.addResult(vols=self._volumes,
+                           oper=optype,
+                           trial=trial,
+                           target=self._xddTargetPrefix,
+                           tlimit=self._tlimit,
+                           rsz=reqsize,
+                           tcount=qdepth,
+                           dio=dio,
+                           order=order,
+                           pattern=pattern,
+                           alloc=alloc,
+                           tbytes=tbytes,
+                           tops=tops,
+                           secs=secs)
+        else:
+            print('ERROR: Trial run failed')
+
+    def postOperation(self):
+        self.writeResults()
+        
     def wait(self):
         """Wait for profiling trial completion"""
         print('Write performance results logged:', self._wlog)

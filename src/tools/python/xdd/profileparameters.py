@@ -20,19 +20,101 @@ class ProfileParameters(object):
     
     def __init__(self, reqSizes, queueDepths, dios, orders, patterns, allocs):
         """Constructor"""
+        self.target = None
         self.reqsizes = reqSizes
         self.qdepths = queueDepths
         self.dios = dios
+        self.offsets = [0]
+        self.optypes = ['write', 'read']
         self.orders = orders
         self.patterns = patterns
         self.allocs = allocs
+        self.modes = ['w', 'r']
         ProfileParameters._profileParametersDict[self.name()] = self
-
 
     def name(self):
         """Return the name associated with this benchmarking parameter set"""
         return None
 
+    def setDIO(self):
+        """Set profiling to directio only"""
+        self.dios = [ True ]
+        
+    def setQueueDepth(self, qd):
+        """Set the profiling reqsize"""
+        self.qdepths = [ qd ]
+        
+    def setReadOnly(self):
+        """Enable only read profiling"""
+        self.optypes = ['read']
+        
+    def setReadWrite(self):
+        """Enable read and write profiling"""
+        self.optypes = ['write', 'read']
+        
+    def setWriteOnly(self):
+        """Enable only write profiling"""
+        self.optypes = ['write']
+
+    def setOffset(self, offset):
+        """Set the profiling offset"""
+        self.offsets = [ offset ]
+
+    def setOrderLoose(self):
+        """Set the profiling order"""
+        self.orders = [ 'loose' ]
+
+    def setOrderNone(self):
+        """Set the offset"""
+        self.orders = [ 'none' ]
+
+    def setOrderSerial(self):
+        """Set the offset"""
+        self.orders = [ 'serial' ]
+
+    def setReqsize(self, size):
+        """Set the reqsize"""
+        self.reqsizes = [ size ]
+
+    def setTarget(self, path):
+        """Set the personality target"""
+        self.target = path
+        
+    def getAllocs(self):
+        """@return list of request sizes"""
+        return self.allocs
+    
+    def getReqSizes(self):
+        """@return list of request sizes"""
+        return self.reqsizes
+    
+    def getQueueDepths(self):
+        """@return list of queue depths"""
+        return self.qdepths
+    
+    def getDios(self):
+        """@return list of dio settings"""
+        return self.dios
+    
+    def getOffsets(self):
+        """@return list of offsets"""
+        return self.offsets
+    
+    def getOpTypes(self):
+        """@return list of operation types"""
+        return self.optypes
+    
+    def getOrders(self):
+        """@return list of order settings"""
+        return self.orders
+    
+    def getPatterns(self):
+        """@return list of order settings"""
+        return self.patterns
+
+    def getTarget(self):
+        return self.target
+    
     @staticmethod
     def create(name):
         return ProfileParameters._profileParametersDict[name]
