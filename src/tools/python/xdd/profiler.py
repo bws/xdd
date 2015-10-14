@@ -202,6 +202,8 @@ class Profiler:
                                                           trial=n,
                                                           offset=off)
                                     # Cleanup only after all operations are complete
+                                    if not self._pp.getKeepFiles():
+                                        os.remove(target)
                                     self.postOperation()
 
     def runTrial(self, target, optype, reqsize, qdepth, dio,

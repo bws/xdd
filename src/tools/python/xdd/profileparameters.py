@@ -21,6 +21,7 @@ class ProfileParameters(object):
     def __init__(self, reqSizes, queueDepths, dios, orders, patterns, allocs):
         """Constructor"""
         self.target = None
+        self.keepfiles = False
         self.reqsizes = reqSizes
         self.qdepths = queueDepths
         self.dios = dios
@@ -39,6 +40,10 @@ class ProfileParameters(object):
     def setDIO(self):
         """Set profiling to directio only"""
         self.dios = [ True ]
+        
+    def setKeepFiles(self, keep):
+        """Set profiling to keep the created files"""
+        self.keepfiles = keep
         
     def setQueueDepth(self, qd):
         """Set the profiling reqsize"""
@@ -81,20 +86,16 @@ class ProfileParameters(object):
         self.target = path
         
     def getAllocs(self):
-        """@return list of request sizes"""
+        """@return list of allocation strategies"""
         return self.allocs
-    
-    def getReqSizes(self):
-        """@return list of request sizes"""
-        return self.reqsizes
-    
-    def getQueueDepths(self):
-        """@return list of queue depths"""
-        return self.qdepths
     
     def getDios(self):
         """@return list of dio settings"""
         return self.dios
+    
+    def getKeepFiles(self):
+        """@return true if profiled files are kept"""
+        return self.keepfiles
     
     def getOffsets(self):
         """@return list of offsets"""
@@ -112,6 +113,14 @@ class ProfileParameters(object):
         """@return list of order settings"""
         return self.patterns
 
+    def getQueueDepths(self):
+        """@return list of queue depths"""
+        return self.qdepths
+    
+    def getReqSizes(self):
+        """@return list of request sizes"""
+        return self.reqsizes
+    
     def getTarget(self):
         return self.target
     

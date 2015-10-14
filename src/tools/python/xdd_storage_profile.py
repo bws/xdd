@@ -60,6 +60,10 @@ def createParser():
     parser.add_option('-g', '--graphical', dest='graphical',
                       action='store_true', default=XDDPROF_GRAPHICAL_DEFAULT,
                       help='produce graphical data')
+    parser.add_option('-k', '--keep', dest='keep', 
+                      action='store_true',
+                      default=False, metavar='N',
+                      help='one of r, w, or rw [Default: rw]')
     parser.add_option('-m', '--mode', dest='mode', 
                       action='store', type='string',
                       default=None, metavar='N',
@@ -105,7 +109,7 @@ def createParser():
                       help='create a log file')
     return parser
 
-def createProfiler(outdir, paths, personality, filemode, mode, directio, order,
+def createProfiler(outdir, paths, personality, filemode, keepfiles, mode, directio, order,
                    reqsize, offset, threads, nbytes, tlimit, numTrials, numSubsamples,
                    resume, verbose):
     """ """
@@ -131,6 +135,8 @@ def createProfiler(outdir, paths, personality, filemode, mode, directio, order,
         pp.setTarget(paths[0])
     if directio:
         pp.setDIO()
+    if keepfiles:
+        pp.setKeepFiles(True)    
 
     if order == 'loose':
         pp.setOrderLoose()
@@ -172,6 +178,7 @@ def profileVolume():
                               personality=opts.personality,
                               filemode=opts.filemode,
                               mode=opts.mode,
+                              keepfiles=opts.keep,
                               nbytes=opts.nbytes,
                               directio=opts.directio,
                               order=opts.order,
