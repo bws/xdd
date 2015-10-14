@@ -109,7 +109,10 @@ class ProfileTrial:
         assert(0 < len(self._volumes))
         targetargs = ['-targets', str(len(self._volumes))]
         for v in self._volumes:
-            target = v + os.sep + self._target
+            if 0 != len(v):
+                target = v + os.sep + self._target
+            else:
+                target = self._target
             targetargs.append(target)
             
         # Set the operation
