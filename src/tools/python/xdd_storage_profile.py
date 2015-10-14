@@ -90,7 +90,7 @@ def createParser():
                       default=XDDPROF_NSAMPLES_DEFAULT, metavar='N',
                       help='number of samples to measure per trial [Default: 1]')
     parser.add_option('-l', '--tlimit', dest='tlimit', 
-                      action='store', type='int',
+                      action='store', type='float',
                       default=XDDPROF_TLIMIT_DEFAULT, metavar='N',
                       help='time limit in seconds for each trial [Default: ' \
                       + str(XDDPROF_TLIMIT_DEFAULT) + ']')
