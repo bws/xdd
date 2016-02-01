@@ -1,0 +1,7 @@
+addFilter("file-contains-buildroot")
+addFilter("incorrect-fsf-address")
+addFilter("devel-file-in-non-devel-package")
+addFilter("no-manual-page-for-binary")
+addFilter("description-shorter-than-summary")
+addFilter("binary-or-shlib-calls-gethostbyname")
+
