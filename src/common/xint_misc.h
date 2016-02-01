@@ -24,9 +24,6 @@
 //#define private static
 //#define reg register
 
-/* Boolean definition */
-typedef enum {false = 0, true} bool;
-
 /* Define Base10 numeric constants */
 #define ONE   		1LL 			/**< 10^0, as opposed to 2^0 */
 #define THOUSAND 	1000LL 			/**< 10^3, as opposed to 2^10 */

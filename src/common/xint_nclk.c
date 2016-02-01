@@ -20,6 +20,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <sys/time.h>
 #include "xint_nclk.h" /* nclk_t, prototype compatibility */
 
