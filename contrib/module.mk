@@ -71,9 +71,10 @@ ecdsa: contrib/site-packages/ecdsa
 ifneq ($(ECDSA_DIST),)
 endif
 
-install_ecdsa: contrib/site-packages/ecdsa
+contrib/module.mkinstall_ecdsa: contrib/site-packages/ecdsa
 ifneq ($(ECDSA_DIST),)
-	$(CPR) $< $(INSTALL_DIR)/site-packages
+	$(INSTALL) -d $(PYTHON_SITE_DIR)
+	$(CPR) $< $(PYTHON_SITE_DIR)
 endif
 
 clean_ecdsa:
@@ -107,7 +108,8 @@ endif
 paramiko: contrib/site-packages/paramiko
 
 install_paramiko: contrib/site-packages/paramiko
-	$(CPR) $< $(INSTALL_DIR)/site-packages
+	$(INSTALL) -d $(PYTHON_SITE_DIR)
+	$(CPR) $< $(PYTHON_SITE_DIR)
 
 clean_paramiko:
 	@echo "Cleaning the paramiko site package"
@@ -144,7 +146,8 @@ endif
 
 install_pycrypto: contrib/site-packages/Crypto
 ifneq ($(PYCRYPTO_DIST),)
-	$(CPR) $< $(INSTALL_DIR)/site-packages
+	$(INSTALL) -d $(PYTHON_SITE_DIR)
+	$(CPR) $< $(PYTHON_SITE_DIR)
 endif
 
 clean_pycrypto:
@@ -171,7 +174,8 @@ contrib/site-packages/Pyro4: contrib/Pyro4
 pyro4: contrib/site-packages/serpent.py contrib/site-packages/Pyro4
 
 install_pyro4: contrib/site-packages/Pyro4
-	$(CPR) $< $(INSTALL_DIR)/site-packages
+	$(INSTALL) -d $(PYTHON_SITE_DIR)
+	$(CPR) $< $(PYTHON_SITE_DIR)
 
 clean_pyro4:
 	@echo "Cleaning the Pyro4 site package"
@@ -198,8 +202,9 @@ contrib/site-packages/serpent.pyc: contrib/site-packages/serpent.py
 serpent: contrib/site-packages/serpent.pyc
 
 install_serpent: contrib/site-packages/serpent.py contrib/site-packages/serpent.pyc
-	$(INSTALL) -c -m 644 contrib/site-packages/serpent.py $(INSTALL_DIR)/site-packages/serpent.py
-	$(INSTALL) -c -m 644 contrib/site-packages/serpent.pyc $(INSTALL_DIR)/site-packages/serpent.pyc
+	$(INSTALL) -d $(PYTHON_SITE_DIR)
+	$(INSTALL) -c -m 644 contrib/site-packages/serpent.py $(PYTHON_SITE_DIR)/serpent.py
+	$(INSTALL) -c -m 644 contrib/site-packages/serpent.pyc $(PYTHON_SITE_DIR)/serpent.pyc
 
 clean_serpent:
 	@echo "Cleaning the serpent site package"

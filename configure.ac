@@ -282,14 +282,13 @@ AC_ARG_ENABLE([numa],
               [enable_numa="$enableval"],
               [enable_numa=yes])
 if test "$enable_numa" = "yes" ; then
-    AC_DEFINE(HAVE_ENABLE_NUMA)
     AC_SEARCH_LIBS([numa_node_to_cpus], [numa], 
                    AC_DEFINE(HAVE_NUMA_NODE_TO_CPUS),
-                   AC_MSG_ERROR([Function numa_node_to_cpus not found.  Use --disable-numa]))
+                   AC_MSG_WARN([Function numa_node_to_cpus not found.  Use --disable-numa]))
 
     AC_SEARCH_LIBS([numa_allocate_cpumask], [numa], 
                    AC_DEFINE(HAVE_NUMA_ALLOCATE_CPUMASK),
-                   AC_MSG_ERROR([Function numa_allocate_cpumask not found.  Use --disable-numa.]))
+                   AC_MSG_WARN([Function numa_allocate_cpumask not found.  Use --disable-numa.]))
 fi
 
 dnl
@@ -315,11 +314,10 @@ AC_ARG_ENABLE([ib],
               [enable_ib="$enableval"], 
               [enable_ib=yes])
 if test "x$enable_ib" = "xyes" ; then
-    AC_DEFINE(HAVE_ENABLE_IB)
-    AC_CHECK_HEADERS([infiniband/verbs.h])
+    AC_CHECK_HEADERS([infiniband/verbs.h], [], [])
     AC_SEARCH_LIBS([ibv_get_device_list], [ibverbs],
                    AC_DEFINE(HAVE_IBV_GET_DEVICE_LIST), 
-                   AC_MSG_ERROR([Function ibv_get_device_list not found.  Use --disable-ib.]))
+                   AC_MSG_WARN([Function ibv_get_device_list not found.  Use --disable-ib.]))
 fi
 
 dnl
@@ -352,6 +350,16 @@ if test "$enable_xfs" = "yes" ; then
                     #include <xfs/libxfs.h>
                     #endif])
 fi
+
+AC_CHECK_HEADERS([xfs/libxfs.h],
+		 AC_CHECK_DECLS([LIBXFS], [], [],
+                                [[#include <xfs/libxfs]]),
+                 [])
+
+AC_CHECK_HEADERS([xfs/xfs.h],
+		 AC_CHECK_DECLS([XFS], [], [],
+                                [[#include <xfs/xfs]]),
+                 [])
 
 dnl
 dnl Check for Linux Magic numbers
