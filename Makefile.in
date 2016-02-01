@@ -44,6 +44,8 @@ PYCRYPTO_DIST := @PYCRYPTO_DIST@
 XDDCP_ENABLED := @XDDCP_ENABLED@
 XDDMCP_ENABLED := @XDDMCP_ENABLED@
 
+PYTHON_SITE_DIR := $(INSTALL_DIR)/lib/@PYTHON_LIB@/site-packages
+
 #
 # Configuration
 #
@@ -274,11 +276,6 @@ bin/xdd-lite: $(XDD_LITE_EXE_OBJS) $(LIB_DIR)/libxdd.a
 #
 # Build rules for installation
 #
-install_pre:
-	$(INSTALL) -d $(INSTALL_DIR)/bin
-	$(INSTALL) -d $(INSTALL_DIR)/etc
-	$(INSTALL) -d $(INSTALL_DIR)/lib
-	$(INSTALL) -d $(INSTALL_DIR)/site-packages
 
 fastinstall: all
 	$(RM) /sbin/xdd
@@ -289,16 +286,18 @@ fastinstall: all
 	cp bin/xdd-gettime /sbin
 	cp bin/xdd-read-tsdumps /sbin
 
-install_libs: install_pre
-	$(INSTALL) -c -m 755 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
+install_libs:
+	$(INSTALL) -c -m 644 $(LIB_DIR)/libxdd.a $(INSTALL_DIR)/lib/libxdd.a
 
-install_site_packages: install_pre install_contrib_site-packages
-	$(CPR) $(TOOLS_DIR)/python/xdd $(INSTALL_DIR)/site-packages
-	$(INSTALL) -c -m 644 $(TOOLS_DIR)/python/xdd_file_transfer.py $(INSTALL_DIR)/site-packages
-	$(INSTALL) -c -m 644 $(TOOLS_DIR)/python/xdd_storage_profile.py $(INSTALL_DIR)/site-packages
-	$(PYC) -q $(INSTALL_DIR)/site-packages
+install_site_packages: install_contrib_site-packages
+	$(INSTALL) -d $(PYTHON_SITE_DIR)
+# This is probably not the righ location for these scripts
+	$(INSTALL) -c -m 755 $(TOOLS_DIR)/python/xdd_file_transfer.py $(PYTHON_SITE_DIR)
+	$(INSTALL) -c -m 755 $(TOOLS_DIR)/python/xdd_storage_profile.py $(PYTHON_SITE_DIR)
+	$(CPR) $(TOOLS_DIR)/python/xdd $(PYTHON_SITE_DIR)
+	$(PYC) -q $(PYTHON_SITE_DIR)
 
-install_tools: install_pre install_site_packages
+install_tools: install_site_packages
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddcp/xddcp $(INSTALL_DIR)/bin/xddcp
 	$(INSTALL) -c -m 755 $(TOOLS_DIR)/xddft/xddft $(INSTALL_DIR)/bin/xddft
 ifeq ($(XDDMCP_ENABLED), true)
@@ -312,12 +311,12 @@ endif
 	$(INSTALL) -c -m 755 bin/xdd-gethostip $(INSTALL_DIR)/bin/xdd-gethostip
 	$(INSTALL) -c -m 755 bin/xdd-truncate $(INSTALL_DIR)/bin/xdd-truncate
 
-install_xdd: install_pre
+install_xdd:
 	$(INSTALL) -c -m 755 bin/xdd $(INSTALL_DIR)/bin/xdd
 
-install: all install_pre install_xdd install_libs install_tools
+install: all install_xdd install_libs install_tools
 
-.PHONY: install install_pre install_libs install_site_packages install_tools install_xdd
+.PHONY: install install_libs install_site_packages install_tools install_xdd
 
 #
 # Miscellaneous build rules

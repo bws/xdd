@@ -17,7 +17,7 @@
 #include "xdd_base_version.h"
 #if WIN32
 #include "xint_win32.h"
-#elif LINUX
+#elif defined(LINUX)
 #include "xint_linux.h"
 #elif DARWIN
 #include "xint_darwin.h"
